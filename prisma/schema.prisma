@@ -1,0 +1,556 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model - Discord users
+model User {
+  id            String   @id // Discord user ID
+  username      String
+  discriminator String
+  avatar        String?
+  pubgUsername  String?
+  pubgPlatform  String?  // steam, xbox, psn, stadia
+  isVerified    Boolean  @default(false)
+  level         Int      @default(1)
+  xp            Int      @default(0)
+  totalXp       Int      @default(0)
+  coins         Int      @default(0)
+  dailyStreak   Int      @default(0)
+  weeklyStreak  Int      @default(0)
+  monthlyStreak Int      @default(0)
+  lastDaily     DateTime?
+  lastWeekly    DateTime?
+  lastMonthly   DateTime?
+  language      String   @default("pt-BR")
+  timezone      String   @default("America/Sao_Paulo")
+  notifications Boolean  @default(true)
+  privacy       String   @default("public") // public, friends, private
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  guilds        UserGuild[]
+  badges        UserBadge[]
+  achievements  UserAchievement[]
+  stats         UserStats?
+  presences     Presence[]
+  tickets       Ticket[]
+  quizResults   QuizResult[]
+  gameResults   GameResult[]
+  clips         Clip[]
+  clipVotes     ClipVote[]
+  transactions  Transaction[]
+  auditLogs     AuditLog[]
+  pubgStats     PUBGStats[]
+  rankingSnapshots RankingSnapshot[]
+
+  @@map("users")
+}
+
+// Guild model - Discord servers
+model Guild {
+  id                    String   @id // Discord guild ID
+  name                  String
+  icon                  String?
+  ownerId               String
+  prefix                String   @default("!")
+  language              String   @default("pt-BR")
+  timezone              String   @default("America/Sao_Paulo")
+  welcomeChannelId      String?
+  logChannelId          String?
+  moderationChannelId   String?
+  musicChannelId        String?
+  rankingChannelId      String?
+  announcementChannelId String?
+  autoRoles             String[] // Array of role IDs
+  disabledCommands      String[] // Array of command names
+  features              Json     @default("{}")
+  permissions           Json     @default("{}")
+  limits                Json     @default("{}")
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  config        GuildConfig?
+  users         UserGuild[]
+  teams         Team[]
+  matches       Match[]
+  musicQueue    MusicQueue[]
+  quizzes       Quiz[]
+  challenges    Challenge[]
+  clips         Clip[]
+  tickets       Ticket[]
+  auditLogs     AuditLog[]
+  rankingSnapshots RankingSnapshot[]
+
+  @@map("guilds")
+}
+
+// Guild configuration
+model GuildConfig {
+  id      String @id @default(cuid())
+  guildId String @unique
+  config  Json   @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@map("guild_configs")
+}
+
+// User-Guild relationship (for multi-server support)
+model UserGuild {
+  id       String @id @default(cuid())
+  userId   String
+  guildId  String
+  nickname String?
+  joinedAt DateTime @default(now())
+  leftAt   DateTime?
+  isActive Boolean  @default(true)
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, guildId])
+  @@map("user_guilds")
+}
+
+// User statistics
+model UserStats {
+  id              String @id @default(cuid())
+  userId          String @unique
+  commandsUsed    Int    @default(0)
+  messagesCount   Int    @default(0)
+  voiceTime       Int    @default(0) // in seconds
+  gamesPlayed     Int    @default(0)
+  quizzesCompleted Int   @default(0)
+  clipsUploaded   Int    @default(0)
+  checkIns        Int    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_stats")
+}
+
+// PUBG Statistics
+model PUBGStats {
+  id            String   @id @default(cuid())
+  userId        String
+  playerId      String   // PUBG Player ID
+  playerName    String
+  platform      String
+  seasonId      String
+  gameMode      String
+  currentTier   String?
+  currentSubTier String?
+  currentRankPoint Int   @default(0)
+  bestTier      String?
+  bestSubTier   String?
+  bestRankPoint Int      @default(0)
+  roundsPlayed  Int      @default(0)
+  wins          Int      @default(0)
+  top10s        Int      @default(0)
+  kills         Int      @default(0)
+  deaths        Int      @default(0)
+  assists       Int      @default(0)
+  damageDealt   Float    @default(0)
+  headshotKills Int      @default(0)
+  longestKill   Float    @default(0)
+  rideDistance  Float    @default(0)
+  walkDistance  Float    @default(0)
+  weaponsAcquired Int    @default(0)
+  boosts        Int      @default(0)
+  heals         Int      @default(0)
+  revives       Int      @default(0)
+  teamKills     Int      @default(0)
+  timeSurvived  Float    @default(0)
+  lastUpdated   DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, seasonId, gameMode])
+  @@map("pubg_stats")
+}
+
+// Teams
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  guildId     String
+  leaderId    String
+  members     String[] // Array of user IDs
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  guild   Guild   @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  matches Match[]
+
+  @@map("teams")
+}
+
+// Matches/Scrims
+model Match {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  guildId     String
+  teamId      String?
+  mapName     String?
+  gameMode    String?
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  endedAt     DateTime?
+  status      String   @default("scheduled") // scheduled, ongoing, completed, cancelled
+  results     Json?    // Match results data
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  team  Team? @relation(fields: [teamId], references: [id])
+
+  @@map("matches")
+}
+
+// Ranking snapshots for historical data
+model RankingSnapshot {
+  id        String   @id @default(cuid())
+  userId    String
+  guildId   String
+  type      String   // pubg, internal, kills, wins, etc.
+  period    String   // daily, weekly, monthly, all_time
+  rank      Int
+  value     Float    // The ranking value (kills, wins, xp, etc.)
+  metadata  Json?    // Additional data
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, guildId, type, period, date])
+  @@map("ranking_snapshots")
+}
+
+// Presence/Check-in system
+model Presence {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // checkin, checkout
+  timestamp DateTime @default(now())
+  metadata  Json?    // Additional data like location, device, etc.
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("presences")
+}
+
+// Support tickets
+model Ticket {
+  id          String   @id @default(cuid())
+  userId      String
+  guildId     String
+  channelId   String?
+  title       String
+  description String
+  status      String   @default("open") // open, in_progress, closed
+  priority    String   @default("medium") // low, medium, high, urgent
+  assignedTo  String?
+  tags        String[]
+  metadata    Json?    // Additional data
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@map("tickets")
+}
+
+// Music queue
+model MusicQueue {
+  id          String   @id @default(cuid())
+  guildId     String
+  channelId   String
+  title       String
+  url         String
+  duration    Int?     // in seconds
+  thumbnail   String?
+  requestedBy String
+  position    Int
+  isPlaying   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@map("music_queue")
+}
+
+// Quizzes
+model Quiz {
+  id          String   @id @default(cuid())
+  guildId     String
+  title       String
+  description String?
+  questions   Json     // Array of questions with options and correct answers
+  difficulty  String   @default("medium") // easy, medium, hard
+  category    String   @default("general")
+  timeLimit   Int?     // in seconds
+  maxAttempts Int      @default(1)
+  rewards     Json?    // XP, coins, badges rewards
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  guild   Guild        @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  results QuizResult[]
+
+  @@map("quizzes")
+}
+
+// Quiz results
+model QuizResult {
+  id          String   @id @default(cuid())
+  userId      String
+  quizId      String
+  score       Int      // Number of correct answers
+  totalQuestions Int
+  timeSpent   Int?     // in seconds
+  answers     Json     // User's answers
+  completedAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, quizId])
+  @@map("quiz_results")
+}
+
+// Challenges/Mini-games
+model Challenge {
+  id          String   @id @default(cuid())
+  guildId     String
+  name        String
+  description String
+  type        String   // daily, weekly, monthly, special
+  gameType    String   // trivia, reaction, math, word, etc.
+  difficulty  String   @default("medium")
+  requirements Json?   // Requirements to participate
+  rewards     Json?    // Rewards for completion
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(true)
+  metadata    Json?    // Game-specific data
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  guild   Guild        @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  results GameResult[]
+
+  @@map("challenges")
+}
+
+// Game results
+model GameResult {
+  id          String   @id @default(cuid())
+  userId      String
+  challengeId String
+  score       Int
+  timeSpent   Int?     // in seconds
+  data        Json?    // Game-specific result data
+  completedAt DateTime @default(now())
+
+  // Relations
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@map("game_results")
+}
+
+// Clips/Highlights
+model Clip {
+  id          String   @id @default(cuid())
+  userId      String
+  guildId     String
+  title       String
+  description String?
+  url         String
+  thumbnail   String?
+  duration    Int?     // in seconds
+  fileSize    Int?     // in bytes
+  gameType    String?  // pubg, valorant, etc.
+  tags        String[]
+  views       Int      @default(0)
+  likes       Int      @default(0)
+  dislikes    Int      @default(0)
+  isApproved  Boolean  @default(false)
+  isFeatured  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guild Guild      @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  votes ClipVote[]
+
+  @@map("clips")
+}
+
+// Clip votes
+model ClipVote {
+  id     String  @id @default(cuid())
+  userId String
+  clipId String
+  type   String  // like, dislike
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clip Clip @relation(fields: [clipId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clipId])
+  @@map("clip_votes")
+}
+
+// Badges
+model Badge {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String
+  icon        String   // URL or emoji
+  color       String?  // Hex color
+  rarity      String   @default("common") // common, uncommon, rare, epic, legendary
+  category    String   @default("general")
+  requirements Json?   // Requirements to earn the badge
+  isActive    Boolean  @default(true)
+  isSecret    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userBadges UserBadge[]
+
+  @@map("badges")
+}
+
+// User badges (many-to-many)
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String
+  badgeId   String
+  earnedAt  DateTime @default(now())
+  metadata  Json?    // Additional data about how it was earned
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+// Achievements
+model Achievement {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String
+  icon        String
+  category    String   @default("general")
+  points      Int      @default(0)
+  requirements Json?   // Requirements to unlock
+  rewards     Json?    // Rewards for unlocking
+  isSecret    Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+// User achievements (many-to-many)
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  progress      Int      @default(0)
+  maxProgress   Int      @default(100)
+  isCompleted   Boolean  @default(false)
+  completedAt   DateTime?
+  metadata      Json?    // Progress tracking data
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+// Economy transactions
+model Transaction {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // earn, spend, transfer, admin
+  amount      Int
+  balance     Int      // Balance after transaction
+  reason      String
+  metadata    Json?    // Additional transaction data
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("transactions")
+}
+
+// Audit logs
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  guildId   String?
+  action    String
+  target    String?
+  reason    String?
+  metadata  Json?    // Additional log data
+  createdAt DateTime @default(now())
+
+  // Relations
+  user  User?  @relation(fields: [userId], references: [id])
+  guild Guild? @relation(fields: [guildId], references: [id])
+
+  @@map("audit_logs")
+}
