@@ -214,7 +214,9 @@ export class CacheService {
     try {
       const values = await this.client.mGet(keys);
       return values.map(value => {
-        if (value === null) return null;
+        if (value === null) {
+          return null;
+        }
         try {
           return JSON.parse(value) as T;
         } catch {
@@ -243,7 +245,7 @@ export class CacheService {
       // Set TTL for all keys if specified
       if (ttl) {
         const promises = Object.keys(keyValuePairs).map(key => 
-          this.client.expire(key, ttl)
+          this.client.expire(key, ttl),
         );
         await Promise.all(promises);
       }
@@ -271,7 +273,9 @@ export class CacheService {
   public async clearPattern(pattern: string): Promise<number> {
     try {
       const keys = await this.keys(pattern);
-      if (keys.length === 0) return 0;
+      if (keys.length === 0) {
+        return 0;
+      }
       
       const result = await this.client.del(keys);
       this.logger.info(`Cleared ${result} cache keys matching pattern: ${pattern}`);
@@ -328,8 +332,12 @@ export class CacheService {
       const hitsMatch = info.match(/keyspace_hits:(\d+)/);
       const missesMatch = info.match(/keyspace_misses:(\d+)/);
       
-      if (hitsMatch && hitsMatch[1]) stats.hits = hitsMatch[1];
-      if (missesMatch && missesMatch[1]) stats.misses = missesMatch[1];
+      if (hitsMatch && hitsMatch[1]) {
+        stats.hits = hitsMatch[1];
+      }
+      if (missesMatch && missesMatch[1]) {
+        stats.misses = missesMatch[1];
+      }
 
       // Calculate hit rate
       const hits = parseInt(stats.hits);

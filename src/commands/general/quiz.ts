@@ -20,8 +20,8 @@ const quiz: Command = {
           { name: '🎮 PUBG', value: 'pubg' },
           { name: '🎯 Gaming Geral', value: 'gaming' },
           { name: '🏆 Esports', value: 'esports' },
-          { name: '🎲 Misto', value: 'mixed' }
-        )
+          { name: '🎲 Misto', value: 'mixed' },
+        ),
     )
     .addStringOption(option =>
       option.setName('difficulty')
@@ -31,22 +31,22 @@ const quiz: Command = {
           { name: '🟢 Fácil', value: 'easy' },
           { name: '🟡 Médio', value: 'medium' },
           { name: '🔴 Difícil', value: 'hard' },
-          { name: '🌈 Misto', value: 'mixed' }
-        )
+          { name: '🌈 Misto', value: 'mixed' },
+        ),
     )
     .addIntegerOption(option =>
       option.setName('questions')
         .setDescription('Número de perguntas (5-20)')
         .setRequired(false)
         .setMinValue(5)
-        .setMaxValue(20)
+        .setMaxValue(20),
     )
     .addIntegerOption(option =>
       option.setName('time')
         .setDescription('Tempo por pergunta em segundos (15-120)')
         .setRequired(false)
         .setMinValue(15)
-        .setMaxValue(120)
+        .setMaxValue(120),
     ) as SlashCommandBuilder,
   
   category: CommandCategory.GENERAL,
@@ -66,7 +66,7 @@ const quiz: Command = {
 
       // Check if user is registered
       const user = await database.client.user.findUnique({
-        where: { id: interaction.user.id }
+        where: { id: interaction.user.id },
       });
 
       if (!user) {
@@ -98,7 +98,7 @@ const quiz: Command = {
         category: category as any,
         difficulty: difficulty as any,
         allowMultipleAttempts: false,
-        showCorrectAnswer: true
+        showCorrectAnswer: true,
       };
 
       // Start quiz session
@@ -106,7 +106,7 @@ const quiz: Command = {
         interaction.guildId!,
         interaction.channelId,
         interaction.user.id,
-        settings
+        settings,
       );
 
       // Create initial embed
@@ -117,11 +117,11 @@ const quiz: Command = {
           `**Dificuldade:** ${getDifficultyName(difficulty)}\n` +
           `**Perguntas:** ${questionCount}\n` +
           `**Tempo por pergunta:** ${timePerQuestion}s\n\n` +
-          `🎯 **Como participar:**\n` +
-          `• Clique em "Participar" para entrar no quiz\n` +
-          `• Responda as perguntas usando os botões\n` +
-          `• Ganhe XP e moedas baseado na sua performance!\n\n` +
-          `⏰ O quiz começará em 30 segundos...`
+          '🎯 **Como participar:**\n' +
+          '• Clique em "Participar" para entrar no quiz\n' +
+          '• Responda as perguntas usando os botões\n' +
+          '• Ganhe XP e moedas baseado na sua performance!\n\n' +
+          '⏰ O quiz começará em 30 segundos...',
         )
         .setColor(0x0099ff)
         .setFooter({ text: `Host: ${interaction.user.username}` })
@@ -136,12 +136,12 @@ const quiz: Command = {
           new ButtonBuilder()
             .setCustomId(`quiz_info_${session.id}`)
             .setLabel('ℹ️ Informações')
-            .setStyle(ButtonStyle.Secondary)
+            .setStyle(ButtonStyle.Secondary),
         );
 
       const response = await interaction.reply({
         embeds: [embed],
-        components: [joinButton]
+        components: [joinButton],
       });
 
       // Auto-join the host
@@ -150,7 +150,7 @@ const quiz: Command = {
       // Set up button collector for joining
       const collector = response.createMessageComponentCollector({
         componentType: ComponentType.Button,
-        time: 30000 // 30 seconds to join
+        time: 30000, // 30 seconds to join
       });
 
       collector.on('collect', async (buttonInteraction: any) => {
@@ -158,37 +158,37 @@ const quiz: Command = {
           const joined = gameService.joinQuiz(
             session.id,
             buttonInteraction.user.id,
-            buttonInteraction.user.username
+            buttonInteraction.user.username,
           );
 
           if (joined) {
             await buttonInteraction.reply({
               content: '✅ Você entrou no quiz! Prepare-se para as perguntas.',
-              ephemeral: true
+              ephemeral: true,
             });
           } else {
             await buttonInteraction.reply({
               content: '❌ Não foi possível entrar no quiz. Você já pode estar participando.',
-              ephemeral: true
+              ephemeral: true,
             });
           }
         } else if (buttonInteraction.customId === `quiz_info_${session.id}`) {
           const infoEmbed = new EmbedBuilder()
             .setTitle('ℹ️ Informações do Quiz')
             .setDescription(
-              `**Sistema de Pontuação:**\n` +
-              `• Resposta correta: +pontos base\n` +
-              `• Streak bonus: +25% por resposta consecutiva\n` +
-              `• Tempo bonus: +10% se responder em <50% do tempo\n\n` +
-              `**Recompensas:**\n` +
-              `• 1º lugar: 100 XP + 50 moedas\n` +
-              `• 2º lugar: 75 XP + 35 moedas\n` +
-              `• 3º lugar: 50 XP + 25 moedas\n` +
-              `• Participação: 25 XP + 10 moedas\n\n` +
-              `**Dificuldades:**\n` +
-              `• 🟢 Fácil: 10 pontos\n` +
-              `• 🟡 Médio: 15 pontos\n` +
-              `• 🔴 Difícil: 20 pontos`
+              '**Sistema de Pontuação:**\n' +
+              '• Resposta correta: +pontos base\n' +
+              '• Streak bonus: +25% por resposta consecutiva\n' +
+              '• Tempo bonus: +10% se responder em <50% do tempo\n\n' +
+              '**Recompensas:**\n' +
+              '• 1º lugar: 100 XP + 50 moedas\n' +
+              '• 2º lugar: 75 XP + 35 moedas\n' +
+              '• 3º lugar: 50 XP + 25 moedas\n' +
+              '• Participação: 25 XP + 10 moedas\n\n' +
+              '**Dificuldades:**\n' +
+              '• 🟢 Fácil: 10 pontos\n' +
+              '• 🟡 Médio: 15 pontos\n' +
+              '• 🔴 Difícil: 20 pontos',
             )
             .setColor(0x0099ff)
             .setTimestamp();
@@ -218,7 +218,7 @@ const quiz: Command = {
         await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
       }
     }
-  }
+  },
 };
 
 /**
@@ -227,7 +227,7 @@ const quiz: Command = {
 async function startQuizQuestions(
   interaction: ChatInputCommandInteraction,
   session: any,
-  gameService: GameService
+  gameService: GameService,
 ) {
   const currentQuestion = session.questions[session.currentQuestionIndex];
   
@@ -241,12 +241,12 @@ async function startQuizQuestions(
     .setDescription(
       `**${currentQuestion.question}**\n\n` +
       currentQuestion.options.map((option: string, index: number) => 
-        `${['🅰️', '🅱️', '🅲️', '🅳️'][index]} ${option}`
-      ).join('\n')
+        `${['🅰️', '🅱️', '🅲️', '🅳️'][index]} ${option}`,
+      ).join('\n'),
     )
     .setColor(getDifficultyColor(currentQuestion.difficulty))
     .setFooter({ 
-      text: `⏰ ${currentQuestion.timeLimit}s • 💎 ${currentQuestion.points} pontos • Participantes: ${session.participants.size}` 
+      text: `⏰ ${currentQuestion.timeLimit}s • 💎 ${currentQuestion.points} pontos • Participantes: ${session.participants.size}`, 
     })
     .setTimestamp();
 
@@ -256,19 +256,19 @@ async function startQuizQuestions(
         new ButtonBuilder()
           .setCustomId(`quiz_answer_${session.id}_${index}`)
           .setLabel(['🅰️', '🅱️', '🅲️', '🅳️'][index] || `Opção ${index + 1}`)
-          .setStyle(ButtonStyle.Secondary)
-      )
+          .setStyle(ButtonStyle.Secondary),
+      ),
     );
 
   const response = await interaction.editReply({
     embeds: [embed],
-    components: [answerButtons]
+    components: [answerButtons],
   });
 
   // Set up answer collector
   const collector = response.createMessageComponentCollector({
     componentType: ComponentType.Button,
-    time: currentQuestion.timeLimit * 1000
+    time: currentQuestion.timeLimit * 1000,
   });
 
   const answeredUsers = new Set<string>();
@@ -277,7 +277,7 @@ async function startQuizQuestions(
     if (answeredUsers.has(buttonInteraction.user.id)) {
       await buttonInteraction.reply({
         content: '❌ Você já respondeu esta pergunta!',
-        ephemeral: true
+        ephemeral: true,
       });
       return;
     }
@@ -286,7 +286,7 @@ async function startQuizQuestions(
     const result = await gameService.submitQuizAnswer(
       session.id,
       buttonInteraction.user.id,
-      answerIndex
+      answerIndex,
     );
 
     if (result) {
@@ -297,7 +297,7 @@ async function startQuizQuestions(
       
       await buttonInteraction.reply({
         content: `${emoji} ${result.correct ? 'Correto' : 'Incorreto'}! +${result.points} pontos${streakText}`,
-        ephemeral: true
+        ephemeral: true,
       });
     }
   });
@@ -308,14 +308,14 @@ async function startQuizQuestions(
       .setTitle('✅ Resposta Correta')
       .setDescription(
         `**${currentQuestion.question}**\n\n` +
-        `**Resposta:** ${['🅰️', '🅱️', '🅲️', '🅳️'][currentQuestion.correctAnswer]} ${currentQuestion.options[currentQuestion.correctAnswer]}`
+        `**Resposta:** ${['🅰️', '🅱️', '🅲️', '🅳️'][currentQuestion.correctAnswer]} ${currentQuestion.options[currentQuestion.correctAnswer]}`,
       )
       .setColor(0x00ff00)
       .setTimestamp();
 
     await interaction.editReply({
       embeds: [correctEmbed],
-      components: []
+      components: [],
     });
 
     // Move to next question after 3 seconds
@@ -332,7 +332,7 @@ async function startQuizQuestions(
 async function endQuiz(
   interaction: ChatInputCommandInteraction,
   session: any,
-  gameService: GameService
+  gameService: GameService,
 ) {
   const results = await gameService.endQuiz(session.id);
   
@@ -361,7 +361,7 @@ async function endQuiz(
         
         return `${medal} **${participant.username}**\n` +
                `📊 ${participant.score} pontos • ✅ ${participant.correctAnswers}/${participant.totalAnswers} (${accuracy}%)`;
-      }).join('\n\n')
+      }).join('\n\n'),
     )
     .setColor(0xffd700)
     .setFooter({ text: `Participantes: ${results.length}` })
@@ -378,7 +378,7 @@ function getCategoryName(category: string): string {
     'pubg': '🎮 PUBG',
     'gaming': '🎯 Gaming Geral',
     'esports': '🏆 Esports',
-    'mixed': '🎲 Misto'
+    'mixed': '🎲 Misto',
   };
   return names[category as keyof typeof names] || '🎲 Misto';
 }
@@ -388,7 +388,7 @@ function getDifficultyName(difficulty: string): string {
     'easy': '🟢 Fácil',
     'medium': '🟡 Médio',
     'hard': '🔴 Difícil',
-    'mixed': '🌈 Misto'
+    'mixed': '🌈 Misto',
   };
   return names[difficulty as keyof typeof names] || '🌈 Misto';
 }
@@ -397,7 +397,7 @@ function getDifficultyColor(difficulty: string): number {
   const colors = {
     'easy': 0x00ff00,
     'medium': 0xffa500,
-    'hard': 0xff0000
+    'hard': 0xff0000,
   };
   return colors[difficulty as keyof typeof colors] || 0x0099ff;
 }

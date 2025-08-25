@@ -20,8 +20,8 @@ const daily: Command = {
           { name: '🎁 Resgatar Recompensa', value: 'claim' },
           { name: '📊 Ver Streak', value: 'streak' },
           { name: '🏆 Ranking de Streaks', value: 'leaderboard' },
-          { name: '📅 Calendário Mensal', value: 'calendar' }
-        )
+          { name: '📅 Calendário Mensal', value: 'calendar' },
+        ),
     ) as SlashCommandBuilder,
   
   category: CommandCategory.GENERAL,
@@ -37,8 +37,8 @@ const daily: Command = {
       const user = await database.client.user.findUnique({
         where: { id: interaction.user.id },
         include: {
-          stats: true
-        }
+          stats: true,
+        },
       });
 
       if (!user) {
@@ -54,20 +54,20 @@ const daily: Command = {
       const action = interaction.options.getString('action') || 'claim';
 
       switch (action) {
-        case 'claim':
-          await claimDailyReward(interaction, database, badgeService, user);
-          break;
-        case 'streak':
-          await showStreakInfo(interaction, database, user);
-          break;
-        case 'leaderboard':
-          await showStreakLeaderboard(interaction, database);
-          break;
-        case 'calendar':
-          await showMonthlyCalendar(interaction, database, user);
-          break;
-        default:
-          await claimDailyReward(interaction, database, badgeService, user);
+      case 'claim':
+        await claimDailyReward(interaction, database, badgeService, user);
+        break;
+      case 'streak':
+        await showStreakInfo(interaction, database, user);
+        break;
+      case 'leaderboard':
+        await showStreakLeaderboard(interaction, database);
+        break;
+      case 'calendar':
+        await showMonthlyCalendar(interaction, database, user);
+        break;
+      default:
+        await claimDailyReward(interaction, database, badgeService, user);
       }
 
     } catch (error) {
@@ -85,7 +85,7 @@ const daily: Command = {
         await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
       }
     }
-  }
+  },
 };
 
 /**
@@ -95,7 +95,7 @@ async function claimDailyReward(
   interaction: ChatInputCommandInteraction,
   database: DatabaseService,
   badgeService: BadgeService,
-  user: any
+  user: any,
 ) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -113,10 +113,10 @@ async function claimDailyReward(
     const embed = new EmbedBuilder()
       .setTitle('⏰ Recompensa Já Resgatada')
       .setDescription(
-        `Você já resgatou sua recompensa diária hoje!\n\n` +
+        'Você já resgatou sua recompensa diária hoje!\n\n' +
         `**Próxima recompensa em:** ${hoursLeft}h ${minutesLeft}m\n` +
         `**Streak atual:** ${user.dailyStreak} dias\n\n` +
-        `Use \`/daily streak\` para ver detalhes do seu streak!`
+        'Use `/daily streak` para ver detalhes do seu streak!',
       )
       .setColor(0xffa500)
       .setTimestamp();
@@ -130,12 +130,12 @@ async function claimDailyReward(
         new ButtonBuilder()
           .setCustomId('daily_calendar')
           .setLabel('📅 Calendário')
-          .setStyle(ButtonStyle.Secondary)
+          .setStyle(ButtonStyle.Secondary),
       );
 
     const response = await interaction.reply({
       embeds: [embed],
-      components: [actionButtons]
+      components: [actionButtons],
     });
 
     setupButtonCollector(response, interaction, database, user);
@@ -164,7 +164,7 @@ async function claimDailyReward(
   
   const totalReward = {
     xp: Math.floor(baseReward.xp * streakMultiplier) + bonusReward.xp,
-    coins: Math.floor(baseReward.coins * streakMultiplier) + bonusReward.coins
+    coins: Math.floor(baseReward.coins * streakMultiplier) + bonusReward.coins,
   };
 
   // Update user in database
@@ -176,13 +176,13 @@ async function claimDailyReward(
       dailyStreak: newStreak,
       stats: {
         update: {
-          commandsUsed: { increment: 1 }
-        }
-      }
+          commandsUsed: { increment: 1 },
+        },
+      },
     },
     include: {
-      stats: true
-    }
+      stats: true,
+    },
   });
 
   // Check for streak milestones and award badges
@@ -205,23 +205,23 @@ async function claimDailyReward(
   const embed = new EmbedBuilder()
     .setTitle('🎁 Recompensa Diária Resgatada!')
     .setDescription(
-      `**Recompensas recebidas:**\n` +
+      '**Recompensas recebidas:**\n' +
       `⭐ +${totalReward.xp} XP\n` +
       `💰 +${totalReward.coins} moedas\n\n` +
-      `**Streak de Login:**\n` +
+      '**Streak de Login:**\n' +
       `🔥 ${newStreak} dias consecutivos\n` +
       `📈 Multiplicador: ${streakMultiplier.toFixed(1)}x\n\n` +
       (bonusReward.xp > 0 || bonusReward.coins > 0 ? 
-        `**Bônus de Streak:**\n` +
+        '**Bônus de Streak:**\n' +
         `🎊 +${bonusReward.xp} XP bônus\n` +
         `🎊 +${bonusReward.coins} moedas bônus\n\n` : '') +
       (earnedBadges.length > 0 ? 
-        `**🏆 Badges Conquistadas:**\n` +
+        '**🏆 Badges Conquistadas:**\n' +
         earnedBadges.map(badge => `🏅 ${badge}`).join('\n') + '\n\n' : '') +
-      `**Seus Totais:**\n` +
+      '**Seus Totais:**\n' +
       `📊 Level: ${updatedUser.level}\n` +
       `⭐ XP: ${updatedUser.xp.toLocaleString()}\n` +
-      `💰 Moedas: ${updatedUser.coins.toLocaleString()}`
+      `💰 Moedas: ${updatedUser.coins.toLocaleString()}`,
     )
     .setColor(0x00ff00)
     .setFooter({ text: `Volte amanhã para continuar seu streak! • Streak atual: ${newStreak} dias` })
@@ -234,7 +234,7 @@ async function claimDailyReward(
     embed.addFields({
       name: '🎯 Próximo Marco',
       value: `${nextMilestone} dias (faltam ${daysToNext} dias)\n🏅 ${getStreakBadgeName(nextMilestone)}`,
-      inline: true
+      inline: true,
     });
   }
 
@@ -251,12 +251,12 @@ async function claimDailyReward(
       new ButtonBuilder()
         .setCustomId('daily_calendar')
         .setLabel('📅 Calendário')
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Secondary),
     );
 
   const response = await interaction.reply({
     embeds: [embed],
-    components: [actionButtons]
+    components: [actionButtons],
   });
 
   setupButtonCollector(response, interaction, database, updatedUser);
@@ -268,7 +268,7 @@ async function claimDailyReward(
 async function showStreakInfo(
   interaction: any,
   database: DatabaseService,
-  user: any
+  user: any,
 ) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -302,7 +302,7 @@ async function showStreakInfo(
   const nextBonus = getStreakBonus(nextStreak);
   const nextReward = {
     xp: Math.floor(baseReward.xp * nextMultiplier) + nextBonus.xp,
-    coins: Math.floor(baseReward.coins * nextMultiplier) + nextBonus.coins
+    coins: Math.floor(baseReward.coins * nextMultiplier) + nextBonus.coins,
   };
 
   // Find next milestone
@@ -313,32 +313,32 @@ async function showStreakInfo(
   const embed = new EmbedBuilder()
     .setTitle('📊 Informações do Streak Diário')
     .setDescription(
-      `**Status Atual:**\n` +
+      '**Status Atual:**\n' +
       `${streakEmoji} Streak: ${user.dailyStreak} dias\n` +
       `📅 Status: ${streakStatus}\n` +
       (lastClaim ? `🕐 Último resgate: ${lastClaim.toLocaleDateString('pt-BR')}\n` : '') +
       `🎁 Recompensas resgatadas: ${user.stats?.dailyRewardsClaimed || 0}\n\n` +
       
-      `**Próxima Recompensa:**\n` +
+      '**Próxima Recompensa:**\n' +
       `⭐ ${nextReward.xp} XP\n` +
       `💰 ${nextReward.coins} moedas\n` +
       `📈 Multiplicador: ${nextMultiplier.toFixed(1)}x\n\n` +
       
       (nextMilestone ? 
-        `**🎯 Próximo Marco:**\n` +
+        '**🎯 Próximo Marco:**\n' +
         `🏅 ${nextMilestone} dias (faltam ${nextMilestone - user.dailyStreak})\n` +
         `🏆 Recompensa: ${getStreakBadgeName(nextMilestone)}\n\n` : '') +
       
       (previousMilestone ? 
-        `**🏆 Último Marco Alcançado:**\n` +
+        '**🏆 Último Marco Alcançado:**\n' +
         `🏅 ${previousMilestone} dias\n` +
         `🎖️ ${getStreakBadgeName(previousMilestone)}\n\n` : '') +
       
-      `**💡 Dicas:**\n` +
-      `• Resgatar diariamente mantém o streak\n` +
-      `• Multiplicador aumenta até 3x (21 dias)\n` +
-      `• Marcos especiais dão badges exclusivas\n` +
-      `• Streaks maiores = recompensas maiores`
+      '**💡 Dicas:**\n' +
+      '• Resgatar diariamente mantém o streak\n' +
+      '• Multiplicador aumenta até 3x (21 dias)\n' +
+      '• Marcos especiais dão badges exclusivas\n' +
+      '• Streaks maiores = recompensas maiores',
     )
     .setColor(user.dailyStreak >= 7 ? 0x00ff00 : user.dailyStreak >= 3 ? 0xffa500 : 0x0099ff)
     .setTimestamp();
@@ -350,7 +350,7 @@ async function showStreakInfo(
     embed.addFields({
       name: `📈 Progresso para ${nextMilestone} dias`,
       value: `${progressBar} ${progress.toFixed(1)}%`,
-      inline: false
+      inline: false,
     });
   }
 
@@ -363,7 +363,7 @@ async function showStreakInfo(
  */
 async function showStreakLeaderboard(
   interaction: any,
-  database: DatabaseService
+  database: DatabaseService,
 ) {
   const topUsers = await database.client.user.findMany({
     orderBy: { dailyStreak: 'desc' },
@@ -373,10 +373,10 @@ async function showStreakLeaderboard(
       dailyStreak: true,
       stats: {
         select: {
-          commandsUsed: true
-        }
-      }
-    }
+          commandsUsed: true,
+        },
+      },
+    },
   });
 
   if (topUsers.length === 0) {
@@ -422,21 +422,21 @@ async function showStreakLeaderboard(
       } catch (error) {
         return `${index + 1}. **Usuário Desconhecido**\n🔥 ${user.dailyStreak} dias`;
       }
-    })
+    }),
   );
 
   // Find current user position
   const currentUser = await database.client.user.findUnique({
     where: { id: interaction.user.id },
-    select: { dailyStreak: true }
+    select: { dailyStreak: true },
   });
 
   let userPosition = 'N/A';
   if (currentUser) {
     const usersWithHigherStreak = await database.client.user.count({
       where: {
-        dailyStreak: { gt: currentUser.dailyStreak }
-      }
+        dailyStreak: { gt: currentUser.dailyStreak },
+      },
     });
     userPosition = `#${usersWithHigherStreak + 1}`;
   }
@@ -445,11 +445,11 @@ async function showStreakLeaderboard(
     .setTitle('🏆 Ranking de Streaks Diários')
     .setDescription(
       leaderboardText.join('\n\n') +
-      (currentUser ? `\n\n**Sua Posição:** ${userPosition} (${currentUser.dailyStreak} dias)` : '')
+      (currentUser ? `\n\n**Sua Posição:** ${userPosition} (${currentUser.dailyStreak} dias)` : ''),
     )
     .setColor(0xffd700)
     .setFooter({ 
-      text: '🔥 = Ativo • ✅ = Resgatado hoje • 💔 = Quebrado • ❌ = Nunca resgatou' 
+      text: '🔥 = Ativo • ✅ = Resgatado hoje • 💔 = Quebrado • ❌ = Nunca resgatou', 
     })
     .setTimestamp();
 
@@ -463,7 +463,7 @@ async function showStreakLeaderboard(
 async function showMonthlyCalendar(
   interaction: any,
   database: DatabaseService,
-  user: any
+  user: any,
 ) {
   const now = new Date();
   const year = now.getFullYear();
@@ -543,7 +543,7 @@ async function showMonthlyCalendar(
   
   const monthNames = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
   ];
   
   const claimedThisMonth = claimedDays.size;
@@ -554,13 +554,13 @@ async function showMonthlyCalendar(
     .setTitle(`📅 Calendário de Recompensas - ${monthNames[month]} ${year}`)
     .setDescription(
       `\`\`\`\n${calendar.join('\n')}\`\`\`\n\n` +
-      `**Legenda:**\n` +
-      `✅ Resgatado • 🔸 Hoje • ❌ Perdido • ⬜ Futuro\n\n` +
-      `**Estatísticas do Mês:**\n` +
+      '**Legenda:**\n' +
+      '✅ Resgatado • 🔸 Hoje • ❌ Perdido • ⬜ Futuro\n\n' +
+      '**Estatísticas do Mês:**\n' +
       `🎁 Resgates: ${claimedThisMonth}/${possibleDays}\n` +
       `📊 Taxa de conclusão: ${completionRate.toFixed(1)}%\n` +
       `🔥 Streak atual: ${user.dailyStreak} dias\n` +
-      `💰 Moedas ganhas: ~${claimedThisMonth * 100} (estimativa)`
+      `💰 Moedas ganhas: ~${claimedThisMonth * 100} (estimativa)`,
     )
     .setColor(completionRate >= 80 ? 0x00ff00 : completionRate >= 50 ? 0xffa500 : 0xff0000)
     .setTimestamp();
@@ -576,18 +576,18 @@ function setupButtonCollector(
   response: any,
   interaction: ChatInputCommandInteraction,
   database: DatabaseService,
-  user: any
+  user: any,
 ) {
   const collector = response.createMessageComponentCollector({
     componentType: ComponentType.Button,
-    time: 300000 // 5 minutes
+    time: 300000, // 5 minutes
   });
 
   collector.on('collect', async (buttonInteraction: any) => {
     if (buttonInteraction.user.id !== interaction.user.id) {
       await buttonInteraction.reply({
         content: '❌ Apenas quem iniciou o comando pode usar os botões!',
-        ephemeral: true
+        ephemeral: true,
       });
       return;
     }
@@ -595,15 +595,15 @@ function setupButtonCollector(
     await buttonInteraction.deferUpdate();
 
     switch (buttonInteraction.customId) {
-      case 'daily_streak':
-        await showStreakInfo(buttonInteraction, database, user);
-        break;
-      case 'daily_leaderboard':
-        await showStreakLeaderboard(buttonInteraction, database);
-        break;
-      case 'daily_calendar':
-        await showMonthlyCalendar(buttonInteraction, database, user);
-        break;
+    case 'daily_streak':
+      await showStreakInfo(buttonInteraction, database, user);
+      break;
+    case 'daily_leaderboard':
+      await showStreakLeaderboard(buttonInteraction, database);
+      break;
+    case 'daily_calendar':
+      await showMonthlyCalendar(buttonInteraction, database, user);
+      break;
     }
   });
 
@@ -626,7 +626,7 @@ function getStreakBonus(streak: number): { xp: number; coins: number } {
     { days: 30, xp: 200, coins: 500 },
     { days: 60, xp: 300, coins: 750 },
     { days: 100, xp: 500, coins: 1000 },
-    { days: 365, xp: 1000, coins: 2000 }
+    { days: 365, xp: 1000, coins: 2000 },
   ];
 
   const bonus = bonuses.find(b => b.days === streak);
@@ -640,7 +640,7 @@ function getStreakBadgeName(days: number): string {
     30: 'Veterano Mensal',
     60: 'Lenda Bimestral',
     100: 'Mestre da Consistência',
-    365: 'Imortal do Streak'
+    365: 'Imortal do Streak',
   };
   return badges[days] || `Streak de ${days} dias`;
 }

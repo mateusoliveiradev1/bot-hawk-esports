@@ -61,36 +61,36 @@ class HawkEsportsBot {
         GatewayIntentBits.GuildVoiceStates,
         GatewayIntentBits.GuildPresences,
         GatewayIntentBits.MessageContent,
-        GatewayIntentBits.DirectMessages
+        GatewayIntentBits.DirectMessages,
       ],
       partials: [
         Partials.Message,
         Partials.Channel,
         Partials.Reaction,
         Partials.User,
-        Partials.GuildMember
+        Partials.GuildMember,
       ],
       allowedMentions: {
         parse: ['users', 'roles'],
-        repliedUser: false
-      }
+        repliedUser: false,
+      },
     }) as ExtendedClient;
 
     // Initialize command manager
-     this.commands = new CommandManager(this.client);
+    this.commands = new CommandManager(this.client);
     
     this.services = {
-       pubg: new PUBGService(),
-       music: new MusicService(),
-       game: new GameService(this.client),
-       badge: new BadgeService(this.client),
-       ranking: new RankingService(this.client),
-       presence: new PresenceService(this.client),
-       clip: new ClipService(this.client),
-       scheduler: new SchedulerService(this.client),
-       api: new APIService(this.client),
-       onboarding: new OnboardingService(this.client)
-     };
+      pubg: new PUBGService(),
+      music: new MusicService(),
+      game: new GameService(this.client),
+      badge: new BadgeService(this.client),
+      ranking: new RankingService(this.client),
+      presence: new PresenceService(this.client),
+      clip: new ClipService(this.client),
+      scheduler: new SchedulerService(this.client),
+      api: new APIService(this.client),
+      onboarding: new OnboardingService(this.client),
+    };
 
     // Services are available through this.services, this.db, this.cache, and this.commands
   }
@@ -137,7 +137,7 @@ class HawkEsportsBot {
       'DISCORD_TOKEN',
       'DATABASE_URL',
       'REDIS_URL',
-      'PUBG_API_KEY'
+      'PUBG_API_KEY',
     ];
 
     const missing = required.filter(key => !process.env[key]);
@@ -230,7 +230,9 @@ class HawkEsportsBot {
   private setupEventListeners(): void {
     // Ready event
     this.client.once('ready', async () => {
-      if (!this.client.user) return;
+      if (!this.client.user) {
+        return;
+      }
 
       this.logger.info(`🤖 Bot logged in as ${this.client.user.tag}`);
       this.logger.info(`📊 Serving ${this.client.guilds.cache.size} guilds with ${this.client.users.cache.size} users`);
@@ -238,7 +240,7 @@ class HawkEsportsBot {
       // Set bot activity
       this.client.user.setActivity({
         name: 'PUBG matches and managing servers',
-        type: ActivityType.Watching
+        type: ActivityType.Watching,
       });
 
       // Register slash commands
@@ -278,13 +280,13 @@ class HawkEsportsBot {
           where: { id: guild.id },
           update: {
             name: guild.name,
-            ownerId: guild.ownerId
+            ownerId: guild.ownerId,
           },
           create: {
             id: guild.id,
             name: guild.name,
-            ownerId: guild.ownerId
-          }
+            ownerId: guild.ownerId,
+          },
         });
       } catch (error) {
         this.logger.error('Failed to initialize new guild:', error);
@@ -310,7 +312,9 @@ class HawkEsportsBot {
 
     // Message events for activity tracking
     this.client.on('messageCreate', async (message) => {
-      if (message.author.bot || !message.guild) return;
+      if (message.author.bot || !message.guild) {
+        return;
+      }
 
       try {
         // Update user activity - temporarily disabled
@@ -355,7 +359,9 @@ class HawkEsportsBot {
    * Graceful shutdown
    */
   private async shutdown(signal: string): Promise<void> {
-    if (this.isShuttingDown) return;
+    if (this.isShuttingDown) {
+      return;
+    }
     this.isShuttingDown = true;
 
     this.logger.info(`🛑 Received ${signal}, shutting down gracefully...`);

@@ -16,7 +16,7 @@ const register: Command = {
         .setDescription('Seu nick exato no PUBG')
         .setRequired(true)
         .setMinLength(3)
-        .setMaxLength(16)
+        .setMaxLength(16),
     )
     .addStringOption(option =>
       option.setName('platform')
@@ -27,8 +27,8 @@ const register: Command = {
           { name: '🎮 Xbox', value: 'xbox' },
           { name: '🎯 PlayStation', value: 'psn' },
           { name: '📱 Mobile', value: 'mobile' },
-          { name: '🎮 Stadia', value: 'stadia' }
-        )
+          { name: '🎮 Stadia', value: 'stadia' },
+        ),
     )
     .setDMPermission(false) as SlashCommandBuilder,
   
@@ -54,7 +54,7 @@ const register: Command = {
       // Verificar se o usuário já está registrado
       const existingUser = await client.database.client.user.findUnique({
         where: { id: interaction.user.id },
-        include: { pubgStats: true }
+        include: { pubgStats: true },
       });
       
       if (existingUser && existingUser.pubgUsername && existingUser.isVerified) {
@@ -65,7 +65,7 @@ const register: Command = {
           .addFields(
             { name: '🎮 Nick PUBG', value: existingUser.pubgUsername, inline: true },
             { name: '🖥️ Plataforma', value: getPlatformName(existingUser.pubgPlatform as PUBGPlatform), inline: true },
-            { name: '📅 Registrado em', value: `<t:${Math.floor(existingUser.createdAt.getTime() / 1000)}:F>`, inline: false }
+            { name: '📅 Registrado em', value: `<t:${Math.floor(existingUser.createdAt.getTime() / 1000)}:F>`, inline: false },
           )
           .setFooter({ text: 'Use /profile para ver suas estatísticas' });
         
@@ -75,18 +75,18 @@ const register: Command = {
               .setCustomId('update_registration')
               .setLabel('Atualizar Registro')
               .setStyle(ButtonStyle.Primary)
-              .setEmoji('🔄')
+              .setEmoji('🔄'),
           );
         
         const response = await interaction.editReply({
           embeds: [alreadyRegisteredEmbed],
-          components: [updateRow]
+          components: [updateRow],
         });
         
         // Handle update button
         const collector = response.createMessageComponentCollector({
           componentType: ComponentType.Button,
-          time: 60000
+          time: 60000,
         });
         
         collector.on('collect', async (i) => {
@@ -119,7 +119,7 @@ const register: Command = {
             .setDescription(nickValidation.reason!)
             .setColor('#FF0000')
             .addFields(
-              { name: '📝 Formato correto', value: '• 3-16 caracteres\n• Apenas letras, números e underscore\n• Não pode começar ou terminar com underscore', inline: false }
+              { name: '📝 Formato correto', value: '• 3-16 caracteres\n• Apenas letras, números e underscore\n• Não pode começar ou terminar com underscore', inline: false },
             );
           
           await interaction.editReply({ embeds: [errorEmbed], components: [] });
@@ -131,8 +131,8 @@ const register: Command = {
           where: {
             pubgUsername: nick,
             pubgPlatform: platform,
-            id: { not: interaction.user.id }
-          }
+            id: { not: interaction.user.id },
+          },
         });
         
         if (existingNick) {
@@ -141,7 +141,7 @@ const register: Command = {
             .setDescription(`O nick **${nick}** na plataforma **${getPlatformName(platform)}** já está registrado por outro usuário.`)
             .setColor('#FF0000')
             .addFields(
-              { name: '💡 Dica', value: 'Verifique se digitou seu nick corretamente ou se está usando a plataforma correta.', inline: false }
+              { name: '💡 Dica', value: 'Verifique se digitou seu nick corretamente ou se está usando a plataforma correta.', inline: false },
             );
           
           await interaction.editReply({ embeds: [duplicateEmbed], components: [] });
@@ -168,7 +168,7 @@ const register: Command = {
               .setColor('#FF0000')
               .addFields(
                 { name: '🔍 Verifique', value: '• Se o nick está correto\n• Se a plataforma está correta\n• Se o perfil não é privado\n• Se você jogou recentemente', inline: false },
-                { name: '⚠️ Importante', value: 'Seu perfil PUBG deve ser público e você deve ter jogado pelo menos uma partida recentemente.', inline: false }
+                { name: '⚠️ Importante', value: 'Seu perfil PUBG deve ser público e você deve ter jogado pelo menos uma partida recentemente.', inline: false },
               )
               .setFooter({ text: 'Tente novamente após verificar os dados' });
             
@@ -183,17 +183,17 @@ const register: Command = {
                   .setCustomId('manual_verification')
                   .setLabel('Verificação Manual')
                   .setStyle(ButtonStyle.Secondary)
-                  .setEmoji('👤')
+                  .setEmoji('👤'),
               );
             
             const response = await interaction.editReply({
               embeds: [notFoundEmbed],
-              components: [retryRow]
+              components: [retryRow],
             });
             
             const collector = response.createMessageComponentCollector({
               componentType: ComponentType.Button,
-              time: 300000 // 5 minutes
+              time: 300000, // 5 minutes
             });
             
             collector.on('collect', async (i) => {
@@ -221,7 +221,7 @@ const register: Command = {
               pubgUsername: nick,
               pubgPlatform: platform,
               isVerified: true,
-              updatedAt: new Date()
+              updatedAt: new Date(),
             },
             create: {
               id: interaction.user.id,
@@ -229,8 +229,8 @@ const register: Command = {
               discriminator: interaction.user.discriminator,
               pubgUsername: nick,
               pubgPlatform: platform,
-              isVerified: true
-            }
+              isVerified: true,
+            },
           });
           
           // Salvar estatísticas PUBG
@@ -241,49 +241,49 @@ const register: Command = {
             
             if (stats) {
               await client.database.client.pUBGStats.upsert({
-                 where: {
-                   userId_seasonId_gameMode: {
-                     userId: interaction.user.id,
-                     seasonId: 'current',
-                     gameMode: primaryMode as string
-                   }
-                 },
-                 update: {
-                   playerName: playerData.name,
-                   platform: platform,
-                   currentTier: playerData.stats.rankPointTitle || 'Unranked',
-                   currentRankPoint: playerData.stats.bestRankPoint || 0,
-                   bestRankPoint: playerData.stats.bestRankPoint || 0,
-                   roundsPlayed: stats.roundsPlayed,
-                   kills: stats.kills,
-                   assists: stats.assists,
-                   wins: stats.wins,
-                   top10s: stats.top10s,
-                   damageDealt: stats.damageDealt,
-                   longestKill: stats.longestKill,
-                   headshotKills: stats.headshotKills,
-                   updatedAt: new Date()
-                 },
-                 create: {
-                   userId: interaction.user.id,
-                   playerId: playerData.id,
-                   playerName: playerData.name,
-                   platform: platform,
-                   seasonId: 'current',
-                   gameMode: primaryMode as string,
-                   currentTier: playerData.stats.rankPointTitle || 'Unranked',
-                   currentRankPoint: playerData.stats.bestRankPoint || 0,
-                   bestRankPoint: playerData.stats.bestRankPoint || 0,
-                   roundsPlayed: stats.roundsPlayed,
-                   kills: stats.kills,
-                   assists: stats.assists,
-                   wins: stats.wins,
-                   top10s: stats.top10s,
-                   damageDealt: stats.damageDealt,
-                   longestKill: stats.longestKill,
-                   headshotKills: stats.headshotKills
-                 }
-               });
+                where: {
+                  userId_seasonId_gameMode: {
+                    userId: interaction.user.id,
+                    seasonId: 'current',
+                    gameMode: primaryMode as string,
+                  },
+                },
+                update: {
+                  playerName: playerData.name,
+                  platform: platform,
+                  currentTier: playerData.stats.rankPointTitle || 'Unranked',
+                  currentRankPoint: playerData.stats.bestRankPoint || 0,
+                  bestRankPoint: playerData.stats.bestRankPoint || 0,
+                  roundsPlayed: stats.roundsPlayed,
+                  kills: stats.kills,
+                  assists: stats.assists,
+                  wins: stats.wins,
+                  top10s: stats.top10s,
+                  damageDealt: stats.damageDealt,
+                  longestKill: stats.longestKill,
+                  headshotKills: stats.headshotKills,
+                  updatedAt: new Date(),
+                },
+                create: {
+                  userId: interaction.user.id,
+                  playerId: playerData.id,
+                  playerName: playerData.name,
+                  platform: platform,
+                  seasonId: 'current',
+                  gameMode: primaryMode as string,
+                  currentTier: playerData.stats.rankPointTitle || 'Unranked',
+                  currentRankPoint: playerData.stats.bestRankPoint || 0,
+                  bestRankPoint: playerData.stats.bestRankPoint || 0,
+                  roundsPlayed: stats.roundsPlayed,
+                  kills: stats.kills,
+                  assists: stats.assists,
+                  wins: stats.wins,
+                  top10s: stats.top10s,
+                  damageDealt: stats.damageDealt,
+                  longestKill: stats.longestKill,
+                  headshotKills: stats.headshotKills,
+                },
+              });
             }
           }
           
@@ -316,7 +316,7 @@ const register: Command = {
             .addFields(
               { name: '🎮 Nick PUBG', value: nick, inline: true },
               { name: '🖥️ Plataforma', value: getPlatformName(platform), inline: true },
-              { name: '🏆 Rank Atual', value: playerData.stats?.rankPointTitle || 'Não classificado', inline: true }
+              { name: '🏆 Rank Atual', value: playerData.stats?.rankPointTitle || 'Não classificado', inline: true },
             )
             .setThumbnail(interaction.user.displayAvatarURL())
             .setFooter({ text: 'Use /profile para ver suas estatísticas completas' })
@@ -332,7 +332,7 @@ const register: Command = {
               const deaths = stats.roundsPlayed - stats.wins; // Approximate deaths calculation
               successEmbed.addFields(
                 { name: '📊 Estatísticas', value: `**Kills:** ${stats.kills}\n**K/D:** ${deaths > 0 ? (stats.kills / deaths).toFixed(2) : stats.kills.toFixed(2)}\n**Vitórias:** ${stats.wins}\n**Top 10:** ${stats.top10s}`, inline: true },
-                { name: '🎯 Performance', value: `**Dano Médio:** ${Math.round(stats.damageDealt / Math.max(stats.roundsPlayed, 1))}\n**Kill Mais Longo:** ${stats.longestKill}m\n**Headshots:** ${stats.headshotKills}`, inline: true }
+                { name: '🎯 Performance', value: `**Dano Médio:** ${Math.round(stats.damageDealt / Math.max(stats.roundsPlayed, 1))}\n**Kill Mais Longo:** ${stats.longestKill}m\n**Headshots:** ${stats.headshotKills}`, inline: true },
               );
             }
           }
@@ -366,7 +366,7 @@ const register: Command = {
             .setDescription('Ocorreu um erro ao verificar seus dados no PUBG. Você pode tentar novamente ou solicitar verificação manual.')
             .setColor('#FFA500')
             .addFields(
-              { name: '🔧 O que fazer?', value: '• Tente novamente em alguns minutos\n• Verifique se seus dados estão corretos\n• Solicite verificação manual se o problema persistir', inline: false }
+              { name: '🔧 O que fazer?', value: '• Tente novamente em alguns minutos\n• Verifique se seus dados estão corretos\n• Solicite verificação manual se o problema persistir', inline: false },
             );
           
           const errorRow = new ActionRowBuilder<ButtonBuilder>()
@@ -380,12 +380,12 @@ const register: Command = {
                 .setCustomId('manual_verification')
                 .setLabel('Verificação Manual')
                 .setStyle(ButtonStyle.Secondary)
-                .setEmoji('👤')
+                .setEmoji('👤'),
             );
           
           await interaction.editReply({
             embeds: [apiErrorEmbed],
-            components: [errorRow]
+            components: [errorRow],
           });
         }
       }
@@ -398,7 +398,7 @@ const register: Command = {
           .setColor('#0099FF')
           .addFields(
             { name: '📝 Dados informados', value: `**Nick:** ${nick}\n**Plataforma:** ${getPlatformName(platform)}`, inline: false },
-            { name: '⏰ Próximos passos', value: 'Um administrador irá verificar seus dados manualmente e liberar seu acesso em breve.', inline: false }
+            { name: '⏰ Próximos passos', value: 'Um administrador irá verificar seus dados manualmente e liberar seu acesso em breve.', inline: false },
           )
           .setFooter({ text: 'Aguarde a verificação manual' });
         
@@ -414,7 +414,7 @@ const register: Command = {
             .addFields(
               { name: '👤 Usuário', value: `${interaction.user.tag} (${interaction.user.id})`, inline: true },
               { name: '🎮 Nick PUBG', value: nick, inline: true },
-              { name: '🖥️ Plataforma', value: getPlatformName(platform), inline: true }
+              { name: '🖥️ Plataforma', value: getPlatformName(platform), inline: true },
             )
             .setThumbnail(interaction.user.displayAvatarURL())
             .setTimestamp();
@@ -430,12 +430,12 @@ const register: Command = {
                 .setCustomId(`reject_manual_${interaction.user.id}`)
                 .setLabel('Rejeitar')
                 .setStyle(ButtonStyle.Danger)
-                .setEmoji('❌')
+                .setEmoji('❌'),
             );
           
           await (adminChannel as any).send({
             embeds: [adminNotificationEmbed],
-            components: [adminRow]
+            components: [adminRow],
           });
         }
         
@@ -446,7 +446,7 @@ const register: Command = {
             pubgUsername: nick,
             pubgPlatform: platform,
             isVerified: false,
-            updatedAt: new Date()
+            updatedAt: new Date(),
           },
           create: {
             id: interaction.user.id,
@@ -454,8 +454,8 @@ const register: Command = {
             discriminator: interaction.user.discriminator,
             pubgUsername: nick,
             pubgPlatform: platform,
-            isVerified: false
-          }
+            isVerified: false,
+          },
         });
       }
       
@@ -470,7 +470,7 @@ const register: Command = {
       
       await interaction.editReply({ embeds: [errorEmbed], components: [] });
     }
-  }
+  },
 };
 
 /**
@@ -501,12 +501,12 @@ function validatePUBGNick(nick: string): { valid: boolean; reason?: string } {
  */
 function getPlatformName(platform: PUBGPlatform): string {
   const platformNames: Record<string, string> = {
-     [PUBGPlatform.STEAM]: '🖥️ Steam (PC)',
-     [PUBGPlatform.XBOX]: '🎮 Xbox',
-     [PUBGPlatform.PSN]: '🎯 PlayStation',
-     [PUBGPlatform.STADIA]: '🎮 Stadia',
-     [PUBGPlatform.KAKAO]: '🎮 Kakao'
-   };
+    [PUBGPlatform.STEAM]: '🖥️ Steam (PC)',
+    [PUBGPlatform.XBOX]: '🎮 Xbox',
+    [PUBGPlatform.PSN]: '🎯 PlayStation',
+    [PUBGPlatform.STADIA]: '🎮 Stadia',
+    [PUBGPlatform.KAKAO]: '🎮 Kakao',
+  };
   
   return platformNames[platform] || platform;
 }
@@ -523,7 +523,7 @@ async function assignRankRole(member: any, tier: string, guild: any): Promise<vo
     'Platinum': '🥉 Platinum',
     'Gold': '🥈 Gold',
     'Silver': '🥇 Silver',
-    'Bronze': '🔰 Bronze'
+    'Bronze': '🔰 Bronze',
   };
   
   const roleName = rankRoles[tier as keyof typeof rankRoles];

@@ -20,8 +20,8 @@ const challenge: Command = {
           { name: '📋 Ver Desafios Ativos', value: 'list' },
           { name: '📊 Meu Progresso', value: 'progress' },
           { name: '🎁 Resgatar Recompensas', value: 'claim' },
-          { name: '📈 Estatísticas', value: 'stats' }
-        )
+          { name: '📈 Estatísticas', value: 'stats' },
+        ),
     )
     .addStringOption(option =>
       option.setName('type')
@@ -31,8 +31,8 @@ const challenge: Command = {
           { name: '📅 Diários', value: 'daily' },
           { name: '📆 Semanais', value: 'weekly' },
           { name: '🗓️ Mensais', value: 'monthly' },
-          { name: '⭐ Especiais', value: 'special' }
-        )
+          { name: '⭐ Especiais', value: 'special' },
+        ),
     ) as SlashCommandBuilder,
   
   category: CommandCategory.GENERAL,
@@ -46,7 +46,7 @@ const challenge: Command = {
     try {
       // Check if user is registered
       const user = await database.client.user.findUnique({
-        where: { id: interaction.user.id }
+        where: { id: interaction.user.id },
       });
 
       if (!user) {
@@ -63,20 +63,20 @@ const challenge: Command = {
       const type = interaction.options.getString('type');
 
       switch (action) {
-        case 'list':
-          await showActiveChallenges(interaction, gameService, type);
-          break;
-        case 'progress':
-          await showUserProgress(interaction, gameService, user.id, type);
-          break;
-        case 'claim':
-          await showClaimableRewards(interaction, gameService, user.id);
-          break;
-        case 'stats':
-          await showChallengeStats(interaction, gameService, database, user.id);
-          break;
-        default:
-          await showActiveChallenges(interaction, gameService, type);
+      case 'list':
+        await showActiveChallenges(interaction, gameService, type);
+        break;
+      case 'progress':
+        await showUserProgress(interaction, gameService, user.id, type);
+        break;
+      case 'claim':
+        await showClaimableRewards(interaction, gameService, user.id);
+        break;
+      case 'stats':
+        await showChallengeStats(interaction, gameService, database, user.id);
+        break;
+      default:
+        await showActiveChallenges(interaction, gameService, type);
       }
 
     } catch (error) {
@@ -94,7 +94,7 @@ const challenge: Command = {
         await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
       }
     }
-  }
+  },
 };
 
 /**
@@ -103,7 +103,7 @@ const challenge: Command = {
 async function showActiveChallenges(
   interaction: ChatInputCommandInteraction,
   gameService: GameService,
-  typeFilter?: string | null
+  typeFilter?: string | null,
 ) {
   const challenges = gameService.getActiveChallenges();
   
@@ -118,7 +118,7 @@ async function showActiveChallenges(
       .setDescription(
         typeFilter 
           ? `Não há desafios ${getChallengeTypeName(typeFilter)} ativos no momento.`
-          : 'Não há desafios ativos no momento. Novos desafios são criados automaticamente!'
+          : 'Não há desafios ativos no momento. Novos desafios são criados automaticamente!',
       )
       .setColor(0xffa500)
       .setTimestamp();
@@ -152,7 +152,7 @@ async function showActiveChallenges(
                    `🎁 ${challenge.rewards.xp} XP + ${challenge.rewards.coins} moedas\n` +
                    `⏰ ${timeLeft}`;
           }).join('\n\n');
-      }).join('\n\n')
+      }).join('\n\n'),
     )
     .setColor(0x0099ff)
     .setFooter({ text: 'Use /challenge progress para ver seu progresso!' })
@@ -171,25 +171,25 @@ async function showActiveChallenges(
       new ButtonBuilder()
         .setCustomId('challenge_stats')
         .setLabel('📈 Estatísticas')
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Secondary),
     );
 
   const response = await interaction.reply({
     embeds: [embed],
-    components: [actionButtons]
+    components: [actionButtons],
   });
 
   // Set up button collector
   const collector = response.createMessageComponentCollector({
     componentType: ComponentType.Button,
-    time: 300000 // 5 minutes
+    time: 300000, // 5 minutes
   });
 
   collector.on('collect', async (buttonInteraction: any) => {
     if (buttonInteraction.user.id !== interaction.user.id) {
       await buttonInteraction.reply({
         content: '❌ Apenas quem iniciou o comando pode usar os botões!',
-        ephemeral: true
+        ephemeral: true,
       });
       return;
     }
@@ -197,16 +197,16 @@ async function showActiveChallenges(
     await buttonInteraction.deferUpdate();
 
     switch (buttonInteraction.customId) {
-      case 'challenge_progress':
-        await showUserProgress(buttonInteraction, gameService, interaction.user.id);
-        break;
-      case 'challenge_claim':
-        await showClaimableRewards(buttonInteraction, gameService, interaction.user.id);
-        break;
-      case 'challenge_stats':
-        const database = new DatabaseService();
-        await showChallengeStats(buttonInteraction, gameService, database, interaction.user.id);
-        break;
+    case 'challenge_progress':
+      await showUserProgress(buttonInteraction, gameService, interaction.user.id);
+      break;
+    case 'challenge_claim':
+      await showClaimableRewards(buttonInteraction, gameService, interaction.user.id);
+      break;
+    case 'challenge_stats':
+      const database = new DatabaseService();
+      await showChallengeStats(buttonInteraction, gameService, database, interaction.user.id);
+      break;
     }
   });
 
@@ -228,7 +228,7 @@ async function showUserProgress(
   interaction: any,
   gameService: GameService,
   userId: string,
-  typeFilter?: string | null
+  typeFilter?: string | null,
 ) {
   const userProgress = gameService.getUserChallengeProgress(userId);
   const activeChallenges = gameService.getActiveChallenges();
@@ -296,7 +296,7 @@ async function showUserProgress(
 async function showClaimableRewards(
   interaction: any,
   gameService: GameService,
-  userId: string
+  userId: string,
 ) {
   const userProgress = gameService.getUserChallengeProgress(userId);
   const activeChallenges = gameService.getActiveChallenges();
@@ -311,7 +311,7 @@ async function showClaimableRewards(
       .setTitle('🎁 Recompensas Disponíveis')
       .setDescription(
         'Você não tem recompensas para resgatar no momento.\n\n' +
-        'Complete desafios para ganhar XP, moedas e badges!'
+        'Complete desafios para ganhar XP, moedas e badges!',
       )
       .setColor(0xffa500)
       .setTimestamp();
@@ -335,9 +335,9 @@ async function showClaimableRewards(
         return `${typeEmoji} **${challenge.name}**\n` +
                `🎁 ${challenge.rewards.xp} XP + ${challenge.rewards.coins} moedas`;
       }).join('\n\n') +
-      `\n\n**📊 Total das Recompensas:**\n` +
+      '\n\n**📊 Total das Recompensas:**\n' +
       `⭐ ${totalRewards.xp} XP\n` +
-      `💰 ${totalRewards.coins} moedas`
+      `💰 ${totalRewards.coins} moedas`,
     )
     .setColor(0x00ff00)
     .setTimestamp();
@@ -351,26 +351,26 @@ async function showClaimableRewards(
       new ButtonBuilder()
         .setCustomId('claim_individual')
         .setLabel('📋 Resgatar Individual')
-        .setStyle(ButtonStyle.Primary)
+        .setStyle(ButtonStyle.Primary),
     );
 
   const editMethod = interaction.editReply || interaction.reply;
   const response = await editMethod.call(interaction, {
     embeds: [embed],
-    components: [claimButtons]
+    components: [claimButtons],
   });
 
   // Set up button collector for claiming
   const collector = response.createMessageComponentCollector({
     componentType: ComponentType.Button,
-    time: 300000 // 5 minutes
+    time: 300000, // 5 minutes
   });
 
   collector.on('collect', async (buttonInteraction: any) => {
     if (buttonInteraction.user.id !== userId) {
       await buttonInteraction.reply({
         content: '❌ Apenas o dono do comando pode resgatar as recompensas!',
-        ephemeral: true
+        ephemeral: true,
       });
       return;
     }
@@ -378,7 +378,7 @@ async function showClaimableRewards(
     await buttonInteraction.deferUpdate();
 
     if (buttonInteraction.customId === 'claim_all_rewards') {
-      let totalClaimed = { xp: 0, coins: 0 };
+      const totalClaimed = { xp: 0, coins: 0 };
       let claimedCount = 0;
       
       for (const challenge of claimableChallenges) {
@@ -394,10 +394,10 @@ async function showClaimableRewards(
         .setTitle('✅ Recompensas Resgatadas!')
         .setDescription(
           `**Desafios resgatados:** ${claimedCount}/${claimableChallenges.length}\n\n` +
-          `**Recompensas recebidas:**\n` +
+          '**Recompensas recebidas:**\n' +
           `⭐ +${totalClaimed.xp} XP\n` +
           `💰 +${totalClaimed.coins} moedas\n\n` +
-          `Parabéns pelo seu progresso! 🎉`
+          'Parabéns pelo seu progresso! 🎉',
         )
         .setColor(0x00ff00)
         .setTimestamp();
@@ -416,7 +416,7 @@ async function showIndividualClaimMenu(
   interaction: any,
   gameService: GameService,
   userId: string,
-  claimableChallenges: Challenge[]
+  claimableChallenges: Challenge[],
 ) {
   const embed = new EmbedBuilder()
     .setTitle('📋 Resgatar Recompensas Individuais')
@@ -426,7 +426,7 @@ async function showIndividualClaimMenu(
         const typeEmoji = getChallengeTypeEmoji(challenge.type);
         return `**${index + 1}.** ${typeEmoji} ${challenge.name}\n` +
                `🎁 ${challenge.rewards.xp} XP + ${challenge.rewards.coins} moedas`;
-      }).join('\n\n')
+      }).join('\n\n'),
     )
     .setColor(0x0099ff)
     .setTimestamp();
@@ -435,33 +435,33 @@ async function showIndividualClaimMenu(
     new ButtonBuilder()
       .setCustomId(`claim_individual_${challenge.id}`)
       .setLabel(`${index + 1}. ${challenge.name.substring(0, 20)}${challenge.name.length > 20 ? '...' : ''}`)
-      .setStyle(ButtonStyle.Secondary)
+      .setStyle(ButtonStyle.Secondary),
   );
 
   const buttonRows = [];
   for (let i = 0; i < claimButtons.length; i += 5) {
     buttonRows.push(
       new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(claimButtons.slice(i, i + 5))
+        .addComponents(claimButtons.slice(i, i + 5)),
     );
   }
 
   await interaction.editReply({
     embeds: [embed],
-    components: buttonRows
+    components: buttonRows,
   });
 
   // Set up collector for individual claims
   const collector = interaction.createMessageComponentCollector({
     componentType: ComponentType.Button,
-    time: 300000 // 5 minutes
+    time: 300000, // 5 minutes
   });
 
   collector.on('collect', async (buttonInteraction: any) => {
     if (buttonInteraction.user.id !== userId) {
       await buttonInteraction.reply({
         content: '❌ Apenas o dono do comando pode resgatar as recompensas!',
-        ephemeral: true
+        ephemeral: true,
       });
       return;
     }
@@ -472,7 +472,7 @@ async function showIndividualClaimMenu(
     if (!challenge) {
       await buttonInteraction.reply({
         content: '❌ Desafio não encontrado!',
-        ephemeral: true
+        ephemeral: true,
       });
       return;
     }
@@ -482,12 +482,12 @@ async function showIndividualClaimMenu(
     if (success) {
       await buttonInteraction.reply({
         content: `✅ **${challenge.name}** resgatado!\n🎁 +${challenge.rewards.xp} XP + ${challenge.rewards.coins} moedas`,
-        ephemeral: true
+        ephemeral: true,
       });
     } else {
       await buttonInteraction.reply({
         content: '❌ Erro ao resgatar recompensa. Tente novamente.',
-        ephemeral: true
+        ephemeral: true,
       });
     }
   });
@@ -500,15 +500,15 @@ async function showChallengeStats(
   interaction: any,
   gameService: GameService,
   database: DatabaseService,
-  userId: string
+  userId: string,
 ) {
   try {
     // Get user stats from database
     const user = await database.client.user.findUnique({
       where: { id: userId },
       include: {
-        stats: true
-      }
+        stats: true,
+      },
     });
 
     if (!user) {
@@ -539,8 +539,12 @@ async function showChallengeStats(
       }
       if (acc[challenge.type]) {
         acc[challenge.type]!.total++;
-        if (progress?.completed) acc[challenge.type]!.completed++;
-        if (progress?.claimed) acc[challenge.type]!.claimed++;
+        if (progress?.completed) {
+acc[challenge.type]!.completed++;
+        }
+        if (progress?.claimed) {
+acc[challenge.type]!.claimed++;
+        }
       }
       return acc;
     }, {} as Record<string, { total: number; completed: number; claimed: number }>);
@@ -548,13 +552,13 @@ async function showChallengeStats(
     const embed = new EmbedBuilder()
       .setTitle('📈 Estatísticas de Desafios')
       .setDescription(
-        `**📊 Resumo Geral:**\n` +
+        '**📊 Resumo Geral:**\n' +
         `• Desafios ativos: ${totalChallenges}\n` +
         `• Completados: ${completedChallenges}\n` +
         `• Resgatados: ${claimedChallenges}\n` +
         `• Taxa de conclusão: ${completionRate.toFixed(1)}%\n\n` +
         
-        `**📋 Por Tipo:**\n` +
+        '**📋 Por Tipo:**\n' +
         Object.entries(typeStats).map(([type, stats]) => {
           const typeEmoji = getChallengeTypeEmoji(type);
           const typeName = getChallengeTypeName(type);
@@ -562,7 +566,7 @@ async function showChallengeStats(
           return `${typeEmoji} **${typeName}:** ${stats.completed}/${stats.total} (${rate.toFixed(1)}%)`;
         }).join('\n') +
         
-        `\n\n**🎮 Atividade Geral:**\n` +
+        '\n\n**🎮 Atividade Geral:**\n' +
         `• Level: ${user.level}\n` +
         `• XP Total: ${user.xp.toLocaleString()}\n` +
         `• Moedas: ${user.coins.toLocaleString()}\n` +
@@ -570,7 +574,7 @@ async function showChallengeStats(
         `• Mensagens enviadas: ${user.stats?.messagesCount || 0}\n` +
         `• Tempo em voz: ${formatVoiceTime(user.stats?.voiceTime || 0)}\n` +
         `• Jogos jogados: ${user.stats?.gamesPlayed || 0}\n` +
-        `• Quizzes completados: ${user.stats?.quizzesCompleted || 0}`
+        `• Quizzes completados: ${user.stats?.quizzesCompleted || 0}`,
       )
       .setColor(0x9b59b6)
       .setFooter({ text: `Membro desde: ${user.createdAt.toLocaleDateString('pt-BR')}` })
@@ -601,7 +605,7 @@ function getChallengeTypeEmoji(type: string): string {
     'daily': '📅',
     'weekly': '📆',
     'monthly': '🗓️',
-    'special': '⭐'
+    'special': '⭐',
   };
   return emojis[type as keyof typeof emojis] || '🏅';
 }
@@ -611,7 +615,7 @@ function getChallengeTypeName(type: string): string {
     'daily': 'Diários',
     'weekly': 'Semanais',
     'monthly': 'Mensais',
-    'special': 'Especiais'
+    'special': 'Especiais',
   };
   return names[type as keyof typeof names] || 'Desconhecido';
 }
@@ -621,7 +625,7 @@ function getCategoryEmoji(category: string): string {
     'pubg': '🎮',
     'social': '💬',
     'gaming': '🎯',
-    'participation': '🤝'
+    'participation': '🤝',
   };
   return emojis[category as keyof typeof emojis] || '🏅';
 }
@@ -634,7 +638,7 @@ function getRequirementEmoji(type: string): string {
     'messages': '💬',
     'voice_time': '🎤',
     'quiz_score': '🧠',
-    'mini_game_wins': '🎯'
+    'mini_game_wins': '🎯',
   };
   return emojis[type as keyof typeof emojis] || '📊';
 }
@@ -647,7 +651,7 @@ function getRequirementName(type: string): string {
     'messages': 'Mensagens',
     'voice_time': 'Tempo em Voz',
     'quiz_score': 'Pontos em Quiz',
-    'mini_game_wins': 'Vitórias em Mini-Games'
+    'mini_game_wins': 'Vitórias em Mini-Games',
   };
   return names[type as keyof typeof names] || 'Desconhecido';
 }
@@ -662,14 +666,20 @@ function getTimeLeft(endDate: Date): string {
   const now = new Date();
   const diff = endDate.getTime() - now.getTime();
   
-  if (diff <= 0) return 'Expirado';
+  if (diff <= 0) {
+    return 'Expirado';
+  }
   
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
   
-  if (days > 0) return `${days}d ${hours}h`;
-  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (days > 0) {
+    return `${days}d ${hours}h`;
+  }
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
   return `${minutes}m`;
 }
 
@@ -677,7 +687,9 @@ function formatVoiceTime(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   
-  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
   return `${minutes}m`;
 }
 

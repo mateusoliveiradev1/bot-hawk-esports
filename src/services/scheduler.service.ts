@@ -93,7 +93,7 @@ export class SchedulerService {
       runCount: 0,
       errorCount: 0,
       averageExecutionTime: 0,
-      handler: this.updateDailyRankings.bind(this)
+      handler: this.updateDailyRankings.bind(this),
     });
     
     this.addTask({
@@ -105,7 +105,7 @@ export class SchedulerService {
       runCount: 0,
       errorCount: 0,
       averageExecutionTime: 0,
-      handler: this.resetDailyPresence.bind(this)
+      handler: this.resetDailyPresence.bind(this),
     });
     
     this.addTask({
@@ -117,7 +117,7 @@ export class SchedulerService {
       runCount: 0,
       errorCount: 0,
       averageExecutionTime: 0,
-      handler: this.generateDailyChallenges.bind(this)
+      handler: this.generateDailyChallenges.bind(this),
     });
     
     this.addTask({
@@ -129,7 +129,7 @@ export class SchedulerService {
       runCount: 0,
       errorCount: 0,
       averageExecutionTime: 0,
-      handler: this.performDailyBackup.bind(this)
+      handler: this.performDailyBackup.bind(this),
     });
     
     // Weekly tasks
@@ -142,7 +142,7 @@ export class SchedulerService {
       runCount: 0,
       errorCount: 0,
       averageExecutionTime: 0,
-      handler: this.updateWeeklyRankings.bind(this)
+      handler: this.updateWeeklyRankings.bind(this),
     });
     
     this.addTask({
@@ -154,7 +154,7 @@ export class SchedulerService {
       runCount: 0,
       errorCount: 0,
       averageExecutionTime: 0,
-      handler: this.generateWeeklyChallenges.bind(this)
+      handler: this.generateWeeklyChallenges.bind(this),
     });
     
     this.addTask({
@@ -166,7 +166,7 @@ export class SchedulerService {
       runCount: 0,
       errorCount: 0,
       averageExecutionTime: 0,
-      handler: this.generateWeeklyReport.bind(this)
+      handler: this.generateWeeklyReport.bind(this),
     });
     
     // Monthly tasks
@@ -179,7 +179,7 @@ export class SchedulerService {
       runCount: 0,
       errorCount: 0,
       averageExecutionTime: 0,
-      handler: this.updateMonthlyRankings.bind(this)
+      handler: this.updateMonthlyRankings.bind(this),
     });
     
     this.addTask({
@@ -191,7 +191,7 @@ export class SchedulerService {
       runCount: 0,
       errorCount: 0,
       averageExecutionTime: 0,
-      handler: this.generateMonthlyChallenges.bind(this)
+      handler: this.generateMonthlyChallenges.bind(this),
     });
     
     this.addTask({
@@ -203,7 +203,7 @@ export class SchedulerService {
       runCount: 0,
       errorCount: 0,
       averageExecutionTime: 0,
-      handler: this.performMonthlyCleanup.bind(this)
+      handler: this.performMonthlyCleanup.bind(this),
     });
     
     // Hourly tasks
@@ -216,7 +216,7 @@ export class SchedulerService {
       runCount: 0,
       errorCount: 0,
       averageExecutionTime: 0,
-      handler: this.updatePUBGData.bind(this)
+      handler: this.updatePUBGData.bind(this),
     });
     
     this.addTask({
@@ -228,7 +228,7 @@ export class SchedulerService {
       runCount: 0,
       errorCount: 0,
       averageExecutionTime: 0,
-      handler: this.cleanupCache.bind(this)
+      handler: this.cleanupCache.bind(this),
     });
     
     // Every 15 minutes
@@ -241,7 +241,7 @@ export class SchedulerService {
       runCount: 0,
       errorCount: 0,
       averageExecutionTime: 0,
-      handler: this.autoCheckoutInactiveUsers.bind(this)
+      handler: this.autoCheckoutInactiveUsers.bind(this),
     });
     
     // Every 5 minutes
@@ -254,7 +254,7 @@ export class SchedulerService {
       runCount: 0,
       errorCount: 0,
       averageExecutionTime: 0,
-      handler: this.checkBadgeProgress.bind(this)
+      handler: this.checkBadgeProgress.bind(this),
     });
     
     this.logger.info(`Initialized ${this.tasks.size} scheduled tasks`);
@@ -285,14 +285,16 @@ export class SchedulerService {
    */
   private startTask(taskId: string): void {
     const task = this.tasks.get(taskId);
-    if (!task) return;
+    if (!task) {
+      return;
+    }
     
     try {
       const cronJob = cron.schedule(task.cronExpression, async () => {
         await this.executeTask(taskId);
       }, {
         scheduled: false,
-        timezone: 'America/Sao_Paulo'
+        timezone: 'America/Sao_Paulo',
       });
       
       cronJob.start();
@@ -330,12 +332,14 @@ export class SchedulerService {
    */
   private async executeTask(taskId: string): Promise<void> {
     const task = this.tasks.get(taskId);
-    if (!task) return;
+    if (!task) {
+      return;
+    }
     
     const execution: TaskExecution = {
       taskId,
       startTime: new Date(),
-      success: false
+      success: false,
     };
     
     try {
@@ -413,7 +417,9 @@ export class SchedulerService {
     const now = new Date();
     
     for (const [taskId, task] of this.tasks) {
-      if (!task.enabled) continue;
+      if (!task.enabled) {
+        continue;
+      }
       
       // Check if task should have run by now
       if (task.nextRun && now > task.nextRun) {
@@ -445,7 +451,7 @@ export class SchedulerService {
       totalExecutions: stats.totalExecutions,
       successRate: `${Math.round((stats.successfulExecutions / stats.totalExecutions) * 100)}%`,
       averageExecutionTime: `${Math.round(stats.averageExecutionTime)}ms`,
-      uptime: `${Math.round(stats.uptime / 1000 / 60)}min`
+      uptime: `${Math.round(stats.uptime / 1000 / 60)}min`,
     });
   }
 
@@ -464,7 +470,7 @@ export class SchedulerService {
         const ranking = await this.rankingService.getPUBGRanking(guild.id, {
           type: 'daily',
           startDate: new Date(Date.now() - 24 * 60 * 60 * 1000),
-          endDate: new Date()
+          endDate: new Date(),
         });
         if (ranking && ranking.length > 0) {
           await this.sendRankingNotification(guild.id, 'daily', ranking);
@@ -488,7 +494,7 @@ export class SchedulerService {
         const ranking = await this.rankingService.getPUBGRanking(guild.id, {
           type: 'weekly',
           startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-          endDate: new Date()
+          endDate: new Date(),
         });
         if (ranking && ranking.length > 0) {
           await this.awardWeeklyRewards(guild.id, ranking);
@@ -513,7 +519,7 @@ export class SchedulerService {
         const ranking = await this.rankingService.getPUBGRanking(guild.id, {
           type: 'monthly',
           startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-          endDate: new Date()
+          endDate: new Date(),
         });
         if (ranking && ranking.length > 0) {
           await this.awardMonthlyRewards(guild.id, ranking);
@@ -593,10 +599,10 @@ export class SchedulerService {
     const activeUsers = await this.database.client.user.findMany({
       where: {
         pubgUsername: {
-          not: null
-        }
+          not: null,
+        },
       },
-      take: 50 // Limit to avoid API rate limits
+      take: 50, // Limit to avoid API rate limits
     });
     
     for (const user of activeUsers) {
@@ -757,12 +763,12 @@ export class SchedulerService {
       try {
         await this.database.client.user.update({
           where: {
-            id: player.userId
+            id: player.userId,
           },
           data: {
             xp: { increment: rewards.xp },
-            coins: { increment: rewards.coins }
-          }
+            coins: { increment: rewards.coins },
+          },
         });
         
         // Award badge for top positions
@@ -789,12 +795,12 @@ export class SchedulerService {
       try {
         await this.database.client.user.update({
           where: {
-            id: player.userId
+            id: player.userId,
           },
           data: {
             xp: { increment: rewards.xp },
-            coins: { increment: rewards.coins }
-          }
+            coins: { increment: rewards.coins },
+          },
         });
         
         // Award badge for top positions
@@ -814,10 +820,10 @@ export class SchedulerService {
    */
   private getWeeklyRewards(position: number): { xp: number; coins: number } {
     switch (position) {
-      case 1: return { xp: 500, coins: 200 };
-      case 2: return { xp: 300, coins: 120 };
-      case 3: return { xp: 200, coins: 80 };
-      default: return { xp: 100, coins: 40 };
+    case 1: return { xp: 500, coins: 200 };
+    case 2: return { xp: 300, coins: 120 };
+    case 3: return { xp: 200, coins: 80 };
+    default: return { xp: 100, coins: 40 };
     }
   }
 
@@ -826,12 +832,12 @@ export class SchedulerService {
    */
   private getMonthlyRewards(position: number): { xp: number; coins: number } {
     switch (position) {
-      case 1: return { xp: 2000, coins: 1000 };
-      case 2: return { xp: 1500, coins: 750 };
-      case 3: return { xp: 1000, coins: 500 };
-      case 4: return { xp: 750, coins: 375 };
-      case 5: return { xp: 500, coins: 250 };
-      default: return { xp: 250, coins: 125 };
+    case 1: return { xp: 2000, coins: 1000 };
+    case 2: return { xp: 1500, coins: 750 };
+    case 3: return { xp: 1000, coins: 500 };
+    case 4: return { xp: 750, coins: 375 };
+    case 5: return { xp: 500, coins: 250 };
+    default: return { xp: 250, coins: 125 };
     }
   }
 
@@ -841,14 +847,18 @@ export class SchedulerService {
   private async sendRankingNotification(guildId: string, period: string, ranking: any[]): Promise<void> {
     try {
       const guild = this.client.guilds.cache.get(guildId);
-      if (!guild) return;
+      if (!guild) {
+        return;
+      }
       
       // Find announcement channel
       const announcementChannel = guild.channels.cache.find(
-        channel => channel.name.includes('anúncios') || channel.name.includes('announcements')
+        channel => channel.name.includes('anúncios') || channel.name.includes('announcements'),
       ) as TextChannel;
       
-      if (!announcementChannel) return;
+      if (!announcementChannel) {
+        return;
+      }
       
       const embed = new EmbedBuilder()
         .setColor('#ffd700')
@@ -888,7 +898,7 @@ export class SchedulerService {
       activeUsers: 0,
       totalMessages: 0,
       completedQuizzes: 0,
-      uploadedClips: 0
+      uploadedClips: 0,
     };
     
     /*
@@ -940,13 +950,17 @@ export class SchedulerService {
   private async sendWeeklyReport(guildId: string, report: any): Promise<void> {
     try {
       const guild = this.client.guilds.cache.get(guildId);
-      if (!guild) return;
+      if (!guild) {
+        return;
+      }
       
       const announcementChannel = guild.channels.cache.find(
-        channel => channel.name.includes('anúncios') || channel.name.includes('announcements')
+        channel => channel.name.includes('anúncios') || channel.name.includes('announcements'),
       ) as TextChannel;
       
-      if (!announcementChannel) return;
+      if (!announcementChannel) {
+        return;
+      }
       
       const embed = new EmbedBuilder()
         .setColor('#00ff00')
@@ -956,7 +970,7 @@ export class SchedulerService {
           { name: '👥 Novos Usuários', value: report.newUsers.toString(), inline: true },
           { name: '🟢 Usuários Ativos', value: report.activeUsers.toString(), inline: true },
           { name: '🧠 Quizzes Completados', value: report.completedQuizzes.toString(), inline: true },
-          { name: '🎬 Clips Enviados', value: report.uploadedClips.toString(), inline: true }
+          { name: '🎬 Clips Enviados', value: report.uploadedClips.toString(), inline: true },
         )
         .setTimestamp();
       
@@ -990,7 +1004,7 @@ export class SchedulerService {
       failedExecutions,
       averageExecutionTime,
       uptime: Date.now() - this.startTime.getTime(),
-      lastUpdate: new Date()
+      lastUpdate: new Date(),
     };
   }
 
@@ -1013,7 +1027,9 @@ export class SchedulerService {
    */
   public enableTask(taskId: string): boolean {
     const task = this.tasks.get(taskId);
-    if (!task) return false;
+    if (!task) {
+      return false;
+    }
     
     if (!task.enabled) {
       task.enabled = true;
@@ -1029,7 +1045,9 @@ export class SchedulerService {
    */
   public disableTask(taskId: string): boolean {
     const task = this.tasks.get(taskId);
-    if (!task) return false;
+    if (!task) {
+      return false;
+    }
     
     if (task.enabled) {
       task.enabled = false;
@@ -1045,7 +1063,9 @@ export class SchedulerService {
    */
   public async executeTaskManually(taskId: string): Promise<boolean> {
     const task = this.tasks.get(taskId);
-    if (!task) return false;
+    if (!task) {
+      return false;
+    }
     
     try {
       await this.executeTask(taskId);

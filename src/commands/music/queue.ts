@@ -20,18 +20,18 @@ const queue: Command = {
             .setDescription('Página da fila (padrão: 1)')
             .setRequired(false)
             .setMinValue(1)
-            .setMaxValue(50)
-        )
+            .setMaxValue(50),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('clear')
-        .setDescription('Limpa toda a fila')
+        .setDescription('Limpa toda a fila'),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('shuffle')
-        .setDescription('Embaralha a fila')
+        .setDescription('Embaralha a fila'),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -44,9 +44,9 @@ const queue: Command = {
             .addChoices(
               { name: '🔁 Repetir Fila', value: 'queue' },
               { name: '🔂 Repetir Música', value: 'track' },
-              { name: '❌ Desativar', value: 'off' }
-            )
-        )
+              { name: '❌ Desativar', value: 'off' },
+            ),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -56,8 +56,8 @@ const queue: Command = {
           option.setName('position')
             .setDescription('Posição da música na fila')
             .setRequired(true)
-            .setMinValue(1)
-        )
+            .setMinValue(1),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -67,25 +67,25 @@ const queue: Command = {
           option.setName('from')
             .setDescription('Posição atual da música')
             .setRequired(true)
-            .setMinValue(1)
+            .setMinValue(1),
         )
         .addIntegerOption(option =>
           option.setName('to')
             .setDescription('Nova posição da música')
             .setRequired(true)
-            .setMinValue(1)
-        )
+            .setMinValue(1),
+        ),
     )
     .addSubcommand(subcommand =>
-        subcommand
-          .setName('save')
-          .setDescription('Salva a fila atual como playlist')
-          .addStringOption(option =>
-            option.setName('name')
-              .setDescription('Nome da playlist')
-              .setRequired(true)
-          )
-      ) as SlashCommandBuilder,
+      subcommand
+        .setName('save')
+        .setDescription('Salva a fila atual como playlist')
+        .addStringOption(option =>
+          option.setName('name')
+            .setDescription('Nome da playlist')
+            .setRequired(true),
+        ),
+    ) as SlashCommandBuilder,
   
   category: CommandCategory.MUSIC,
   cooldown: 5,
@@ -115,33 +115,33 @@ const queue: Command = {
       }
       
       switch (subcommand) {
-        case 'show':
-          await handleShowQueue(interaction, musicService);
-          break;
+      case 'show':
+        await handleShowQueue(interaction, musicService);
+        break;
           
-        case 'clear':
-          await handleClearQueue(interaction, musicService);
-          break;
+      case 'clear':
+        await handleClearQueue(interaction, musicService);
+        break;
           
-        case 'shuffle':
-          await handleShuffleQueue(interaction, musicService);
-          break;
+      case 'shuffle':
+        await handleShuffleQueue(interaction, musicService);
+        break;
           
-        case 'loop':
-          await handleLoopQueue(interaction, musicService);
-          break;
+      case 'loop':
+        await handleLoopQueue(interaction, musicService);
+        break;
           
-        case 'remove':
-          await handleRemoveTrack(interaction, musicService);
-          break;
+      case 'remove':
+        await handleRemoveTrack(interaction, musicService);
+        break;
           
-        case 'move':
-          await handleMoveTrack(interaction, musicService);
-          break;
+      case 'move':
+        await handleMoveTrack(interaction, musicService);
+        break;
           
-        case 'save':
-          await handleSavePlaylist(interaction, musicService);
-          break;
+      case 'save':
+        await handleSavePlaylist(interaction, musicService);
+        break;
       }
       
     } catch (error) {
@@ -158,7 +158,7 @@ const queue: Command = {
         await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
       }
     }
-  }
+  },
 };
 
 /**
@@ -183,12 +183,12 @@ async function handleShowQueue(interaction: any, musicService: MusicService) {
   
   const response = await interaction.reply({
     embeds: [embed],
-    components
+    components,
   });
   
   // Handle interactions
   const collector = response.createMessageComponentCollector({
-    time: 300000 // 5 minutes
+    time: 300000, // 5 minutes
   });
   
   collector.on('collect', async (i: any) => {
@@ -201,57 +201,57 @@ async function handleShowQueue(interaction: any, musicService: MusicService) {
       const [action, value] = i.customId.split('_');
       
       switch (action) {
-        case 'queue':
-          if (value === 'prev' || value === 'next') {
-            const newPage = value === 'prev' ? page - 1 : page + 1;
-            const newEmbed = await createQueueEmbed(queue, newPage);
-            const newComponents = await createQueueComponents(queue, newPage);
-            await i.update({ embeds: [newEmbed], components: newComponents });
+      case 'queue':
+        if (value === 'prev' || value === 'next') {
+          const newPage = value === 'prev' ? page - 1 : page + 1;
+          const newEmbed = await createQueueEmbed(queue, newPage);
+          const newComponents = await createQueueComponents(queue, newPage);
+          await i.update({ embeds: [newEmbed], components: newComponents });
+        }
+        break;
+          
+      case 'music':
+        // Handle music controls
+        const memberVoice = (i.member as any)?.voice?.channel;
+        const botVoice = i.guild?.members?.me?.voice?.channel;
+          
+        if (!memberVoice || memberVoice.id !== botVoice?.id) {
+          await i.reply({ 
+            content: '❌ Você precisa estar no mesmo canal de voz que eu para usar os controles!', 
+            ephemeral: true, 
+          });
+          return;
+        }
+          
+        switch (value) {
+        case 'pause':
+          const paused = await musicService.pause(interaction.guildId!);
+          await i.reply({ 
+            content: paused ? '⏸️ Música pausada!' : '▶️ Música retomada!', 
+            ephemeral: true, 
+          });
+          break;
+              
+        case 'skip':
+          const skipped = await musicService.skip(interaction.guildId!);
+          if (skipped) {
+            await i.reply({ content: '⏭️ Música pulada!', ephemeral: true });
+          } else {
+            await i.reply({ content: '❌ Não há próxima música na fila!', ephemeral: true });
           }
           break;
-          
-        case 'music':
-          // Handle music controls
-          const memberVoice = (i.member as any)?.voice?.channel;
-          const botVoice = i.guild?.members?.me?.voice?.channel;
-          
-          if (!memberVoice || memberVoice.id !== botVoice?.id) {
-            await i.reply({ 
-              content: '❌ Você precisa estar no mesmo canal de voz que eu para usar os controles!', 
-              ephemeral: true 
-            });
-            return;
-          }
-          
-          switch (value) {
-            case 'pause':
-              const paused = await musicService.pause(interaction.guildId!);
-              await i.reply({ 
-                content: paused ? '⏸️ Música pausada!' : '▶️ Música retomada!', 
-                ephemeral: true 
-              });
-              break;
               
-            case 'skip':
-              const skipped = await musicService.skip(interaction.guildId!);
-              if (skipped) {
-                await i.reply({ content: '⏭️ Música pulada!', ephemeral: true });
-              } else {
-                await i.reply({ content: '❌ Não há próxima música na fila!', ephemeral: true });
-              }
-              break;
-              
-            case 'shuffle':
-              await musicService.toggleShuffle(interaction.guildId!);
-              await i.reply({ content: '🔀 Fila embaralhada!', ephemeral: true });
-              break;
-              
-            case 'clear':
-              await musicService.clearQueue(interaction.guildId!);
-              await i.reply({ content: '🗑️ Fila limpa!', ephemeral: true });
-              break;
-          }
+        case 'shuffle':
+          await musicService.toggleShuffle(interaction.guildId!);
+          await i.reply({ content: '🔀 Fila embaralhada!', ephemeral: true });
           break;
+              
+        case 'clear':
+          await musicService.clearQueue(interaction.guildId!);
+          await i.reply({ content: '🗑️ Fila limpa!', ephemeral: true });
+          break;
+        }
+        break;
       }
     }
     
@@ -337,7 +337,7 @@ async function handleLoopQueue(interaction: any, musicService: MusicService) {
   const modeNames = {
     queue: '🔁 Repetir Fila',
     track: '🔂 Repetir Música',
-    off: '❌ Desativado'
+    off: '❌ Desativado',
   };
   
   const embed = new EmbedBuilder()
@@ -462,7 +462,7 @@ async function handleSavePlaylist(interaction: any, musicService: MusicService) 
   
   if (saved) {
     embed.addFields(
-      { name: '📋 Detalhes', value: `🎵 ${queue.tracks.length} música${queue.tracks.length !== 1 ? 's' : ''}\n⏱️ ${formatDuration(queue.tracks.reduce((total, track) => total + track.duration, 0))}\n👤 Criada por <@${interaction.user.id}>`, inline: false }
+      { name: '📋 Detalhes', value: `🎵 ${queue.tracks.length} música${queue.tracks.length !== 1 ? 's' : ''}\n⏱️ ${formatDuration(queue.tracks.reduce((total, track) => total + track.duration, 0))}\n👤 Criada por <@${interaction.user.id}>`, inline: false },
     );
   }
   
@@ -483,7 +483,7 @@ async function createQueueEmbed(queue: any, page: number = 1): Promise<EmbedBuil
     embed.addFields({
       name: '🎵 Tocando Agora',
       value: `**${queue.currentTrack.title}**\n${queue.currentTrack.author} • ${formatDuration(queue.currentTrack.duration)}\nSolicitado por <@${queue.currentTrack.requestedBy}>`,
-      inline: false
+      inline: false,
     });
   }
   
@@ -504,7 +504,7 @@ async function createQueueEmbed(queue: any, page: number = 1): Promise<EmbedBuil
     embed.addFields({
       name: `📋 Próximas (${queue.tracks.length}) - Página ${page}/${totalPages}`,
       value: trackList,
-      inline: false
+      inline: false,
     });
     
     // Queue info
@@ -512,13 +512,13 @@ async function createQueueEmbed(queue: any, page: number = 1): Promise<EmbedBuil
     embed.addFields({
       name: '📊 Informações da Fila',
       value: `⏱️ Duração total: ${formatDuration(totalDuration)}\n🔁 Loop: ${getLoopModeText(queue.loop)}\n🔀 Embaralhado: ${queue.shuffle ? 'Sim' : 'Não'}`,
-      inline: false
+      inline: false,
     });
   } else {
     embed.addFields({
       name: '📋 Próximas',
       value: 'Nenhuma música na fila.\nUse `/play` para adicionar mais músicas!',
-      inline: false
+      inline: false,
     });
   }
   
@@ -553,7 +553,7 @@ async function createQueueComponents(queue: any, page: number): Promise<any[]> {
         .setCustomId('music_clear')
         .setLabel('Limpar')
         .setStyle(ButtonStyle.Danger)
-        .setEmoji('🗑️')
+        .setEmoji('🗑️'),
     );
   
   components.push(controlsRow);
@@ -568,7 +568,7 @@ async function createQueueComponents(queue: any, page: number): Promise<any[]> {
         new ButtonBuilder()
           .setCustomId('queue_prev')
           .setLabel('◀️ Anterior')
-          .setStyle(ButtonStyle.Primary)
+          .setStyle(ButtonStyle.Primary),
       );
     }
     
@@ -577,7 +577,7 @@ async function createQueueComponents(queue: any, page: number): Promise<any[]> {
         new ButtonBuilder()
           .setCustomId('queue_next')
           .setLabel('Próxima ▶️')
-          .setStyle(ButtonStyle.Primary)
+          .setStyle(ButtonStyle.Primary),
       );
     }
     
@@ -596,8 +596,8 @@ async function createQueueComponents(queue: any, page: number): Promise<any[]> {
         tracksToShow.map((track: any, index: number) => ({
           label: `${index + 1}. ${track.title.substring(0, 90)}`,
           description: `${track.author.substring(0, 90)} • ${formatDuration(track.duration)}`,
-          value: (index + 1).toString()
-        }))
+          value: (index + 1).toString(),
+        })),
       );
     
     const selectRow = new ActionRowBuilder<StringSelectMenuBuilder>()
@@ -614,9 +614,9 @@ async function createQueueComponents(queue: any, page: number): Promise<any[]> {
  */
 function getLoopModeText(mode: string): string {
   switch (mode) {
-    case 'queue': return '🔁 Fila';
-    case 'track': return '🔂 Música';
-    default: return '❌ Desativado';
+  case 'queue': return '🔁 Fila';
+  case 'track': return '🔂 Música';
+  default: return '❌ Desativado';
   }
 }
 

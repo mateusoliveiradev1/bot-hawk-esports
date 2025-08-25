@@ -1,25 +1,25 @@
-import express, { Express, Request, Response, NextFunction } from "express";
-import cors from "cors";
-import helmet from "helmet";
-import rateLimit from "express-rate-limit";
-import compression from "compression";
-import { Logger } from "../utils/logger";
-import { DatabaseService } from "../database/database.service";
-import { CacheService } from "./cache.service";
-import { PUBGService } from "./pubg.service";
-import { RankingService } from "./ranking.service";
-import { BadgeService } from "./badge.service";
-import { PresenceService } from "./presence.service";
-import { MusicService } from "./music.service";
-import { GameService } from "./game.service";
-import { ClipService } from "./clip.service";
-import { ExtendedClient } from "../types/client";
-import { Server } from "http";
-import * as jwt from "jsonwebtoken";
-import * as bcrypt from "bcryptjs";
-import multer from "multer";
-import * as path from "path";
-import * as fs from "fs";
+import express, { Express, Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import compression from 'compression';
+import { Logger } from '../utils/logger';
+import { DatabaseService } from '../database/database.service';
+import { CacheService } from './cache.service';
+import { PUBGService } from './pubg.service';
+import { RankingService } from './ranking.service';
+import { BadgeService } from './badge.service';
+import { PresenceService } from './presence.service';
+import { MusicService } from './music.service';
+import { GameService } from './game.service';
+import { ClipService } from './clip.service';
+import { ExtendedClient } from '../types/client';
+import { Server } from 'http';
+import * as jwt from 'jsonwebtoken';
+import * as bcrypt from 'bcryptjs';
+import multer from 'multer';
+import * as path from 'path';
+import * as fs from 'fs';
 
 export interface APIConfig {
   port: number;
@@ -93,17 +93,17 @@ export class APIService {
     this.clipService = new ClipService(client);
 
     this.config = {
-      port: parseInt(process.env.API_PORT || "3001"),
-      host: process.env.API_HOST || "0.0.0.0",
-      corsOrigins: process.env.CORS_ORIGINS?.split(",") || [
-        "http://localhost:3000",
+      port: parseInt(process.env.API_PORT || '3001'),
+      host: process.env.API_HOST || '0.0.0.0',
+      corsOrigins: process.env.CORS_ORIGINS?.split(',') || [
+        'http://localhost:3000',
       ],
-      jwtSecret: process.env.JWT_SECRET || "your-secret-key",
-      jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
-      rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || "900000"), // 15 minutes
-      rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || "100"),
-      uploadMaxSize: parseInt(process.env.UPLOAD_MAX_SIZE || "104857600"), // 100MB
-      uploadDir: process.env.UPLOAD_DIR || path.join(process.cwd(), "uploads"),
+      jwtSecret: process.env.JWT_SECRET || 'your-secret-key',
+      jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+      rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
+      rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '100'),
+      uploadMaxSize: parseInt(process.env.UPLOAD_MAX_SIZE || '104857600'), // 100MB
+      uploadDir: process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads'),
     };
 
     this.app = express();
@@ -121,18 +121,18 @@ export class APIService {
       helmet({
         contentSecurityPolicy: {
           directives: {
-            defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
-            scriptSrc: ["'self'"],
-            imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'"],
-            fontSrc: ["'self'"],
-            objectSrc: ["'none'"],
-            mediaSrc: ["'self'"],
-            frameSrc: ["'none'"],
+            defaultSrc: ['\'self\''],
+            styleSrc: ['\'self\'', '\'unsafe-inline\''],
+            scriptSrc: ['\'self\''],
+            imgSrc: ['\'self\'', 'data:', 'https:'],
+            connectSrc: ['\'self\''],
+            fontSrc: ['\'self\''],
+            objectSrc: ['\'none\''],
+            mediaSrc: ['\'self\''],
+            frameSrc: ['\'none\''],
           },
         },
-      })
+      }),
     );
 
     // CORS
@@ -140,9 +140,9 @@ export class APIService {
       cors({
         origin: this.config.corsOrigins,
         credentials: true,
-        methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-      })
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+      }),
     );
 
     // Rate limiting
@@ -151,25 +151,25 @@ export class APIService {
       max: this.config.rateLimitMax,
       message: {
         success: false,
-        error: "Too many requests, please try again later.",
+        error: 'Too many requests, please try again later.',
       },
       standardHeaders: true,
       legacyHeaders: false,
     });
-    this.app.use("/api/", limiter);
+    this.app.use('/api/', limiter);
 
     // Compression
     this.app.use(compression());
 
     // Body parsing
-    this.app.use(express.json({ limit: "10mb" }));
-    this.app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+    this.app.use(express.json({ limit: '10mb' }));
+    this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
     // File upload
     this.upload = multer({
       storage: multer.diskStorage({
         destination: (req, file, cb) => {
-          const uploadPath = path.join(this.config.uploadDir, "clips");
+          const uploadPath = path.join(this.config.uploadDir, 'clips');
           if (!fs.existsSync(uploadPath)) {
             fs.mkdirSync(uploadPath, { recursive: true });
           }
@@ -177,13 +177,13 @@ export class APIService {
         },
         filename: (req, file, cb) => {
           const uniqueSuffix =
-            Date.now() + "-" + Math.round(Math.random() * 1e9);
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
           cb(
             null,
             file.fieldname +
-              "-" +
+              '-' +
               uniqueSuffix +
-              path.extname(file.originalname)
+              path.extname(file.originalname),
           );
         },
       }),
@@ -191,13 +191,13 @@ export class APIService {
         fileSize: this.config.uploadMaxSize,
       },
       fileFilter: (req, file, cb) => {
-        const allowedTypes = [".mp4", ".mov", ".avi", ".mkv", ".webm"];
+        const allowedTypes = ['.mp4', '.mov', '.avi', '.mkv', '.webm'];
         const ext = path.extname(file.originalname).toLowerCase();
 
         if (allowedTypes.includes(ext)) {
           cb(null, true);
         } else {
-          cb(new Error("Invalid file type. Only video files are allowed."));
+          cb(new Error('Invalid file type. Only video files are allowed.'));
         }
       },
     });
@@ -206,14 +206,14 @@ export class APIService {
     this.app.use((req: Request, res: Response, next: NextFunction) => {
       this.logger.api(req.method, req.path, 200, 0, {
         ip: req.ip,
-        userAgent: req.get("User-Agent"),
-        body: req.method !== "GET" ? req.body : undefined,
+        userAgent: req.get('User-Agent'),
+        body: req.method !== 'GET' ? req.body : undefined,
       });
       next();
     });
 
     // Static files
-    this.app.use("/uploads", express.static(this.config.uploadDir));
+    this.app.use('/uploads', express.static(this.config.uploadDir));
   }
 
   /**
@@ -221,43 +221,43 @@ export class APIService {
    */
   private setupRoutes(): void {
     // Health check
-    this.app.get("/health", (req: Request, res: Response) => {
+    this.app.get('/health', (req: Request, res: Response) => {
       res.json({
         success: true,
         data: {
-          status: "healthy",
+          status: 'healthy',
           timestamp: new Date().toISOString(),
           uptime: process.uptime(),
-          version: process.env.npm_package_version || "1.0.0",
+          version: process.env.npm_package_version || '1.0.0',
         },
       });
     });
 
     // API routes
-    this.app.use("/api/auth", this.getAuthRoutes());
-    this.app.use("/api/users", this.authenticateToken, this.getUserRoutes());
-    this.app.use("/api/guilds", this.authenticateToken, this.getGuildRoutes());
+    this.app.use('/api/auth', this.getAuthRoutes());
+    this.app.use('/api/users', this.authenticateToken, this.getUserRoutes());
+    this.app.use('/api/guilds', this.authenticateToken, this.getGuildRoutes());
     this.app.use(
-      "/api/rankings",
+      '/api/rankings',
       this.authenticateToken,
-      this.getRankingRoutes()
+      this.getRankingRoutes(),
     );
-    this.app.use("/api/badges", this.authenticateToken, this.getBadgeRoutes());
+    this.app.use('/api/badges', this.authenticateToken, this.getBadgeRoutes());
     this.app.use(
-      "/api/presence",
+      '/api/presence',
       this.authenticateToken,
-      this.getPresenceRoutes()
+      this.getPresenceRoutes(),
     );
-    this.app.use("/api/music", this.authenticateToken, this.getMusicRoutes());
-    this.app.use("/api/games", this.authenticateToken, this.getGameRoutes());
-    this.app.use("/api/clips", this.authenticateToken, this.getClipRoutes());
-    this.app.use("/api/stats", this.authenticateToken, this.getStatsRoutes());
+    this.app.use('/api/music', this.authenticateToken, this.getMusicRoutes());
+    this.app.use('/api/games', this.authenticateToken, this.getGameRoutes());
+    this.app.use('/api/clips', this.authenticateToken, this.getClipRoutes());
+    this.app.use('/api/stats', this.authenticateToken, this.getStatsRoutes());
 
     // Catch all
-    this.app.use("*", (req: Request, res: Response) => {
+    this.app.use('*', (req: Request, res: Response) => {
       res.status(404).json({
         success: false,
-        error: "Endpoint not found",
+        error: 'Endpoint not found',
       });
     });
   }
@@ -268,22 +268,22 @@ export class APIService {
   private setupErrorHandling(): void {
     this.app.use(
       (error: Error, req: Request, res: Response, next: NextFunction) => {
-        this.logger.error("API Error:", error);
+        this.logger.error('API Error:', error);
 
         if (error instanceof multer.MulterError) {
-          if ((error as any).code === "LIMIT_FILE_SIZE") {
+          if ((error as any).code === 'LIMIT_FILE_SIZE') {
             return res.status(400).json({
               success: false,
-              error: "File too large",
+              error: 'File too large',
             });
           }
         }
 
         return res.status(500).json({
           success: false,
-          error: "Internal server error",
+          error: 'Internal server error',
         });
-      }
+      },
     );
   }
 
@@ -293,16 +293,16 @@ export class APIService {
   private authenticateToken = async (
     req: AuthenticatedRequest,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
-      const authHeader = req.headers["authorization"];
-      const token = authHeader && authHeader.split(" ")[1];
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
 
       if (!token) {
         res.status(401).json({
           success: false,
-          error: "Access token required",
+          error: 'Access token required',
         });
         return;
       }
@@ -349,7 +349,7 @@ export class APIService {
       // Temporary bypass for authentication
       res.status(401).json({
         success: false,
-        error: "Authentication disabled - database schema needs updates",
+        error: 'Authentication disabled - database schema needs updates',
       });
       return;
 
@@ -357,7 +357,7 @@ export class APIService {
     } catch (error) {
       res.status(401).json({
         success: false,
-        error: "Invalid token",
+        error: 'Invalid token',
       });
     }
   };
@@ -369,23 +369,23 @@ export class APIService {
     const router = express.Router();
 
     // Discord OAuth callback
-    router.post("/discord", async (req: Request, res: Response) => {
+    router.post('/discord', async (req: Request, res: Response) => {
       try {
         const { code, guildId } = req.body;
 
         if (!code || !guildId) {
           return res.status(400).json({
             success: false,
-            error: "Code and guildId are required",
+            error: 'Code and guildId are required',
           });
         }
 
         // Exchange code for access token (simplified)
         // In production, implement proper Discord OAuth flow
         const token = jwt.sign(
-          { userId: "temp-user-id", guildId },
+          { userId: 'temp-user-id', guildId },
           this.config.jwtSecret,
-          { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions
+          { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions,
         );
 
         return res.json({
@@ -396,23 +396,23 @@ export class APIService {
           },
         });
       } catch (error) {
-        this.logger.error("Discord auth error:", error);
+        this.logger.error('Discord auth error:', error);
         return res.status(500).json({
           success: false,
-          error: "Authentication failed",
+          error: 'Authentication failed',
         });
       }
     });
 
     // Refresh token
-    router.post("/refresh", async (req: Request, res: Response) => {
+    router.post('/refresh', async (req: Request, res: Response) => {
       try {
         const { refreshToken } = req.body;
 
         if (!refreshToken) {
           return res.status(400).json({
             success: false,
-            error: "Refresh token required",
+            error: 'Refresh token required',
           });
         }
 
@@ -422,7 +422,7 @@ export class APIService {
         const newToken = jwt.sign(
           { userId: decoded.userId, guildId: decoded.guildId },
           this.config.jwtSecret,
-          { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions
+          { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions,
         );
 
         return res.json({
@@ -435,7 +435,7 @@ export class APIService {
       } catch (error) {
         return res.status(401).json({
           success: false,
-          error: "Invalid refresh token",
+          error: 'Invalid refresh token',
         });
       }
     });
@@ -450,7 +450,7 @@ export class APIService {
     const router = express.Router();
 
     // Get current user
-    router.get("/me", async (req: AuthenticatedRequest, res: Response) => {
+    router.get('/me', async (req: AuthenticatedRequest, res: Response) => {
       try {
         // TODO: Fix user query - commenting out until User model relations are corrected
         // const user = await this.database.client.user.findUnique({
@@ -473,19 +473,19 @@ export class APIService {
 
         res.status(503).json({
           success: false,
-          error: "User data disabled - database schema needs updates",
+          error: 'User data disabled - database schema needs updates',
         });
       } catch (error) {
-        this.logger.error("Get user error:", error);
+        this.logger.error('Get user error:', error);
         res.status(500).json({
           success: false,
-          error: "Failed to get user data",
+          error: 'Failed to get user data',
         });
       }
     });
 
     // Update user profile
-    router.put("/me", async (req: AuthenticatedRequest, res: Response) => {
+    router.put('/me', async (req: AuthenticatedRequest, res: Response) => {
       try {
         // TODO: Fix user update - commenting out until User model is corrected
         // const { pubgUsername, pubgPlatform } = req.body;
@@ -495,7 +495,7 @@ export class APIService {
 
         res.status(503).json({
           success: false,
-          error: "User update disabled - database schema needs updates",
+          error: 'User update disabled - database schema needs updates',
         });
 
         // TODO: Complete the user update implementation
@@ -511,17 +511,17 @@ export class APIService {
         //   data: updatedUser
         // });
       } catch (error) {
-        this.logger.error("Update user error:", error);
+        this.logger.error('Update user error:', error);
         res.status(500).json({
           success: false,
-          error: "Failed to update user",
+          error: 'Failed to update user',
         });
       }
     });
 
     // Get user stats
     router.get(
-      "/me/stats",
+      '/me/stats',
       async (req: AuthenticatedRequest, res: Response) => {
         try {
           // TODO: Fix UserStats query - UserStats model has userId field, not userId_guildId composite key
@@ -534,7 +534,7 @@ export class APIService {
           // Temporarily disabled until UserStats model is properly configured
           res.status(503).json({
             success: false,
-            error: "User stats disabled - database schema needs updates",
+            error: 'User stats disabled - database schema needs updates',
           });
 
           // res.json({
@@ -542,13 +542,13 @@ export class APIService {
           //   data: stats
           // });
         } catch (error) {
-          this.logger.error("Get user stats error:", error);
+          this.logger.error('Get user stats error:', error);
           res.status(500).json({
             success: false,
-            error: "Failed to get user stats",
+            error: 'Failed to get user stats',
           });
         }
-      }
+      },
     );
 
     return router;
@@ -562,7 +562,7 @@ export class APIService {
 
     // Get guild info
     router.get(
-      "/:guildId",
+      '/:guildId',
       async (req: AuthenticatedRequest, res: Response) => {
         try {
           const { guildId } = req.params;
@@ -570,7 +570,7 @@ export class APIService {
           if (guildId !== req.user!.guildId) {
             return res.status(403).json({
               success: false,
-              error: "Access denied",
+              error: 'Access denied',
             });
           }
 
@@ -581,7 +581,7 @@ export class APIService {
               users: {
                 take: 10,
                 orderBy: {
-                  joinedAt: "desc",
+                  joinedAt: 'desc',
                 },
               },
             },
@@ -592,18 +592,18 @@ export class APIService {
             data: guild,
           });
         } catch (error) {
-          this.logger.error("Get guild error:", error);
+          this.logger.error('Get guild error:', error);
           return res.status(500).json({
             success: false,
-            error: "Failed to get guild data",
+            error: 'Failed to get guild data',
           });
         }
-      }
+      },
     );
 
     // Get guild members
     router.get(
-      "/:guildId/members",
+      '/:guildId/members',
       async (req: AuthenticatedRequest, res: Response) => {
         try {
           const { guildId } = req.params;
@@ -612,7 +612,7 @@ export class APIService {
           if (guildId !== req.user!.guildId) {
             return res.status(403).json({
               success: false,
-              error: "Access denied",
+              error: 'Access denied',
             });
           }
 
@@ -658,13 +658,13 @@ export class APIService {
             },
           });
         } catch (error) {
-          this.logger.error("Get guild members error:", error);
+          this.logger.error('Get guild members error:', error);
           return res.status(500).json({
             success: false,
-            error: "Failed to get guild members",
+            error: 'Failed to get guild members',
           });
         }
-      }
+      },
     );
 
     return router;
@@ -678,16 +678,16 @@ export class APIService {
 
     // Get PUBG rankings
     router.get(
-      "/pubg/:period",
+      '/pubg/:period',
       async (req: AuthenticatedRequest, res: Response) => {
         try {
           const { period } = req.params;
           const { limit = 50 } = req.query;
 
-          if (!period || !["daily", "weekly", "monthly"].includes(period)) {
+          if (!period || !['daily', 'weekly', 'monthly'].includes(period)) {
             return res.status(400).json({
               success: false,
-              error: "Invalid period",
+              error: 'Invalid period',
             });
           }
 
@@ -695,40 +695,40 @@ export class APIService {
           let rankingPeriod;
           const now = new Date();
           switch (period) {
-            case "daily":
-              rankingPeriod = {
-                type: "daily" as const,
-                startDate: new Date(now.getTime() - 24 * 60 * 60 * 1000),
-                endDate: now,
-              };
-              break;
-            case "weekly":
-              rankingPeriod = {
-                type: "weekly" as const,
-                startDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-                endDate: now,
-              };
-              break;
-            case "monthly":
-              rankingPeriod = {
-                type: "monthly" as const,
-                startDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-                endDate: now,
-              };
-              break;
-            default:
-              return res.status(400).json({
-                success: false,
-                error: "Invalid period",
-              });
+          case 'daily':
+            rankingPeriod = {
+              type: 'daily' as const,
+              startDate: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+              endDate: now,
+            };
+            break;
+          case 'weekly':
+            rankingPeriod = {
+              type: 'weekly' as const,
+              startDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+              endDate: now,
+            };
+            break;
+          case 'monthly':
+            rankingPeriod = {
+              type: 'monthly' as const,
+              startDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+              endDate: now,
+            };
+            break;
+          default:
+            return res.status(400).json({
+              success: false,
+              error: 'Invalid period',
+            });
           }
 
           const ranking = this.rankingService.getPUBGRanking(
             req.user!.guildId,
             rankingPeriod,
             undefined, // gameMode - use default
-            "rankPoints", // sortBy - use default
-            Number(limit)
+            'rankPoints', // sortBy - use default
+            Number(limit),
           );
 
           return res.json({
@@ -736,27 +736,27 @@ export class APIService {
             data: ranking,
           });
         } catch (error) {
-          this.logger.error("Get PUBG ranking error:", error);
+          this.logger.error('Get PUBG ranking error:', error);
           return res.status(500).json({
             success: false,
-            error: "Failed to get PUBG ranking",
+            error: 'Failed to get PUBG ranking',
           });
         }
-      }
+      },
     );
 
     // Get internal rankings
     router.get(
-      "/internal/:period",
+      '/internal/:period',
       async (req: AuthenticatedRequest, res: Response) => {
         try {
           const { period } = req.params;
           const { limit = 50 } = req.query;
 
-          if (!period || !["daily", "weekly", "monthly"].includes(period)) {
+          if (!period || !['daily', 'weekly', 'monthly'].includes(period)) {
             return res.status(400).json({
               success: false,
-              error: "Invalid period",
+              error: 'Invalid period',
             });
           }
 
@@ -764,39 +764,39 @@ export class APIService {
           let rankingPeriod;
           const now = new Date();
           switch (period) {
-            case "daily":
-              rankingPeriod = {
-                type: "daily" as const,
-                startDate: new Date(now.getTime() - 24 * 60 * 60 * 1000),
-                endDate: now,
-              };
-              break;
-            case "weekly":
-              rankingPeriod = {
-                type: "weekly" as const,
-                startDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-                endDate: now,
-              };
-              break;
-            case "monthly":
-              rankingPeriod = {
-                type: "monthly" as const,
-                startDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-                endDate: now,
-              };
-              break;
-            default:
-              return res.status(400).json({
-                success: false,
-                error: "Invalid period",
-              });
+          case 'daily':
+            rankingPeriod = {
+              type: 'daily' as const,
+              startDate: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+              endDate: now,
+            };
+            break;
+          case 'weekly':
+            rankingPeriod = {
+              type: 'weekly' as const,
+              startDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+              endDate: now,
+            };
+            break;
+          case 'monthly':
+            rankingPeriod = {
+              type: 'monthly' as const,
+              startDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+              endDate: now,
+            };
+            break;
+          default:
+            return res.status(400).json({
+              success: false,
+              error: 'Invalid period',
+            });
           }
 
           const ranking = this.rankingService.getInternalRanking(
             req.user!.guildId,
             rankingPeriod,
-            "level", // sortBy - use default
-            Number(limit)
+            'level', // sortBy - use default
+            Number(limit),
           );
 
           return res.json({
@@ -804,13 +804,13 @@ export class APIService {
             data: ranking,
           });
         } catch (error) {
-          this.logger.error("Get internal ranking error:", error);
+          this.logger.error('Get internal ranking error:', error);
           return res.status(500).json({
             success: false,
-            error: "Failed to get internal ranking",
+            error: 'Failed to get internal ranking',
           });
         }
-      }
+      },
     );
 
     return router;
@@ -824,7 +824,7 @@ export class APIService {
 
     // Get user badges
     router.get(
-      "/user/:userId",
+      '/user/:userId',
       async (req: AuthenticatedRequest, res: Response) => {
         try {
           const { userId } = req.params;
@@ -837,7 +837,7 @@ export class APIService {
               badge: true,
             },
             orderBy: {
-              earnedAt: "desc",
+              earnedAt: 'desc',
             },
           });
 
@@ -846,21 +846,21 @@ export class APIService {
             data: badges,
           });
         } catch (error) {
-          this.logger.error("Get user badges error:", error);
+          this.logger.error('Get user badges error:', error);
           res.status(500).json({
             success: false,
-            error: "Failed to get user badges",
+            error: 'Failed to get user badges',
           });
         }
-      }
+      },
     );
 
     // Get all badges
-    router.get("/", async (req: AuthenticatedRequest, res: Response) => {
+    router.get('/', async (req: AuthenticatedRequest, res: Response) => {
       try {
         const badges = await this.database.client.badge.findMany({
           orderBy: {
-            category: "asc",
+            category: 'asc',
           },
         });
 
@@ -869,10 +869,10 @@ export class APIService {
           data: badges,
         });
       } catch (error) {
-        this.logger.error("Get badges error:", error);
+        this.logger.error('Get badges error:', error);
         res.status(500).json({
           success: false,
-          error: "Failed to get badges",
+          error: 'Failed to get badges',
         });
       }
     });
@@ -888,12 +888,12 @@ export class APIService {
 
     // Check in
     router.post(
-      "/checkin",
+      '/checkin',
       async (req: AuthenticatedRequest, res: Response) => {
         try {
           const result = await this.presenceService.checkIn(
             req.user!.guildId,
-            req.user!.id
+            req.user!.id,
           );
 
           res.json({
@@ -902,23 +902,23 @@ export class APIService {
             data: result.session,
           });
         } catch (error) {
-          this.logger.error("Check in error:", error);
+          this.logger.error('Check in error:', error);
           res.status(500).json({
             success: false,
-            error: "Failed to check in",
+            error: 'Failed to check in',
           });
         }
-      }
+      },
     );
 
     // Check out
     router.post(
-      "/checkout",
+      '/checkout',
       async (req: AuthenticatedRequest, res: Response) => {
         try {
           const result = await this.presenceService.checkOut(
             req.user!.guildId,
-            req.user!.id
+            req.user!.id,
           );
 
           res.json({
@@ -927,18 +927,18 @@ export class APIService {
             data: result.session,
           });
         } catch (error) {
-          this.logger.error("Check out error:", error);
+          this.logger.error('Check out error:', error);
           res.status(500).json({
             success: false,
-            error: "Failed to check out",
+            error: 'Failed to check out',
           });
         }
-      }
+      },
     );
 
     // Get user presence stats
     router.get(
-      "/stats/:userId",
+      '/stats/:userId',
       async (req: AuthenticatedRequest, res: Response) => {
         try {
           const { userId } = req.params;
@@ -946,13 +946,13 @@ export class APIService {
           if (!userId) {
             return res.status(400).json({
               success: false,
-              error: "User ID is required"
+              error: 'User ID is required',
             });
           }
 
           const stats = this.presenceService.getUserStats(
             req.user!.guildId,
-            userId
+            userId,
           );
 
           return res.json({
@@ -960,13 +960,13 @@ export class APIService {
             data: stats,
           });
         } catch (error) {
-          this.logger.error("Get presence stats error:", error);
+          this.logger.error('Get presence stats error:', error);
           return res.status(500).json({
             success: false,
-            error: "Failed to get presence stats",
+            error: 'Failed to get presence stats',
           });
         }
-      }
+      },
     );
 
     return router;
@@ -980,7 +980,7 @@ export class APIService {
 
     // Get current queue
     router.get(
-      "/queue/:guildId",
+      '/queue/:guildId',
       async (req: AuthenticatedRequest, res: Response) => {
         try {
           const { guildId } = req.params;
@@ -988,7 +988,7 @@ export class APIService {
           if (guildId !== req.user!.guildId) {
             return res.status(403).json({
               success: false,
-              error: "Access denied",
+              error: 'Access denied',
             });
           }
 
@@ -999,18 +999,18 @@ export class APIService {
             data: queue,
           });
         } catch (error) {
-          this.logger.error("Get music queue error:", error);
+          this.logger.error('Get music queue error:', error);
           return res.status(500).json({
             success: false,
-            error: "Failed to get music queue",
+            error: 'Failed to get music queue',
           });
         }
-      }
+      },
     );
 
     // Add track to queue
     router.post(
-      "/queue/:guildId/add",
+      '/queue/:guildId/add',
       async (req: AuthenticatedRequest, res: Response) => {
         try {
           const { guildId } = req.params;
@@ -1019,14 +1019,14 @@ export class APIService {
           if (guildId !== req.user!.guildId) {
             return res.status(403).json({
               success: false,
-              error: "Access denied",
+              error: 'Access denied',
             });
           }
 
           const result = await this.musicService.addTrack(
             guildId,
             query,
-            req.user!.id
+            req.user!.id,
           );
 
           return res.json({
@@ -1035,13 +1035,13 @@ export class APIService {
             data: result.track,
           });
         } catch (error) {
-          this.logger.error("Add track error:", error);
+          this.logger.error('Add track error:', error);
           return res.status(500).json({
             success: false,
-            error: "Failed to add track",
+            error: 'Failed to add track',
           });
         }
-      }
+      },
     );
 
     return router;
@@ -1055,7 +1055,7 @@ export class APIService {
 
     // Get active games
     router.get(
-      "/active/:guildId",
+      '/active/:guildId',
       async (req: AuthenticatedRequest, res: Response) => {
         try {
           const { guildId } = req.params;
@@ -1063,7 +1063,7 @@ export class APIService {
           if (guildId !== req.user!.guildId) {
             return res.status(403).json({
               success: false,
-              error: "Access denied",
+              error: 'Access denied',
             });
           }
 
@@ -1074,13 +1074,13 @@ export class APIService {
             data: games,
           });
         } catch (error) {
-          this.logger.error("Get active games error:", error);
+          this.logger.error('Get active games error:', error);
           return res.status(500).json({
             success: false,
-            error: "Failed to get active games",
+            error: 'Failed to get active games',
           });
         }
-      }
+      },
     );
 
     return router;
@@ -1094,14 +1094,14 @@ export class APIService {
 
     // Upload clip
     router.post(
-      "/upload",
-      this.upload.single("clip"),
+      '/upload',
+      this.upload.single('clip'),
       async (req: AuthenticatedRequest, res: Response) => {
         try {
           if (!req.file) {
             return res.status(400).json({
               success: false,
-              error: "No file uploaded",
+              error: 'No file uploaded',
             });
           }
 
@@ -1117,7 +1117,7 @@ export class APIService {
             title,
             description,
             gameMode,
-            tags ? JSON.parse(tags) : undefined
+            tags ? JSON.parse(tags) : undefined,
           );
 
           // Clean up uploaded file
@@ -1129,18 +1129,18 @@ export class APIService {
             data: { clipId: result.clipId },
           });
         } catch (error) {
-          this.logger.error("Upload clip error:", error);
+          this.logger.error('Upload clip error:', error);
           return res.status(500).json({
             success: false,
-            error: "Failed to upload clip",
+            error: 'Failed to upload clip',
           });
         }
-      }
+      },
     );
 
     // Get clips
     router.get(
-      "/:guildId",
+      '/:guildId',
       async (req: AuthenticatedRequest, res: Response) => {
         try {
           const { guildId } = req.params;
@@ -1149,7 +1149,7 @@ export class APIService {
           if (guildId !== req.user!.guildId) {
             return res.status(403).json({
               success: false,
-              error: "Access denied",
+              error: 'Access denied',
             });
           }
 
@@ -1157,7 +1157,7 @@ export class APIService {
             guildId,
             status as any,
             Number(limit),
-            Number(offset)
+            Number(offset),
           );
 
           return res.json({
@@ -1165,13 +1165,13 @@ export class APIService {
             data: clips,
           });
         } catch (error) {
-          this.logger.error("Get clips error:", error);
+          this.logger.error('Get clips error:', error);
           return res.status(500).json({
             success: false,
-            error: "Failed to get clips",
+            error: 'Failed to get clips',
           });
         }
-      }
+      },
     );
 
     return router;
@@ -1185,7 +1185,7 @@ export class APIService {
 
     // Get guild stats
     router.get(
-      "/guild/:guildId",
+      '/guild/:guildId',
       async (req: AuthenticatedRequest, res: Response) => {
         try {
           const { guildId } = req.params;
@@ -1193,7 +1193,7 @@ export class APIService {
           if (guildId !== req.user!.guildId) {
             return res.status(403).json({
               success: false,
-              error: "Access denied",
+              error: 'Access denied',
             });
           }
 
@@ -1204,13 +1204,13 @@ export class APIService {
             data: stats,
           });
         } catch (error) {
-          this.logger.error("Get guild stats error:", error);
+          this.logger.error('Get guild stats error:', error);
           return res.status(500).json({
             success: false,
-            error: "Failed to get guild stats",
+            error: 'Failed to get guild stats',
           });
         }
-      }
+      },
     );
 
     return router;
@@ -1262,14 +1262,14 @@ export class APIService {
           this.config.host,
           () => {
             this.logger.info(
-              `API server started on ${this.config.host}:${this.config.port}`
+              `API server started on ${this.config.host}:${this.config.port}`,
             );
             resolve();
-          }
+          },
         );
 
-        this.server.on("error", (error) => {
-          this.logger.error("API server error:", error);
+        this.server.on('error', (error) => {
+          this.logger.error('API server error:', error);
           reject(error);
         });
       } catch (error) {
@@ -1285,7 +1285,7 @@ export class APIService {
     return new Promise((resolve) => {
       if (this.server) {
         this.server.close(() => {
-          this.logger.info("API server stopped");
+          this.logger.info('API server stopped');
           resolve();
         });
       } else {

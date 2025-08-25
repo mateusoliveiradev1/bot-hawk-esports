@@ -137,7 +137,7 @@ export class GameService {
       difficulty: 'easy',
       category: 'pubg',
       points: 10,
-      timeLimit: 30
+      timeLimit: 30,
     },
     {
       id: 'pubg_2',
@@ -147,7 +147,7 @@ export class GameService {
       difficulty: 'easy',
       category: 'pubg',
       points: 10,
-      timeLimit: 30
+      timeLimit: 30,
     },
     {
       id: 'pubg_3',
@@ -157,7 +157,7 @@ export class GameService {
       difficulty: 'medium',
       category: 'pubg',
       points: 15,
-      timeLimit: 45
+      timeLimit: 45,
     },
     {
       id: 'pubg_4',
@@ -167,7 +167,7 @@ export class GameService {
       difficulty: 'medium',
       category: 'pubg',
       points: 15,
-      timeLimit: 30
+      timeLimit: 30,
     },
     {
       id: 'pubg_5',
@@ -177,8 +177,8 @@ export class GameService {
       difficulty: 'hard',
       category: 'pubg',
       points: 20,
-      timeLimit: 60
-    }
+      timeLimit: 60,
+    },
   ];
   
   private readonly miniGames: MiniGame[] = [
@@ -189,7 +189,7 @@ export class GameService {
       type: 'reaction',
       difficulty: 'easy',
       duration: 30,
-      rewards: { xp: 25, coins: 10 }
+      rewards: { xp: 25, coins: 10 },
     },
     {
       id: 'typing_race',
@@ -198,7 +198,7 @@ export class GameService {
       type: 'typing',
       difficulty: 'medium',
       duration: 60,
-      rewards: { xp: 50, coins: 25 }
+      rewards: { xp: 50, coins: 25 },
     },
     {
       id: 'math_challenge',
@@ -207,7 +207,7 @@ export class GameService {
       type: 'math',
       difficulty: 'medium',
       duration: 45,
-      rewards: { xp: 40, coins: 20 }
+      rewards: { xp: 40, coins: 20 },
     },
     {
       id: 'memory_game',
@@ -216,8 +216,8 @@ export class GameService {
       type: 'memory',
       difficulty: 'hard',
       duration: 90,
-      rewards: { xp: 75, coins: 40 }
-    }
+      rewards: { xp: 75, coins: 40 },
+    },
   ];
 
   constructor(client: ExtendedClient) {
@@ -239,9 +239,9 @@ export class GameService {
         where: {
           isActive: true,
           endDate: {
-            gte: new Date()
-          }
-        }
+            gte: new Date(),
+          },
+        },
       });
 
       for (const challenge of challenges) {
@@ -255,7 +255,7 @@ export class GameService {
           rewards: challenge.rewards ? JSON.parse(challenge.rewards as string) : { xp: 0, coins: 0 },
           startDate: challenge.startDate,
           endDate: challenge.endDate,
-          isActive: challenge.isActive
+          isActive: challenge.isActive,
         };
         
         this.activeChallenges.set(challenge.id, challengeData);
@@ -324,22 +324,22 @@ export class GameService {
         description: 'Consiga 5 kills em partidas do PUBG',
         category: 'pubg' as const,
         requirements: [{ type: 'kills' as const, target: 5 }],
-        rewards: { xp: 100, coins: 50 }
+        rewards: { xp: 100, coins: 50 },
       },
       {
         name: 'Socialização',
         description: 'Envie 20 mensagens no servidor',
         category: 'social' as const,
         requirements: [{ type: 'messages' as const, target: 20 }],
-        rewards: { xp: 75, coins: 30 }
+        rewards: { xp: 75, coins: 30 },
       },
       {
         name: 'Quiz Master',
         description: 'Acerte 10 perguntas em quizzes',
         category: 'gaming' as const,
         requirements: [{ type: 'quiz_score' as const, target: 10 }],
-        rewards: { xp: 125, coins: 60 }
-      }
+        rewards: { xp: 125, coins: 60 },
+      },
     ];
     
     const randomChallenge = dailyChallenges[Math.floor(Math.random() * dailyChallenges.length)];
@@ -352,7 +352,7 @@ export class GameService {
       ...randomChallenge,
       type: 'daily',
       startDate,
-      endDate
+      endDate,
     } as Omit<Challenge, 'id' | 'isActive'>);
   }
 
@@ -366,15 +366,15 @@ export class GameService {
         description: 'Vença 3 partidas do PUBG',
         category: 'pubg' as const,
         requirements: [{ type: 'wins' as const, target: 3 }],
-        rewards: { xp: 300, coins: 150, badges: ['weekly_winner'] }
+        rewards: { xp: 300, coins: 150, badges: ['weekly_winner'] },
       },
       {
         name: 'Participação Ativa',
         description: 'Passe 2 horas em canais de voz',
         category: 'participation' as const,
         requirements: [{ type: 'voice_time' as const, target: 7200 }], // 2 hours in seconds
-        rewards: { xp: 250, coins: 100 }
-      }
+        rewards: { xp: 250, coins: 100 },
+      },
     ];
     
     const randomChallenge = weeklyChallenges[Math.floor(Math.random() * weeklyChallenges.length)];
@@ -387,7 +387,7 @@ export class GameService {
       ...randomChallenge,
       type: 'weekly',
       startDate,
-      endDate
+      endDate,
     } as Omit<Challenge, 'id' | 'isActive'>);
   }
 
@@ -401,15 +401,15 @@ export class GameService {
         description: 'Jogue 50 partidas do PUBG',
         category: 'pubg' as const,
         requirements: [{ type: 'games' as const, target: 50 }],
-        rewards: { xp: 1000, coins: 500, badges: ['monthly_legend'] }
+        rewards: { xp: 1000, coins: 500, badges: ['monthly_legend'] },
       },
       {
         name: 'Mestre dos Mini-Games',
         description: 'Vença 20 mini-games',
         category: 'gaming' as const,
         requirements: [{ type: 'mini_game_wins' as const, target: 20 }],
-        rewards: { xp: 800, coins: 400, badges: ['game_master'] }
-      }
+        rewards: { xp: 800, coins: 400, badges: ['game_master'] },
+      },
     ];
     
     const randomChallenge = monthlyChallenges[Math.floor(Math.random() * monthlyChallenges.length)];
@@ -422,7 +422,7 @@ export class GameService {
       ...randomChallenge,
       type: 'monthly',
       startDate,
-      endDate
+      endDate,
     } as Omit<Challenge, 'id' | 'isActive'>);
   }
 
@@ -442,8 +442,8 @@ export class GameService {
           rewards: JSON.stringify(challengeData.rewards),
           startDate: challengeData.startDate,
           endDate: challengeData.endDate,
-          isActive: true
-        }
+          isActive: true,
+        },
       });
       
       const newChallenge: Challenge = {
@@ -456,14 +456,14 @@ export class GameService {
         rewards: challenge.rewards ? JSON.parse(challenge.rewards as string) : { xp: 0, coins: 0 },
         startDate: challenge.startDate,
         endDate: challenge.endDate,
-        isActive: challenge.isActive
+        isActive: challenge.isActive,
       };
       
       this.activeChallenges.set(challenge.id, newChallenge);
       
       this.logger.game('CHALLENGE_CREATED', challenge.id, 'system', {
         name: challenge.name,
-        type: challenge.type
+        type: challenge.type,
       });
       
       return newChallenge;
@@ -480,12 +480,12 @@ export class GameService {
     guildId: string,
     channelId: string,
     hostId: string,
-    settings: QuizSettings
+    settings: QuizSettings,
   ): Promise<QuizSession> {
     const sessionId = `quiz_${guildId}_${Date.now()}`;
     
     // Get questions based on settings
-    let questions = this.getQuizQuestions(settings);
+    const questions = this.getQuizQuestions(settings);
     
     const session: QuizSession = {
       id: sessionId,
@@ -497,7 +497,7 @@ export class GameService {
       currentQuestionIndex: 0,
       isActive: true,
       startedAt: new Date(),
-      settings
+      settings,
     };
     
     this.quizSessions.set(sessionId, session);
@@ -512,13 +512,13 @@ export class GameService {
         difficulty: settings.difficulty === 'mixed' ? 'medium' : settings.difficulty,
         category: settings.category === 'mixed' ? 'general' : settings.category,
         timeLimit: settings.timePerQuestion,
-        isActive: true
-      }
+        isActive: true,
+      },
     });
     
     this.logger.game('QUIZ_STARTED', sessionId, hostId, {
       guildId,
-      questionCount: questions.length
+      questionCount: questions.length,
     });
     
     return session;
@@ -562,7 +562,7 @@ export class GameService {
         correctAnswers: 0,
         totalAnswers: 0,
         streak: 0,
-        lastAnswerTime: 0
+        lastAnswerTime: 0,
       });
       
       this.logger.game('QUIZ_JOINED', sessionId, userId, { username });
@@ -577,7 +577,7 @@ export class GameService {
   public async submitQuizAnswer(
     sessionId: string,
     userId: string,
-    answerIndex: number
+    answerIndex: number,
   ): Promise<{ correct: boolean; points: number; streak: number } | null> {
     const session = this.quizSessions.get(sessionId);
     if (!session || !session.isActive) {
@@ -618,13 +618,13 @@ export class GameService {
     this.logger.game('QUIZ_ANSWER', sessionId, userId, {
       questionIndex: session.currentQuestionIndex,
       correct: isCorrect,
-      points
+      points,
     });
     
     return {
       correct: isCorrect,
       points,
-      streak: participant.streak
+      streak: participant.streak,
     };
   }
 
@@ -658,8 +658,8 @@ export class GameService {
           userId: participant.userId,
           score: participant.score,
           totalQuestions: participant.totalAnswers,
-          answers: {} // Store participant answers if available
-        }
+          answers: {}, // Store participant answers if available
+        },
       });
     }
     
@@ -667,15 +667,15 @@ export class GameService {
     await this.database.client.quiz.update({
       where: { id: sessionId },
       data: { 
-        isActive: false
-      }
+        isActive: false,
+      },
     });
     
     this.quizSessions.delete(sessionId);
     
     this.logger.game('QUIZ_ENDED', sessionId, results[0]?.userId || 'none', {
       participantCount: results.length,
-      winner: results[0]?.username
+      winner: results[0]?.username,
     });
     
     return results;
@@ -688,7 +688,7 @@ export class GameService {
     gameId: string,
     guildId: string,
     channelId: string,
-    hostId: string
+    hostId: string,
   ): Promise<GameSession | null> {
     const game = this.miniGames.find(g => g.id === gameId);
     if (!game) {
@@ -709,7 +709,7 @@ export class GameService {
       isActive: true,
       startedAt: startTime,
       endsAt: endTime,
-      data: this.initializeGameData(game.type)
+      data: this.initializeGameData(game.type),
     };
     
     this.gameSessions.set(sessionId, session);
@@ -721,7 +721,7 @@ export class GameService {
     
     this.logger.game('MINI_GAME_STARTED', sessionId, hostId, {
       gameId,
-      guildId
+      guildId,
     });
     
     return session;
@@ -732,35 +732,35 @@ export class GameService {
    */
   private initializeGameData(gameType: string): any {
     switch (gameType) {
-      case 'reaction':
-        return {
-          targetEmoji: '🎯',
-          hasStarted: false,
-          winner: null
-        };
-      case 'typing':
-        const phrases = [
-          'The quick brown fox jumps over the lazy dog',
-          'PUBG is the best battle royale game ever created',
-          'Hawk Esports dominates the battlefield with skill and strategy'
-        ];
-        return {
-          phrase: phrases[Math.floor(Math.random() * phrases.length)],
-          submissions: new Map()
-        };
-      case 'math':
-        return {
-          problems: this.generateMathProblems(5),
-          currentProblem: 0
-        };
-      case 'memory':
-        return {
-          sequence: this.generateEmojiSequence(5),
-          revealed: false,
-          submissions: new Map()
-        };
-      default:
-        return {};
+    case 'reaction':
+      return {
+        targetEmoji: '🎯',
+        hasStarted: false,
+        winner: null,
+      };
+    case 'typing':
+      const phrases = [
+        'The quick brown fox jumps over the lazy dog',
+        'PUBG is the best battle royale game ever created',
+        'Hawk Esports dominates the battlefield with skill and strategy',
+      ];
+      return {
+        phrase: phrases[Math.floor(Math.random() * phrases.length)],
+        submissions: new Map(),
+      };
+    case 'math':
+      return {
+        problems: this.generateMathProblems(5),
+        currentProblem: 0,
+      };
+    case 'memory':
+      return {
+        sequence: this.generateEmojiSequence(5),
+        revealed: false,
+        submissions: new Map(),
+      };
+    default:
+      return {};
     }
   }
 
@@ -779,21 +779,21 @@ export class GameService {
       let answer: number;
       
       switch (operation) {
-        case '+':
-          problem = `${a} + ${b}`;
-          answer = a + b;
-          break;
-        case '-':
-          problem = `${a} - ${b}`;
-          answer = a - b;
-          break;
-        case '*':
-          problem = `${a} × ${b}`;
-          answer = a * b;
-          break;
-        default:
-          problem = `${a} + ${b}`;
-          answer = a + b;
+      case '+':
+        problem = `${a} + ${b}`;
+        answer = a + b;
+        break;
+      case '-':
+        problem = `${a} - ${b}`;
+        answer = a - b;
+        break;
+      case '*':
+        problem = `${a} × ${b}`;
+        answer = a * b;
+        break;
+      default:
+        problem = `${a} + ${b}`;
+        answer = a + b;
       }
       
       problems.push({ problem, answer });
@@ -832,7 +832,7 @@ export class GameService {
         username,
         score: 0,
         joinedAt: new Date(),
-        data: {}
+        data: {},
       });
       
       this.logger.game('MINI_GAME_JOINED', sessionId, userId, { username });
@@ -871,8 +871,8 @@ export class GameService {
             challengeId: session.gameId, // Using gameId as challengeId
             score: winner.score,
             timeSpent: Math.floor((new Date().getTime() - session.startedAt.getTime()) / 1000),
-            data: JSON.stringify({ gameType: game.type, rewards: game.rewards })
-          }
+            data: JSON.stringify({ gameType: game.type, rewards: game.rewards }),
+          },
         });
       }
     }
@@ -881,7 +881,7 @@ export class GameService {
     
     this.logger.game('MINI_GAME_ENDED', sessionId, results[0]?.userId || 'none', {
       participantCount: results.length,
-      winner: results[0]?.username
+      winner: results[0]?.username,
     });
     
     return results;
@@ -914,7 +914,7 @@ export class GameService {
   public async updateChallengeProgress(
     userId: string,
     requirementType: string,
-    increment: number
+    increment: number,
   ): Promise<void> {
     if (!this.challengeProgress.has(userId)) {
       this.challengeProgress.set(userId, new Map());
@@ -924,7 +924,9 @@ export class GameService {
     
     for (const challenge of this.activeChallenges.values()) {
       const requirement = challenge.requirements.find(r => r.type === requirementType);
-      if (!requirement) continue;
+      if (!requirement) {
+        continue;
+      }
       
       if (!userProgress.has(challenge.id)) {
         userProgress.set(challenge.id, {
@@ -932,7 +934,7 @@ export class GameService {
           challengeId: challenge.id,
           progress: new Map(),
           completed: false,
-          claimed: false
+          claimed: false,
         });
       }
       
@@ -948,7 +950,7 @@ export class GameService {
         progress.completedAt = new Date();
         
         this.logger.game('CHALLENGE_COMPLETED', challenge.id, userId, {
-          challengeName: challenge.name
+          challengeName: challenge.name,
         });
         
         // Notify user about completion
@@ -962,7 +964,9 @@ export class GameService {
    */
   public async claimChallengeRewards(userId: string, challengeId: string): Promise<boolean> {
     const userProgress = this.challengeProgress.get(userId);
-    if (!userProgress) return false;
+    if (!userProgress) {
+      return false;
+    }
     
     const progress = userProgress.get(challengeId);
     if (!progress || !progress.completed || progress.claimed) {
@@ -970,13 +974,15 @@ export class GameService {
     }
     
     const challenge = this.activeChallenges.get(challengeId);
-    if (!challenge) return false;
+    if (!challenge) {
+      return false;
+    }
     
     progress.claimed = true;
     
     // Award rewards (this would integrate with economy/badge systems)
     this.logger.game('CHALLENGE_REWARDS_CLAIMED', challengeId, userId, {
-      rewards: challenge.rewards
+      rewards: challenge.rewards,
     });
     
     return true;
@@ -1000,7 +1006,7 @@ export class GameService {
       
       await this.database.client.challenge.update({
         where: { id },
-        data: { isActive: false }
+        data: { isActive: false },
       });
       
       this.logger.game('CHALLENGE_EXPIRED', id, 'system');

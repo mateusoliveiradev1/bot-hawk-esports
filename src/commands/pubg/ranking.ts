@@ -25,20 +25,20 @@ const ranking: Command = {
           { name: '🏅 Interno - Badges', value: 'internal_badges' },
           { name: '⏰ Presença', value: 'presence' },
           { name: '🎵 Música', value: 'music' },
-          { name: '🎯 Jogos', value: 'games' }
-        )
+          { name: '🎯 Jogos', value: 'games' },
+        ),
     )
     .addIntegerOption(option =>
       option.setName('page')
         .setDescription('Página do ranking (padrão: 1)')
         .setRequired(false)
         .setMinValue(1)
-        .setMaxValue(50)
+        .setMaxValue(50),
     )
     .addBooleanOption(option =>
       option.setName('public')
         .setDescription('Tornar a resposta pública (padrão: privado)')
-        .setRequired(false)
+        .setRequired(false),
     ) as SlashCommandBuilder,
   
   category: CommandCategory.PUBG,
@@ -51,7 +51,7 @@ const ranking: Command = {
     
     const rankingType = (interaction as any).options?.getString('type', true);
     const page = (interaction as any).options?.getInteger('page') || 1;
-  const isPublic = (interaction as any).options?.getBoolean('public') || false;
+    const isPublic = (interaction as any).options?.getBoolean('public') || false;
     
     try {
       await interaction.deferReply({ ephemeral: !isPublic });
@@ -64,60 +64,60 @@ const ranking: Command = {
       let embed: EmbedBuilder;
       
       switch (rankingType) {
-        case 'pubg_daily':
-        case 'pubg_weekly':
-        case 'pubg_monthly':
-          const period = rankingType.split('_')[1] as 'daily' | 'weekly' | 'monthly';
-          const pubgRanking = await rankingService.getPUBGRanking(interaction.guildId!, period as any, limit as any, offset as any);
+      case 'pubg_daily':
+      case 'pubg_weekly':
+      case 'pubg_monthly':
+        const period = rankingType.split('_')[1] as 'daily' | 'weekly' | 'monthly';
+        const pubgRanking = await rankingService.getPUBGRanking(interaction.guildId!, period as any, limit as any, offset as any);
         rankingData = pubgRanking;
         totalCount = pubgRanking.length;
-          embed = await createPUBGRankingEmbed(rankingData, period, page, totalCount, interaction.user.id);
-          break;
+        embed = await createPUBGRankingEmbed(rankingData, period, page, totalCount, interaction.user.id);
+        break;
           
-        case 'internal_xp':
-          const xpRanking = await rankingService.getInternalRanking(interaction.guildId!, 'xp' as any, limit as any, offset as any);
-          rankingData = xpRanking;
-          totalCount = xpRanking.length;
-          embed = await createInternalRankingEmbed(rankingData, 'XP', page, totalCount, interaction.user.id, client);
-          break;
+      case 'internal_xp':
+        const xpRanking = await rankingService.getInternalRanking(interaction.guildId!, 'xp' as any, limit as any, offset as any);
+        rankingData = xpRanking;
+        totalCount = xpRanking.length;
+        embed = await createInternalRankingEmbed(rankingData, 'XP', page, totalCount, interaction.user.id, client);
+        break;
           
-        case 'internal_coins':
-          const coinsRanking = await rankingService.getInternalRanking(interaction.guildId!, 'coins' as any, limit as any, offset as any);
-          rankingData = coinsRanking;
-          totalCount = coinsRanking.length;
-          embed = await createInternalRankingEmbed(rankingData, 'Moedas', page, totalCount, interaction.user.id, client);
-          break;
+      case 'internal_coins':
+        const coinsRanking = await rankingService.getInternalRanking(interaction.guildId!, 'coins' as any, limit as any, offset as any);
+        rankingData = coinsRanking;
+        totalCount = coinsRanking.length;
+        embed = await createInternalRankingEmbed(rankingData, 'Moedas', page, totalCount, interaction.user.id, client);
+        break;
           
-        case 'internal_badges':
-          const badgesRanking = await rankingService.getInternalRanking(interaction.guildId!, 'badges' as any, limit as any, offset as any);
-          rankingData = badgesRanking;
-          totalCount = badgesRanking.length;
-          embed = await createInternalRankingEmbed(badgesRanking, 'Badges', page, totalCount, interaction.user.id, client);
-          break;
+      case 'internal_badges':
+        const badgesRanking = await rankingService.getInternalRanking(interaction.guildId!, 'badges' as any, limit as any, offset as any);
+        rankingData = badgesRanking;
+        totalCount = badgesRanking.length;
+        embed = await createInternalRankingEmbed(badgesRanking, 'Badges', page, totalCount, interaction.user.id, client);
+        break;
           
-        case 'presence':
-          const presenceRanking = await getPresenceRanking(interaction.guildId!, limit as any, offset as any);
-          rankingData = (presenceRanking as any).rankings || [];
-          totalCount = (presenceRanking as any).total || 0;
-          embed = await createPresenceRankingEmbed(rankingData, page, totalCount, interaction.user.id, client);
-          break;
+      case 'presence':
+        const presenceRanking = await getPresenceRanking(interaction.guildId!, limit as any, offset as any);
+        rankingData = (presenceRanking as any).rankings || [];
+        totalCount = (presenceRanking as any).total || 0;
+        embed = await createPresenceRankingEmbed(rankingData, page, totalCount, interaction.user.id, client);
+        break;
           
-        case 'music':
-          const musicRanking = await getMusicRanking(interaction.guildId!, limit, offset);
-          rankingData = musicRanking.rankings;
-          totalCount = musicRanking.total;
-          embed = await createActivityRankingEmbed(rankingData, 'Música', page, totalCount, interaction.user.id, client, '🎵');
-          break;
+      case 'music':
+        const musicRanking = await getMusicRanking(interaction.guildId!, limit, offset);
+        rankingData = musicRanking.rankings;
+        totalCount = musicRanking.total;
+        embed = await createActivityRankingEmbed(rankingData, 'Música', page, totalCount, interaction.user.id, client, '🎵');
+        break;
           
-        case 'games':
-          const gamesRanking = await getGamesRanking(interaction.guildId!, limit, offset);
-          rankingData = gamesRanking.rankings;
-          totalCount = gamesRanking.total;
-          embed = await createActivityRankingEmbed(rankingData, 'Jogos', page, totalCount, interaction.user.id, client, '🎯');
-          break;
+      case 'games':
+        const gamesRanking = await getGamesRanking(interaction.guildId!, limit, offset);
+        rankingData = gamesRanking.rankings;
+        totalCount = gamesRanking.total;
+        embed = await createActivityRankingEmbed(rankingData, 'Jogos', page, totalCount, interaction.user.id, client, '🎯');
+        break;
           
-        default:
-          throw new Error('Tipo de ranking inválido');
+      default:
+        throw new Error('Tipo de ranking inválido');
       }
       
       // Create navigation buttons
@@ -128,7 +128,7 @@ const ranking: Command = {
           new ButtonBuilder()
             .setCustomId(`ranking_${rankingType}_${page - 1}`)
             .setLabel('◀️ Anterior')
-            .setStyle(ButtonStyle.Primary)
+            .setStyle(ButtonStyle.Primary),
         );
       }
       
@@ -136,7 +136,7 @@ const ranking: Command = {
         new ButtonBuilder()
           .setCustomId(`ranking_${rankingType}_refresh`)
           .setLabel('🔄 Atualizar')
-          .setStyle(ButtonStyle.Secondary)
+          .setStyle(ButtonStyle.Secondary),
       );
       
       if (offset + limit < totalCount) {
@@ -144,7 +144,7 @@ const ranking: Command = {
           new ButtonBuilder()
             .setCustomId(`ranking_${rankingType}_${page + 1}`)
             .setLabel('Próxima ▶️')
-            .setStyle(ButtonStyle.Primary)
+            .setStyle(ButtonStyle.Primary),
         );
       }
       
@@ -163,18 +163,18 @@ const ranking: Command = {
               { label: '🏅 Badges', value: 'internal_badges', emoji: '🏅' },
               { label: '⏰ Presença', value: 'presence', emoji: '⏰' },
               { label: '🎵 Música', value: 'music', emoji: '🎵' },
-              { label: '🎯 Jogos', value: 'games', emoji: '🎯' }
-            ])
+              { label: '🎯 Jogos', value: 'games', emoji: '🎯' },
+            ]),
         );
       
       const response = await interaction.editReply({
         embeds: [embed],
-        components: [selectRow, buttonsRow]
+        components: [selectRow, buttonsRow],
       });
       
       // Handle interactions
       const collector = response.createMessageComponentCollector({
-        time: 300000 // 5 minutes
+        time: 300000, // 5 minutes
       });
       
       collector.on('collect', async (i) => {
@@ -226,7 +226,7 @@ const ranking: Command = {
         await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
       }
     }
-  }
+  },
 };
 
 /**
@@ -237,12 +237,12 @@ async function createPUBGRankingEmbed(
   period: 'daily' | 'weekly' | 'monthly',
   page: number,
   total: number,
-  userId: string
+  userId: string,
 ): Promise<EmbedBuilder> {
   const periodNames = {
     daily: 'Diário',
     weekly: 'Semanal',
-    monthly: 'Mensal'
+    monthly: 'Mensal',
   };
   
   const embed = new EmbedBuilder()
@@ -265,7 +265,7 @@ async function createPUBGRankingEmbed(
       `🏆 ${user.currentRank || 'Sem rank'}`,
       `📊 ${user.rankPoints || 0} RP`,
       `💀 ${user.kills || 0} kills`,
-      `🏆 ${user.wins || 0} vitórias`
+      `🏆 ${user.wins || 0} vitórias`,
     ].join(' • ');
     
     return `${highlight}${medal} **#${position}** <@${user.userId}>${highlight}\n${stats}`;
@@ -276,7 +276,7 @@ async function createPUBGRankingEmbed(
   // Add pagination info
   const totalPages = Math.ceil(total / 10);
   embed.setFooter({ 
-    text: `Página ${page}/${totalPages} • Total: ${total} jogadores • Atualizado a cada hora` 
+    text: `Página ${page}/${totalPages} • Total: ${total} jogadores • Atualizado a cada hora`, 
   });
   
   // Find user's position if not on current page
@@ -286,7 +286,7 @@ async function createPUBGRankingEmbed(
     embed.addFields({
       name: '📍 Sua Posição',
       value: 'Use os botões para navegar até sua posição no ranking.',
-      inline: false
+      inline: false,
     });
   }
   
@@ -302,12 +302,12 @@ async function createInternalRankingEmbed(
   page: number,
   total: number,
   userId: string,
-  client: ExtendedClient
+  client: ExtendedClient,
 ): Promise<EmbedBuilder> {
   const typeEmojis: { [key: string]: string } = {
     'XP': '⭐',
     'Moedas': '💰',
-    'Badges': '🏅'
+    'Badges': '🏅',
   };
   
   const embed = new EmbedBuilder()
@@ -330,20 +330,20 @@ async function createInternalRankingEmbed(
     let extra: string = '';
     
     switch (type) {
-      case 'XP':
-        value = `${user.xp || 0} XP`;
-        extra = `• Nível ${user.level || 1}`;
-        break;
-      case 'Moedas':
-        value = `${user.coins || 0} 🪙`;
-        extra = user.gems ? `• ${user.gems} 💎` : '';
-        break;
-      case 'Badges':
-        value = `${user.badgeCount || 0} badges`;
-        extra = user.rarebadges ? `• ${user.rarebadges} raras` : '';
-        break;
-      default:
-        value = '0';
+    case 'XP':
+      value = `${user.xp || 0} XP`;
+      extra = `• Nível ${user.level || 1}`;
+      break;
+    case 'Moedas':
+      value = `${user.coins || 0} 🪙`;
+      extra = user.gems ? `• ${user.gems} 💎` : '';
+      break;
+    case 'Badges':
+      value = `${user.badgeCount || 0} badges`;
+      extra = user.rarebadges ? `• ${user.rarebadges} raras` : '';
+      break;
+    default:
+      value = '0';
     }
     
     return `${highlight}${medal} **#${position}** <@${user.userId}>${highlight}\n${value} ${extra}`;
@@ -353,7 +353,7 @@ async function createInternalRankingEmbed(
   
   const totalPages = Math.ceil(total / 10);
   embed.setFooter({ 
-    text: `Página ${page}/${totalPages} • Total: ${total} usuários • Atualizado em tempo real` 
+    text: `Página ${page}/${totalPages} • Total: ${total} usuários • Atualizado em tempo real`, 
   });
   
   return embed;
@@ -367,7 +367,7 @@ async function createPresenceRankingEmbed(
   page: number,
   total: number,
   userId: string,
-  client: ExtendedClient
+  client: ExtendedClient,
 ): Promise<EmbedBuilder> {
   const embed = new EmbedBuilder()
     .setTitle('⏰ Ranking de Presença')
@@ -396,7 +396,7 @@ async function createPresenceRankingEmbed(
   
   const totalPages = Math.ceil(total / 10);
   embed.setFooter({ 
-    text: `Página ${page}/${totalPages} • Total: ${total} usuários • Atualizado diariamente` 
+    text: `Página ${page}/${totalPages} • Total: ${total} usuários • Atualizado diariamente`, 
   });
   
   return embed;
@@ -412,7 +412,7 @@ async function createActivityRankingEmbed(
   total: number,
   userId: string,
   client: ExtendedClient,
-  emoji: string
+  emoji: string,
 ): Promise<EmbedBuilder> {
   const embed = new EmbedBuilder()
     .setTitle(`${emoji} Ranking de ${type}`)
@@ -440,7 +440,7 @@ async function createActivityRankingEmbed(
   
   const totalPages = Math.ceil(total / 10);
   embed.setFooter({ 
-    text: `Página ${page}/${totalPages} • Total: ${total} usuários` 
+    text: `Página ${page}/${totalPages} • Total: ${total} usuários`, 
   });
   
   return embed;
@@ -451,10 +451,10 @@ async function createActivityRankingEmbed(
  */
 function getMedalEmoji(position: number): string {
   switch (position) {
-    case 1: return '🥇';
-    case 2: return '🥈';
-    case 3: return '🥉';
-    default: return '🏅';
+  case 1: return '🥇';
+  case 2: return '🥈';
+  case 3: return '🥉';
+  default: return '🏅';
   }
 }
 

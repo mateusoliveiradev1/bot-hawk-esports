@@ -18,12 +18,12 @@ const profile: Command = {
     .addUserOption(option =>
       option.setName('user')
         .setDescription('Usuário para ver o perfil (deixe vazio para ver o seu)')
-        .setRequired(false)
+        .setRequired(false),
     )
     .addBooleanOption(option =>
       option.setName('public')
         .setDescription('Tornar a resposta pública (padrão: privado)')
-        .setRequired(false)
+        .setRequired(false),
     ) as SlashCommandBuilder,
   
   category: CommandCategory.GENERAL,
@@ -62,7 +62,7 @@ const profile: Command = {
         userData?.pubgUsername ? pubgService.getPlayerStats(userData.pubgUsername, userData.pubgPlatform as any || 'steam') : null,
         badgeService.getUserBadges(targetUser.id),
         rankingService.getUserRank(targetUser.id, 'weekly', 'pubg'),
-        null // presenceService.getUserStats not implemented yet
+        null, // presenceService.getUserStats not implemented yet
       ]);
       
       // Create main profile embed
@@ -79,24 +79,24 @@ const profile: Command = {
       profileEmbed.addFields(
         { name: '📅 Membro desde', value: createdAt, inline: true },
         { name: '🔄 Última atualização', value: updatedAt, inline: true },
-        { name: '🎯 Nível', value: `${userData.level} (${userData.xp} XP)`, inline: true }
+        { name: '🎯 Nível', value: `${userData.level} (${userData.xp} XP)`, inline: true },
       );
       
       // PUBG Info
       if (userData.pubgUsername) {
         const platformEmoji = userData.pubgPlatform === 'steam' ? '💻' : userData.pubgPlatform === 'xbox' ? '🎮' : '🎮';
         profileEmbed.addFields(
-          { name: '🎮 PUBG', value: `${platformEmoji} ${userData.pubgUsername}\n🏆 Sem rank disponível`, inline: true }
+          { name: '🎮 PUBG', value: `${platformEmoji} ${userData.pubgUsername}\n🏆 Sem rank disponível`, inline: true },
         );
       } else {
         profileEmbed.addFields(
-          { name: '🎮 PUBG', value: '❌ Não registrado\nUse `/register` para cadastrar', inline: true }
+          { name: '🎮 PUBG', value: '❌ Não registrado\nUse `/register` para cadastrar', inline: true },
         );
       }
       
       // Economy
       profileEmbed.addFields(
-        { name: '💰 Economia', value: `🪙 ${userData.coins || 0} moedas`, inline: true }
+        { name: '💰 Economia', value: `🪙 ${userData.coins || 0} moedas`, inline: true },
       );
       
       // Badges preview (top 3)
@@ -105,24 +105,24 @@ const profile: Command = {
         const badgeText = topBadges.map((badge: any) => `${badge.emoji} ${badge.name}`).join('\n');
         const totalBadges = userBadges.length;
         profileEmbed.addFields(
-          { name: `🏅 Badges (${totalBadges})`, value: `${badgeText}${totalBadges > 3 ? `\n... e mais ${totalBadges - 3}` : ''}`, inline: true }
+          { name: `🏅 Badges (${totalBadges})`, value: `${badgeText}${totalBadges > 3 ? `\n... e mais ${totalBadges - 3}` : ''}`, inline: true },
         );
       } else {
         profileEmbed.addFields(
-          { name: '🏅 Badges (0)', value: 'Nenhuma badge conquistada', inline: true }
+          { name: '🏅 Badges (0)', value: 'Nenhuma badge conquistada', inline: true },
         );
       }
       
       // Rankings
       if (rankingData) {
         profileEmbed.addFields(
-          { name: '📊 Rankings', value: `🎮 PUBG: #${rankingData.rank}/${rankingData.total}\n⭐ Interno: #${rankingData.rank}/${rankingData.total}`, inline: true }
+          { name: '📊 Rankings', value: `🎮 PUBG: #${rankingData.rank}/${rankingData.total}\n⭐ Interno: #${rankingData.rank}/${rankingData.total}`, inline: true },
         );
       }
       
       // Presence stats not available yet
       profileEmbed.addFields(
-        { name: '⏰ Presença', value: 'Dados não disponíveis', inline: true }
+        { name: '⏰ Presença', value: 'Dados não disponíveis', inline: true },
       );
       
       // Activity stats
@@ -130,11 +130,11 @@ const profile: Command = {
         `🎵 ${userData.stats?.commandsUsed || 0} comandos usados`,
         `🎯 ${userData.stats?.gamesPlayed || 0} jogos jogados`,
         `🎬 ${userData.stats?.clipsUploaded || 0} clips enviados`,
-        `💬 ${userData.stats?.messagesCount || 0} mensagens`
+        `💬 ${userData.stats?.messagesCount || 0} mensagens`,
       ].join('\n');
       
       profileEmbed.addFields(
-        { name: '📈 Atividade', value: activityStats, inline: false }
+        { name: '📈 Atividade', value: activityStats, inline: false },
       );
       
       // Progress bar for next level
@@ -144,13 +144,13 @@ const profile: Command = {
       const progressBar = createProgressBar(progressPercentage, 20);
       
       profileEmbed.addFields(
-        { name: '📊 Progresso para o próximo nível', value: `${progressBar} ${progressPercentage}%\n${xpProgress}/1000 XP`, inline: false }
+        { name: '📊 Progresso para o próximo nível', value: `${progressBar} ${progressPercentage}%\n${xpProgress}/1000 XP`, inline: false },
       );
       
       // Footer with additional info
       profileEmbed.setFooter({ 
         text: `ID: ${targetUser.id} • ${isOwnProfile ? 'Seu perfil' : `Perfil de ${targetUser.username}`}`,
-        iconURL: client.user?.displayAvatarURL()
+        iconURL: client.user?.displayAvatarURL(),
       });
       
       // Create action buttons
@@ -178,7 +178,7 @@ const profile: Command = {
             .setLabel('Dashboard')
             .setStyle(ButtonStyle.Link)
             .setURL('https://your-dashboard-url.com/profile')
-            .setEmoji('🌐')
+            .setEmoji('🌐'),
         );
       } else {
         buttonsRow.addComponents(
@@ -191,18 +191,18 @@ const profile: Command = {
             .setCustomId('profile_compare')
             .setLabel('Comparar')
             .setStyle(ButtonStyle.Secondary)
-            .setEmoji('⚖️')
+            .setEmoji('⚖️'),
         );
       }
       
       const response = await interaction.editReply({
         embeds: [profileEmbed],
-        components: [buttonsRow]
+        components: [buttonsRow],
       });
       
       // Handle button interactions
       const collector = response.createMessageComponentCollector({
-        time: 300000 // 5 minutes
+        time: 300000, // 5 minutes
       });
       
       collector.on('collect', async (i: any) => {
@@ -212,30 +212,30 @@ const profile: Command = {
         }
         
         switch (i.customId) {
-          case 'profile_badges':
-            const badgesEmbed = await createBadgesEmbed(targetUser, userBadges);
-            await i.reply({ embeds: [badgesEmbed], ephemeral: true });
-            break;
+        case 'profile_badges':
+          const badgesEmbed = await createBadgesEmbed(targetUser, userBadges);
+          await i.reply({ embeds: [badgesEmbed], ephemeral: true });
+          break;
             
-          case 'profile_stats':
-            if (pubgStats) {
-              const statsEmbed = await createPUBGStatsEmbed(targetUser, pubgStats, userData);
-              await i.reply({ embeds: [statsEmbed], ephemeral: true });
-            }
-            break;
+        case 'profile_stats':
+          if (pubgStats) {
+            const statsEmbed = await createPUBGStatsEmbed(targetUser, pubgStats, userData);
+            await i.reply({ embeds: [statsEmbed], ephemeral: true });
+          }
+          break;
             
-          case 'profile_achievements':
-            const achievementsEmbed = await createAchievementsEmbed(targetUser, userData);
-            await i.reply({ embeds: [achievementsEmbed], ephemeral: true });
-            break;
+        case 'profile_achievements':
+          const achievementsEmbed = await createAchievementsEmbed(targetUser, userData);
+          await i.reply({ embeds: [achievementsEmbed], ephemeral: true });
+          break;
             
-          case 'profile_compare':
-            const compareEmbed = new EmbedBuilder()
-              .setTitle('⚖️ Comparação de Perfis')
-              .setDescription('Funcionalidade em desenvolvimento!\nEm breve você poderá comparar estatísticas entre jogadores.')
-              .setColor('#FFA500');
-            await i.reply({ embeds: [compareEmbed], ephemeral: true });
-            break;
+        case 'profile_compare':
+          const compareEmbed = new EmbedBuilder()
+            .setTitle('⚖️ Comparação de Perfis')
+            .setDescription('Funcionalidade em desenvolvimento!\nEm breve você poderá comparar estatísticas entre jogadores.')
+            .setColor('#FFA500');
+          await i.reply({ embeds: [compareEmbed], ephemeral: true });
+          break;
         }
       });
       
@@ -257,7 +257,7 @@ const profile: Command = {
         await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
       }
     }
-  }
+  },
 };
 
 /**
@@ -279,7 +279,9 @@ async function createBadgesEmbed(user: any, badges: any[]): Promise<EmbedBuilder
   const categories: { [key: string]: any[] } = {};
   badges.forEach(badge => {
     const category = badge.category || 'Outras';
-    if (!categories[category]) categories[category] = [];
+    if (!categories[category]) {
+      categories[category] = [];
+    }
     categories[category].push(badge);
   });
   
@@ -292,7 +294,7 @@ async function createBadgesEmbed(user: any, badges: any[]): Promise<EmbedBuilder
     embed.addFields({
       name: `${getCategoryEmoji(category)} ${category} (${categoryBadges.length})`,
       value: badgeList,
-      inline: false
+      inline: false,
     });
   });
   
@@ -317,7 +319,7 @@ async function createPUBGStatsEmbed(user: any, stats: any, userData: any): Promi
     embed.addFields(
       { name: '🏆 Temporada Atual', value: `**${season.seasonId}**\n🥇 Rank: ${season.tier}\n📊 RP: ${season.rankPoints}`, inline: true },
       { name: '🎯 Partidas', value: `🎮 Jogadas: ${season.roundsPlayed}\n🏆 Vitórias: ${season.wins}\n📈 Top 10: ${season.top10s}`, inline: true },
-      { name: '⚔️ Combate', value: `💀 Kills: ${season.kills}\n💥 Dano: ${Math.round(season.damageDealt)}\n🎯 K/D: ${season.kdr?.toFixed(2)}`, inline: true }
+      { name: '⚔️ Combate', value: `💀 Kills: ${season.kills}\n💥 Dano: ${Math.round(season.damageDealt)}\n🎯 K/D: ${season.kdr?.toFixed(2)}`, inline: true },
     );
   }
   
@@ -327,7 +329,7 @@ async function createPUBGStatsEmbed(user: any, stats: any, userData: any): Promi
     embed.addFields(
       { name: '📊 Estatísticas Gerais', value: `🎮 Partidas: ${lifetime.roundsPlayed}\n🏆 Vitórias: ${lifetime.wins}\n💀 Kills: ${lifetime.kills}`, inline: true },
       { name: '🏅 Performance', value: `🎯 K/D: ${lifetime.kdr?.toFixed(2)}\n💥 Dano Médio: ${Math.round(lifetime.avgDamage)}\n⏱️ Sobrevivência: ${Math.round(lifetime.avgSurvivalTime)}min`, inline: true },
-      { name: '🎖️ Conquistas', value: `🥇 Chicken Dinners: ${lifetime.wins}\n📈 Top 10: ${lifetime.top10s}\n🔫 Headshots: ${lifetime.headshotKills}`, inline: true }
+      { name: '🎖️ Conquistas', value: `🥇 Chicken Dinners: ${lifetime.wins}\n📈 Top 10: ${lifetime.top10s}\n🔫 Headshots: ${lifetime.headshotKills}`, inline: true },
     );
   }
   
@@ -337,12 +339,12 @@ async function createPUBGStatsEmbed(user: any, stats: any, userData: any): Promi
     embed.addFields({
       name: '🕐 Última Partida',
       value: `🗺️ ${recentMatch.mapName}\n🏆 #${recentMatch.winPlace}\n💀 ${recentMatch.kills} kills\n💥 ${Math.round(recentMatch.damageDealt)} dano`,
-      inline: false
+      inline: false,
     });
   }
   
   embed.setFooter({ 
-    text: `PUBG: ${userData.pubgUsername} • Plataforma: ${userData.pubgPlatform?.toUpperCase()}` 
+    text: `PUBG: ${userData.pubgUsername} • Plataforma: ${userData.pubgPlatform?.toUpperCase()}`, 
   });
   
   return embed;
@@ -365,7 +367,7 @@ async function createAchievementsEmbed(user: any, userData: any): Promise<EmbedB
     { name: 'Ativo', description: 'Enviou mais de 100 mensagens', completed: (userData.stats?.messagesCount || 0) >= 100 },
     { name: 'Ativo no Chat', description: 'Usou mais de 50 comandos', completed: (userData.stats?.commandsUsed || 0) >= 50 },
     { name: 'Gamer', description: 'Jogou mais de 20 jogos', completed: (userData.stats?.gamesPlayed || 0) >= 20 },
-    { name: 'Criador', description: 'Enviou mais de 5 clips', completed: (userData.stats?.clipsUploaded || 0) >= 5 }
+    { name: 'Criador', description: 'Enviou mais de 5 clips', completed: (userData.stats?.clipsUploaded || 0) >= 5 },
   ];
   
   const completed = achievements.filter(a => a.completed);
@@ -376,7 +378,7 @@ async function createAchievementsEmbed(user: any, userData: any): Promise<EmbedB
     embed.addFields({
       name: `🏆 Conquistadas (${completed.length})`,
       value: completedList,
-      inline: false
+      inline: false,
     });
   }
   
@@ -385,7 +387,7 @@ async function createAchievementsEmbed(user: any, userData: any): Promise<EmbedB
     embed.addFields({
       name: `⏳ Em Progresso (${pending.length})`,
       value: pendingList,
-      inline: false
+      inline: false,
     });
   }
   
@@ -395,7 +397,7 @@ async function createAchievementsEmbed(user: any, userData: any): Promise<EmbedB
   embed.addFields({
     name: '📊 Progresso Geral',
     value: `${progressBar} ${progressPercentage}%\n${completed.length}/${achievements.length} conquistas`,
-    inline: false
+    inline: false,
   });
   
   return embed;
@@ -421,7 +423,7 @@ function getCategoryEmoji(category: string): string {
     'Participation': '🎪',
     'Achievement': '🏆',
     'Special': '⭐',
-    'Outras': '🏅'
+    'Outras': '🏅',
   };
   
   return emojis[category] || '🏅';

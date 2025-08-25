@@ -82,7 +82,7 @@ export class MusicService {
     reverse2: 'areverse',
     treble: 'treble=g=5',
     normalizer: 'dynaudnorm=f=200',
-    surrounding: 'surround'
+    surrounding: 'surround',
   };
 
   constructor() {
@@ -235,7 +235,9 @@ export class MusicService {
    */
   private async handleTrackEnd(guildId: string): Promise<void> {
     const queue = this.queues.get(guildId);
-    if (!queue) return;
+    if (!queue) {
+      return;
+    }
 
     // Handle loop modes
     if (queue.loop === 'track' && queue.currentTrack) {
@@ -290,7 +292,7 @@ export class MusicService {
             thumbnail: video.bestThumbnail?.url || '',
             requestedBy: '',
             platform: 'youtube',
-            addedAt: new Date()
+            addedAt: new Date(),
           });
         }
       }
@@ -330,7 +332,7 @@ export class MusicService {
         shuffle: false,
         filters: [],
         isPaused: false,
-        isPlaying: false
+        isPlaying: false,
       };
       this.queues.set(guildId, queue);
     }
@@ -360,7 +362,7 @@ export class MusicService {
       if (tracks.length === 0) {
         return {
           success: false,
-          message: 'No tracks found for the given query'
+          message: 'No tracks found for the given query',
         };
       }
       
@@ -372,13 +374,13 @@ export class MusicService {
       return {
         success: true,
         message: 'Track added to queue successfully',
-        track
+        track,
       };
     } catch (error) {
       this.logger.error(`Failed to add track for query "${query}":`, error);
       return {
         success: false,
-        message: 'Failed to add track to queue'
+        message: 'Failed to add track to queue',
       };
     }
   }
@@ -400,12 +402,12 @@ export class MusicService {
         const stream = ytdl(track.url, {
           filter: 'audioonly',
           quality: 'highestaudio',
-          highWaterMark: 1 << 25
+          highWaterMark: 1 << 25,
         });
         
         resource = createAudioResource(stream, {
           inputType: StreamType.Arbitrary,
-          inlineVolume: true
+          inlineVolume: true,
         });
       } else {
         // For Spotify, we need to find the YouTube equivalent
@@ -422,12 +424,12 @@ export class MusicService {
         const stream = ytdl(firstResult.url, {
           filter: 'audioonly',
           quality: 'highestaudio',
-          highWaterMark: 1 << 25
+          highWaterMark: 1 << 25,
         });
         
         resource = createAudioResource(stream, {
           inputType: StreamType.Arbitrary,
-          inlineVolume: true
+          inlineVolume: true,
         });
       }
 
@@ -527,7 +529,9 @@ export class MusicService {
    */
   public async setVolume(guildId: string, volume: number): Promise<boolean> {
     const queue = this.queues.get(guildId);
-    if (!queue) return false;
+    if (!queue) {
+      return false;
+    }
     
     volume = Math.max(0, Math.min(100, volume));
     queue.volume = volume;
@@ -603,7 +607,9 @@ export class MusicService {
    * Parse duration string to seconds
    */
   private parseDuration(duration: string | null): number {
-    if (!duration) return 0;
+    if (!duration) {
+      return 0;
+    }
     
     const parts = duration.split(':').map(Number);
     if (parts.length === 2 && parts[0] !== undefined && parts[1] !== undefined) {
@@ -653,7 +659,9 @@ export class MusicService {
     }
 
     const [movedTrack] = queue.tracks.splice(fromIndex, 1);
-    if (!movedTrack) return null;
+    if (!movedTrack) {
+      return null;
+    }
     
     queue.tracks.splice(toIndex, 0, movedTrack);
     await this.saveQueueToDatabase(guildId);

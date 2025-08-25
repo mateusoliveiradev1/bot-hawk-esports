@@ -68,7 +68,7 @@ export class BadgeService {
     rare: '#3498DB',
     epic: '#9B59B6',
     legendary: '#F39C12',
-    mythic: '#E74C3C'
+    mythic: '#E74C3C',
   };
   
   private readonly rarityEmojis: Record<string, string> = {
@@ -77,7 +77,7 @@ export class BadgeService {
     rare: '🔵',
     epic: '🟣',
     legendary: '🟡',
-    mythic: '🔴'
+    mythic: '🔴',
   };
 
   constructor(client: ExtendedClient) {
@@ -107,7 +107,7 @@ export class BadgeService {
         requirements: [{ type: 'kills', operator: 'gte', value: 1 }],
         rewards: { xp: 50, coins: 25 },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'killer_instinct',
@@ -119,7 +119,7 @@ export class BadgeService {
         requirements: [{ type: 'kills', operator: 'gte', value: 100 }],
         rewards: { xp: 200, coins: 100 },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'death_dealer',
@@ -131,7 +131,7 @@ export class BadgeService {
         requirements: [{ type: 'kills', operator: 'gte', value: 500 }],
         rewards: { xp: 500, coins: 250 },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'legendary_slayer',
@@ -143,7 +143,7 @@ export class BadgeService {
         requirements: [{ type: 'kills', operator: 'gte', value: 1000 }],
         rewards: { xp: 1000, coins: 500, role: 'legendary_slayer' },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'first_win',
@@ -155,7 +155,7 @@ export class BadgeService {
         requirements: [{ type: 'wins', operator: 'gte', value: 1 }],
         rewards: { xp: 100, coins: 50 },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'winner_winner',
@@ -167,7 +167,7 @@ export class BadgeService {
         requirements: [{ type: 'wins', operator: 'gte', value: 10 }],
         rewards: { xp: 300, coins: 150 },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'champion',
@@ -179,7 +179,7 @@ export class BadgeService {
         requirements: [{ type: 'wins', operator: 'gte', value: 50 }],
         rewards: { xp: 750, coins: 375 },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'headshot_master',
@@ -191,7 +191,7 @@ export class BadgeService {
         requirements: [{ type: 'headshots', operator: 'gte', value: 100 }],
         rewards: { xp: 400, coins: 200 },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'damage_dealer',
@@ -203,7 +203,7 @@ export class BadgeService {
         requirements: [{ type: 'damage', operator: 'gte', value: 100000 }],
         rewards: { xp: 350, coins: 175 },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       
       // Social Badges
@@ -217,7 +217,7 @@ export class BadgeService {
         requirements: [{ type: 'messages', operator: 'gte', value: 1000 }],
         rewards: { xp: 200, coins: 100 },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'social_butterfly',
@@ -229,7 +229,7 @@ export class BadgeService {
         requirements: [{ type: 'voice_time', operator: 'gte', value: 360000 }], // 100 hours in seconds
         rewards: { xp: 500, coins: 250 },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'reaction_king',
@@ -241,7 +241,7 @@ export class BadgeService {
         requirements: [{ type: 'reactions', operator: 'gte', value: 500 }],
         rewards: { xp: 300, coins: 150 },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'inviter',
@@ -253,7 +253,7 @@ export class BadgeService {
         requirements: [{ type: 'invites', operator: 'gte', value: 10 }],
         rewards: { xp: 400, coins: 200 },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       
       // Gaming Badges
@@ -267,7 +267,7 @@ export class BadgeService {
         requirements: [{ type: 'quiz_score', operator: 'gte', value: 100 }],
         rewards: { xp: 300, coins: 150 },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'game_champion',
@@ -279,7 +279,7 @@ export class BadgeService {
         requirements: [{ type: 'mini_game_wins', operator: 'gte', value: 50 }],
         rewards: { xp: 600, coins: 300 },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       
       // Participation Badges
@@ -293,7 +293,7 @@ export class BadgeService {
         requirements: [{ type: 'consecutive_days', operator: 'gte', value: 7 }],
         rewards: { xp: 150, coins: 75 },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'monthly_legend',
@@ -305,7 +305,7 @@ export class BadgeService {
         requirements: [{ type: 'consecutive_days', operator: 'gte', value: 30 }],
         rewards: { xp: 1000, coins: 500, role: 'monthly_legend' },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'clip_creator',
@@ -317,7 +317,7 @@ export class BadgeService {
         requirements: [{ type: 'clips_uploaded', operator: 'gte', value: 25 }],
         rewards: { xp: 250, coins: 125 },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'clip_star',
@@ -329,7 +329,7 @@ export class BadgeService {
         requirements: [{ type: 'clips_votes', operator: 'gte', value: 100 }],
         rewards: { xp: 400, coins: 200 },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       
       // Achievement Badges
@@ -343,7 +343,7 @@ export class BadgeService {
         requirements: [{ type: 'level', operator: 'gte', value: 10 }],
         rewards: { coins: 100 },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'level_50',
@@ -355,7 +355,7 @@ export class BadgeService {
         requirements: [{ type: 'level', operator: 'gte', value: 50 }],
         rewards: { coins: 500, role: 'veteran' },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'millionaire',
@@ -367,7 +367,7 @@ export class BadgeService {
         requirements: [{ type: 'coins_earned', operator: 'gte', value: 1000000 }],
         rewards: { role: 'millionaire' },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'collector',
@@ -379,7 +379,7 @@ export class BadgeService {
         requirements: [{ type: 'badges_earned', operator: 'gte', value: 25 }],
         rewards: { xp: 1000, coins: 500 },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       
       // Special/Secret Badges
@@ -393,7 +393,7 @@ export class BadgeService {
         requirements: [], // Manually awarded
         rewards: { role: 'founder' },
         isSecret: false,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'easter_egg',
@@ -405,7 +405,7 @@ export class BadgeService {
         requirements: [], // Manually awarded
         rewards: { xp: 500, coins: 250 },
         isSecret: true,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'night_owl',
@@ -417,8 +417,8 @@ export class BadgeService {
         requirements: [], // Complex logic required
         rewards: { xp: 200, coins: 100 },
         isSecret: true,
-        isActive: true
-      }
+        isActive: true,
+      },
     ];
     
     // Load existing badges from database
@@ -438,14 +438,14 @@ export class BadgeService {
             rarity: badgeData.rarity,
             requirements: JSON.stringify(badgeData.requirements),
             isSecret: badgeData.isSecret,
-            isActive: badgeData.isActive
-          }
+            isActive: badgeData.isActive,
+          },
         });
       }
       
       this.badges.set(badgeData.id, {
         ...badgeData,
-        createdAt: new Date()
+        createdAt: new Date(),
       });
     }
     
@@ -462,7 +462,7 @@ export class BadgeService {
         requirements: JSON.parse(badge.requirements as string),
         isSecret: badge.isSecret,
         isActive: badge.isActive,
-        createdAt: badge.createdAt
+        createdAt: badge.createdAt,
       });
     }
     
@@ -506,7 +506,7 @@ export class BadgeService {
     userId: string,
     requirementType: string,
     value: number,
-    operation: 'set' | 'increment' = 'increment'
+    operation: 'set' | 'increment' = 'increment',
   ): Promise<void> {
     if (!this.badgeProgress.has(userId)) {
       this.badgeProgress.set(userId, new Map());
@@ -516,21 +516,27 @@ export class BadgeService {
     
     // Update progress for all relevant badges
     for (const [badgeId, badge] of this.badges) {
-      if (!badge.isActive) continue;
+      if (!badge.isActive) {
+        continue;
+      }
       
       // Skip if user already has this badge
-      if (this.userBadges.get(userId)?.has(badgeId)) continue;
+      if (this.userBadges.get(userId)?.has(badgeId)) {
+        continue;
+      }
       
       // Check if badge has this requirement type
       const hasRequirement = badge.requirements.some(req => req.type === requirementType);
-      if (!hasRequirement) continue;
+      if (!hasRequirement) {
+        continue;
+      }
       
       if (!userProgress.has(badgeId)) {
         userProgress.set(badgeId, {
           userId,
           badgeId,
           requirements: new Map(),
-          completed: false
+          completed: false,
         });
       }
       
@@ -552,25 +558,33 @@ export class BadgeService {
    */
   private checkBadgeRequirements(
     badge: BadgeDefinition,
-    userProgress: Map<string, number>
+    userProgress: Map<string, number>,
   ): boolean {
     for (const requirement of badge.requirements) {
       const currentValue = userProgress.get(requirement.type) || 0;
       
       switch (requirement.operator) {
-        case 'gte':
-          if (currentValue < (requirement.value as number)) return false;
-          break;
-        case 'lte':
-          if (currentValue > (requirement.value as number)) return false;
-          break;
-        case 'eq':
-          if (currentValue !== (requirement.value as number)) return false;
-          break;
-        case 'between':
-          const [min, max] = requirement.value as [number, number];
-          if (currentValue < min || currentValue > max) return false;
-          break;
+      case 'gte':
+        if (currentValue < (requirement.value as number)) {
+          return false;
+        }
+        break;
+      case 'lte':
+        if (currentValue > (requirement.value as number)) {
+          return false;
+        }
+        break;
+      case 'eq':
+        if (currentValue !== (requirement.value as number)) {
+          return false;
+        }
+        break;
+      case 'between':
+        const [min, max] = requirement.value as [number, number];
+        if (currentValue < min || currentValue > max) {
+          return false;
+        }
+        break;
       }
     }
     
@@ -598,8 +612,8 @@ export class BadgeService {
         data: {
           userId,
           badgeId,
-          earnedAt: new Date()
-        }
+          earnedAt: new Date(),
+        },
       });
       
       // Add to memory
@@ -668,7 +682,9 @@ export class BadgeService {
   private async sendBadgeNotification(userId: string, badge: BadgeDefinition): Promise<void> {
     try {
       const user = await this.client.users.fetch(userId);
-      if (!user) return;
+      if (!user) {
+        return;
+      }
       
       const embed = new EmbedBuilder()
         .setTitle('🎉 Nova Badge Conquistada!')
@@ -676,7 +692,7 @@ export class BadgeService {
         .addFields(
           { name: 'Descrição', value: badge.description, inline: false },
           { name: 'Raridade', value: `${this.rarityEmojis[badge.rarity]} ${badge.rarity.toUpperCase()}`, inline: true },
-          { name: 'Categoria', value: badge.category.toUpperCase(), inline: true }
+          { name: 'Categoria', value: badge.category.toUpperCase(), inline: true },
         )
         .setColor((this.rarityColors[badge.rarity] || '#95A5A6') as any)
         .setThumbnail(user.displayAvatarURL())
@@ -684,9 +700,15 @@ export class BadgeService {
       
       if (badge.rewards) {
         let rewardsText = '';
-        if (badge.rewards.xp) rewardsText += `+${badge.rewards.xp} XP\n`;
-        if (badge.rewards.coins) rewardsText += `+${badge.rewards.coins} moedas\n`;
-        if (badge.rewards.role) rewardsText += `Cargo: ${badge.rewards.role}\n`;
+        if (badge.rewards.xp) {
+          rewardsText += `+${badge.rewards.xp} XP\n`;
+        }
+        if (badge.rewards.coins) {
+          rewardsText += `+${badge.rewards.coins} moedas\n`;
+        }
+        if (badge.rewards.role) {
+          rewardsText += `Cargo: ${badge.rewards.role}\n`;
+        }
         
         if (rewardsText) {
           embed.addFields({ name: 'Recompensas', value: rewardsText, inline: false });
@@ -783,7 +805,7 @@ export class BadgeService {
       totalBadges,
       totalAwarded,
       raretyDistribution: rarityDistribution,
-      categoryDistribution
+      categoryDistribution,
     };
   }
 
@@ -800,10 +822,10 @@ export class BadgeService {
           pubgStats: true,
           badges: {
             include: {
-              badge: true
-            }
-          }
-        }
+              badge: true,
+            },
+          },
+        },
       });
       
       for (const user of users) {
@@ -847,17 +869,17 @@ export class BadgeService {
           const currentValue = userStats[requirement.type] || 0;
           
           switch (requirement.operator) {
-            case 'gte':
-              return currentValue >= (requirement.value as number);
-            case 'lte':
-              return currentValue <= (requirement.value as number);
-            case 'eq':
-              return currentValue === (requirement.value as number);
-            case 'between':
-              const [min, max] = requirement.value as [number, number];
-              return currentValue >= min && currentValue <= max;
-            default:
-              return false;
+          case 'gte':
+            return currentValue >= (requirement.value as number);
+          case 'lte':
+            return currentValue <= (requirement.value as number);
+          case 'eq':
+            return currentValue === (requirement.value as number);
+          case 'between':
+            const [min, max] = requirement.value as [number, number];
+            return currentValue >= min && currentValue <= max;
+          default:
+            return false;
           }
         });
         
@@ -898,14 +920,14 @@ export class BadgeService {
           rarity: badgeData.rarity,
           requirements: JSON.stringify(badgeData.requirements),
           isSecret: badgeData.isSecret,
-          isActive: badgeData.isActive
-        }
+          isActive: badgeData.isActive,
+        },
       });
       
       // Add to memory
       this.badges.set(badgeData.id, {
         ...badgeData,
-        createdAt: new Date()
+        createdAt: new Date(),
       });
       
       this.logger.info(`Custom badge created: ${badgeData.name} (${badgeData.id}) - Category: ${badgeData.category}`);
@@ -924,7 +946,7 @@ export class BadgeService {
     try {
       // Remove from database
       await this.database.client.userBadge.deleteMany({
-        where: { userId, badgeId }
+        where: { userId, badgeId },
       });
       
       // Remove from memory

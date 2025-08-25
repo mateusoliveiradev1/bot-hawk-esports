@@ -32,13 +32,13 @@ export class CommandManager {
     try {
       const commandsPath = path.join(__dirname);
       const commandFolders = fs.readdirSync(commandsPath).filter(folder => 
-        fs.statSync(path.join(commandsPath, folder)).isDirectory()
+        fs.statSync(path.join(commandsPath, folder)).isDirectory(),
       );
 
       for (const folder of commandFolders) {
         const folderPath = path.join(commandsPath, folder);
         const commandFiles = fs.readdirSync(folderPath).filter(file => 
-          file.endsWith('.ts') || file.endsWith('.js')
+          file.endsWith('.ts') || file.endsWith('.js'),
         );
 
         for (const file of commandFiles) {
@@ -182,7 +182,7 @@ export class CommandManager {
       contextMenus: this.contextMenus.size,
       aliases: this.aliases.size,
       categories: Object.fromEntries(categories),
-      cooldowns: this.cooldowns.size
+      cooldowns: this.cooldowns.size,
     };
   }
 
@@ -207,13 +207,13 @@ export class CommandManager {
       // Find and reload the command file
       const commandsPath = path.join(__dirname);
       const commandFolders = fs.readdirSync(commandsPath).filter(folder => 
-        fs.statSync(path.join(commandsPath, folder)).isDirectory()
+        fs.statSync(path.join(commandsPath, folder)).isDirectory(),
       );
 
       for (const folder of commandFolders) {
         const folderPath = path.join(commandsPath, folder);
         const commandFiles = fs.readdirSync(folderPath).filter(file => 
-          file.endsWith('.ts') || file.endsWith('.js')
+          file.endsWith('.ts') || file.endsWith('.js'),
         );
 
         for (const file of commandFiles) {
@@ -256,14 +256,16 @@ export class CommandManager {
    */
   public async handleSlashCommand(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
     const command = this.getCommand(interaction.commandName);
-    if (!command) return;
+    if (!command) {
+      return;
+    }
 
     try {
       const cooldownCheck = this.isOnCooldown(command.data.name, interaction.user.id);
       if (cooldownCheck.onCooldown) {
         await interaction.reply({
           content: `⏰ Você deve aguardar ${Math.ceil(cooldownCheck.timeLeft! / 1000)} segundos antes de usar este comando novamente.`,
-          ephemeral: true
+          ephemeral: true,
         });
         return;
       }
@@ -286,7 +288,9 @@ export class CommandManager {
    */
   public async handleContextCommand(interaction: ContextMenuCommandInteraction, client: ExtendedClient): Promise<void> {
     const command = this.getContextMenu(interaction.commandName);
-    if (!command) return;
+    if (!command) {
+      return;
+    }
 
     try {
       await command.execute(interaction as any, client);
@@ -307,7 +311,9 @@ export class CommandManager {
    */
   public async handleAutocomplete(interaction: AutocompleteInteraction, client: ExtendedClient): Promise<void> {
     const command = this.getCommand(interaction.commandName);
-    if (!command || !command.autocomplete) return;
+    if (!command || !command.autocomplete) {
+      return;
+    }
 
     try {
       await command.autocomplete(interaction, client);

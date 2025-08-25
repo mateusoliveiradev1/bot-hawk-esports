@@ -161,8 +161,8 @@ export class ClipService {
     try {
       const clips = await this.database.client.clip.findMany({
         orderBy: {
-          createdAt: 'desc'
-        }
+          createdAt: 'desc',
+        },
       });
       
       
@@ -193,7 +193,7 @@ export class ClipService {
           dislikes: clip.dislikes,
           featured: clip.isFeatured,
           featuredAt: clip.isFeatured ? clip.updatedAt : undefined,
-          metadata: undefined // Not available in current schema
+          metadata: undefined, // Not available in current schema
         };
         
         this.clips.get(clip.guildId)!.set(clip.id, clipData);
@@ -214,10 +214,10 @@ export class ClipService {
         include: {
           clip: {
             select: {
-              guildId: true
-            }
-          }
-        }
+              guildId: true,
+            },
+          },
+        },
       });
       
       for (const vote of votes) {
@@ -236,7 +236,7 @@ export class ClipService {
           clipId: vote.clipId,
           userId: vote.userId,
           type: vote.type as 'like' | 'dislike',
-          votedAt: vote.createdAt
+          votedAt: vote.createdAt,
         };
         
         this.votes.get(guildId)!.get(vote.clipId)!.push(clipVote);
@@ -277,8 +277,8 @@ export class ClipService {
             upload: { xp: 25, coins: 10 },
             featured: { xp: 100, coins: 50 },
             topWeekly: { xp: 200, coins: 100 },
-            topMonthly: { xp: 500, coins: 250 }
-          }
+            topMonthly: { xp: 500, coins: 250 },
+          },
         };
         
         this.guildSettings.set(config.guildId, settings);
@@ -334,14 +334,14 @@ export class ClipService {
     title: string,
     description?: string,
     gameMode?: string,
-    tags?: string[]
+    tags?: string[],
   ): Promise<{ success: boolean; message: string; clipId?: string }> {
     try {
       const settings = this.guildSettings.get(guildId);
       if (!settings || !settings.enabled) {
         return {
           success: false,
-          message: 'Sistema de clips não está habilitado neste servidor.'
+          message: 'Sistema de clips não está habilitado neste servidor.',
         };
       }
       
@@ -350,7 +350,7 @@ export class ClipService {
       if (!validation.valid) {
         return {
           success: false,
-          message: validation.message
+          message: validation.message,
         };
       }
       
@@ -380,7 +380,7 @@ export class ClipService {
         views: 0,
         likes: 0,
         dislikes: 0,
-        featured: false
+        featured: false,
       };
       
       // Save to database
@@ -401,8 +401,8 @@ export class ClipService {
           likes: 0,
           dislikes: 0,
           isApproved: !settings.requireApproval,
-          isFeatured: false
-        }
+          isFeatured: false,
+        },
       });
       
       this.logger.info(`Clip uploaded successfully: ${clipId}`);
@@ -410,7 +410,7 @@ export class ClipService {
       return {
         success: true,
         message: 'Clip enviado com sucesso!',
-        clipId
+        clipId,
       };
       
       /*
@@ -448,7 +448,7 @@ export class ClipService {
       this.logger.error(`Failed to upload clip for user ${userId}:`, error);
       return {
         success: false,
-        message: 'Erro interno. Tente novamente mais tarde.'
+        message: 'Erro interno. Tente novamente mais tarde.',
       };
     }
   }
@@ -462,7 +462,7 @@ export class ClipService {
     if (fileSizeMB > settings.maxFileSize) {
       return {
         valid: false,
-        message: `Arquivo muito grande. Tamanho máximo: ${settings.maxFileSize}MB`
+        message: `Arquivo muito grande. Tamanho máximo: ${settings.maxFileSize}MB`,
       };
     }
     
@@ -471,7 +471,7 @@ export class ClipService {
     if (!settings.allowedFormats.includes(fileExtension)) {
       return {
         valid: false,
-        message: `Formato não suportado. Formatos aceitos: ${settings.allowedFormats.join(', ')}`
+        message: `Formato não suportado. Formatos aceitos: ${settings.allowedFormats.join(', ')}`,
       };
     }
     
@@ -486,13 +486,13 @@ export class ClipService {
     guildId: string,
     clipId: string,
     userId: string,
-    voteType: 'like' | 'dislike'
+    voteType: 'like' | 'dislike',
   ): Promise<{ success: boolean; message: string }> {
     try {
       // TODO: Fix clip voting - commenting out until ClipVote model is corrected
       return {
         success: false,
-        message: 'Sistema de votação temporariamente desabilitado para manutenção.'
+        message: 'Sistema de votação temporariamente desabilitado para manutenção.',
       };
       
       /*
@@ -652,7 +652,7 @@ export class ClipService {
       this.logger.error(`Failed to vote on clip ${clipId}:`, error);
       return {
         success: false,
-        message: 'Erro interno. Tente novamente mais tarde.'
+        message: 'Erro interno. Tente novamente mais tarde.',
       };
     }
   }
@@ -665,14 +665,14 @@ export class ClipService {
     clipId: string,
     moderatorId: string,
     action: 'approve' | 'reject' | 'feature',
-    note?: string
+    note?: string,
   ): Promise<{ success: boolean; message: string }> {
     try {
       const clip = this.getClip(guildId, clipId);
       if (!clip) {
         return {
           success: false,
-          message: 'Clip não encontrado.'
+          message: 'Clip não encontrado.',
         };
       }
       
@@ -681,17 +681,17 @@ export class ClipService {
       let featuredAt: Date | undefined;
       
       switch (action) {
-        case 'approve':
-          newStatus = 'approved';
-          break;
-        case 'reject':
-          newStatus = 'rejected';
-          break;
-        case 'feature':
-          newStatus = 'featured';
-          featured = true;
-          featuredAt = new Date();
-          break;
+      case 'approve':
+        newStatus = 'approved';
+        break;
+      case 'reject':
+        newStatus = 'rejected';
+        break;
+      case 'feature':
+        newStatus = 'featured';
+        featured = true;
+        featuredAt = new Date();
+        break;
       }
       
       // Update database
@@ -699,14 +699,14 @@ export class ClipService {
         where: { id: clipId },
         data: {
           isApproved: action === 'approve' || action === 'feature',
-          isFeatured: action === 'feature'
-        }
+          isFeatured: action === 'feature',
+        },
       });
-        this.logger.info(`Clip ${clipId} moderated: ${action} by ${moderatorId}`);
+      this.logger.info(`Clip ${clipId} moderated: ${action} by ${moderatorId}`);
       
       return {
         success: false,
-        message: 'Sistema de moderação de clips temporariamente desabilitado para manutenção.'
+        message: 'Sistema de moderação de clips temporariamente desabilitado para manutenção.',
       };
       
       /*
@@ -739,7 +739,7 @@ export class ClipService {
       this.logger.error(`Failed to moderate clip ${clipId}:`, error);
       return {
         success: false,
-        message: 'Erro interno. Tente novamente mais tarde.'
+        message: 'Erro interno. Tente novamente mais tarde.',
       };
     }
   }
@@ -758,10 +758,12 @@ export class ClipService {
     guildId: string,
     status?: 'pending' | 'approved' | 'rejected' | 'featured',
     limit: number = 50,
-    offset: number = 0
+    offset: number = 0,
   ): ClipData[] {
     const guildClips = this.clips.get(guildId);
-    if (!guildClips) return [];
+    if (!guildClips) {
+      return [];
+    }
     
     let clips = Array.from(guildClips.values());
     
@@ -779,7 +781,9 @@ export class ClipService {
    */
   public getUserClips(guildId: string, userId: string, limit: number = 20): ClipData[] {
     const guildClips = this.clips.get(guildId);
-    if (!guildClips) return [];
+    if (!guildClips) {
+      return [];
+    }
     
     return Array.from(guildClips.values())
       .filter(clip => clip.userId === userId)
@@ -793,7 +797,7 @@ export class ClipService {
   public getClipRanking(
     guildId: string,
     period: 'daily' | 'weekly' | 'monthly' | 'all_time',
-    limit: number = 20
+    limit: number = 20,
   ): ClipRanking | null {
     return this.rankings.get(guildId)?.get(period) || null;
   }
@@ -806,38 +810,48 @@ export class ClipService {
     query: string,
     tags?: string[],
     gameMode?: string,
-    limit: number = 20
+    limit: number = 20,
   ): ClipData[] {
     const guildClips = this.clips.get(guildId);
-    if (!guildClips) return [];
+    if (!guildClips) {
+      return [];
+    }
     
     const searchTerms = query.toLowerCase().split(' ');
     
     return Array.from(guildClips.values())
       .filter(clip => {
         // Status filter
-        if (clip.status !== 'approved' && clip.status !== 'featured') return false;
+        if (clip.status !== 'approved' && clip.status !== 'featured') {
+          return false;
+        }
         
         // Text search
         const titleMatch = searchTerms.every(term => 
-          clip.title.toLowerCase().includes(term)
+          clip.title.toLowerCase().includes(term),
         );
         const descriptionMatch = clip.description && searchTerms.every(term => 
-          clip.description!.toLowerCase().includes(term)
+          clip.description!.toLowerCase().includes(term),
         );
         
-        if (!titleMatch && !descriptionMatch) return false;
+        if (!titleMatch && !descriptionMatch) {
+          return false;
+        }
         
         // Tags filter
         if (tags && tags.length > 0) {
           const hasMatchingTag = tags.some(tag => 
-            clip.tags.some(clipTag => clipTag.toLowerCase().includes(tag.toLowerCase()))
+            clip.tags.some(clipTag => clipTag.toLowerCase().includes(tag.toLowerCase())),
           );
-          if (!hasMatchingTag) return false;
+          if (!hasMatchingTag) {
+            return false;
+          }
         }
         
         // Game mode filter
-        if (gameMode && clip.gameMode !== gameMode) return false;
+        if (gameMode && clip.gameMode !== gameMode) {
+          return false;
+        }
         
         return true;
       })
@@ -878,7 +892,7 @@ export class ClipService {
         bestClip = {
           id: clip.id,
           title: clip.title,
-          score
+          score,
         };
       }
     }
@@ -888,12 +902,12 @@ export class ClipService {
       where: {
         userId,
         badge: {
-          category: 'clips'
-        }
+          category: 'clips',
+        },
       },
       include: {
-        badge: true
-      }
+        badge: true,
+      },
     });
     
     return {
@@ -906,7 +920,7 @@ export class ClipService {
       averageScore,
       bestClip,
       recentClips: userClips.slice(0, 5),
-      badges: userBadges.map(ub => ub.badgeId)
+      badges: userBadges.map(ub => ub.badgeId),
     };
   }
 
@@ -951,7 +965,7 @@ export class ClipService {
       return {
         period,
         clips: [],
-        generatedAt: new Date()
+        generatedAt: new Date(),
       };
     }
     
@@ -960,19 +974,19 @@ export class ClipService {
     let startDate: Date;
     
     switch (period) {
-      case 'daily':
-        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        break;
-      case 'weekly':
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case 'monthly':
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      case 'all_time':
-      default:
-        startDate = new Date(0);
-        break;
+    case 'daily':
+      startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      break;
+    case 'weekly':
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      break;
+    case 'monthly':
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      break;
+    case 'all_time':
+    default:
+      startDate = new Date(0);
+      break;
     }
     
     const filteredClips = Array.from(guildClips.values())
@@ -988,13 +1002,15 @@ export class ClipService {
       .map(clip => {
         // Score calculation: likes - dislikes + views/10 + featured bonus
         let score = clip.likes - clip.dislikes + Math.floor(clip.views / 10);
-        if (clip.featured) score += 50;
+        if (clip.featured) {
+          score += 50;
+        }
         
         return {
           rank: 0, // Will be set after sorting
           clip,
           score,
-          change: 0 // Would need historical data
+          change: 0, // Would need historical data
         };
       })
       .sort((a, b) => b.score - a.score)
@@ -1008,7 +1024,7 @@ export class ClipService {
     return {
       period,
       clips: rankedClips,
-      generatedAt: new Date()
+      generatedAt: new Date(),
     };
   }
 
@@ -1018,25 +1034,27 @@ export class ClipService {
   private async awardUploadRewards(guildId: string, userId: string): Promise<void> {
     try {
       const settings = this.guildSettings.get(guildId);
-      if (!settings) return;
+      if (!settings) {
+        return;
+      }
       
       const { xp, coins } = settings.rewards.upload;
       
       await this.database.client.user.upsert({
         where: {
-          id: userId
+          id: userId,
         },
         update: {
           xp: { increment: xp },
-          coins: { increment: coins }
+          coins: { increment: coins },
         },
         create: {
           id: userId,
           username: 'Unknown',
           discriminator: '0000',
           xp,
-          coins
-        }
+          coins,
+        },
       });
       
       // Update badge progress for clip uploads
@@ -1054,25 +1072,27 @@ export class ClipService {
   private async awardFeatureRewards(guildId: string, userId: string): Promise<void> {
     try {
       const settings = this.guildSettings.get(guildId);
-      if (!settings) return;
+      if (!settings) {
+        return;
+      }
       
       const { xp, coins } = settings.rewards.featured;
       
       await this.database.client.user.upsert({
         where: {
-          id: userId
+          id: userId,
         },
         update: {
           xp: { increment: xp },
-          coins: { increment: coins }
+          coins: { increment: coins },
         },
         create: {
           id: userId,
           username: 'Unknown',
           discriminator: '0000',
           xp,
-          coins
-        }
+          coins,
+        },
       });
       
       // Award featured clip badge
@@ -1091,10 +1111,14 @@ export class ClipService {
     try {
       for (const guildId of this.rankings.keys()) {
         const weeklyRanking = this.rankings.get(guildId)?.get('weekly');
-        if (!weeklyRanking || weeklyRanking.clips.length === 0) continue;
+        if (!weeklyRanking || weeklyRanking.clips.length === 0) {
+          continue;
+        }
         
         const settings = this.guildSettings.get(guildId);
-        if (!settings) continue;
+        if (!settings) {
+          continue;
+        }
         
         const topClip = weeklyRanking.clips[0];
         if (!topClip) {
@@ -1106,19 +1130,19 @@ export class ClipService {
         
         await this.database.client.user.upsert({
           where: {
-            id: topClip.clip.userId
+            id: topClip.clip.userId,
           },
           update: {
             xp: { increment: xp },
-            coins: { increment: coins }
+            coins: { increment: coins },
           },
           create: {
             id: topClip.clip.userId,
             username: 'Unknown',
             discriminator: '0000',
             xp,
-            coins
-          }
+            coins,
+          },
         });
         
         // Award weekly winner badge
@@ -1138,10 +1162,14 @@ export class ClipService {
     try {
       for (const guildId of this.rankings.keys()) {
         const monthlyRanking = this.rankings.get(guildId)?.get('monthly');
-        if (!monthlyRanking || monthlyRanking.clips.length === 0) continue;
+        if (!monthlyRanking || monthlyRanking.clips.length === 0) {
+          continue;
+        }
         
         const settings = this.guildSettings.get(guildId);
-        if (!settings) continue;
+        if (!settings) {
+          continue;
+        }
         
         const topClip = monthlyRanking.clips[0];
         if (!topClip) {
@@ -1153,19 +1181,19 @@ export class ClipService {
         
         await this.database.client.user.upsert({
           where: {
-            id: topClip.clip.userId
+            id: topClip.clip.userId,
           },
           update: {
             xp: { increment: xp },
-            coins: { increment: coins }
+            coins: { increment: coins },
           },
           create: {
             id: topClip.clip.userId,
             username: 'Unknown',
             discriminator: '0000',
             xp,
-            coins
-          }
+            coins,
+          },
         });
         
         // Award monthly winner badge
@@ -1198,13 +1226,19 @@ export class ClipService {
   private async sendModerationNotification(guildId: string, clip: ClipData): Promise<void> {
     try {
       const settings = this.guildSettings.get(guildId);
-      if (!settings || !settings.moderationChannelId) return;
+      if (!settings || !settings.moderationChannelId) {
+        return;
+      }
       
       const guild = this.client.guilds.cache.get(guildId);
-      if (!guild) return;
+      if (!guild) {
+        return;
+      }
       
       const channel = guild.channels.cache.get(settings.moderationChannelId) as TextChannel;
-      if (!channel) return;
+      if (!channel) {
+        return;
+      }
       
       const user = await this.client.users.fetch(clip.userId);
       
@@ -1215,7 +1249,7 @@ export class ClipService {
         .addFields(
           { name: '👤 Usuário', value: user.username, inline: true },
           { name: '📁 Arquivo', value: clip.fileName, inline: true },
-          { name: '📊 Tamanho', value: `${(clip.fileSize / (1024 * 1024)).toFixed(2)} MB`, inline: true }
+          { name: '📊 Tamanho', value: `${(clip.fileSize / (1024 * 1024)).toFixed(2)} MB`, inline: true },
         )
         .setThumbnail(user.displayAvatarURL())
         .setTimestamp(clip.uploadedAt);
@@ -1244,7 +1278,7 @@ export class ClipService {
             .setCustomId(`clip_reject_${clip.id}`)
             .setLabel('Rejeitar')
             .setStyle(ButtonStyle.Danger)
-            .setEmoji('❌')
+            .setEmoji('❌'),
         );
       
       await channel.send({ embeds: [embed], components: [buttons] });
@@ -1259,13 +1293,19 @@ export class ClipService {
   private async sendSubmissionNotification(guildId: string, clip: ClipData): Promise<void> {
     try {
       const settings = this.guildSettings.get(guildId);
-      if (!settings || !settings.submissionChannelId) return;
+      if (!settings || !settings.submissionChannelId) {
+        return;
+      }
       
       const guild = this.client.guilds.cache.get(guildId);
-      if (!guild) return;
+      if (!guild) {
+        return;
+      }
       
       const channel = guild.channels.cache.get(settings.submissionChannelId) as TextChannel;
-      if (!channel) return;
+      if (!channel) {
+        return;
+      }
       
       const user = await this.client.users.fetch(clip.userId);
       
@@ -1275,7 +1315,7 @@ export class ClipService {
         .setDescription(`**${clip.title}**\n${clip.description || 'Sem descrição'}`)
         .addFields(
           { name: '👤 Usuário', value: user.username, inline: true },
-          { name: '⏰ Enviado em', value: clip.uploadedAt.toLocaleString('pt-BR'), inline: true }
+          { name: '⏰ Enviado em', value: clip.uploadedAt.toLocaleString('pt-BR'), inline: true },
         )
         .setThumbnail(user.displayAvatarURL())
         .setTimestamp();
@@ -1304,7 +1344,7 @@ export class ClipService {
             .setCustomId(`clip_view_${clip.id}`)
             .setLabel('Ver Clip')
             .setStyle(ButtonStyle.Secondary)
-            .setEmoji('👁️')
+            .setEmoji('👁️'),
         );
       
       await channel.send({ embeds: [embed], components: [buttons] });
@@ -1319,7 +1359,9 @@ export class ClipService {
   private async sendApprovalNotification(guildId: string, clip: ClipData): Promise<void> {
     try {
       const settings = this.guildSettings.get(guildId);
-      if (!settings || !settings.submissionChannelId) return;
+      if (!settings || !settings.submissionChannelId) {
+        return;
+      }
       
       await this.sendSubmissionNotification(guildId, clip);
     } catch (error) {
@@ -1333,13 +1375,19 @@ export class ClipService {
   private async sendFeatureNotification(guildId: string, clip: ClipData): Promise<void> {
     try {
       const settings = this.guildSettings.get(guildId);
-      if (!settings || !settings.featuredChannelId) return;
+      if (!settings || !settings.featuredChannelId) {
+        return;
+      }
       
       const guild = this.client.guilds.cache.get(guildId);
-      if (!guild) return;
+      if (!guild) {
+        return;
+      }
       
       const channel = guild.channels.cache.get(settings.featuredChannelId) as TextChannel;
-      if (!channel) return;
+      if (!channel) {
+        return;
+      }
       
       const user = await this.client.users.fetch(clip.userId);
       
@@ -1350,7 +1398,7 @@ export class ClipService {
         .addFields(
           { name: '👤 Usuário', value: user.username, inline: true },
           { name: '👍 Likes', value: clip.likes.toString(), inline: true },
-          { name: '👁️ Views', value: clip.views.toString(), inline: true }
+          { name: '👁️ Views', value: clip.views.toString(), inline: true },
         )
         .setThumbnail(user.displayAvatarURL())
         .setTimestamp();
@@ -1381,7 +1429,7 @@ export class ClipService {
         .setTitle('❌ Clip Rejeitado')
         .setDescription(`Seu clip "**${clip.title}**" foi rejeitado pela moderação.`)
         .addFields(
-          { name: '⏰ Enviado em', value: clip.uploadedAt.toLocaleString('pt-BR'), inline: true }
+          { name: '⏰ Enviado em', value: clip.uploadedAt.toLocaleString('pt-BR'), inline: true },
         )
         .setTimestamp();
       
@@ -1470,8 +1518,8 @@ export class ClipService {
           upload: { xp: 25, coins: 10 },
           featured: { xp: 100, coins: 50 },
           topWeekly: { xp: 200, coins: 100 },
-          topMonthly: { xp: 500, coins: 250 }
-        }
+          topMonthly: { xp: 500, coins: 250 },
+        },
       };
       
       const updatedSettings = { ...currentSettings, ...settings };
@@ -1479,7 +1527,7 @@ export class ClipService {
       
       // Save to database
       const existingConfig = await this.database.client.guildConfig.findUnique({
-        where: { guildId }
+        where: { guildId },
       });
       
       const currentConfig = existingConfig?.config as any || {};
@@ -1498,19 +1546,19 @@ export class ClipService {
           moderationChannelId: updatedSettings.moderationChannelId,
           autoTags: updatedSettings.autoTags,
           qualityThreshold: updatedSettings.qualityThreshold,
-          rewards: updatedSettings.rewards
-        }
+          rewards: updatedSettings.rewards,
+        },
       };
       
       await this.database.client.guildConfig.upsert({
         where: { guildId },
         update: {
-          config: updatedConfig
+          config: updatedConfig,
         },
         create: {
           guildId,
-          config: updatedConfig
-        }
+          config: updatedConfig,
+        },
       });
       
       this.logger.info(`Updated clip settings for guild ${guildId}`);
@@ -1532,12 +1580,14 @@ export class ClipService {
   public async incrementViews(guildId: string, clipId: string): Promise<void> {
     try {
       const clip = this.getClip(guildId, clipId);
-      if (!clip) return;
+      if (!clip) {
+        return;
+      }
       
       // Update database
       await this.database.client.clip.update({
         where: { id: clipId },
-        data: { views: { increment: 1 } }
+        data: { views: { increment: 1 } },
       });
       
       // Update memory as well
@@ -1552,11 +1602,13 @@ export class ClipService {
    */
   public getClipFile(guildId: string, clipId: string): { filePath: string; fileName: string } | null {
     const clip = this.getClip(guildId, clipId);
-    if (!clip || !fs.existsSync(clip.filePath)) return null;
+    if (!clip || !fs.existsSync(clip.filePath)) {
+      return null;
+    }
     
     return {
       filePath: clip.filePath,
-      fileName: clip.fileName
+      fileName: clip.fileName,
     };
   }
 }

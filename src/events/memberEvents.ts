@@ -57,11 +57,11 @@ export class MemberEvents {
         await this.client.db.client.userGuild.updateMany({
           where: {
             userId: member.id,
-            guildId: member.guild.id
+            guildId: member.guild.id,
           },
           data: {
-            leftAt: new Date()
-          }
+            leftAt: new Date(),
+          },
         });
       }
       
@@ -98,8 +98,8 @@ export class MemberEvents {
               where: { id: newMember.id },
               data: { 
                 isVerified: true,
-                verifiedAt: new Date()
-              }
+                verifiedAt: new Date(),
+              },
             });
           }
         }
@@ -114,8 +114,8 @@ export class MemberEvents {
               where: { id: newMember.id },
               data: { 
                 isVerified: false,
-                verifiedAt: null
-              }
+                verifiedAt: null,
+              },
             });
           }
         }

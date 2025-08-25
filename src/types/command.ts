@@ -7,7 +7,7 @@ import {
   AutocompleteInteraction,
   ContextMenuCommandBuilder,
   MessageContextMenuCommandInteraction,
-  UserContextMenuCommandInteraction
+  UserContextMenuCommandInteraction,
 } from 'discord.js';
 import { ExtendedClient } from './client';
 

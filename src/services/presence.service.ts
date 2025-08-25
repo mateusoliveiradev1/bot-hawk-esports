@@ -194,12 +194,12 @@ export class PresenceService {
             { days: 7, xp: 100, coins: 50 },
             { days: 30, xp: 500, coins: 250 },
             { days: 90, xp: 1500, coins: 750 },
-            { days: 365, xp: 10000, coins: 5000, badgeId: 'yearly_attendance' }
+            { days: 365, xp: 10000, coins: 5000, badgeId: 'yearly_attendance' },
           ],
           dailyRewards: configData?.presenceDailyRewards ? JSON.parse(configData.presenceDailyRewards) : {
             xp: 10,
-            coins: 5
-          }
+            coins: 5,
+          },
         };
         
         this.guildSettings.set(config.guildId, settings);
@@ -243,7 +243,7 @@ export class PresenceService {
     location?: string,
     note?: string,
     ipAddress?: string,
-    deviceInfo?: string
+    deviceInfo?: string,
   ): Promise<{ success: boolean; message: string; session?: PresenceSession }> {
     try {
       // TODO: Implement check-in with current Presence model
@@ -260,23 +260,23 @@ export class PresenceService {
             location,
             note,
             ipAddress,
-            deviceInfo
-          }
-        }
+            deviceInfo,
+          },
+        },
       });
       
       this.logger.info(`User ${userId} checked in to guild ${guildId}`);
       
       return {
         success: true,
-        message: `Check-in realizado com sucesso às ${new Date().toLocaleString('pt-BR')}.`
+        message: `Check-in realizado com sucesso às ${new Date().toLocaleString('pt-BR')}.`,
       };
       
     } catch (error) {
       this.logger.error(`Failed to check in user ${userId}:`, error);
       return {
         success: false,
-        message: 'Erro interno. Tente novamente mais tarde.'
+        message: 'Erro interno. Tente novamente mais tarde.',
       };
     }
   }
@@ -287,7 +287,7 @@ export class PresenceService {
   public async checkOut(
     guildId: string,
     userId: string,
-    note?: string
+    note?: string,
   ): Promise<{ success: boolean; message: string; session?: PresenceSession }> {
     try {
       // TODO: Implement check-out with current Presence model
@@ -301,23 +301,23 @@ export class PresenceService {
           timestamp: new Date(),
           metadata: {
             guildId,
-            note
-          }
-        }
+            note,
+          },
+        },
       });
       
       this.logger.info(`User ${userId} checked out from guild ${guildId}`);
       
       return {
         success: true,
-        message: `Check-out realizado com sucesso às ${new Date().toLocaleString('pt-BR')}.`
+        message: `Check-out realizado com sucesso às ${new Date().toLocaleString('pt-BR')}.`,
       };
       
     } catch (error) {
       this.logger.error(`Failed to check out user ${userId}:`, error);
       return {
         success: false,
-        message: 'Erro interno. Tente novamente mais tarde.'
+        message: 'Erro interno. Tente novamente mais tarde.',
       };
     }
   }
@@ -342,7 +342,7 @@ export class PresenceService {
   public async getGuildReport(
     guildId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
   ): Promise<PresenceReport> {
     try {
       // TODO: Implement report generation with current Presence model
@@ -361,7 +361,7 @@ export class PresenceService {
         averageSessionDuration: 0,
         mostActiveUser: null,
         dailyStats: [],
-        userStats: []
+        userStats: [],
       };
       
       return report;
@@ -385,7 +385,7 @@ export class PresenceService {
         autoCheckOut: true,
         autoCheckOutHours: 12,
         streakRewards: [],
-        dailyRewards: { xp: 10, coins: 5 }
+        dailyRewards: { xp: 10, coins: 5 },
       };
       
       const updatedSettings = { ...currentSettings, ...settings };
@@ -401,19 +401,19 @@ export class PresenceService {
           autoCheckOutHours: updatedSettings.autoCheckOutHours,
           notificationChannelId: updatedSettings.notificationChannelId,
           streakRewards: updatedSettings.streakRewards,
-          dailyRewards: updatedSettings.dailyRewards
-        }
+          dailyRewards: updatedSettings.dailyRewards,
+        },
       };
       
       await this.database.client.guildConfig.upsert({
         where: { guildId },
         update: {
-          config: configData
+          config: configData,
         },
         create: {
           guildId,
-          config: configData
-        }
+          config: configData,
+        },
       });
       
       this.logger.info(`Updated presence settings for guild ${guildId}`);
@@ -429,7 +429,9 @@ export class PresenceService {
     try {
       for (const [guildId, guildSessions] of this.activeSessions) {
         const settings = this.guildSettings.get(guildId);
-        if (!settings || !settings.autoCheckOut) continue;
+        if (!settings || !settings.autoCheckOut) {
+          continue;
+        }
         
         const autoCheckOutTime = settings.autoCheckOutHours * 60 * 60 * 1000; // Convert to milliseconds
         const now = new Date();
@@ -468,7 +470,9 @@ export class PresenceService {
    * Calculate current streak
    */
   private calculateCurrentStreak(presences: any[]): number {
-    if (presences.length === 0) return 0;
+    if (presences.length === 0) {
+      return 0;
+    }
     
     const sortedPresences = presences.sort((a, b) => b.checkInTime.getTime() - a.checkInTime.getTime());
     const now = new Date();
@@ -511,7 +515,9 @@ export class PresenceService {
    * Calculate longest streak
    */
   private calculateLongestStreak(presences: any[]): number {
-    if (presences.length === 0) return 0;
+    if (presences.length === 0) {
+      return 0;
+    }
     
     const sortedPresences = presences.sort((a, b) => a.checkInTime.getTime() - b.checkInTime.getTime());
     let longestStreak = 0;
@@ -552,7 +558,9 @@ export class PresenceService {
   private async awardDailyRewards(guildId: string, userId: string): Promise<void> {
     try {
       const settings = this.guildSettings.get(guildId);
-      if (!settings) return;
+      if (!settings) {
+        return;
+      }
       
       const { xp, coins } = settings.dailyRewards;
       
@@ -561,20 +569,20 @@ export class PresenceService {
         where: { id: userId },
         data: {
           xp: { increment: xp },
-          coins: { increment: coins }
-        }
+          coins: { increment: coins },
+        },
       });
       
       // Update check-ins counter in UserStats
       await this.database.client.userStats.upsert({
         where: { userId },
         update: {
-          checkIns: { increment: 1 }
+          checkIns: { increment: 1 },
         },
         create: {
           userId,
-          checkIns: 1
-        }
+          checkIns: 1,
+        },
       });
       
       this.logger.info(`Awarded daily rewards to user ${userId}: ${xp} XP, ${coins} coins`);
@@ -597,8 +605,8 @@ export class PresenceService {
           where: { id: userId },
           data: {
             xp: { increment: bonusXP },
-            coins: { increment: bonusCoins }
-          }
+            coins: { increment: bonusCoins },
+          },
         });
         
         this.logger.info(`Awarded session rewards to user ${userId}: ${bonusXP} XP, ${bonusCoins} coins for ${duration} minutes`);
@@ -615,7 +623,9 @@ export class PresenceService {
     try {
       for (const [guildId, guildStats] of this.presenceStats) {
         const settings = this.guildSettings.get(guildId);
-        if (!settings) continue;
+        if (!settings) {
+          continue;
+        }
         
         for (const [userId, stats] of guildStats) {
           // Check for streak rewards
@@ -625,8 +635,8 @@ export class PresenceService {
               const existingReward = await this.database.client.transaction.findFirst({
                 where: {
                   userId,
-                  type: 'streak_reward'
-                }
+                  type: 'streak_reward',
+                },
               });
               
               if (!existingReward) {
@@ -635,8 +645,8 @@ export class PresenceService {
                   where: { id: userId },
                   data: {
                     xp: { increment: reward.xp },
-                    coins: { increment: reward.coins }
-                  }
+                    coins: { increment: reward.coins },
+                  },
                 });
                 
                 // Record transaction
@@ -647,8 +657,8 @@ export class PresenceService {
                     amount: reward.xp,
                     balance: 0, // TODO: Calculate actual balance
                     reason: `${reward.days} day streak reward`,
-                    metadata: { xp: reward.xp, coins: reward.coins }
-                  }
+                    metadata: { xp: reward.xp, coins: reward.coins },
+                  },
                 });
                 
                 // Award badge if specified
@@ -673,16 +683,24 @@ export class PresenceService {
   private async sendCheckInNotification(guildId: string, userId: string, session: PresenceSession): Promise<void> {
     try {
       const settings = this.guildSettings.get(guildId);
-      if (!settings || !settings.notificationChannelId) return;
+      if (!settings || !settings.notificationChannelId) {
+        return;
+      }
       
       const guild = this.client.guilds.cache.get(guildId);
-      if (!guild) return;
+      if (!guild) {
+        return;
+      }
       
       const channel = guild.channels.cache.get(settings.notificationChannelId) as TextChannel;
-      if (!channel) return;
+      if (!channel) {
+        return;
+      }
       
       const member = await guild.members.fetch(userId);
-      if (!member) return;
+      if (!member) {
+        return;
+      }
       
       const embed = new EmbedBuilder()
         .setColor('#00ff00')
@@ -690,7 +708,7 @@ export class PresenceService {
         .setDescription(`${member.displayName} fez check-in`)
         .addFields(
           { name: '⏰ Horário', value: session.checkInTime.toLocaleString('pt-BR'), inline: true },
-          { name: '📍 Local', value: session.location || 'Não informado', inline: true }
+          { name: '📍 Local', value: session.location || 'Não informado', inline: true },
         )
         .setThumbnail(member.user.displayAvatarURL())
         .setTimestamp();
@@ -711,16 +729,24 @@ export class PresenceService {
   private async sendCheckOutNotification(guildId: string, userId: string, session: PresenceSession): Promise<void> {
     try {
       const settings = this.guildSettings.get(guildId);
-      if (!settings || !settings.notificationChannelId) return;
+      if (!settings || !settings.notificationChannelId) {
+        return;
+      }
       
       const guild = this.client.guilds.cache.get(guildId);
-      if (!guild) return;
+      if (!guild) {
+        return;
+      }
       
       const channel = guild.channels.cache.get(settings.notificationChannelId) as TextChannel;
-      if (!channel) return;
+      if (!channel) {
+        return;
+      }
       
       const member = await guild.members.fetch(userId);
-      if (!member) return;
+      if (!member) {
+        return;
+      }
       
       const embed = new EmbedBuilder()
         .setColor('#ff9900')
@@ -729,7 +755,7 @@ export class PresenceService {
         .addFields(
           { name: '⏰ Check-in', value: session.checkInTime.toLocaleString('pt-BR'), inline: true },
           { name: '⏰ Check-out', value: session.checkOutTime?.toLocaleString('pt-BR') || 'N/A', inline: true },
-          { name: '⏱️ Duração', value: this.formatDuration(session.duration || 0), inline: true }
+          { name: '⏱️ Duração', value: this.formatDuration(session.duration || 0), inline: true },
         )
         .setThumbnail(member.user.displayAvatarURL())
         .setTimestamp();
@@ -775,7 +801,7 @@ export class PresenceService {
   public async exportPresenceData(
     guildId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
   ): Promise<string> {
     try {
       // TODO: Implement CSV export with current Presence model

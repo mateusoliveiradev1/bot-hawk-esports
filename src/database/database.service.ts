@@ -297,8 +297,8 @@ export class DatabaseService {
      */
     getLeaderboard: async (type: 'xp' | 'level' | 'coins', limit: number = 10) => {
       const orderBy = type === 'xp' ? { totalXp: 'desc' as const } : 
-                     type === 'level' ? { level: 'desc' as const } : 
-                     { coins: 'desc' as const };
+        type === 'level' ? { level: 'desc' as const } : 
+          { coins: 'desc' as const };
 
       return this.prisma.user.findMany({
         orderBy,

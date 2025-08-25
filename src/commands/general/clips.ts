@@ -18,21 +18,21 @@ export const data = new SlashCommandBuilder()
         option
           .setName('video')
           .setDescription('Arquivo de vídeo do clip')
-          .setRequired(true)
+          .setRequired(true),
       )
       .addStringOption(option =>
         option
           .setName('title')
           .setDescription('Título do clip')
           .setRequired(true)
-          .setMaxLength(100)
+          .setMaxLength(100),
       )
       .addStringOption(option =>
         option
           .setName('description')
           .setDescription('Descrição do clip')
           .setRequired(false)
-          .setMaxLength(500)
+          .setMaxLength(500),
       )
       .addStringOption(option =>
         option
@@ -45,16 +45,16 @@ export const data = new SlashCommandBuilder()
             { name: 'CS2', value: 'cs2' },
             { name: 'Apex Legends', value: 'apex' },
             { name: 'Fortnite', value: 'fortnite' },
-            { name: 'Outros', value: 'outros' }
-          )
+            { name: 'Outros', value: 'outros' },
+          ),
       )
       .addStringOption(option =>
         option
           .setName('tags')
           .setDescription('Tags do clip (separadas por vírgula)')
           .setRequired(false)
-          .setMaxLength(200)
-      )
+          .setMaxLength(200),
+      ),
   )
   .addSubcommand(subcommand =>
     subcommand
@@ -70,8 +70,8 @@ export const data = new SlashCommandBuilder()
             { name: 'Mais curtidos', value: 'top' },
             { name: 'Recentes', value: 'recent' },
             { name: 'Em destaque', value: 'featured' },
-            { name: 'Por jogo', value: 'game' }
-          )
+            { name: 'Por jogo', value: 'game' },
+          ),
       )
       .addStringOption(option =>
         option
@@ -84,9 +84,9 @@ export const data = new SlashCommandBuilder()
             { name: 'CS2', value: 'cs2' },
             { name: 'Apex Legends', value: 'apex' },
             { name: 'Fortnite', value: 'fortnite' },
-            { name: 'Outros', value: 'outros' }
-          )
-      )
+            { name: 'Outros', value: 'outros' },
+          ),
+      ),
   )
   .addSubcommand(subcommand =>
     subcommand
@@ -96,7 +96,7 @@ export const data = new SlashCommandBuilder()
         option
           .setName('clip_id')
           .setDescription('ID do clip')
-          .setRequired(true)
+          .setRequired(true),
       )
       .addStringOption(option =>
         option
@@ -105,9 +105,9 @@ export const data = new SlashCommandBuilder()
           .setRequired(true)
           .addChoices(
             { name: '👍 Curtir', value: 'like' },
-            { name: '👎 Não curtir', value: 'dislike' }
-          )
-      )
+            { name: '👎 Não curtir', value: 'dislike' },
+          ),
+      ),
   )
   .addSubcommand(subcommand =>
     subcommand
@@ -117,8 +117,8 @@ export const data = new SlashCommandBuilder()
         option
           .setName('clip_id')
           .setDescription('ID do clip')
-          .setRequired(true)
-      )
+          .setRequired(true),
+      ),
   )
   .addSubcommand(subcommand =>
     subcommand
@@ -128,8 +128,8 @@ export const data = new SlashCommandBuilder()
         option
           .setName('clip_id')
           .setDescription('ID do clip')
-          .setRequired(true)
-      )
+          .setRequired(true),
+      ),
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
@@ -137,26 +137,26 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
   try {
     switch (subcommand) {
-      case 'upload':
-        await handleUpload(interaction);
-        break;
-      case 'list':
-        await handleList(interaction);
-        break;
-      case 'vote':
-        await handleVote(interaction);
-        break;
-      case 'info':
-        await handleInfo(interaction);
-        break;
-      case 'delete':
-        await handleDelete(interaction);
-        break;
-      default:
-        await interaction.reply({
-          content: '❌ Subcomando não reconhecido.',
-          ephemeral: true
-        });
+    case 'upload':
+      await handleUpload(interaction);
+      break;
+    case 'list':
+      await handleList(interaction);
+      break;
+    case 'vote':
+      await handleVote(interaction);
+      break;
+    case 'info':
+      await handleInfo(interaction);
+      break;
+    case 'delete':
+      await handleDelete(interaction);
+      break;
+    default:
+      await interaction.reply({
+        content: '❌ Subcomando não reconhecido.',
+        ephemeral: true,
+      });
     }
   } catch (error) {
     console.error('Erro no comando clips:', error);
@@ -213,8 +213,8 @@ async function handleUpload(interaction: ChatInputCommandInteraction) {
         tags,
         likes: 0,
         dislikes: 0,
-        views: 0
-      }
+        views: 0,
+      },
     });
 
     // Atualizar estatísticas do usuário e dar XP
@@ -222,15 +222,15 @@ async function handleUpload(interaction: ChatInputCommandInteraction) {
       where: { id: interaction.user.id },
       update: {
         xp: { increment: 10 },
-        coins: { increment: 5 }
+        coins: { increment: 5 },
       },
       create: {
         id: interaction.user.id,
         username: interaction.user.username,
         discriminator: interaction.user.discriminator,
         xp: 10,
-        coins: 5
-      }
+        coins: 5,
+      },
     });
 
     // Atualizar progresso de badges
@@ -246,7 +246,7 @@ async function handleUpload(interaction: ChatInputCommandInteraction) {
       .addFields(
         { name: '🎮 Jogo', value: getGameEmoji(gameType) + ' ' + gameType.toUpperCase(), inline: true },
         { name: '🆔 ID do Clip', value: `\`${clip.id}\``, inline: true },
-        { name: '📊 Votos', value: '👍 0 | 👎 0', inline: true }
+        { name: '📊 Votos', value: '👍 0 | 👎 0', inline: true },
       )
       .setColor(0x00ff00)
       .setTimestamp()
@@ -269,12 +269,12 @@ async function handleUpload(interaction: ChatInputCommandInteraction) {
         new ButtonBuilder()
           .setCustomId(`clip_info_${clip.id}`)
           .setLabel('ℹ️ Info')
-          .setStyle(ButtonStyle.Secondary)
+          .setStyle(ButtonStyle.Secondary),
       );
 
     await interaction.editReply({
       embeds: [embed],
-      components: [row]
+      components: [row],
     });
 
   } catch (error) {
@@ -289,26 +289,26 @@ async function handleList(interaction: ChatInputCommandInteraction) {
   const filter = interaction.options.getString('filter') || 'recent';
   const gameType = interaction.options.getString('game');
 
-  let whereClause: any = {
-    guildId: interaction.guildId
+  const whereClause: any = {
+    guildId: interaction.guildId,
   };
   let orderBy: any = { createdAt: 'desc' };
 
   switch (filter) {
-    case 'my':
-      whereClause.userId = interaction.user.id;
-      break;
-    case 'top':
-      orderBy = { likes: 'desc' };
-      break;
-    case 'featured':
-      whereClause.isFeatured = true;
-      break;
-    case 'game':
-      if (gameType) {
-        whereClause.gameType = gameType;
-      }
-      break;
+  case 'my':
+    whereClause.userId = interaction.user.id;
+    break;
+  case 'top':
+    orderBy = { likes: 'desc' };
+    break;
+  case 'featured':
+    whereClause.isFeatured = true;
+    break;
+  case 'game':
+    if (gameType) {
+      whereClause.gameType = gameType;
+    }
+    break;
   }
 
   try {
@@ -320,15 +320,15 @@ async function handleList(interaction: ChatInputCommandInteraction) {
         user: {
           select: {
             id: true,
-            username: true
-          }
+            username: true,
+          },
         },
         _count: {
           select: {
-            votes: true
-          }
-        }
-      }
+            votes: true,
+          },
+        },
+      },
     });
 
     if (clips.length === 0) {
@@ -353,7 +353,7 @@ async function handleList(interaction: ChatInputCommandInteraction) {
         value: `${gameEmoji} **${(clip.gameType || 'outros').toUpperCase()}** | ${votes} | 👁️ ${clip.views}\n` +
                `📤 Por: ${username} | 🆔 \`${clip.id}\`\n` +
                `${clip.description ? clip.description.substring(0, 100) + (clip.description.length > 100 ? '...' : '') : 'Sem descrição'}`,
-        inline: false
+        inline: false,
       });
     });
 
@@ -366,12 +366,12 @@ async function handleList(interaction: ChatInputCommandInteraction) {
         new ButtonBuilder()
           .setCustomId('clips_filter')
           .setLabel('🔍 Filtrar')
-          .setStyle(ButtonStyle.Primary)
+          .setStyle(ButtonStyle.Primary),
       );
 
     await interaction.editReply({
       embeds: [embed],
-      components: [row]
+      components: [row],
     });
 
   } catch (error) {
@@ -392,16 +392,16 @@ async function handleVote(interaction: ChatInputCommandInteraction) {
         user: {
           select: {
             id: true,
-            username: true
-          }
-        }
-      }
+            username: true,
+          },
+        },
+      },
     });
 
     if (!clip) {
       await interaction.reply({
         content: '❌ Clip não encontrado.',
-        ephemeral: true
+        ephemeral: true,
       });
       return;
     }
@@ -411,9 +411,9 @@ async function handleVote(interaction: ChatInputCommandInteraction) {
       where: {
         userId_clipId: {
           userId: interaction.user.id,
-          clipId: clipId
-        }
-      }
+          clipId: clipId,
+        },
+      },
     });
 
     if (existingVote) {
@@ -421,14 +421,14 @@ async function handleVote(interaction: ChatInputCommandInteraction) {
       if (existingVote.type === voteType) {
         await interaction.reply({
           content: '❌ Você já votou desta forma neste clip.',
-          ephemeral: true
+          ephemeral: true,
         });
         return;
       }
       
       // Remover voto anterior e atualizar contadores
       await prisma.clipVote.delete({
-        where: { id: existingVote.id }
+        where: { id: existingVote.id },
       });
       
       const oldVoteUpdate = existingVote.type === 'like' 
@@ -437,7 +437,7 @@ async function handleVote(interaction: ChatInputCommandInteraction) {
       
       await prisma.clip.update({
         where: { id: clipId },
-        data: oldVoteUpdate
+        data: oldVoteUpdate,
       });
     }
 
@@ -445,7 +445,7 @@ async function handleVote(interaction: ChatInputCommandInteraction) {
     if (clip.userId === interaction.user.id) {
       await interaction.reply({
         content: '❌ Você não pode votar no seu próprio clip.',
-        ephemeral: true
+        ephemeral: true,
       });
       return;
     }
@@ -455,8 +455,8 @@ async function handleVote(interaction: ChatInputCommandInteraction) {
       data: {
         userId: interaction.user.id,
         clipId: clipId,
-        type: voteType
-      }
+        type: voteType,
+      },
     });
 
     // Atualizar contadores do clip
@@ -466,7 +466,7 @@ async function handleVote(interaction: ChatInputCommandInteraction) {
 
     const updatedClip = await prisma.clip.update({
       where: { id: clipId },
-      data: updateData
+      data: updateData,
     });
 
     // Dar XP para o autor do clip se foi like
@@ -474,14 +474,14 @@ async function handleVote(interaction: ChatInputCommandInteraction) {
       await prisma.user.upsert({
         where: { id: clip.userId },
         update: {
-          xp: { increment: 2 }
+          xp: { increment: 2 },
         },
         create: {
           id: clip.userId,
           username: 'Unknown',
           discriminator: '0000',
-          xp: 2
-        }
+          xp: 2,
+        },
       });
       
       // Atualizar progresso de badges
@@ -498,14 +498,14 @@ async function handleVote(interaction: ChatInputCommandInteraction) {
     await interaction.reply({
       content: `${voteEmoji} Você ${voteText} o clip "**${clip.title}**"!\n` +
                `📊 Votos atuais: 👍 ${updatedClip.likes} | 👎 ${updatedClip.dislikes}`,
-      ephemeral: true
+      ephemeral: true,
     });
 
   } catch (error) {
     console.error('Erro ao votar no clip:', error);
     await interaction.reply({
       content: '❌ Erro ao processar o voto.',
-      ephemeral: true
+      ephemeral: true,
     });
   }
 }
@@ -520,26 +520,26 @@ async function handleInfo(interaction: ChatInputCommandInteraction) {
         user: {
           select: {
             id: true,
-            username: true
-          }
+            username: true,
+          },
         },
         votes: {
           select: {
             type: true,
             user: {
               select: {
-                username: true
-              }
-            }
-          }
-        }
-      }
+                username: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!clip) {
       await interaction.reply({
         content: '❌ Clip não encontrado.',
-        ephemeral: true
+        ephemeral: true,
       });
       return;
     }
@@ -547,7 +547,7 @@ async function handleInfo(interaction: ChatInputCommandInteraction) {
     // Incrementar visualizações
     await prisma.clip.update({
       where: { id: clipId },
-      data: { views: { increment: 1 } }
+      data: { views: { increment: 1 } },
     });
 
     const embed = new EmbedBuilder()
@@ -559,7 +559,7 @@ async function handleInfo(interaction: ChatInputCommandInteraction) {
         { name: '📊 Estatísticas', value: `👍 ${clip.likes} | 👎 ${clip.dislikes} | 👁️ ${clip.views + 1}`, inline: true },
         { name: '📅 Enviado em', value: `<t:${Math.floor(clip.createdAt.getTime() / 1000)}:F>`, inline: true },
         { name: '📁 Tamanho', value: clip.fileSize ? formatFileSize(clip.fileSize) : 'Desconhecido', inline: true },
-        { name: '🆔 ID', value: `\`${clip.id}\``, inline: true }
+        { name: '🆔 ID', value: `\`${clip.id}\``, inline: true },
       )
       .setColor(clip.isFeatured ? 0xffd700 : 0x0099ff)
       .setTimestamp();
@@ -585,19 +585,19 @@ async function handleInfo(interaction: ChatInputCommandInteraction) {
         new ButtonBuilder()
           .setLabel('🔗 Ver Clip')
           .setStyle(ButtonStyle.Link)
-          .setURL(clip.url)
+          .setURL(clip.url),
       );
 
     await interaction.reply({
       embeds: [embed],
-      components: [row]
+      components: [row],
     });
 
   } catch (error) {
     console.error('Erro ao buscar informações do clip:', error);
     await interaction.reply({
       content: '❌ Erro ao carregar informações do clip.',
-      ephemeral: true
+      ephemeral: true,
     });
   }
 }
@@ -608,13 +608,13 @@ async function handleDelete(interaction: ChatInputCommandInteraction) {
   try {
     // Verificar se o clip existe
     const clip = await prisma.clip.findUnique({
-      where: { id: clipId }
+      where: { id: clipId },
     });
 
     if (!clip) {
       await interaction.reply({
         content: '❌ Clip não encontrado.',
-        ephemeral: true
+        ephemeral: true,
       });
       return;
     }
@@ -626,31 +626,31 @@ async function handleDelete(interaction: ChatInputCommandInteraction) {
     if (!isAuthor && !isModerator) {
       await interaction.reply({
         content: '❌ Você só pode deletar seus próprios clips ou precisa ser moderador.',
-        ephemeral: true
+        ephemeral: true,
       });
       return;
     }
 
     // Deletar votos relacionados
     await prisma.clipVote.deleteMany({
-      where: { clipId: clipId }
+      where: { clipId: clipId },
     });
 
     // Deletar o clip
     await prisma.clip.delete({
-      where: { id: clipId }
+      where: { id: clipId },
     });
 
     await interaction.reply({
       content: `✅ Clip "**${clip.title}**" foi deletado com sucesso.`,
-      ephemeral: true
+      ephemeral: true,
     });
 
   } catch (error) {
     console.error('Erro ao deletar clip:', error);
     await interaction.reply({
       content: '❌ Erro ao deletar o clip.',
-      ephemeral: true
+      ephemeral: true,
     });
   }
 }
@@ -662,29 +662,31 @@ function getGameEmoji(gameType: string): string {
     cs2: '💥',
     apex: '🏆',
     fortnite: '🏗️',
-    outros: '🎮'
+    outros: '🎮',
   };
   return emojis[gameType] || '🎮';
 }
 
 function getFilterDescription(filter: string, gameType?: string | null): string {
   switch (filter) {
-    case 'my':
-      return 'Mostrando seus clips';
-    case 'top':
-      return 'Mostrando clips mais curtidos';
-    case 'featured':
-      return 'Mostrando clips em destaque';
-    case 'game':
-      return gameType ? `Mostrando clips de: ${gameType.toUpperCase()}` : 'Mostrando todos os clips';
-    default:
-      return 'Mostrando clips mais recentes';
+  case 'my':
+    return 'Mostrando seus clips';
+  case 'top':
+    return 'Mostrando clips mais curtidos';
+  case 'featured':
+    return 'Mostrando clips em destaque';
+  case 'game':
+    return gameType ? `Mostrando clips de: ${gameType.toUpperCase()}` : 'Mostrando todos os clips';
+  default:
+    return 'Mostrando clips mais recentes';
   }
 }
 
 function formatFileSize(bytes: number): string {
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  if (bytes === 0) return '0 Bytes';
+  if (bytes === 0) {
+    return '0 Bytes';
+  }
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
   return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
 }

@@ -43,12 +43,12 @@ export class Logger {
       datePattern: 'YYYY-MM-DD',
       format: winston.format.combine(
         winston.format.timestamp({
-          format: 'YYYY-MM-DD HH:mm:ss'
+          format: 'YYYY-MM-DD HH:mm:ss',
         }),
         winston.format.errors({ stack: true }),
         winston.format.json(),
-        winston.format.prettyPrint()
-      )
+        winston.format.prettyPrint(),
+      ),
     };
 
     this.ensureLogDirectory();
@@ -78,7 +78,7 @@ export class Logger {
         format: winston.format.combine(
           winston.format.colorize(),
           winston.format.timestamp({
-            format: 'HH:mm:ss'
+            format: 'HH:mm:ss',
           }),
           winston.format.printf(({ timestamp, level, message, ...meta }) => {
             let log = `${timestamp} [${level}]: ${message}`;
@@ -88,9 +88,9 @@ export class Logger {
             }
             
             return log;
-          })
-        )
-      })
+          }),
+        ),
+      }),
     );
 
     // File transport
@@ -101,8 +101,8 @@ export class Logger {
         format: this.config.format,
         maxsize: this.config.maxSize,
         maxFiles: this.config.maxFiles,
-        tailable: true
-      })
+        tailable: true,
+      }),
     );
 
     // Error file transport
@@ -113,15 +113,15 @@ export class Logger {
         format: this.config.format,
         maxsize: this.config.maxSize,
         maxFiles: this.config.maxFiles,
-        tailable: true
-      })
+        tailable: true,
+      }),
     );
 
     this.logger = winston.createLogger({
       level: this.config.level,
       format: this.config.format,
       transports,
-      exitOnError: false
+      exitOnError: false,
     });
   }
 
@@ -182,7 +182,7 @@ export class Logger {
       userId,
       guildId,
       type: 'command',
-      ...meta
+      ...meta,
     });
   }
 
@@ -196,7 +196,7 @@ export class Logger {
       statusCode,
       responseTime,
       type: 'api',
-      ...meta
+      ...meta,
     });
   }
 
@@ -209,7 +209,7 @@ export class Logger {
       table,
       duration,
       type: 'database',
-      ...meta
+      ...meta,
     });
   }
 
@@ -222,7 +222,7 @@ export class Logger {
       key,
       hit,
       type: 'cache',
-      ...meta
+      ...meta,
     });
   }
 
@@ -235,7 +235,7 @@ export class Logger {
       playerId,
       responseTime,
       type: 'pubg',
-      ...meta
+      ...meta,
     });
   }
 
@@ -248,7 +248,7 @@ export class Logger {
       guildId,
       track,
       type: 'music',
-      ...meta
+      ...meta,
     });
   }
 
@@ -261,7 +261,7 @@ export class Logger {
       gameType,
       userId,
       type: 'game',
-      ...meta
+      ...meta,
     });
   }
 
@@ -274,7 +274,7 @@ export class Logger {
       badgeId,
       userId,
       type: 'badge',
-      ...meta
+      ...meta,
     });
   }
 
@@ -288,7 +288,7 @@ export class Logger {
       userId,
       severity,
       type: 'security',
-      ...meta
+      ...meta,
     });
   }
 
@@ -301,7 +301,7 @@ export class Logger {
       value,
       unit,
       type: 'performance',
-      ...meta
+      ...meta,
     });
   }
 

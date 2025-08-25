@@ -12,7 +12,7 @@ import {
   PUBGPlatform,
   PUBGGameMode,
   PUBGLeaderboardEntry,
-  PUBGRankTier
+  PUBGRankTier,
 } from '../types/pubg';
 
 /**
@@ -76,7 +76,7 @@ export class PUBGService {
       (error) => {
         this.logger.error('PUBG API request error:', error);
         return Promise.reject(error);
-      }
+      },
     );
 
     // Response interceptor
@@ -108,7 +108,7 @@ export class PUBGService {
         }
 
         return Promise.reject(error);
-      }
+      },
     );
   }
 
@@ -131,7 +131,7 @@ export class PUBGService {
           params: {
             'filter[playerNames]': playerName,
           },
-        }
+        },
       );
 
       const players = response.data.data;
@@ -159,7 +159,7 @@ export class PUBGService {
   public async getPlayerStats(
     playerId: string, 
     platform: PUBGPlatform, 
-    seasonId?: string
+    seasonId?: string,
   ): Promise<PUBGPlayerStats | null> {
     try {
       const currentSeason = seasonId || await this.getCurrentSeason(platform);
@@ -177,7 +177,7 @@ export class PUBGService {
       }
 
       const response = await this.api.get<PUBGAPIResponse<PUBGPlayerStats>>(
-        `/shards/${platform}/players/${playerId}/seasons/${currentSeason}`
+        `/shards/${platform}/players/${playerId}/seasons/${currentSeason}`,
       );
 
       const stats = response.data.data;
@@ -200,7 +200,7 @@ export class PUBGService {
     playerId: string,
     platform: PUBGPlatform,
     seasonId: string,
-    gameMode: PUBGGameMode
+    gameMode: PUBGGameMode,
   ): Promise<PUBGSeasonStats | null> {
     try {
       const cacheKey = this.cache.keyGenerators.pubgStats(playerId, seasonId, gameMode);
@@ -212,7 +212,7 @@ export class PUBGService {
       }
 
       const response = await this.api.get<PUBGAPIResponse<PUBGSeasonStats>>(
-        `/shards/${platform}/players/${playerId}/seasons/${seasonId}/ranked`
+        `/shards/${platform}/players/${playerId}/seasons/${seasonId}/ranked`,
       );
 
       const seasonStats = response.data.data;
@@ -242,7 +242,7 @@ export class PUBGService {
       }
 
       const response = await this.api.get<PUBGAPIResponse<{ relationships: { matches: { data: { id: string }[] } } }>>(
-        `/shards/${platform}/players/${playerId}`
+        `/shards/${platform}/players/${playerId}`,
       );
 
       const matchIds = response.data.data.relationships.matches.data.map(match => match.id);
@@ -280,7 +280,7 @@ export class PUBGService {
       }
 
       const response = await this.api.get<PUBGAPIResponse<PUBGMatch>>(
-        `/shards/${platform}/matches/${matchId}`
+        `/shards/${platform}/matches/${matchId}`,
       );
 
       const match = response.data.data;
@@ -308,7 +308,7 @@ export class PUBGService {
       }
 
       const response = await this.api.get<PUBGAPIResponse<PUBGSeason[]>>(
-        `/shards/${platform}/seasons`
+        `/shards/${platform}/seasons`,
       );
 
       const seasons = response.data.data;
@@ -335,7 +335,7 @@ export class PUBGService {
   public async getLeaderboard(
     platform: PUBGPlatform,
     gameMode: PUBGGameMode,
-    seasonId?: string
+    seasonId?: string,
   ): Promise<PUBGLeaderboardEntry[]> {
     try {
       const currentSeason = seasonId || await this.getCurrentSeason(platform);
@@ -352,7 +352,7 @@ export class PUBGService {
       }
 
       const response = await this.api.get<PUBGAPIResponse<any>>(
-        `/shards/${platform}/leaderboards/${currentSeason}/${gameMode}`
+        `/shards/${platform}/leaderboards/${currentSeason}/${gameMode}`,
       );
 
       // Transform API response to leaderboard entries
@@ -426,7 +426,9 @@ export class PUBGService {
    * Calculate win rate percentage
    */
   public calculateWinRate(wins: number, totalGames: number): number {
-    if (totalGames === 0) return 0;
+    if (totalGames === 0) {
+      return 0;
+    }
     return parseFloat(((wins / totalGames) * 100).toFixed(2));
   }
 
@@ -434,7 +436,9 @@ export class PUBGService {
    * Calculate average damage per game
    */
   public calculateAverageDamage(totalDamage: number, totalGames: number): number {
-    if (totalGames === 0) return 0;
+    if (totalGames === 0) {
+      return 0;
+    }
     return parseFloat((totalDamage / totalGames).toFixed(2));
   }
 

@@ -18,8 +18,8 @@ const economy: Command = {
         .addUserOption(option =>
           option.setName('usuario')
             .setDescription('Ver economia de outro usuário')
-            .setRequired(false)
-        )
+            .setRequired(false),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -32,16 +32,16 @@ const economy: Command = {
             .addChoices(
               { name: '⭐ XP', value: 'xp' },
               { name: '💰 Moedas', value: 'coins' },
-              { name: '📊 Nível', value: 'level' }
-            )
+              { name: '📊 Nível', value: 'level' },
+            ),
         )
         .addIntegerOption(option =>
           option.setName('limite')
             .setDescription('Número de usuários no ranking (padrão: 10)')
             .setRequired(false)
             .setMinValue(5)
-            .setMaxValue(25)
-        )
+            .setMaxValue(25),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -52,13 +52,13 @@ const economy: Command = {
             .setDescription('Número de transações (padrão: 10)')
             .setRequired(false)
             .setMinValue(5)
-            .setMaxValue(50)
-        )
+            .setMaxValue(50),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('daily')
-        .setDescription('Resgatar recompensa diária')
+        .setDescription('Resgatar recompensa diária'),
     ) as SlashCommandBuilder,
   
   category: CommandCategory.ECONOMY,
@@ -72,18 +72,18 @@ const economy: Command = {
       const subcommand = interaction.options.getSubcommand();
       
       switch (subcommand) {
-        case 'perfil':
-          await handleEconomyProfile(interaction, database, logger);
-          break;
-        case 'ranking':
-          await handleEconomyRanking(interaction, database, client, logger);
-          break;
-        case 'historico':
-          await handleTransactionHistory(interaction, database, logger);
-          break;
-        case 'daily':
-          await handleDailyReward(interaction, database, logger);
-          break;
+      case 'perfil':
+        await handleEconomyProfile(interaction, database, logger);
+        break;
+      case 'ranking':
+        await handleEconomyRanking(interaction, database, client, logger);
+        break;
+      case 'historico':
+        await handleTransactionHistory(interaction, database, logger);
+        break;
+      case 'daily':
+        await handleDailyReward(interaction, database, logger);
+        break;
       }
     } catch (error) {
       logger.error('Error in economy command:', error);
@@ -100,7 +100,7 @@ const economy: Command = {
         await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
       }
     }
-  }
+  },
 };
 
 /**
@@ -109,7 +109,7 @@ const economy: Command = {
 async function handleEconomyProfile(
   interaction: any,
   database: DatabaseService,
-  logger: Logger
+  logger: Logger,
 ) {
   const targetUser = interaction.options.getUser('usuario') || interaction.user;
   const userId = targetUser.id;
@@ -153,8 +153,8 @@ async function handleEconomyProfile(
         { 
           name: '📈 Progresso para o próximo nível', 
           value: `${progressBar}\n**${progressXP}**/${neededXP} XP (${progressPercentage}%)`, 
-          inline: false 
-        }
+          inline: false, 
+        },
       )
       .setTimestamp();
     
@@ -162,7 +162,7 @@ async function handleEconomyProfile(
     const recentTransactions = await database.client.transaction.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-      take: 3
+      take: 3,
     });
     
     if (recentTransactions.length > 0) {
@@ -177,7 +177,7 @@ async function handleEconomyProfile(
       embed.addFields({
         name: '📋 Atividade Recente',
         value: activityText,
-        inline: false
+        inline: false,
       });
     }
     
@@ -196,7 +196,7 @@ async function handleEconomyRanking(
   interaction: any,
   database: DatabaseService,
   client: ExtendedClient,
-  logger: Logger
+  logger: Logger,
 ) {
   const type = interaction.options.getString('tipo');
   const limit = interaction.options.getInteger('limite') || 10;
@@ -209,23 +209,23 @@ async function handleEconomyRanking(
     let emoji: string;
     
     switch (type) {
-      case 'xp':
-        orderBy = { xp: 'desc' };
-        title = '⭐ Ranking de XP';
-        emoji = '⭐';
-        break;
-      case 'coins':
-        orderBy = { coins: 'desc' };
-        title = '💰 Ranking de Moedas';
-        emoji = '💰';
-        break;
-      case 'level':
-        orderBy = { xp: 'desc' }; // Level is calculated from XP
-        title = '📊 Ranking de Nível';
-        emoji = '📊';
-        break;
-      default:
-        throw new Error('Invalid ranking type');
+    case 'xp':
+      orderBy = { xp: 'desc' };
+      title = '⭐ Ranking de XP';
+      emoji = '⭐';
+      break;
+    case 'coins':
+      orderBy = { coins: 'desc' };
+      title = '💰 Ranking de Moedas';
+      emoji = '💰';
+      break;
+    case 'level':
+      orderBy = { xp: 'desc' }; // Level is calculated from XP
+      title = '📊 Ranking de Nível';
+      emoji = '📊';
+      break;
+    default:
+      throw new Error('Invalid ranking type');
     }
     
     const users = await database.client.user.findMany({
@@ -234,8 +234,8 @@ async function handleEconomyRanking(
       select: {
         id: true,
         xp: true,
-        coins: true
-      }
+        coins: true,
+      },
     });
     
     if (users.length === 0) {
@@ -263,31 +263,31 @@ async function handleEconomyRanking(
           
           let value: string;
           switch (type) {
-            case 'xp':
-              value = `${user.xp || 0} XP`;
-              break;
-            case 'coins':
-              value = `${user.coins || 0} moedas`;
-              break;
-            case 'level':
-              const level = calculateLevel(user.xp || 0);
-              value = `Nível ${level} (${user.xp || 0} XP)`;
-              break;
-            default:
-              value = '0';
+          case 'xp':
+            value = `${user.xp || 0} XP`;
+            break;
+          case 'coins':
+            value = `${user.coins || 0} moedas`;
+            break;
+          case 'level':
+            const level = calculateLevel(user.xp || 0);
+            value = `Nível ${level} (${user.xp || 0} XP)`;
+            break;
+          default:
+            value = '0';
           }
           
           return `${medal} **${discordUser.username}** - ${value}`;
         } catch {
           return `${index + 1}º **Usuário Desconhecido** - 0`;
         }
-      })
+      }),
     );
     
     embed.addFields({
       name: '📊 Ranking',
       value: rankingText.join('\n'),
-      inline: false
+      inline: false,
     });
     
     await interaction.editReply({ embeds: [embed] });
@@ -304,7 +304,7 @@ async function handleEconomyRanking(
 async function handleTransactionHistory(
   interaction: any,
   database: DatabaseService,
-  logger: Logger
+  logger: Logger,
 ) {
   const limit = interaction.options.getInteger('limite') || 10;
   const userId = interaction.user.id;
@@ -315,7 +315,7 @@ async function handleTransactionHistory(
     const transactions = await database.client.transaction.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-      take: limit
+      take: limit,
     });
     
     if (transactions.length === 0) {
@@ -353,14 +353,14 @@ async function handleTransactionHistory(
         embed.addFields({
           name: index === 0 ? '💳 Transações' : '\u200b',
           value: chunk,
-          inline: false
+          inline: false,
         });
       });
     } else {
       embed.addFields({
         name: '💳 Transações',
         value: transactionText,
-        inline: false
+        inline: false,
       });
     }
     
@@ -378,7 +378,7 @@ async function handleTransactionHistory(
 async function handleDailyReward(
   interaction: any,
   database: DatabaseService,
-  logger: Logger
+  logger: Logger,
 ) {
   const userId = interaction.user.id;
   
@@ -394,9 +394,9 @@ async function handleDailyReward(
         userId,
         reason: 'Daily reward',
         createdAt: {
-          gte: today
-        }
-      }
+          gte: today,
+        },
+      },
     });
     
     if (existingClaim) {
@@ -420,9 +420,9 @@ async function handleDailyReward(
         reason: 'Daily reward',
         createdAt: {
           gte: yesterday,
-          lt: today
-        }
-      }
+          lt: today,
+        },
+      },
     });
     
     // Get current streak from user data or calculate
@@ -450,8 +450,8 @@ async function handleDailyReward(
       where: { id: userId },
       data: {
         dailyStreak: currentStreak,
-        lastDaily: new Date()
-      }
+        lastDaily: new Date(),
+      },
     });
     
     // Update coins using the database service method (handles transaction creation)
@@ -463,11 +463,11 @@ async function handleDailyReward(
     const embed = new EmbedBuilder()
       .setColor('#00ff00')
       .setTitle('🎁 Recompensa Diária Resgatada!')
-      .setDescription(`Parabéns! Você resgatou sua recompensa diária.`)
+      .setDescription('Parabéns! Você resgatou sua recompensa diária.')
       .addFields(
         { name: '⭐ XP Ganho', value: `+${xpReward} XP`, inline: true },
         { name: '💰 Moedas Ganhas', value: `+${coinReward} moedas`, inline: true },
-        { name: '🔥 Sequência', value: `${currentStreak} dias`, inline: true }
+        { name: '🔥 Sequência', value: `${currentStreak} dias`, inline: true },
       )
       .setFooter({ text: 'Volte amanhã para continuar sua sequência!' })
       .setTimestamp();
@@ -476,7 +476,7 @@ async function handleDailyReward(
       embed.addFields({
         name: '🚀 Bônus de Sequência',
         value: `+${Math.floor(streakMultiplier * 100)}% de bônus por ${currentStreak} dias consecutivos!`,
-        inline: false
+        inline: false,
       });
     }
     

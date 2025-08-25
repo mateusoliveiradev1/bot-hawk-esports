@@ -6,7 +6,7 @@ import {
   ButtonBuilder, 
   ButtonStyle, 
   TextChannel,
-  ButtonInteraction
+  ButtonInteraction,
 } from 'discord.js';
 import { ExtendedClient } from '../types/client';
 import { Logger } from '../utils/logger';
@@ -100,8 +100,8 @@ export class OnboardingService {
           data: {
             isVerified: true,
             verifiedAt: new Date(),
-            verificationMethod: 'auto'
-          }
+            verificationMethod: 'auto',
+          },
         });
       }
       
@@ -116,7 +116,9 @@ export class OnboardingService {
    * Create or update user record in database
    */
   private async createUserRecord(member: GuildMember): Promise<void> {
-    if (!this.client.db) return;
+    if (!this.client.db) {
+      return;
+    }
     
     try {
       // Create or update user
@@ -125,14 +127,14 @@ export class OnboardingService {
         update: {
           username: member.user.username,
           discriminator: member.user.discriminator,
-          avatar: member.user.avatar
+          avatar: member.user.avatar,
         },
         create: {
           id: member.id,
           username: member.user.username,
           discriminator: member.user.discriminator,
-          avatar: member.user.avatar
-        }
+          avatar: member.user.avatar,
+        },
       });
 
       // Create user-guild relationship
@@ -140,17 +142,17 @@ export class OnboardingService {
         where: {
           userId_guildId: {
             userId: member.id,
-            guildId: member.guild.id
-          }
+            guildId: member.guild.id,
+          },
         },
         update: {
           leftAt: null,
-          isActive: true
+          isActive: true,
         },
         create: {
           userId: member.id,
-          guildId: member.guild.id
-        }
+          guildId: member.guild.id,
+        },
       });
       
     } catch (error) {
@@ -189,10 +191,10 @@ export class OnboardingService {
       }
 
       const welcomeMessage = config.welcomeMessage || 
-        `🎉 Bem-vindo(a) ao **{guild}**, {user}!\n\n` +
-        `📋 Para ter acesso completo ao servidor, você precisa se registrar com seu nick do PUBG.\n` +
-        `🎮 Use o comando \`/register\` para começar!\n\n` +
-        `📖 Leia as regras e divirta-se! 🚀`;
+        '🎉 Bem-vindo(a) ao **{guild}**, {user}!\n\n' +
+        '📋 Para ter acesso completo ao servidor, você precisa se registrar com seu nick do PUBG.\n' +
+        '🎮 Use o comando `/register` para começar!\n\n' +
+        '📖 Leia as regras e divirta-se! 🚀';
 
       const formattedMessage = welcomeMessage
         .replace(/{user}/g, member.toString())
@@ -219,12 +221,12 @@ export class OnboardingService {
           new ButtonBuilder()
             .setCustomId('view_commands')
             .setLabel('🤖 Ver Comandos')
-            .setStyle(ButtonStyle.Secondary)
+            .setStyle(ButtonStyle.Secondary),
         );
 
       await welcomeChannel.send({ 
         embeds: [embed], 
-        components: [actionRow] 
+        components: [actionRow], 
       });
       
     } catch (error) {
@@ -242,17 +244,17 @@ export class OnboardingService {
         .setDescription(
           `Olá ${member.user.username}! 👋\n\n` +
           `Você acabou de entrar no **${member.guild.name}**!\n\n` +
-          `📋 **Para ter acesso completo ao servidor:**\n` +
-          `• Use o comando \`/register\` no servidor\n` +
-          `• Registre seu nick do PUBG\n` +
-          `• Aguarde a verificação automática\n\n` +
-          `🎮 **Recursos disponíveis:**\n` +
-          `• Rankings PUBG\n` +
-          `• Sistema de badges\n` +
-          `• Mini-games e desafios\n` +
-          `• Upload de clips\n\n` +
-          `📖 Não se esqueça de ler as regras do servidor!\n\n` +
-          `Divirta-se! 🚀`
+          '📋 **Para ter acesso completo ao servidor:**\n' +
+          '• Use o comando `/register` no servidor\n' +
+          '• Registre seu nick do PUBG\n' +
+          '• Aguarde a verificação automática\n\n' +
+          '🎮 **Recursos disponíveis:**\n' +
+          '• Rankings PUBG\n' +
+          '• Sistema de badges\n' +
+          '• Mini-games e desafios\n' +
+          '• Upload de clips\n\n' +
+          '📖 Não se esqueça de ler as regras do servidor!\n\n' +
+          'Divirta-se! 🚀',
         )
         .setColor(0x0099ff)
         .setThumbnail(member.guild.iconURL())
@@ -271,21 +273,23 @@ export class OnboardingService {
    */
   private setupButtonHandlers(): void {
     this.client.on('interactionCreate', async (interaction) => {
-      if (!interaction.isButton()) return;
+      if (!interaction.isButton()) {
+        return;
+      }
       
       const buttonInteraction = interaction as ButtonInteraction;
       
       try {
         switch (buttonInteraction.customId) {
-          case 'view_rules':
-            await this.handleViewRules(buttonInteraction);
-            break;
-          case 'start_registration':
-            await this.handleStartRegistration(buttonInteraction);
-            break;
-          case 'view_commands':
-            await this.handleViewCommands(buttonInteraction);
-            break;
+        case 'view_rules':
+          await this.handleViewRules(buttonInteraction);
+          break;
+        case 'start_registration':
+          await this.handleStartRegistration(buttonInteraction);
+          break;
+        case 'view_commands':
+          await this.handleViewCommands(buttonInteraction);
+          break;
         }
       } catch (error) {
         this.logger.error('Failed to handle button interaction:', error);
@@ -300,14 +304,14 @@ export class OnboardingService {
     const embed = new EmbedBuilder()
       .setTitle('📖 Regras do Servidor')
       .setDescription(
-        `**1.** Seja respeitoso com todos os membros\n` +
-        `**2.** Não faça spam ou flood nos canais\n` +
-        `**3.** Use os canais apropriados para cada tipo de conteúdo\n` +
-        `**4.** Não compartilhe conteúdo ofensivo ou inadequado\n` +
-        `**5.** Siga as diretrizes da comunidade do Discord\n` +
-        `**6.** Registre-se com seu nick real do PUBG\n` +
-        `**7.** Não faça trapaça ou use cheats\n` +
-        `**8.** Divirta-se e seja parte da comunidade! 🎮`
+        '**1.** Seja respeitoso com todos os membros\n' +
+        '**2.** Não faça spam ou flood nos canais\n' +
+        '**3.** Use os canais apropriados para cada tipo de conteúdo\n' +
+        '**4.** Não compartilhe conteúdo ofensivo ou inadequado\n' +
+        '**5.** Siga as diretrizes da comunidade do Discord\n' +
+        '**6.** Registre-se com seu nick real do PUBG\n' +
+        '**7.** Não faça trapaça ou use cheats\n' +
+        '**8.** Divirta-se e seja parte da comunidade! 🎮',
       )
       .setColor(0xff9900)
       .setTimestamp();
@@ -322,16 +326,16 @@ export class OnboardingService {
     const embed = new EmbedBuilder()
       .setTitle('🎮 Registro PUBG')
       .setDescription(
-        `Para se registrar no servidor, use o comando:\n\n` +
-        `\`/register nick:SEU_NICK plataforma:PLATAFORMA\`\n\n` +
-        `**Plataformas disponíveis:**\n` +
-        `• \`steam\` - PC (Steam)\n` +
-        `• \`xbox\` - Xbox\n` +
-        `• \`psn\` - PlayStation\n` +
-        `• \`stadia\` - Stadia\n\n` +
-        `**Exemplo:**\n` +
-        `\`/register nick:PlayerName123 plataforma:steam\`\n\n` +
-        `⚠️ **Importante:** Use seu nick exato do PUBG para verificação automática!`
+        'Para se registrar no servidor, use o comando:\n\n' +
+        '`/register nick:SEU_NICK plataforma:PLATAFORMA`\n\n' +
+        '**Plataformas disponíveis:**\n' +
+        '• `steam` - PC (Steam)\n' +
+        '• `xbox` - Xbox\n' +
+        '• `psn` - PlayStation\n' +
+        '• `stadia` - Stadia\n\n' +
+        '**Exemplo:**\n' +
+        '`/register nick:PlayerName123 plataforma:steam`\n\n' +
+        '⚠️ **Importante:** Use seu nick exato do PUBG para verificação automática!',
       )
       .setColor(0x00ff00)
       .setTimestamp();
@@ -346,21 +350,21 @@ export class OnboardingService {
     const embed = new EmbedBuilder()
       .setTitle('🤖 Comandos Disponíveis')
       .setDescription(
-        `**📋 Registro e Perfil:**\n` +
-        `• \`/register\` - Registrar nick PUBG\n` +
-        `• \`/profile\` - Ver seu perfil\n` +
-        `• \`/stats\` - Ver suas estatísticas\n\n` +
-        `**🏆 Rankings:**\n` +
-        `• \`/ranking\` - Ver rankings do servidor\n` +
-        `• \`/leaderboard\` - Top players\n\n` +
-        `**🎮 Diversão:**\n` +
-        `• \`/quiz\` - Quiz PUBG\n` +
-        `• \`/challenge\` - Desafios diários\n` +
-        `• \`/clip\` - Upload de clips\n\n` +
-        `**🎵 Música:**\n` +
-        `• \`/play\` - Tocar música\n` +
-        `• \`/queue\` - Ver fila de música\n\n` +
-        `Use \`/help\` para mais informações sobre cada comando!`
+        '**📋 Registro e Perfil:**\n' +
+        '• `/register` - Registrar nick PUBG\n' +
+        '• `/profile` - Ver seu perfil\n' +
+        '• `/stats` - Ver suas estatísticas\n\n' +
+        '**🏆 Rankings:**\n' +
+        '• `/ranking` - Ver rankings do servidor\n' +
+        '• `/leaderboard` - Top players\n\n' +
+        '**🎮 Diversão:**\n' +
+        '• `/quiz` - Quiz PUBG\n' +
+        '• `/challenge` - Desafios diários\n' +
+        '• `/clip` - Upload de clips\n\n' +
+        '**🎵 Música:**\n' +
+        '• `/play` - Tocar música\n' +
+        '• `/queue` - Ver fila de música\n\n' +
+        'Use `/help` para mais informações sobre cada comando!',
       )
       .setColor(0x0099ff)
       .setTimestamp();
@@ -377,7 +381,7 @@ export class OnboardingService {
         totalMembers: 0,
         verifiedMembers: 0,
         newMembers: 0,
-        verificationRate: 0
+        verificationRate: 0,
       };
     }
 
@@ -391,10 +395,10 @@ export class OnboardingService {
           guilds: {
             some: {
               guildId: guildId,
-              isActive: true
-            }
-          }
-        }
+              isActive: true,
+            },
+          },
+        },
       });
 
       const newMembers = totalMembers - verifiedMembers;
@@ -404,7 +408,7 @@ export class OnboardingService {
         totalMembers,
         verifiedMembers,
         newMembers,
-        verificationRate
+        verificationRate,
       };
     } catch (error) {
       this.logger.error(`Failed to get welcome stats for guild ${guildId}:`, error);
@@ -412,7 +416,7 @@ export class OnboardingService {
         totalMembers: 0,
         verifiedMembers: 0,
         newMembers: 0,
-        verificationRate: 0
+        verificationRate: 0,
       };
     }
   }
@@ -426,7 +430,7 @@ export class OnboardingService {
     }
 
     const guild = await this.client.db.client.guild.findUnique({
-      where: { id: guildId }
+      where: { id: guildId },
     });
 
     if (!guild) {
@@ -434,7 +438,7 @@ export class OnboardingService {
       return {
         onboardingEnabled: true,
         welcomeDMEnabled: true,
-        autoRoleEnabled: true
+        autoRoleEnabled: true,
       };
     }
 
@@ -443,7 +447,7 @@ export class OnboardingService {
       welcomeChannelId: guild.welcomeChannelId || undefined,
       welcomeMessage: guild.welcomeMessage || undefined,
       welcomeDMEnabled: guild.welcomeDMEnabled,
-      autoRoleEnabled: guild.autoRoleEnabled
+      autoRoleEnabled: guild.autoRoleEnabled,
     };
   }
 
@@ -456,7 +460,7 @@ export class OnboardingService {
     }
 
     const guild = await this.client.db.client.guild.findUnique({
-      where: { id: guildId }
+      where: { id: guildId },
     });
 
     if (!guild) {
@@ -470,8 +474,8 @@ export class OnboardingService {
         welcomeChannelId: config.welcomeChannelId ?? guild.welcomeChannelId,
         welcomeMessage: config.welcomeMessage ?? guild.welcomeMessage,
         welcomeDMEnabled: config.welcomeDMEnabled ?? guild.welcomeDMEnabled,
-        autoRoleEnabled: config.autoRoleEnabled ?? guild.autoRoleEnabled
-      }
+        autoRoleEnabled: config.autoRoleEnabled ?? guild.autoRoleEnabled,
+      },
     });
 
     return {
@@ -479,7 +483,7 @@ export class OnboardingService {
       welcomeChannelId: updatedGuild.welcomeChannelId || undefined,
       welcomeMessage: updatedGuild.welcomeMessage || undefined,
       welcomeDMEnabled: updatedGuild.welcomeDMEnabled,
-      autoRoleEnabled: updatedGuild.autoRoleEnabled
+      autoRoleEnabled: updatedGuild.autoRoleEnabled,
     };
   }
 }

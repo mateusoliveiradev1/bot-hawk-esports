@@ -19,8 +19,8 @@ const badges: Command = {
         .addUserOption(option =>
           option.setName('usuario')
             .setDescription('Ver badges de outro usuário')
-            .setRequired(false)
-        )
+            .setRequired(false),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -36,8 +36,8 @@ const badges: Command = {
               { name: '🎯 Gaming', value: 'gaming' },
               { name: '📅 Participação', value: 'participation' },
               { name: '🏆 Conquistas', value: 'achievement' },
-              { name: '⭐ Especiais', value: 'special' }
-            )
+              { name: '⭐ Especiais', value: 'special' },
+            ),
         )
         .addStringOption(option =>
           option.setName('raridade')
@@ -49,9 +49,9 @@ const badges: Command = {
               { name: '🔵 Raro', value: 'rare' },
               { name: '🟣 Épico', value: 'epic' },
               { name: '🟠 Lendário', value: 'legendary' },
-              { name: '🔴 Mítico', value: 'mythic' }
-            )
-        )
+              { name: '🔴 Mítico', value: 'mythic' },
+            ),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -61,8 +61,8 @@ const badges: Command = {
           option.setName('badge')
             .setDescription('ID da badge para ver progresso')
             .setRequired(true)
-            .setAutocomplete(true)
-        )
+            .setAutocomplete(true),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -73,8 +73,8 @@ const badges: Command = {
             .setDescription('Número de usuários no ranking (padrão: 10)')
             .setRequired(false)
             .setMinValue(5)
-            .setMaxValue(25)
-        )
+            .setMaxValue(25),
+        ),
     ) as SlashCommandBuilder,
   
   category: CommandCategory.BADGES,
@@ -89,18 +89,18 @@ const badges: Command = {
       const subcommand = interaction.options.getSubcommand();
       
       switch (subcommand) {
-        case 'minhas':
-          await handleMyBadges(interaction, badgeService, database, logger);
-          break;
-        case 'disponiveis':
-          await handleAvailableBadges(interaction, badgeService, logger);
-          break;
-        case 'progresso':
-          await handleBadgeProgress(interaction, badgeService, database, logger);
-          break;
-        case 'ranking':
-          await handleBadgeRanking(interaction, badgeService, client, logger);
-          break;
+      case 'minhas':
+        await handleMyBadges(interaction, badgeService, database, logger);
+        break;
+      case 'disponiveis':
+        await handleAvailableBadges(interaction, badgeService, logger);
+        break;
+      case 'progresso':
+        await handleBadgeProgress(interaction, badgeService, database, logger);
+        break;
+      case 'ranking':
+        await handleBadgeRanking(interaction, badgeService, client, logger);
+        break;
       }
     } catch (error) {
       logger.error('Error in badges command:', error);
@@ -127,7 +127,7 @@ const badges: Command = {
       // For now, return empty array - this would need to be implemented differently
       return interaction.respond([]);
     }
-  }
+  },
 };
 
 /**
@@ -137,7 +137,7 @@ async function handleMyBadges(
   interaction: any,
   badgeService: BadgeService,
   database: DatabaseService,
-  logger: Logger
+  logger: Logger,
 ) {
   const targetUser = interaction.options.getUser('usuario') || interaction.user;
   const userId = targetUser.id;
@@ -149,7 +149,7 @@ async function handleMyBadges(
     const userBadges = await database.client.userBadge.findMany({
       where: { userId },
       include: { badge: true },
-      orderBy: { earnedAt: 'desc' }
+      orderBy: { earnedAt: 'desc' },
     });
     
     if (userBadges.length === 0) {
@@ -188,7 +188,7 @@ async function handleMyBadges(
       gaming: '🎯 Gaming',
       participation: '📅 Participação',
       achievement: '🏆 Conquistas',
-      special: '⭐ Especiais'
+      special: '⭐ Especiais',
     };
     
     for (const [category, badges] of Object.entries(badgesByCategory)) {
@@ -200,7 +200,7 @@ async function handleMyBadges(
       embed.addFields({
         name: `${categoryName} (${badges.length})`,
         value: badgeList.length > 1024 ? badgeList.substring(0, 1021) + '...' : badgeList,
-        inline: false
+        inline: false,
       });
     }
     
@@ -218,7 +218,7 @@ async function handleMyBadges(
 async function handleAvailableBadges(
   interaction: any,
   badgeService: BadgeService,
-  logger: Logger
+  logger: Logger,
 ) {
   const category = interaction.options.getString('categoria');
   const rarity = interaction.options.getString('raridade');
@@ -269,7 +269,7 @@ async function handleAvailableBadges(
       gaming: '🎯 Gaming',
       participation: '📅 Participação',
       achievement: '🏆 Conquistas',
-      special: '⭐ Especiais'
+      special: '⭐ Especiais',
     };
     
     for (const [cat, badges] of Object.entries(badgesByCategory)) {
@@ -278,8 +278,12 @@ async function handleAvailableBadges(
         .map(badge => {
           const rarityEmoji = getRarityEmoji(badge.rarity);
           const rewards = [];
-          if (badge.rewards?.xp) rewards.push(`${badge.rewards.xp} XP`);
-          if (badge.rewards?.coins) rewards.push(`${badge.rewards.coins} moedas`);
+          if (badge.rewards?.xp) {
+            rewards.push(`${badge.rewards.xp} XP`);
+          }
+          if (badge.rewards?.coins) {
+            rewards.push(`${badge.rewards.coins} moedas`);
+          }
           const rewardText = rewards.length > 0 ? ` • ${rewards.join(', ')}` : '';
           
           return `${badge.icon} **${badge.name}** (${rarityEmoji})\n*${badge.description}*${rewardText}`;
@@ -293,14 +297,14 @@ async function handleAvailableBadges(
           embed.addFields({
             name: index === 0 ? `${categoryName} (${badges.length})` : '\u200b',
             value: chunk,
-            inline: false
+            inline: false,
           });
         });
       } else {
         embed.addFields({
           name: `${categoryName} (${badges.length})`,
           value: badgeList,
-          inline: false
+          inline: false,
         });
       }
     }
@@ -320,7 +324,7 @@ async function handleBadgeProgress(
   interaction: any,
   badgeService: BadgeService,
   database: DatabaseService,
-  logger: Logger
+  logger: Logger,
 ) {
   const badgeId = interaction.options.getString('badge');
   const userId = interaction.user.id;
@@ -350,7 +354,7 @@ async function handleBadgeProgress(
       .addFields(
         { name: '📊 Categoria', value: badge.category, inline: true },
         { name: '💎 Raridade', value: `${getRarityEmoji(badge.rarity)} ${badge.rarity}`, inline: true },
-        { name: '✅ Status', value: hasBadge ? '🏅 Conquistada!' : '⏳ Não conquistada', inline: true }
+        { name: '✅ Status', value: hasBadge ? '🏅 Conquistada!' : '⏳ Não conquistada', inline: true },
       )
       .setTimestamp();
     
@@ -366,22 +370,28 @@ async function handleBadgeProgress(
       embed.addFields({
         name: '📋 Requisitos',
         value: requirementText,
-        inline: false
+        inline: false,
       });
     }
     
     // Add rewards
     if (badge.rewards) {
       const rewards = [];
-      if (badge.rewards.xp) rewards.push(`${badge.rewards.xp} XP`);
-      if (badge.rewards.coins) rewards.push(`${badge.rewards.coins} moedas`);
-      if (badge.rewards.role) rewards.push(`Cargo: ${badge.rewards.role}`);
+      if (badge.rewards.xp) {
+        rewards.push(`${badge.rewards.xp} XP`);
+      }
+      if (badge.rewards.coins) {
+        rewards.push(`${badge.rewards.coins} moedas`);
+      }
+      if (badge.rewards.role) {
+        rewards.push(`Cargo: ${badge.rewards.role}`);
+      }
       
       if (rewards.length > 0) {
         embed.addFields({
           name: '🎁 Recompensas',
           value: rewards.join('\n'),
-          inline: false
+          inline: false,
         });
       }
     }
@@ -401,7 +411,7 @@ async function handleBadgeRanking(
   interaction: any,
   badgeService: BadgeService,
   client: ExtendedClient,
-  logger: Logger
+  logger: Logger,
 ) {
   const limit = interaction.options.getInteger('limite') || 10;
   
@@ -436,13 +446,13 @@ async function handleBadgeRanking(
         } catch {
           return `${index + 1}º **Usuário Desconhecido** - ${entry.badgeCount} badges`;
         }
-      })
+      }),
     );
     
     embed.addFields({
       name: '📊 Ranking',
       value: rankingText.join('\n'),
-      inline: false
+      inline: false,
     });
     
     await interaction.editReply({ embeds: [embed] });
@@ -463,7 +473,7 @@ function getRarityEmoji(rarity: string): string {
     rare: '🔵',
     epic: '🟣',
     legendary: '🟠',
-    mythic: '🔴'
+    mythic: '🔴',
   };
   
   return rarityEmojis[rarity] || '⚪';
@@ -477,7 +487,7 @@ function getOperatorText(operator: string): string {
     gte: 'pelo menos',
     lte: 'no máximo',
     eq: 'exatamente',
-    between: 'entre'
+    between: 'entre',
   };
   
   return operators[operator] || operator;
@@ -503,7 +513,7 @@ function getRequirementTypeText(type: string): string {
     clips_votes: 'Votos em clips',
     level: 'Nível',
     coins_earned: 'Moedas ganhas',
-    badges_earned: 'Badges conquistadas'
+    badges_earned: 'Badges conquistadas',
   };
   
   return types[type] || type;

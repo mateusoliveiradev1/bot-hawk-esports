@@ -18,8 +18,8 @@ const bootstrap: Command = {
           { name: '🔧 Completo (Recomendado)', value: 'full' },
           { name: '📝 Apenas Canais', value: 'channels' },
           { name: '👥 Apenas Cargos', value: 'roles' },
-          { name: '⚙️ Apenas Configurações', value: 'config' }
-        )
+          { name: '⚙️ Apenas Configurações', value: 'config' },
+        ),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .setDMPermission(false) as SlashCommandBuilder,
@@ -40,7 +40,7 @@ const bootstrap: Command = {
       
       // Verificar se já foi configurado
       const existingConfig = await client.database.client.guildConfig.findUnique({
-        where: { guildId: guild.id }
+        where: { guildId: guild.id },
       });
       
       const configData = existingConfig?.config as any;
@@ -51,7 +51,7 @@ const bootstrap: Command = {
           .setColor('#FFA500')
           .addFields(
             { name: '📅 Configurado em', value: existingConfig ? `<t:${Math.floor(existingConfig.createdAt.getTime() / 1000)}:F>` : 'Não disponível', inline: true },
-            { name: '🔧 Última atualização', value: existingConfig ? `<t:${Math.floor(existingConfig.updatedAt.getTime() / 1000)}:R>` : 'Não disponível', inline: true }
+            { name: '🔧 Última atualização', value: existingConfig ? `<t:${Math.floor(existingConfig.updatedAt.getTime() / 1000)}:R>` : 'Não disponível', inline: true },
           );
         
         const confirmRow = new ActionRowBuilder<ButtonBuilder>()
@@ -65,12 +65,12 @@ const bootstrap: Command = {
               .setCustomId('bootstrap_cancel')
               .setLabel('Cancelar')
               .setStyle(ButtonStyle.Secondary)
-              .setEmoji('❌')
+              .setEmoji('❌'),
           );
         
         await interaction.editReply({
           embeds: [confirmEmbed],
-          components: [confirmRow]
+          components: [confirmRow],
         });
         
         // Aguardar confirmação
@@ -81,7 +81,7 @@ const bootstrap: Command = {
           if (i.customId === 'bootstrap_cancel') {
             await i.update({
               embeds: [new EmbedBuilder().setTitle('❌ Configuração cancelada').setColor('#FF0000')],
-              components: []
+              components: [],
             });
             return;
           }
@@ -89,7 +89,7 @@ const bootstrap: Command = {
           if (i.customId === 'bootstrap_confirm') {
             await i.update({
               embeds: [new EmbedBuilder().setTitle('🔄 Reconfigurando servidor...').setColor('#0099FF')],
-              components: []
+              components: [],
             });
             
             // Continuar com a configuração
@@ -101,7 +101,7 @@ const bootstrap: Command = {
           if (collected.size === 0) {
             interaction.editReply({
               embeds: [new EmbedBuilder().setTitle('⏰ Tempo esgotado').setColor('#FF0000')],
-              components: []
+              components: [],
             });
           }
         });
@@ -150,7 +150,7 @@ const bootstrap: Command = {
           .setColor('#00FF00')
           .addFields(
             { name: '📊 Resultados', value: setupResults.join('\n'), inline: false },
-            { name: '🎯 Próximos passos', value: '• Use `/help` para ver todos os comandos\n• Configure as notificações com `/config`\n• Adicione usuários PUBG com `/register`', inline: false }
+            { name: '🎯 Próximos passos', value: '• Use `/help` para ver todos os comandos\n• Configure as notificações com `/config`\n• Adicione usuários PUBG com `/register`', inline: false },
           )
           .setFooter({ text: `Configurado por ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
           .setTimestamp();
@@ -170,12 +170,12 @@ const bootstrap: Command = {
         .setDescription('Ocorreu um erro durante a configuração do servidor. Verifique as permissões do bot.')
         .setColor('#FF0000')
         .addFields(
-          { name: '🔍 Detalhes', value: error instanceof Error ? error.message : 'Erro desconhecido' }
+          { name: '🔍 Detalhes', value: error instanceof Error ? error.message : 'Erro desconhecido' },
         );
       
       await interaction.editReply({ embeds: [errorEmbed] });
     }
-  }
+  },
 };
 
 /**
@@ -213,7 +213,7 @@ async function setupRoles(guild: any): Promise<string> {
     { name: '🎬 Clip Master', color: '#E74C3C', position: 4 },
     { name: '🧠 Quiz Champion', color: '#3498DB', position: 3 },
     { name: '✅ Verificado', color: '#2ECC71', position: 2 },
-    { name: '👋 Novo Membro', color: '#95A5A6', position: 1 }
+    { name: '👋 Novo Membro', color: '#95A5A6', position: 1 },
   ];
   
   for (const roleData of roles) {
@@ -223,7 +223,7 @@ async function setupRoles(guild: any): Promise<string> {
       if (existingRole) {
         await existingRole.edit({
           color: roleData.color,
-          position: roleData.position
+          position: roleData.position,
         });
         updated++;
       } else {
@@ -231,7 +231,7 @@ async function setupRoles(guild: any): Promise<string> {
           name: roleData.name,
           color: roleData.color,
           position: roleData.position,
-          mentionable: false
+          mentionable: false,
         });
         created++;
       }
@@ -305,7 +305,7 @@ async function setupChannels(guild: any): Promise<string> {
     { name: '🎮 Squad 2', type: ChannelType.GuildVoice, category: '🎮 PUBG' },
     { name: '🎮 Squad 3', type: ChannelType.GuildVoice, category: '🎮 PUBG' },
     { name: '💬 Chat Geral', type: ChannelType.GuildVoice, category: '💬 CHAT GERAL' },
-    { name: '🎯 Scrims', type: ChannelType.GuildVoice, category: '🎮 PUBG' }
+    { name: '🎯 Scrims', type: ChannelType.GuildVoice, category: '🎮 PUBG' },
   ];
   
   const categories = new Map<string, any>();
@@ -319,7 +319,7 @@ async function setupChannels(guild: any): Promise<string> {
         const category = await guild.channels.create({
           name: channelData.name,
           type: channelData.type,
-          position: channelData.position
+          position: channelData.position,
         });
         categories.set(channelData.name, category);
         created++;
@@ -343,7 +343,7 @@ async function setupChannels(guild: any): Promise<string> {
         await guild.channels.create({
           name: channelData.name,
           type: channelData.type,
-          parent: parent?.id
+          parent: parent?.id,
         });
         created++;
       } else {
@@ -375,8 +375,8 @@ async function setupDatabase(guild: any, client: ExtendedClient): Promise<string
           autoRoleEnabled: true,
           welcomeMessageEnabled: true,
           rankingNotificationsEnabled: true,
-          badgeNotificationsEnabled: true
-        }
+          badgeNotificationsEnabled: true,
+        },
       },
       create: {
         guildId: guild.id,
@@ -390,21 +390,21 @@ async function setupDatabase(guild: any, client: ExtendedClient): Promise<string
           autoRoleEnabled: true,
           welcomeMessageEnabled: true,
           rankingNotificationsEnabled: true,
-          badgeNotificationsEnabled: true
-        }
-      }
+          badgeNotificationsEnabled: true,
+        },
+      },
     });
     
     // Create guild entry
     await client.database.guilds.upsert({
       id: guild.id,
       name: guild.name,
-      ownerId: guild.ownerId
+      ownerId: guild.ownerId,
     });
     
-    return `💾 **Banco de dados**: Configurado com sucesso`;
+    return '💾 **Banco de dados**: Configurado com sucesso';
   } catch (error) {
-    return `💾 **Banco de dados**: Erro na configuração`;
+    return '💾 **Banco de dados**: Erro na configuração';
   }
 }
 
@@ -421,12 +421,12 @@ async function setupPermissions(guild: any): Promise<string> {
     
     // Configure admin channels permissions
     const adminChannels = guild.channels.cache.filter((c: any) => 
-      c.name.includes('admin') || c.name.includes('logs') || c.name.includes('tickets')
+      c.name.includes('admin') || c.name.includes('logs') || c.name.includes('tickets'),
     );
     
     for (const channel of adminChannels.values()) {
       await channel.permissionOverwrites.edit(everyoneRole, {
-        ViewChannel: false
+        ViewChannel: false,
       });
       configured++;
     }
@@ -435,18 +435,18 @@ async function setupPermissions(guild: any): Promise<string> {
     if (verificadoRole) {
       const mainChannels = guild.channels.cache.filter((c: any) => 
         !c.name.includes('admin') && !c.name.includes('logs') && 
-        !c.name.includes('boas-vindas') && c.type !== ChannelType.GuildCategory
+        !c.name.includes('boas-vindas') && c.type !== ChannelType.GuildCategory,
       );
       
       for (const channel of mainChannels.values()) {
         await channel.permissionOverwrites.edit(everyoneRole, {
           SendMessages: false,
-          Connect: false
+          Connect: false,
         });
         
         await channel.permissionOverwrites.edit(verificadoRole, {
           SendMessages: true,
-          Connect: true
+          Connect: true,
         });
         configured++;
       }
@@ -455,7 +455,7 @@ async function setupPermissions(guild: any): Promise<string> {
     return `🔒 **Permissões**: ${configured} canais configurados`;
   } catch (error) {
     logger.error('Error setting up permissions:', error);
-    return `🔒 **Permissões**: Erro na configuração`;
+    return '🔒 **Permissões**: Erro na configuração';
   }
 }
 
@@ -476,7 +476,7 @@ async function setupWelcomeMessages(guild: any): Promise<string> {
         .addFields(
           { name: '📋 Primeiro passo', value: `Leia as regras em ${rulesChannel || '#📜-regras'}`, inline: true },
           { name: '🎮 Segundo passo', value: 'Use `/register` para cadastrar seu nick PUBG', inline: true },
-          { name: '🤖 Comandos', value: `Veja todos os comandos em ${commandsChannel || '#🤖-comandos'}`, inline: true }
+          { name: '🤖 Comandos', value: `Veja todos os comandos em ${commandsChannel || '#🤖-comandos'}`, inline: true },
         )
         .setFooter({ text: 'Hawk Esports - PUBG Community' })
         .setTimestamp();
@@ -494,16 +494,16 @@ async function setupWelcomeMessages(guild: any): Promise<string> {
           { name: '2️⃣ Spam', value: 'Não faça spam em canais de texto ou voz', inline: false },
           { name: '3️⃣ Conteúdo', value: 'Mantenha o conteúdo apropriado e relacionado ao canal', inline: false },
           { name: '4️⃣ Trapaça', value: 'Não toleramos trapaças ou hacks no PUBG', inline: false },
-          { name: '5️⃣ Verificação', value: 'Use `/register` para se verificar e acessar todos os canais', inline: false }
+          { name: '5️⃣ Verificação', value: 'Use `/register` para se verificar e acessar todos os canais', inline: false },
         )
         .setFooter({ text: 'O não cumprimento das regras pode resultar em punições' });
       
       await rulesChannel.send({ embeds: [rulesEmbed] });
     }
     
-    return `💬 **Mensagens**: Enviadas com sucesso`;
+    return '💬 **Mensagens**: Enviadas com sucesso';
   } catch (error) {
-    return `💬 **Mensagens**: Erro no envio`;
+    return '💬 **Mensagens**: Erro no envio';
   }
 }
 

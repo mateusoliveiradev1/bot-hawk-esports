@@ -14,7 +14,7 @@ const help: Command = {
       option.setName('command')
         .setDescription('Comando específico para obter ajuda detalhada')
         .setRequired(false)
-        .setAutocomplete(true)
+        .setAutocomplete(true),
     ) as SlashCommandBuilder,
   
   category: CommandCategory.GENERAL,
@@ -47,12 +47,12 @@ const help: Command = {
           .addFields(
             { name: '📂 Categoria', value: getCategoryName(command.category), inline: true },
             { name: '⏱️ Cooldown', value: `${command.cooldown || 0} segundos`, inline: true },
-            { name: '🔒 Permissões', value: command.permissions?.join(', ') || 'Nenhuma', inline: true }
+            { name: '🔒 Permissões', value: command.permissions?.join(', ') || 'Nenhuma', inline: true },
           );
         
         if (command.aliases && command.aliases.length > 0) {
           commandEmbed.addFields(
-            { name: '🔗 Aliases', value: command.aliases.map((alias: string) => `\`${alias}\``).join(', '), inline: false }
+            { name: '🔗 Aliases', value: command.aliases.map((alias: string) => `\`${alias}\``).join(', '), inline: false },
           );
         }
         
@@ -74,7 +74,7 @@ const help: Command = {
           { name: '🎯 Jogos', value: 'Mini-games, quizzes e desafios interativos', inline: true },
           { name: '🎬 Clips', value: 'Sistema de clips e highlights', inline: true },
           { name: '👤 Perfil', value: 'Comandos de perfil e estatísticas pessoais', inline: true },
-          { name: '🔧 Admin', value: 'Comandos administrativos (apenas admins)', inline: true }
+          { name: '🔧 Admin', value: 'Comandos administrativos (apenas admins)', inline: true },
         )
         .setFooter({ text: 'Use /help <comando> para ajuda específica' })
         .setTimestamp();
@@ -87,44 +87,44 @@ const help: Command = {
             label: 'Geral',
             description: 'Comandos básicos e utilitários',
             value: 'general',
-            emoji: '📋'
+            emoji: '📋',
           },
           {
             label: 'PUBG',
             description: 'Rankings, stats e comandos PUBG',
             value: 'pubg',
-            emoji: '🎮'
+            emoji: '🎮',
           },
           {
             label: 'Música',
             description: 'Player de música e controles',
             value: 'music',
-            emoji: '🎵'
+            emoji: '🎵',
           },
           {
             label: 'Jogos',
             description: 'Mini-games e quizzes',
             value: 'games',
-            emoji: '🎯'
+            emoji: '🎯',
           },
           {
             label: 'Clips',
             description: 'Upload e votação de clips',
             value: 'clips',
-            emoji: '🎬'
+            emoji: '🎬',
           },
           {
             label: 'Perfil',
             description: 'Perfil e estatísticas pessoais',
             value: 'profile',
-            emoji: '👤'
+            emoji: '👤',
           },
           {
             label: 'Administração',
             description: 'Comandos administrativos',
             value: 'admin',
-            emoji: '🔧'
-          }
+            emoji: '🔧',
+          },
         ]);
       
       const buttonsRow = new ActionRowBuilder<ButtonBuilder>()
@@ -148,7 +148,7 @@ const help: Command = {
             .setLabel('Suporte')
             .setStyle(ButtonStyle.Link)
             .setURL('https://discord.gg/your-support-server')
-            .setEmoji('💬')
+            .setEmoji('💬'),
         );
       
       const selectRow = new ActionRowBuilder<StringSelectMenuBuilder>()
@@ -157,12 +157,12 @@ const help: Command = {
       const response = await interaction.reply({
         embeds: [mainEmbed],
         components: [selectRow, buttonsRow],
-        ephemeral: true
+        ephemeral: true,
       });
       
       // Handle interactions
       const collector = response.createMessageComponentCollector({
-        time: 300000 // 5 minutes
+        time: 300000, // 5 minutes
       });
       
       collector.on('collect', async (i: any) => {
@@ -179,15 +179,15 @@ const help: Command = {
         
         if (i.isButton()) {
           switch (i.customId) {
-            case 'help_quick_start':
-              const quickStartEmbed = getQuickStartEmbed();
-              await i.update({ embeds: [quickStartEmbed] });
-              break;
+          case 'help_quick_start':
+            const quickStartEmbed = getQuickStartEmbed();
+            await i.update({ embeds: [quickStartEmbed] });
+            break;
               
-            case 'help_features':
-              const featuresEmbed = getFeaturesEmbed();
-              await i.update({ embeds: [featuresEmbed] });
-              break;
+          case 'help_features':
+            const featuresEmbed = getFeaturesEmbed();
+            await i.update({ embeds: [featuresEmbed] });
+            break;
           }
         }
       });
@@ -217,11 +217,11 @@ const help: Command = {
       .slice(0, 25)
       .map((cmd: any) => ({
         name: `/${cmd.data.name} - ${cmd.data.description}`,
-        value: cmd.data.name
+        value: cmd.data.name,
       }));
     
     await interaction.respond(commands);
-  }
+  },
 };
 
 /**
@@ -235,7 +235,7 @@ async function getCategoryEmbed(category: string, client: ExtendedClient): Promi
     'games': CommandCategory.GAMES,
     'clips': CommandCategory.CLIPS,
     'profile': CommandCategory.GENERAL,
-    'admin': CommandCategory.ADMIN
+    'admin': CommandCategory.ADMIN,
   };
   
   const categoryEnum = categoryMap[category] ?? CommandCategory.GENERAL;
@@ -280,7 +280,7 @@ function getQuickStartEmbed(): EmbedBuilder {
       { name: '3️⃣ Rankings', value: 'Confira os rankings com `/ranking pubg` ou `/ranking internal`', inline: false },
       { name: '4️⃣ Música', value: 'Toque música com `/play <música>` e controle com `/queue`', inline: false },
       { name: '5️⃣ Jogos', value: 'Participe de quizzes com `/quiz start` e mini-games', inline: false },
-      { name: '6️⃣ Clips', value: 'Envie seus clips com `/clip upload` e vote nos melhores', inline: false }
+      { name: '6️⃣ Clips', value: 'Envie seus clips com `/clip upload` e vote nos melhores', inline: false },
     )
     .setFooter({ text: 'Dica: Use /help <comando> para ajuda específica' });
 }
@@ -299,7 +299,7 @@ function getFeaturesEmbed(): EmbedBuilder {
       { name: '🎯 Sistema de Gamificação', value: '• Mini-games interativos\n• Quizzes com rankings\n• Badges automáticas\n• Sistema de XP e moedas', inline: false },
       { name: '🎬 Clips e Highlights', value: '• Upload de vídeos\n• Sistema de votação\n• Rankings semanais\n• Moderação automática', inline: false },
       { name: '📊 Dashboard Web', value: '• Interface moderna\n• Estatísticas em tempo real\n• Controles administrativos\n• Visualização de dados', inline: false },
-      { name: '🔧 Administração Completa', value: '• Auto-setup do servidor\n• Sistema de logs\n• Moderação automática\n• Backup de dados', inline: false }
+      { name: '🔧 Administração Completa', value: '• Auto-setup do servidor\n• Sistema de logs\n• Moderação automática\n• Backup de dados', inline: false },
     )
     .setFooter({ text: 'Hawk Esports - A melhor experiência PUBG no Discord' });
 }
@@ -320,7 +320,7 @@ function getCategoryName(category: CommandCategory): string {
     [CommandCategory.RANKING]: '📊 Ranking',
     [CommandCategory.FUN]: '🎉 Diversão',
     [CommandCategory.ECONOMY]: '💰 Economia',
-    [CommandCategory.BADGES]: '🏆 Badges'
+    [CommandCategory.BADGES]: '🏆 Badges',
   };
   
   return categoryNames[category] || 'Desconhecido';

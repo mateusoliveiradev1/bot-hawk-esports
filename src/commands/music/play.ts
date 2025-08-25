@@ -14,17 +14,17 @@ const play: Command = {
     .addStringOption(option =>
       option.setName('query')
         .setDescription('Nome da música, URL do YouTube/Spotify ou termo de busca')
-        .setRequired(true)
+        .setRequired(true),
     )
     .addBooleanOption(option =>
       option.setName('shuffle')
         .setDescription('Embaralhar a playlist (padrão: false)')
-        .setRequired(false)
+        .setRequired(false),
     )
     .addBooleanOption(option =>
       option.setName('next')
         .setDescription('Adicionar no início da fila (padrão: false)')
-        .setRequired(false)
+        .setRequired(false),
     ) as SlashCommandBuilder,
   
   category: CommandCategory.MUSIC,
@@ -121,7 +121,7 @@ const play: Command = {
           shuffle: false,
           filters: [],
           isPaused: false,
-          isPlaying: false
+          isPlaying: false,
         };
         
         if (playNext) {
@@ -165,7 +165,7 @@ const play: Command = {
           .addFields(
             { name: '🎵 Primeira Música', value: `**${addedTracks[0]?.title}**\n${addedTracks[0]?.artist}`, inline: true },
             { name: '⏱️ Duração Total', value: formatDuration(addedTracks.reduce((total, track) => total + track.duration, 0)), inline: true },
-            { name: '👤 Solicitado por', value: `<@${interaction.user.id}>`, inline: true }
+            { name: '👤 Solicitado por', value: `<@${interaction.user.id}>`, inline: true },
           )
           .setThumbnail(addedTracks[0]?.thumbnail || '')
           .setTimestamp();
@@ -181,14 +181,14 @@ const play: Command = {
           embed.addFields(
             { name: '⏱️ Duração', value: formatDuration(track.duration), inline: true },
             { name: '👤 Solicitado por', value: `<@${interaction.user.id}>`, inline: true },
-            { name: '🔗 Fonte', value: track.platform === 'youtube' ? 'YouTube' : 'Spotify', inline: true }
+            { name: '🔗 Fonte', value: track.platform === 'youtube' ? 'YouTube' : 'Spotify', inline: true },
           )
-          .setThumbnail(track.thumbnail || '');
+            .setThumbnail(track.thumbnail || '');
           
           if (!wasEmpty && queue) {
             const queuePosition = queue.tracks.length - addedTracks.length + 1;
             embed.addFields(
-              { name: '📍 Posição na Fila', value: `#${queuePosition}`, inline: true }
+              { name: '📍 Posição na Fila', value: `#${queuePosition}`, inline: true },
             );
           }
         }
@@ -200,7 +200,7 @@ const play: Command = {
         const remainingTracks = currentQueue.tracks.length - 1;
         const totalDuration = currentQueue.tracks.slice(1).reduce((total, track) => total + track.duration, 0);
         embed.addFields(
-          { name: '📊 Fila', value: `${remainingTracks} música${remainingTracks !== 1 ? 's' : ''} • ${formatDuration(totalDuration)}`, inline: false }
+          { name: '📊 Fila', value: `${remainingTracks} música${remainingTracks !== 1 ? 's' : ''} • ${formatDuration(totalDuration)}`, inline: false },
         );
       }
       
@@ -226,17 +226,17 @@ const play: Command = {
             .setCustomId('music_stop')
             .setLabel('Parar')
             .setStyle(ButtonStyle.Danger)
-            .setEmoji('⏹️')
+            .setEmoji('⏹️'),
         );
       
       const response = await interaction.editReply({
         embeds: [embed],
-        components: [buttonsRow]
+        components: [buttonsRow],
       });
       
       // Handle button interactions
       const collector = response.createMessageComponentCollector({
-        time: 300000 // 5 minutes
+        time: 300000, // 5 minutes
       });
       
       collector.on('collect', async (i) => {
@@ -247,38 +247,38 @@ const play: Command = {
         if (!memberVoice || memberVoice.id !== botVoice?.id) {
           await i.reply({ 
             content: '❌ Você precisa estar no mesmo canal de voz que eu para usar os controles!', 
-            ephemeral: true 
+            ephemeral: true, 
           });
           return;
         }
         
         switch (i.customId) {
-          case 'music_pause':
-            const paused = await musicService.pause(interaction.guildId!);
-            await i.reply({ 
-              content: paused ? '⏸️ Música pausada!' : '▶️ Música retomada!', 
-              ephemeral: true 
-            });
-            break;
+        case 'music_pause':
+          const paused = await musicService.pause(interaction.guildId!);
+          await i.reply({ 
+            content: paused ? '⏸️ Música pausada!' : '▶️ Música retomada!', 
+            ephemeral: true, 
+          });
+          break;
             
-          case 'music_skip':
-            const skipped = await musicService.skip(interaction.guildId!);
-            if (skipped) {
-              await i.reply({ content: '⏭️ Música pulada!', ephemeral: true });
-            } else {
-              await i.reply({ content: '❌ Não há próxima música na fila!', ephemeral: true });
-            }
-            break;
+        case 'music_skip':
+          const skipped = await musicService.skip(interaction.guildId!);
+          if (skipped) {
+            await i.reply({ content: '⏭️ Música pulada!', ephemeral: true });
+          } else {
+            await i.reply({ content: '❌ Não há próxima música na fila!', ephemeral: true });
+          }
+          break;
             
-          case 'music_queue':
-            const queueEmbed = await createQueueEmbed(interaction.guildId!, musicService);
-            await i.reply({ embeds: [queueEmbed], ephemeral: true });
-            break;
+        case 'music_queue':
+          const queueEmbed = await createQueueEmbed(interaction.guildId!, musicService);
+          await i.reply({ embeds: [queueEmbed], ephemeral: true });
+          break;
             
-          case 'music_stop':
-            await musicService.stop(interaction.guildId!);
-            await i.reply({ content: '⏹️ Música parada e fila limpa!', ephemeral: true });
-            break;
+        case 'music_stop':
+          await musicService.stop(interaction.guildId!);
+          await i.reply({ content: '⏹️ Música parada e fila limpa!', ephemeral: true });
+          break;
         }
       });
       
@@ -303,7 +303,7 @@ const play: Command = {
         await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
       }
     }
-  }
+  },
 };
 
 /**
@@ -327,7 +327,7 @@ async function createQueueEmbed(guildId: string, musicService: MusicService): Pr
     embed.addFields({
       name: '🎵 Tocando Agora',
       value: `**${currentTrack.title}**\n${currentTrack.artist} • ${formatDuration(currentTrack.duration)}\nSolicitado por <@${currentTrack.requestedBy}>`,
-      inline: false
+      inline: false,
     });
   }
   
@@ -339,14 +339,14 @@ async function createQueueEmbed(guildId: string, musicService: MusicService): Pr
     embed.addFields({
       name: `📋 Próximas (${queue.tracks.length})`,
       value: upcomingTracks + (queue.tracks.length > 10 ? `\n\n... e mais ${queue.tracks.length - 10} música${queue.tracks.length - 10 !== 1 ? 's' : ''}` : ''),
-      inline: false
+      inline: false,
     });
     
     const totalDuration = queue.tracks.reduce((total, track) => total + track.duration, 0);
     embed.addFields({
       name: '📊 Informações',
       value: `⏱️ Duração total: ${formatDuration(totalDuration)}\n🔁 Loop: ${queue.loop === 'track' ? 'Música' : queue.loop === 'queue' ? 'Fila' : 'Desativado'}\n🔀 Embaralhado: ${queue.shuffle ? 'Sim' : 'Não'}`,
-      inline: false
+      inline: false,
     });
   }
   
