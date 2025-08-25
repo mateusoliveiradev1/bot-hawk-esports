@@ -1,5 +1,6 @@
 import { 
   SlashCommandBuilder, 
+  SlashCommandSubcommandsOnlyBuilder,
   CommandInteraction, 
   ChatInputCommandInteraction,
   PermissionResolvable,
@@ -32,7 +33,7 @@ export enum CommandCategory {
  * Command interface
  */
 export interface Command {
-  data: SlashCommandBuilder | ContextMenuCommandBuilder;
+  data: SlashCommandBuilder | SlashCommandSubcommandsOnlyBuilder | ContextMenuCommandBuilder;
   category: CommandCategory;
   cooldown?: number; // in seconds
   permissions?: PermissionResolvable[];

@@ -19,6 +19,8 @@ model User {
   pubgUsername  String?
   pubgPlatform  String?  // steam, xbox, psn, stadia
   isVerified    Boolean  @default(false)
+  verifiedAt    DateTime?
+  verificationMethod String? // 'auto', 'manual', 'admin'
   level         Int      @default(1)
   xp            Int      @default(0)
   totalXp       Int      @default(0)
@@ -76,6 +78,13 @@ model Guild {
   permissions           Json     @default("{}")
   limits                Json     @default("{}")
   isActive              Boolean  @default(true)
+  
+  // Onboarding configurations
+  onboardingEnabled     Boolean  @default(true)
+  welcomeMessage        String?
+  welcomeDMEnabled      Boolean  @default(true)
+  autoRoleEnabled       Boolean  @default(true)
+  
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 

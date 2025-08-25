@@ -618,10 +618,7 @@ export class BadgeService {
         await this.sendBadgeNotification(userId, badge);
       }
       
-      this.logger.badge('BADGE_AWARDED', badgeId, userId, {
-        badgeName: badge.name,
-        rarity: badge.rarity
-      });
+      this.logger.info(`Badge awarded: ${badge.name} (${badgeId}) to user ${userId} - Rarity: ${badge.rarity}`);
       
       // Check for collector badge
       const userBadgeCount = this.userBadges.get(userId)?.size || 0;
@@ -641,17 +638,25 @@ export class BadgeService {
    */
   private async awardBadgeRewards(userId: string, rewards: any): Promise<void> {
     try {
-      // Award XP and coins (would integrate with economy system)
-      if (rewards.xp || rewards.coins) {
-        // This would call the economy service to add XP/coins
-        this.logger.badge('REWARDS_AWARDED', userId, rewards);
+      // Award XP
+      if (rewards.xp) {
+        await this.database.users.updateXP(userId, rewards.xp);
+        this.logger.info(`XP awarded to user ${userId}: ${rewards.xp}`);
+      }
+      
+      // Award coins
+      if (rewards.coins) {
+        await this.database.users.updateCoins(userId, rewards.coins, 'Badge reward');
+        this.logger.info(`Coins awarded to user ${userId}: ${rewards.coins}`);
       }
       
       // Award role (would integrate with role management)
       if (rewards.role) {
         // This would call the role service to assign role
-        this.logger.badge('ROLE_AWARDED', rewards.role, userId, {});
+        this.logger.info(`Role awarded to user ${userId}: ${rewards.role}`);
       }
+      
+      this.logger.info(`Rewards awarded to user ${userId}:`, rewards);
     } catch (error) {
       this.logger.error(`Failed to award rewards to user ${userId}:`, error);
     }
@@ -785,22 +790,91 @@ export class BadgeService {
   /**
    * Check all badge progress (called periodically)
    */
-  private async checkAllBadgeProgress(): Promise<void> {
+  public async checkAllBadgeProgress(): Promise<void> {
     try {
-      // This would typically fetch recent user activity from database
-      // and update progress accordingly
+      this.logger.info('Checking badge progress for all users...');
       
-      // For now, we'll just log that the check is running
-      this.logger.debug('Checking badge progress for all users');
+      // Get all users from database
+      const users = await this.database.client.user.findMany({
+        include: {
+          pubgStats: true,
+          badges: {
+            include: {
+              badge: true
+            }
+          }
+        }
+      });
       
-      // In a real implementation, this would:
-      // 1. Fetch recent user stats from database
-      // 2. Update progress for all users
-      // 3. Award badges that meet requirements
+      for (const user of users) {
+        const pubgStats = (user as any).pubgStats || [];
+        await this.checkUserBadgeProgress(user.id, {
+          xp: user.xp || 0,
+          coins: user.coins || 0,
+          level: this.calculateLevel(user.xp || 0),
+          badges_earned: user.badges?.length || 0,
+          kills: pubgStats.reduce((sum: number, stat: any) => sum + (stat.kills || 0), 0),
+          wins: pubgStats.reduce((sum: number, stat: any) => sum + (stat.wins || 0), 0),
+          damage: pubgStats.reduce((sum: number, stat: any) => sum + (stat.damage || 0), 0),
+          headshots: pubgStats.reduce((sum: number, stat: any) => sum + (stat.headshots || 0), 0),
+          games: pubgStats.reduce((sum: number, stat: any) => sum + (stat.gamesPlayed || 0), 0),
+          consecutive_days: 0, // Will be implemented with presence system
+          // Add more stats as needed
+        });
+      }
       
+      this.logger.info('Badge progress check completed');
     } catch (error) {
       this.logger.error('Failed to check badge progress:', error);
     }
+  }
+
+  /**
+   * Check badge progress for a specific user
+   */
+  public async checkUserBadgeProgress(userId: string, userStats: Record<string, number>): Promise<void> {
+    try {
+      const availableBadges = this.getAvailableBadges(false);
+      
+      for (const badge of availableBadges) {
+        // Skip if user already has this badge
+        if (this.hasBadge(userId, badge.id)) {
+          continue;
+        }
+        
+        // Check if requirements are met
+        const requirementsMet = badge.requirements.every(requirement => {
+          const currentValue = userStats[requirement.type] || 0;
+          
+          switch (requirement.operator) {
+            case 'gte':
+              return currentValue >= (requirement.value as number);
+            case 'lte':
+              return currentValue <= (requirement.value as number);
+            case 'eq':
+              return currentValue === (requirement.value as number);
+            case 'between':
+              const [min, max] = requirement.value as [number, number];
+              return currentValue >= min && currentValue <= max;
+            default:
+              return false;
+          }
+        });
+        
+        if (requirementsMet) {
+          await this.awardBadge(userId, badge.id);
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Failed to check badge progress for user ${userId}:`, error);
+    }
+  }
+
+  /**
+   * Calculate level from XP
+   */
+  private calculateLevel(xp: number): number {
+    return Math.floor(Math.sqrt(xp / 100)) + 1;
   }
 
   /**
@@ -834,10 +908,7 @@ export class BadgeService {
         createdAt: new Date()
       });
       
-      this.logger.badge('CUSTOM_BADGE_CREATED', badgeData.id, 'system', {
-        name: badgeData.name,
-        category: badgeData.category
-      });
+      this.logger.info(`Custom badge created: ${badgeData.name} (${badgeData.id}) - Category: ${badgeData.category}`);
       
       return true;
     } catch (error) {
@@ -859,7 +930,7 @@ export class BadgeService {
       // Remove from memory
       this.userBadges.get(userId)?.delete(badgeId);
       
-      this.logger.badge('BADGE_REMOVED', badgeId, userId, {});
+      this.logger.info(`Badge removed: ${badgeId} from user ${userId}`);
       
       return true;
     } catch (error) {

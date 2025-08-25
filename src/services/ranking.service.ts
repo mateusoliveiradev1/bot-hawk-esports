@@ -104,24 +104,84 @@ export class RankingService {
    */
   private async loadRankings(): Promise<void> {
     try {
-      // TODO: Fix database queries - commenting out until User model relations are properly defined
-      // const guilds = await this.database.client.guild.findMany({
-      //   include: {
-      //     users: {
-      //       include: {
-      //         user: {
-      //           include: {
-      //             pubgStats: true,
-      //             stats: true  // Fixed: userStats -> stats
-      //           }
-      //         }
-      //       }
-      //     }
-      //   }
-      // });
+      const guilds = await this.database.client.guild.findMany({
+        include: {
+          users: {
+            include: {
+              user: {
+                include: {
+                  pubgStats: true,
+                  stats: true,
+                  badges: true
+                }
+              }
+            }
+          }
+        }
+      });
       
-      this.logger.info('Ranking loading disabled - database schema needs updates');
-      return;
+      for (const guild of guilds) {
+        const guildRankings = new Map<string, UserRankingData>();
+        
+        for (const guildUser of guild.users) {
+          const user = guildUser.user;
+          const pubgStats = user.pubgStats[0]; // Get latest PUBG stats
+          const userStats = user.stats;
+          
+          // Calculate derived stats
+          const games = pubgStats?.roundsPlayed || 0;
+          const kills = pubgStats?.kills || 0;
+          const deaths = pubgStats?.deaths || 0;
+          const wins = pubgStats?.wins || 0;
+          const damage = pubgStats?.damageDealt || 0;
+          const headshots = pubgStats?.headshotKills || 0;
+          
+          const kda = deaths > 0 ? (kills + (pubgStats?.assists || 0)) / deaths : kills;
+          const winRate = games > 0 ? (wins / games) * 100 : 0;
+          const averageDamage = games > 0 ? damage / games : 0;
+          
+          const rankingData: UserRankingData = {
+            userId: user.id,
+            username: user.username,
+            pubgName: user.pubgUsername || undefined,
+            pubgPlatform: user.pubgPlatform as PUBGPlatform || undefined,
+            stats: {
+              // PUBG Stats
+              kills,
+              wins,
+              games,
+              damage,
+              headshots,
+              kda,
+              winRate,
+              averageDamage,
+              rankPoints: pubgStats?.currentRankPoint || 0,
+              tier: (pubgStats?.currentTier as PUBGRankTier) || PUBGRankTier.BRONZE,
+              subTier: pubgStats?.currentSubTier || 'V',
+              
+              // Internal Stats
+              level: user.level,
+              xp: user.xp,
+              coins: user.coins,
+              messages: userStats?.messagesCount || 0,
+              voiceTime: userStats?.voiceTime || 0,
+              quizScore: userStats?.quizzesCompleted || 0,
+              miniGameWins: userStats?.gamesPlayed || 0,
+              badgeCount: user.badges?.length || 0,
+              checkIns: userStats?.checkIns || 0,
+              clipsUploaded: userStats?.clipsUploaded || 0,
+              clipsVotes: 0 // Will be calculated from ClipVote relations
+            },
+            lastUpdated: new Date()
+          };
+          
+          guildRankings.set(user.id, rankingData);
+        }
+        
+        this.rankings.set(guild.id, guildRankings);
+      }
+      
+      this.logger.info(`Loaded rankings for ${guilds.length} guilds`);
     } catch (error) {
       this.logger.error('Failed to load rankings:', error);
     }
@@ -197,122 +257,138 @@ export class RankingService {
    */
   public async updateUserRanking(guildId: string, userId: string): Promise<void> {
     try {
-      // TODO: Fix database queries - commenting out until User model fields are corrected
-      // const user = await this.database.client.user.findUnique({
-      //   where: { id: userId },
-      //   include: {
-      //     pubgStats: { orderBy: { updatedAt: 'desc' }, take: 1 },
-      //     stats: { orderBy: { updatedAt: 'desc' }, take: 1 }  // Fixed: userStats -> stats
-      //   }
-      // });
-      // 
-      // if (!user) return;
-      // 
-      // // Update PUBG stats if user has PUBG info
-      // if (user.pubgUsername && user.pubgPlatform) {  // Fixed: pubgName -> pubgUsername
-      //   const pubgStats = await this.pubgService.getPlayerStats(
-      //     user.pubgUsername || '',  // Fixed: pubgPlayerId -> pubgUsername
-      //     user.pubgPlatform as PUBGPlatform
-      //   );
-      //   
-      //   if (pubgStats) {
-      //     await this.database.client.pubgStats.upsert({  // Fixed: pUBGStats -> pubgStats
-      //       where: {
-      //         userId_seasonId: {
-      //           userId,
-      //           seasonId: pubgStats.seasonId || 'current'
-      //         }
-      //       },
+      const user = await this.database.client.user.findUnique({
+        where: { id: userId },
+        include: {
+          pubgStats: { orderBy: { updatedAt: 'desc' }, take: 1 },
+          stats: true,
+          badges: true
+        }
+      });
       
-      this.logger.info('User ranking update disabled - database schema needs updates');
-      return;
+      if (!user) return;
       
-      //       update: {
-      //         kills: pubgStats.kills,
-      //         wins: pubgStats.wins,
-      //         games: pubgStats.games,
-      //         damage: pubgStats.damage,
-      //         headshots: pubgStats.headshots,
-      //         kda: pubgStats.kda,
-      //         winRate: pubgStats.winRate,
-      //         averageDamage: pubgStats.averageDamage,
-      //         rankPoints: pubgStats.rankPoints,
-      //         tier: pubgStats.tier,
-      //         subTier: pubgStats.subTier,
-      //         updatedAt: new Date()
-      //       },
-      //       create: {
-      //         userId,
-      //         seasonId: pubgStats.seasonId || 'current',
-      //         platform: user.pubgPlatform,
-      //         gameMode: PUBGGameMode.SQUAD_FPP,
-      //         kills: pubgStats.kills,
-      //         wins: pubgStats.wins,
-      //         games: pubgStats.games,
-      //         damage: pubgStats.damage,
-      //         headshots: pubgStats.headshots,
-      //         kda: pubgStats.kda,
-      //         winRate: pubgStats.winRate,
-      //         averageDamage: pubgStats.averageDamage,
-      //         rankPoints: pubgStats.rankPoints,
-      //         tier: pubgStats.tier,
-      //         subTier: pubgStats.subTier
-      //       }
-      //     });
-      //   }
-      // }
-      // 
-      // // Update ranking data in memory
-      // if (!this.rankings.has(guildId)) {
-      //   this.rankings.set(guildId, new Map());
-      // }
-      // 
-      // const guildRankings = this.rankings.get(guildId)!;
-      // const pubgStats = user.pubgStats[0];
-      // const userStats = user.stats;  // Fixed: userStats -> stats
-      //
-      // const rankingData: UserRankingData = {
-      //   userId: user.id,
-      //   username: user.username,
-      //   pubgName: user.pubgUsername || undefined,  // Fixed: pubgName -> pubgUsername
-      //   pubgPlatform: user.pubgPlatform as PUBGPlatform || undefined,
-      //   stats: {
-      //     // PUBG Stats
-      //     kills: pubgStats?.kills || 0,
-      //     wins: pubgStats?.wins || 0,
-      //     games: pubgStats?.games || 0,
-      //     damage: pubgStats?.damage || 0,
-      //     headshots: pubgStats?.headshots || 0,
-      //     kda: pubgStats?.kda || 0,
-      //     winRate: pubgStats?.winRate || 0,
-      //     averageDamage: pubgStats?.averageDamage || 0,
-      //     rankPoints: pubgStats?.rankPoints || 0,
-      //     tier: (pubgStats?.tier as PUBGRankTier) || PUBGRankTier.BRONZE,
-      //     subTier: pubgStats?.subTier || 'V',
-      //     
-      //     // Internal Stats
-      //     level: userStats?.level || 1,
-      //     xp: userStats?.xp || 0,
-      //     coins: userStats?.coins || 0,
-      //     messages: userStats?.messages || 0,
-      //     voiceTime: userStats?.voiceTime || 0,
-      //     quizScore: userStats?.quizScore || 0,
-      //     miniGameWins: userStats?.miniGameWins || 0,
-      //     badgeCount: userStats?.badgeCount || 0,
-      //     checkIns: userStats?.checkIns || 0,
-      //     clipsUploaded: userStats?.clipsUploaded || 0,
-      //     clipsVotes: userStats?.clipsVotes || 0
-      //   },
-      //   lastUpdated: new Date()
-      // };
-      //
-      // guildRankings.set(userId, rankingData);
-      //
-      // this.logger.info('USER_UPDATED', {
-      //   guildId,
-      //   userId,
-      //   username: user.username
-      // });
+      // Update PUBG stats if user has PUBG info
+      if (user.pubgUsername && user.pubgPlatform) {
+        const pubgStats = await this.pubgService.getPlayerStats(
+          user.pubgUsername,
+          user.pubgPlatform as PUBGPlatform
+        );
+        
+        if (pubgStats && pubgStats.gameModeStats) {
+          // Get stats from squad mode or first available mode
+          const gameModes = Object.keys(pubgStats.gameModeStats) as PUBGGameMode[];
+          const primaryMode = gameModes.find(mode => mode === PUBGGameMode.SQUAD) || gameModes[0] || PUBGGameMode.SQUAD;
+          const modeStats = pubgStats.gameModeStats[primaryMode];
+          
+          if (modeStats) {
+            await this.database.client.pUBGStats.upsert({
+              where: {
+                userId_seasonId_gameMode: {
+                  userId,
+                  seasonId: 'current',
+                  gameMode: primaryMode as string
+                }
+              },
+              update: {
+                roundsPlayed: modeStats.roundsPlayed,
+                kills: modeStats.kills,
+                deaths: modeStats.losses, // Using losses as deaths approximation
+                assists: modeStats.assists,
+                wins: modeStats.wins,
+                damageDealt: modeStats.damageDealt,
+                headshotKills: modeStats.headshotKills,
+                currentRankPoint: modeStats.rankPoints,
+                currentTier: modeStats.rankPointsTitle || 'Bronze',
+                currentSubTier: 'V',
+                updatedAt: new Date()
+              },
+              create: {
+                userId,
+                playerId: userId,
+                playerName: user.pubgUsername,
+                platform: user.pubgPlatform,
+                seasonId: 'current',
+                gameMode: primaryMode as string,
+                roundsPlayed: modeStats.roundsPlayed,
+                kills: modeStats.kills,
+                deaths: modeStats.losses,
+                assists: modeStats.assists,
+                wins: modeStats.wins,
+                damageDealt: modeStats.damageDealt,
+                headshotKills: modeStats.headshotKills,
+                currentRankPoint: modeStats.rankPoints,
+                currentTier: modeStats.rankPointsTitle || 'Bronze',
+                currentSubTier: 'V'
+              }
+            });
+          }
+        }
+      }
+      
+      // Update ranking data in memory
+      if (!this.rankings.has(guildId)) {
+        this.rankings.set(guildId, new Map());
+      }
+      
+      const guildRankings = this.rankings.get(guildId)!;
+      const pubgStats = user.pubgStats[0]; // Get latest PUBG stats
+      const userStats = user.stats; // Get user stats
+      
+      // Calculate derived stats
+      const games = pubgStats?.roundsPlayed || 0;
+      const kills = pubgStats?.kills || 0;
+      const deaths = pubgStats?.deaths || 0;
+      const wins = pubgStats?.wins || 0;
+      const damage = pubgStats?.damageDealt || 0;
+      const headshots = pubgStats?.headshotKills || 0;
+      
+      const kda = deaths > 0 ? (kills + (pubgStats?.assists || 0)) / deaths : kills;
+      const winRate = games > 0 ? (wins / games) * 100 : 0;
+      const averageDamage = games > 0 ? damage / games : 0;
+
+      const rankingData: UserRankingData = {
+        userId: user.id,
+        username: user.username,
+        pubgName: user.pubgUsername || undefined,
+        pubgPlatform: user.pubgPlatform as PUBGPlatform || undefined,
+        stats: {
+          // PUBG Stats
+          kills,
+          wins,
+          games,
+          damage,
+          headshots,
+          kda,
+          winRate,
+          averageDamage,
+          rankPoints: pubgStats?.currentRankPoint || 0,
+          tier: (pubgStats?.currentTier as PUBGRankTier) || PUBGRankTier.BRONZE,
+          subTier: pubgStats?.currentSubTier || 'V',
+          
+          // Internal Stats
+          level: user.level,
+          xp: user.xp,
+          coins: user.coins,
+          messages: userStats?.messagesCount || 0,
+          voiceTime: userStats?.voiceTime || 0,
+          quizScore: userStats?.quizzesCompleted || 0,
+          miniGameWins: userStats?.gamesPlayed || 0,
+          badgeCount: user.badges?.length || 0,
+          checkIns: userStats?.checkIns || 0,
+          clipsUploaded: userStats?.clipsUploaded || 0,
+          clipsVotes: 0 // Will be calculated from ClipVote relations
+        },
+        lastUpdated: new Date()
+      };
+
+      guildRankings.set(userId, rankingData);
+
+      this.logger.info('USER_UPDATED', {
+        guildId,
+        userId,
+        username: user.username
+      });
       
     } catch (error) {
       this.logger.error(`Failed to update user ranking for ${userId}:`, error);

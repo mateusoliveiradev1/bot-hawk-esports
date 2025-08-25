@@ -287,16 +287,20 @@ const register: Command = {
             }
           }
           
-          // Adicionar cargo de verificado
-          const verifiedRole = guild.roles.cache.find((role: any) => role.name === '✅ Verificado');
-          if (verifiedRole && 'roles' in member) {
-            await (member as any).roles.add(verifiedRole);
-          }
-          
-          // Remover cargo de novo membro
-          const newMemberRole = guild.roles.cache.find((role: any) => role.name === '👋 Novo Membro');
-          if (newMemberRole && 'roles' in member) {
-            await (member as any).roles.remove(newMemberRole).catch(() => {});
+          // Handle member verification through onboarding service
+          if (client.services?.onboarding && interaction.member && 'roles' in interaction.member) {
+            await client.services.onboarding.handleMemberVerification(interaction.member as any);
+          } else {
+            // Fallback: Add verified role and remove new member role
+            const verifiedRole = guild.roles.cache.find((role: any) => role.name === '✅ Verificado');
+            if (verifiedRole && 'roles' in member) {
+              await (member as any).roles.add(verifiedRole);
+            }
+            
+            const newMemberRole = guild.roles.cache.find((role: any) => role.name === '👋 Novo Membro');
+            if (newMemberRole && 'roles' in member) {
+              await (member as any).roles.remove(newMemberRole).catch(() => {});
+            }
           }
           
           // Adicionar cargo baseado no rank PUBG

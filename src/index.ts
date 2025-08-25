@@ -12,7 +12,9 @@ import { PresenceService } from '@/services/presence.service';
 import { ClipService } from '@/services/clip.service';
 import { SchedulerService } from '@/services/scheduler.service';
 import { APIService } from '@/services/api.service';
-import { CommandManager } from '@/commands/index';
+import { OnboardingService } from './services/onboarding.service';
+import { CommandManager } from './commands/index';
+import { MemberEvents } from './events/memberEvents';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
@@ -37,6 +39,7 @@ class HawkEsportsBot {
     clip: ClipService;
     scheduler: SchedulerService;
     api: APIService;
+    onboarding: OnboardingService;
   };
   private commands: CommandManager;
   private isShuttingDown = false;
@@ -85,7 +88,8 @@ class HawkEsportsBot {
        presence: new PresenceService(this.client),
        clip: new ClipService(this.client),
        scheduler: new SchedulerService(this.client),
-       api: new APIService(this.client)
+       api: new APIService(this.client),
+       onboarding: new OnboardingService(this.client)
      };
 
     // Services are available through this.services, this.db, this.cache, and this.commands
@@ -291,45 +295,8 @@ class HawkEsportsBot {
       this.logger.info(`📤 Left guild: ${guild.name} (${guild.id})`);
     });
 
-    // Member events
-    this.client.on('guildMemberAdd', async (member) => {
-      try {
-        // Create user record
-        await this.db.client.user.upsert({
-          where: { id: member.id },
-          update: {
-            username: member.user.username,
-            discriminator: member.user.discriminator,
-            avatar: member.user.avatar
-          },
-          create: {
-            id: member.id,
-            username: member.user.username,
-            discriminator: member.user.discriminator,
-            avatar: member.user.avatar
-          }
-        });
-
-        // Create user-guild relationship
-        await this.db.client.userGuild.upsert({
-          where: {
-            userId_guildId: {
-              userId: member.id,
-              guildId: member.guild.id
-            }
-          },
-          update: {},
-          create: {
-            userId: member.id,
-            guildId: member.guild.id
-          }
-        });
-
-        this.logger.info(`👋 New member joined: ${member.user.tag} in ${member.guild.name}`);
-      } catch (error) {
-        this.logger.error('Failed to handle new member:', error);
-      }
-    });
+    // Initialize member events handler
+    new MemberEvents(this.client);
 
     // Voice state updates for music
     this.client.on('voiceStateUpdate', async (oldState, newState) => {

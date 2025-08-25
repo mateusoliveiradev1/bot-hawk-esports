@@ -631,9 +631,14 @@ export class SchedulerService {
    * Check badge progress
    */
   private async checkBadgeProgress(): Promise<void> {
-    // This would typically check for users who might have achieved new badges
-    // For now, we'll just log that the check ran
-    this.logger.debug('Badge progress check completed');
+    try {
+      this.logger.info('Starting automatic badge progress check...');
+      await this.badgeService.checkAllBadgeProgress();
+      this.logger.info('Badge progress check completed successfully');
+    } catch (error) {
+      this.logger.error('Error during badge progress check:', error);
+      throw error;
+    }
   }
 
   /**
