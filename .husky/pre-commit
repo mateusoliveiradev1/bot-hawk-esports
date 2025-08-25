@@ -1,0 +1,8 @@
+# Executar linting do TypeScript
+npx tsc --noEmit
+
+# Executar ESLint
+npx eslint . --ext .ts,.js
+
+# Executar testes (se existirem)
+npm test
