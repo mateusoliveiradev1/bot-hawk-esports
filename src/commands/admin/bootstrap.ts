@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { Command, CommandCategory } from '@/types/command';
-import { ExtendedClient } from '@/types/client';
-import { Logger } from '@/utils/logger';
+import { Command, CommandCategory } from '../../types/command';
+import { ExtendedClient } from '../../types/client';
+import { Logger } from '../../utils/logger';
 
 /**
  * Bootstrap command - Automatically sets up the server with channels, roles, and content
@@ -22,7 +22,7 @@ const bootstrap: Command = {
         )
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-    .setDMPermission(false),
+    .setDMPermission(false) as SlashCommandBuilder,
   
   category: CommandCategory.ADMIN,
   cooldown: 60,
@@ -30,7 +30,7 @@ const bootstrap: Command = {
   
   async execute(interaction, client: ExtendedClient) {
     const logger = new Logger();
-    const mode = interaction.options.getString('mode') || 'full';
+    const mode = (interaction as any).options?.getString('mode') || 'full';
     
     try {
       await interaction.deferReply({ ephemeral: true });
@@ -39,18 +39,19 @@ const bootstrap: Command = {
       const setupResults: string[] = [];
       
       // Verificar se já foi configurado
-      const existingConfig = await client.database.prisma.guildConfig.findUnique({
+      const existingConfig = await client.database.client.guildConfig.findUnique({
         where: { guildId: guild.id }
       });
       
-      if (existingConfig?.isSetup && mode === 'full') {
+      const configData = existingConfig?.config as any;
+      if (configData?.isSetup && mode === 'full') {
         const confirmEmbed = new EmbedBuilder()
           .setTitle('⚠️ Servidor já configurado')
           .setDescription('Este servidor já foi configurado anteriormente. Deseja reconfigurar?')
           .setColor('#FFA500')
           .addFields(
-            { name: '📅 Configurado em', value: `<t:${Math.floor(existingConfig.createdAt.getTime() / 1000)}:F>`, inline: true },
-            { name: '🔧 Última atualização', value: `<t:${Math.floor(existingConfig.updatedAt.getTime() / 1000)}:R>`, inline: true }
+            { name: '📅 Configurado em', value: existingConfig ? `<t:${Math.floor(existingConfig.createdAt.getTime() / 1000)}:F>` : 'Não disponível', inline: true },
+            { name: '🔧 Última atualização', value: existingConfig ? `<t:${Math.floor(existingConfig.updatedAt.getTime() / 1000)}:R>` : 'Não disponível', inline: true }
           );
         
         const confirmRow = new ActionRowBuilder<ButtonBuilder>()
@@ -108,9 +109,7 @@ const bootstrap: Command = {
         return;
       }
       
-      await performBootstrap();
-      
-      async function performBootstrap() {
+      const performBootstrap = async () => {
         const progressEmbed = new EmbedBuilder()
           .setTitle('🚀 Configurando servidor...')
           .setDescription('Por favor, aguarde enquanto configuramos tudo para você.')
@@ -159,7 +158,9 @@ const bootstrap: Command = {
         await interaction.editReply({ embeds: [successEmbed] });
         
         logger.info(`Server ${guild.name} (${guild.id}) bootstrapped by ${interaction.user.tag}`);
-      }
+      };
+      
+      await performBootstrap();
       
     } catch (error) {
       logger.error('Bootstrap command error:', error);
@@ -361,41 +362,44 @@ async function setupChannels(guild: any): Promise<string> {
  */
 async function setupDatabase(guild: any, client: ExtendedClient): Promise<string> {
   try {
-    const guildConfig = await client.database.prisma.guildConfig.upsert({
+    const guildConfig = await client.database.client.guildConfig.upsert({
       where: { guildId: guild.id },
       update: {
-        isSetup: true,
-        updatedAt: new Date()
+        config: {
+          isSetup: true,
+          welcomeChannelId: guild.channels.cache.find((c: any) => c.name === '👋-boas-vindas')?.id,
+          logsChannelId: guild.channels.cache.find((c: any) => c.name === '📝-logs')?.id,
+          musicChannelId: guild.channels.cache.find((c: any) => c.name === '🎵-música')?.id,
+          rankingChannelId: guild.channels.cache.find((c: any) => c.name === '📊-rankings')?.id,
+          clipsChannelId: guild.channels.cache.find((c: any) => c.name === '🎬-clips')?.id,
+          autoRoleEnabled: true,
+          welcomeMessageEnabled: true,
+          rankingNotificationsEnabled: true,
+          badgeNotificationsEnabled: true
+        }
       },
       create: {
         guildId: guild.id,
-        isSetup: true,
-        welcomeChannelId: guild.channels.cache.find((c: any) => c.name === '👋-boas-vindas')?.id,
-        logsChannelId: guild.channels.cache.find((c: any) => c.name === '📝-logs')?.id,
-        musicChannelId: guild.channels.cache.find((c: any) => c.name === '🎵-música')?.id,
-        rankingChannelId: guild.channels.cache.find((c: any) => c.name === '📊-rankings')?.id,
-        clipsChannelId: guild.channels.cache.find((c: any) => c.name === '🎬-clips')?.id,
-        autoRoleEnabled: true,
-        welcomeMessageEnabled: true,
-        rankingNotificationsEnabled: true,
-        badgeNotificationsEnabled: true
+        config: {
+          isSetup: true,
+          welcomeChannelId: guild.channels.cache.find((c: any) => c.name === '👋-boas-vindas')?.id,
+          logsChannelId: guild.channels.cache.find((c: any) => c.name === '📝-logs')?.id,
+          musicChannelId: guild.channels.cache.find((c: any) => c.name === '🎵-música')?.id,
+          rankingChannelId: guild.channels.cache.find((c: any) => c.name === '📊-rankings')?.id,
+          clipsChannelId: guild.channels.cache.find((c: any) => c.name === '🎬-clips')?.id,
+          autoRoleEnabled: true,
+          welcomeMessageEnabled: true,
+          rankingNotificationsEnabled: true,
+          badgeNotificationsEnabled: true
+        }
       }
     });
     
     // Create guild entry
-    await client.database.prisma.guild.upsert({
-      where: { id: guild.id },
-      update: {
-        name: guild.name,
-        memberCount: guild.memberCount,
-        updatedAt: new Date()
-      },
-      create: {
-        id: guild.id,
-        name: guild.name,
-        memberCount: guild.memberCount,
-        ownerId: guild.ownerId
-      }
+    await client.database.guilds.upsert({
+      id: guild.id,
+      name: guild.name,
+      ownerId: guild.ownerId
     });
     
     return `💾 **Banco de dados**: Configurado com sucesso`;

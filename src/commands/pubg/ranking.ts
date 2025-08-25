@@ -39,19 +39,19 @@ const ranking: Command = {
       option.setName('public')
         .setDescription('Tornar a resposta pública (padrão: privado)')
         .setRequired(false)
-    ),
+    ) as SlashCommandBuilder,
   
   category: CommandCategory.PUBG,
   cooldown: 15,
   
   async execute(interaction, client: ExtendedClient) {
     const logger = new Logger();
-    const rankingService = new RankingService();
+    const rankingService = new RankingService(client);
     const db = new DatabaseService();
     
-    const rankingType = interaction.options.getString('type', true);
-    const page = interaction.options.getInteger('page') || 1;
-    const isPublic = interaction.options.getBoolean('public') || false;
+    const rankingType = (interaction as any).options?.getString('type', true);
+    const page = (interaction as any).options?.getInteger('page') || 1;
+  const isPublic = (interaction as any).options?.getBoolean('public') || false;
     
     try {
       await interaction.deferReply({ ephemeral: !isPublic });
@@ -68,37 +68,37 @@ const ranking: Command = {
         case 'pubg_weekly':
         case 'pubg_monthly':
           const period = rankingType.split('_')[1] as 'daily' | 'weekly' | 'monthly';
-          const pubgRanking = await rankingService.getPUBGRanking(interaction.guildId!, period, limit, offset);
-          rankingData = pubgRanking.rankings;
-          totalCount = pubgRanking.total;
+          const pubgRanking = await rankingService.getPUBGRanking(interaction.guildId!, period as any, limit as any, offset as any);
+        rankingData = pubgRanking;
+        totalCount = pubgRanking.length;
           embed = await createPUBGRankingEmbed(rankingData, period, page, totalCount, interaction.user.id);
           break;
           
         case 'internal_xp':
-          const xpRanking = await rankingService.getInternalRanking(interaction.guildId!, 'xp', limit, offset);
-          rankingData = xpRanking.rankings;
-          totalCount = xpRanking.total;
+          const xpRanking = await rankingService.getInternalRanking(interaction.guildId!, 'xp' as any, limit as any, offset as any);
+          rankingData = xpRanking;
+          totalCount = xpRanking.length;
           embed = await createInternalRankingEmbed(rankingData, 'XP', page, totalCount, interaction.user.id, client);
           break;
           
         case 'internal_coins':
-          const coinsRanking = await rankingService.getInternalRanking(interaction.guildId!, 'coins', limit, offset);
-          rankingData = coinsRanking.rankings;
-          totalCount = coinsRanking.total;
+          const coinsRanking = await rankingService.getInternalRanking(interaction.guildId!, 'coins' as any, limit as any, offset as any);
+          rankingData = coinsRanking;
+          totalCount = coinsRanking.length;
           embed = await createInternalRankingEmbed(rankingData, 'Moedas', page, totalCount, interaction.user.id, client);
           break;
           
         case 'internal_badges':
-          const badgesRanking = await rankingService.getInternalRanking(interaction.guildId!, 'badges', limit, offset);
-          rankingData = badgesRanking.rankings;
-          totalCount = badgesRanking.total;
-          embed = await createInternalRankingEmbed(badgesData, 'Badges', page, totalCount, interaction.user.id, client);
+          const badgesRanking = await rankingService.getInternalRanking(interaction.guildId!, 'badges' as any, limit as any, offset as any);
+          rankingData = badgesRanking;
+          totalCount = badgesRanking.length;
+          embed = await createInternalRankingEmbed(badgesRanking, 'Badges', page, totalCount, interaction.user.id, client);
           break;
           
         case 'presence':
-          const presenceRanking = await getPresenceRanking(interaction.guildId!, limit, offset);
-          rankingData = presenceRanking.rankings;
-          totalCount = presenceRanking.total;
+          const presenceRanking = await getPresenceRanking(interaction.guildId!, limit as any, offset as any);
+          rankingData = (presenceRanking as any).rankings || [];
+          totalCount = (presenceRanking as any).total || 0;
           embed = await createPresenceRankingEmbed(rankingData, page, totalCount, interaction.user.id, client);
           break;
           
@@ -188,7 +188,7 @@ const ranking: Command = {
           // Recursively call the same logic with new type
           await i.deferUpdate();
           // Re-execute with new parameters (simplified for brevity)
-          const newEmbed = await getRankingEmbed(newType, 1, interaction.guildId!, interaction.user.id, client);
+          const newEmbed = await getRankingEmbed(newType as string, 1, interaction.guildId!, interaction.user.id, client);
           await i.editReply({ embeds: [newEmbed] });
         }
         
@@ -200,7 +200,7 @@ const ranking: Command = {
             const refreshedEmbed = await getRankingEmbed(rankingType, page, interaction.guildId!, interaction.user.id, client);
             await i.editReply({ embeds: [refreshedEmbed] });
           } else {
-            const newPage = parseInt(action);
+            const newPage = parseInt(action || '1');
             await i.deferUpdate();
             const newEmbed = await getRankingEmbed(rankingType, newPage, interaction.guildId!, interaction.user.id, client);
             await i.editReply({ embeds: [newEmbed] });

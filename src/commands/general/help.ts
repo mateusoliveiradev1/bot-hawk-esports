@@ -15,19 +15,19 @@ const help: Command = {
         .setDescription('Comando específico para obter ajuda detalhada')
         .setRequired(false)
         .setAutocomplete(true)
-    ),
+    ) as SlashCommandBuilder,
   
   category: CommandCategory.GENERAL,
   cooldown: 5,
   
-  async execute(interaction, client: ExtendedClient) {
+  async execute(interaction: any, client: ExtendedClient) {
     const logger = new Logger();
     const specificCommand = interaction.options.getString('command');
     
     try {
       if (specificCommand) {
         // Show help for specific command
-        const command = client.commands.commands.get(specificCommand);
+        const command = client.commands.get(specificCommand);
         
         if (!command) {
           const notFoundEmbed = new EmbedBuilder()
@@ -42,7 +42,7 @@ const help: Command = {
         
         const commandEmbed = new EmbedBuilder()
           .setTitle(`📖 Ajuda: /${command.data.name}`)
-          .setDescription(command.data.description)
+          .setDescription((command.data as any).description)
           .setColor('#0099FF')
           .addFields(
             { name: '📂 Categoria', value: getCategoryName(command.category), inline: true },
@@ -52,21 +52,11 @@ const help: Command = {
         
         if (command.aliases && command.aliases.length > 0) {
           commandEmbed.addFields(
-            { name: '🔗 Aliases', value: command.aliases.map(alias => `\`${alias}\``).join(', '), inline: false }
+            { name: '🔗 Aliases', value: command.aliases.map((alias: string) => `\`${alias}\``).join(', '), inline: false }
           );
         }
         
-        if (command.usage) {
-          commandEmbed.addFields(
-            { name: '💡 Uso', value: `\`/${command.data.name} ${command.usage}\``, inline: false }
-          );
-        }
-        
-        if (command.examples && command.examples.length > 0) {
-          commandEmbed.addFields(
-            { name: '📝 Exemplos', value: command.examples.map(example => `\`${example}\``).join('\n'), inline: false }
-          );
-        }
+        // Usage and examples would need to be added to Command interface if needed
         
         await interaction.reply({ embeds: [commandEmbed], ephemeral: true });
         return;
@@ -77,7 +67,7 @@ const help: Command = {
         .setTitle('📚 Central de Ajuda - Hawk Esports Bot')
         .setDescription('Selecione uma categoria abaixo para ver os comandos disponíveis ou use o menu para navegar.')
         .setColor('#0099FF')
-        .setThumbnail(client.user?.displayAvatarURL())
+        .setThumbnail(client.user?.displayAvatarURL() ?? null)
         .addFields(
           { name: '🎮 PUBG', value: 'Comandos relacionados ao PUBG, rankings e estatísticas', inline: true },
           { name: '🎵 Música', value: 'Sistema de música com playlists e controles', inline: true },
@@ -175,7 +165,7 @@ const help: Command = {
         time: 300000 // 5 minutes
       });
       
-      collector.on('collect', async (i) => {
+      collector.on('collect', async (i: any) => {
         if (i.user.id !== interaction.user.id) {
           await i.reply({ content: '❌ Apenas quem executou o comando pode usar este menu.', ephemeral: true });
           return;
@@ -183,7 +173,7 @@ const help: Command = {
         
         if (i.isStringSelectMenu() && i.customId === 'help_category_select') {
           const category = i.values[0];
-          const categoryEmbed = await getCategoryEmbed(category, client);
+          const categoryEmbed = await getCategoryEmbed(category ?? '', client);
           await i.update({ embeds: [categoryEmbed] });
         }
         
@@ -218,14 +208,14 @@ const help: Command = {
     }
   },
   
-  async autocomplete(interaction) {
+  async autocomplete(interaction: any) {
     const focusedValue = interaction.options.getFocused();
     const client = interaction.client as ExtendedClient;
     
-    const commands = Array.from(client.commands.commands.values())
-      .filter(cmd => cmd.data.name.includes(focusedValue.toLowerCase()))
+    const commands = Array.from(client.commands.values())
+      .filter((cmd: any) => cmd.data.name.includes(focusedValue.toLowerCase()))
       .slice(0, 25)
-      .map(cmd => ({
+      .map((cmd: any) => ({
         name: `/${cmd.data.name} - ${cmd.data.description}`,
         value: cmd.data.name
       }));
@@ -244,12 +234,12 @@ async function getCategoryEmbed(category: string, client: ExtendedClient): Promi
     'music': CommandCategory.MUSIC,
     'games': CommandCategory.GAMES,
     'clips': CommandCategory.CLIPS,
-    'profile': CommandCategory.PROFILE,
+    'profile': CommandCategory.GENERAL,
     'admin': CommandCategory.ADMIN
   };
   
-  const categoryEnum = categoryMap[category];
-  const commands = client.commands.getCommandsByCategory(categoryEnum);
+  const categoryEnum = categoryMap[category] ?? CommandCategory.GENERAL;
+  const commands = Array.from(client.commands.values()).filter((cmd: any) => cmd.category === categoryEnum);
   
   const embed = new EmbedBuilder()
     .setTitle(`📖 Comandos - ${getCategoryName(categoryEnum)}`)
@@ -261,7 +251,7 @@ async function getCategoryEmbed(category: string, client: ExtendedClient): Promi
     return embed;
   }
   
-  const commandList = commands.map(cmd => {
+  const commandList = commands.map((cmd: any) => {
     const cooldown = cmd.cooldown ? ` (${cmd.cooldown}s)` : '';
     const permissions = cmd.permissions?.length ? ' 🔒' : '';
     return `**/${cmd.data.name}**${cooldown}${permissions}\n${cmd.data.description}`;
@@ -318,16 +308,19 @@ function getFeaturesEmbed(): EmbedBuilder {
  * Get category display name
  */
 function getCategoryName(category: CommandCategory): string {
-  const categoryNames = {
+  const categoryNames: Record<CommandCategory, string> = {
     [CommandCategory.GENERAL]: '📋 Geral',
     [CommandCategory.PUBG]: '🎮 PUBG',
     [CommandCategory.MUSIC]: '🎵 Música',
     [CommandCategory.GAMES]: '🎯 Jogos',
     [CommandCategory.CLIPS]: '🎬 Clips',
-    [CommandCategory.PROFILE]: '👤 Perfil',
     [CommandCategory.ADMIN]: '🔧 Administração',
     [CommandCategory.MODERATION]: '🛡️ Moderação',
-    [CommandCategory.UTILITY]: '🔧 Utilitários'
+    [CommandCategory.UTILITY]: '🔧 Utilitários',
+    [CommandCategory.RANKING]: '📊 Ranking',
+    [CommandCategory.FUN]: '🎉 Diversão',
+    [CommandCategory.ECONOMY]: '💰 Economia',
+    [CommandCategory.BADGES]: '🏆 Badges'
   };
   
   return categoryNames[category] || 'Desconhecido';

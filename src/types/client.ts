@@ -1,12 +1,17 @@
 import { Client, Collection } from 'discord.js';
-import { Logger } from '@/utils/logger';
-import { DatabaseService } from '@/database/database.service';
-import { CacheService } from '@/services/cache.service';
-import { PUBGService } from '@/services/pubg.service';
-import { MusicService } from '@/services/music.service';
-import { GameService } from '@/services/game.service';
-import { BadgeService } from '@/services/badge.service';
-import { RankingService } from '@/services/ranking.service';
+import { Logger } from '../utils/logger';
+import { DatabaseService } from '../database/database.service';
+import { CacheService } from '../services/cache.service';
+import { PUBGService } from '../services/pubg.service';
+import { MusicService } from '../services/music.service';
+import { GameService } from '../services/game.service';
+import { BadgeService } from '../services/badge.service';
+import { RankingService } from '../services/ranking.service';
+import { PresenceService } from '../services/presence.service';
+import { ClipService } from '../services/clip.service';
+import { SchedulerService } from '../services/scheduler.service';
+import { APIService } from '../services/api.service';
+import { CommandManager } from '../commands';
 import { Command } from './command';
 
 /**
@@ -23,6 +28,19 @@ export interface ExtendedClient extends Client {
   gameService: GameService;
   badgeService: BadgeService;
   rankingService: RankingService;
+  // New properties for the updated architecture
+  db?: DatabaseService;
+  services?: {
+    pubg: PUBGService;
+    music: MusicService;
+    game: GameService;
+    badge: BadgeService;
+    ranking: RankingService;
+    presence: PresenceService;
+    clip: ClipService;
+    scheduler: SchedulerService;
+    api: APIService;
+  };
 }
 
 /**

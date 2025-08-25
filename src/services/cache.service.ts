@@ -1,5 +1,5 @@
 import { createClient, RedisClientType } from 'redis';
-import { Logger } from '@/utils/logger';
+import { Logger } from '../utils/logger';
 
 /**
  * Cache service using Redis for high-performance data caching
@@ -320,7 +320,7 @@ export class CacheService {
 
       // Extract key count from keyspace info
       const keyspaceMatch = keyspace.match(/keys=(\d+)/);
-      if (keyspaceMatch) {
+      if (keyspaceMatch && keyspaceMatch[1]) {
         stats.keys = parseInt(keyspaceMatch[1]);
       }
 
@@ -328,8 +328,8 @@ export class CacheService {
       const hitsMatch = info.match(/keyspace_hits:(\d+)/);
       const missesMatch = info.match(/keyspace_misses:(\d+)/);
       
-      if (hitsMatch) stats.hits = hitsMatch[1];
-      if (missesMatch) stats.misses = missesMatch[1];
+      if (hitsMatch && hitsMatch[1]) stats.hits = hitsMatch[1];
+      if (missesMatch && missesMatch[1]) stats.misses = missesMatch[1];
 
       // Calculate hit rate
       const hits = parseInt(stats.hits);
@@ -356,7 +356,7 @@ export class CacheService {
   /**
    * Cache key generators for different data types
    */
-  public keys = {
+  public keyGenerators = {
     user: (userId: string) => `user:${userId}`,
     guild: (guildId: string) => `guild:${guildId}`,
     pubgPlayer: (playerId: string) => `pubg:player:${playerId}`,

@@ -1,7 +1,7 @@
-import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, ComponentType } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, ComponentType, ChatInputCommandInteraction, CommandInteraction } from 'discord.js';
 import { Command, CommandCategory } from '@/types/command';
 import { ExtendedClient } from '@/types/client';
-import { PUBGPlatform } from '@/types/pubg';
+import { PUBGPlatform, PUBGGameMode } from '@/types/pubg';
 import { Logger } from '@/utils/logger';
 
 /**
@@ -30,13 +30,18 @@ const register: Command = {
           { name: '🎮 Stadia', value: 'stadia' }
         )
     )
-    .setDMPermission(false),
+    .setDMPermission(false) as SlashCommandBuilder,
   
   category: CommandCategory.PUBG,
   cooldown: 30,
   
-  async execute(interaction, client: ExtendedClient) {
+  async execute(interaction: ChatInputCommandInteraction | CommandInteraction, client: ExtendedClient) {
     const logger = new Logger();
+    
+    if (!interaction.isChatInputCommand()) {
+      return;
+    }
+    
     const nick = interaction.options.getString('nick', true);
     const platform = interaction.options.getString('platform', true) as PUBGPlatform;
     
@@ -126,7 +131,6 @@ const register: Command = {
           where: {
             pubgUsername: nick,
             pubgPlatform: platform,
-            guildId: guild.id,
             id: { not: interaction.user.id }
           }
         });
@@ -221,7 +225,6 @@ const register: Command = {
             },
             create: {
               id: interaction.user.id,
-              guildId: guild.id,
               username: interaction.user.username,
               discriminator: interaction.user.discriminator,
               pubgUsername: nick,
@@ -231,47 +234,57 @@ const register: Command = {
           });
           
           // Salvar estatísticas PUBG
-          if (playerData.stats) {
-            await client.database.client.pUBGStats.upsert({
-              where: {
-                userId_guildId: {
-                  userId: interaction.user.id,
-                  guildId: guild.id
-                }
-              },
-              update: {
-                currentSeason: playerData.stats.currentSeason,
-                currentTier: playerData.stats.currentTier,
-                currentRankPoints: playerData.stats.currentRankPoints,
-                kills: playerData.stats.kills,
-                deaths: playerData.stats.deaths,
-                assists: playerData.stats.assists,
-                wins: playerData.stats.wins,
-                top10s: playerData.stats.top10s,
-                matches: playerData.stats.matches,
-                avgDamage: playerData.stats.avgDamage,
-                longestKill: playerData.stats.longestKill,
-                headshots: playerData.stats.headshots,
-                updatedAt: new Date()
-              },
-              create: {
-                userId: interaction.user.id,
-                guildId: guild.id,
-                pubgId: playerData.id,
-                currentSeason: playerData.stats.currentSeason,
-                currentTier: playerData.stats.currentTier,
-                currentRankPoints: playerData.stats.currentRankPoints,
-                kills: playerData.stats.kills,
-                deaths: playerData.stats.deaths,
-                assists: playerData.stats.assists,
-                wins: playerData.stats.wins,
-                top10s: playerData.stats.top10s,
-                matches: playerData.stats.matches,
-                avgDamage: playerData.stats.avgDamage,
-                longestKill: playerData.stats.longestKill,
-                headshots: playerData.stats.headshots
-              }
-            });
+          if (playerData.stats && playerData.stats.gameModeStats) {
+            const gameModes = Object.keys(playerData.stats.gameModeStats) as PUBGGameMode[];
+            const primaryMode = gameModes.find(mode => mode === PUBGGameMode.SQUAD) || gameModes[0];
+            const stats = primaryMode ? playerData.stats.gameModeStats[primaryMode] : null;
+            
+            if (stats) {
+              await client.database.client.pUBGStats.upsert({
+                 where: {
+                   userId_seasonId_gameMode: {
+                     userId: interaction.user.id,
+                     seasonId: 'current',
+                     gameMode: primaryMode as string
+                   }
+                 },
+                 update: {
+                   playerName: playerData.name,
+                   platform: platform,
+                   currentTier: playerData.stats.rankPointTitle || 'Unranked',
+                   currentRankPoint: playerData.stats.bestRankPoint || 0,
+                   bestRankPoint: playerData.stats.bestRankPoint || 0,
+                   roundsPlayed: stats.roundsPlayed,
+                   kills: stats.kills,
+                   assists: stats.assists,
+                   wins: stats.wins,
+                   top10s: stats.top10s,
+                   damageDealt: stats.damageDealt,
+                   longestKill: stats.longestKill,
+                   headshotKills: stats.headshotKills,
+                   updatedAt: new Date()
+                 },
+                 create: {
+                   userId: interaction.user.id,
+                   playerId: playerData.id,
+                   playerName: playerData.name,
+                   platform: platform,
+                   seasonId: 'current',
+                   gameMode: primaryMode as string,
+                   currentTier: playerData.stats.rankPointTitle || 'Unranked',
+                   currentRankPoint: playerData.stats.bestRankPoint || 0,
+                   bestRankPoint: playerData.stats.bestRankPoint || 0,
+                   roundsPlayed: stats.roundsPlayed,
+                   kills: stats.kills,
+                   assists: stats.assists,
+                   wins: stats.wins,
+                   top10s: stats.top10s,
+                   damageDealt: stats.damageDealt,
+                   longestKill: stats.longestKill,
+                   headshotKills: stats.headshotKills
+                 }
+               });
+            }
           }
           
           // Adicionar cargo de verificado
@@ -287,8 +300,8 @@ const register: Command = {
           }
           
           // Adicionar cargo baseado no rank PUBG
-          if (playerData.stats?.currentTier) {
-            await assignRankRole(member, playerData.stats.currentTier, guild);
+          if (playerData.stats?.rankPointTitle) {
+            await assignRankRole(member, playerData.stats.rankPointTitle, guild);
           }
           
           // Criar embed de sucesso
@@ -299,17 +312,25 @@ const register: Command = {
             .addFields(
               { name: '🎮 Nick PUBG', value: nick, inline: true },
               { name: '🖥️ Plataforma', value: getPlatformName(platform), inline: true },
-              { name: '🏆 Rank Atual', value: playerData.stats?.currentTier || 'Não classificado', inline: true }
+              { name: '🏆 Rank Atual', value: playerData.stats?.rankPointTitle || 'Não classificado', inline: true }
             )
             .setThumbnail(interaction.user.displayAvatarURL())
             .setFooter({ text: 'Use /profile para ver suas estatísticas completas' })
             .setTimestamp();
           
-          if (playerData.stats) {
-            successEmbed.addFields(
-              { name: '📊 Estatísticas', value: `**Kills:** ${playerData.stats.kills}\n**K/D:** ${(playerData.stats.kills / Math.max(playerData.stats.deaths, 1)).toFixed(2)}\n**Vitórias:** ${playerData.stats.wins}\n**Top 10:** ${playerData.stats.top10s}`, inline: true },
-              { name: '🎯 Performance', value: `**Dano Médio:** ${playerData.stats.avgDamage}\n**Kill Mais Longo:** ${playerData.stats.longestKill}m\n**Headshots:** ${playerData.stats.headshots}`, inline: true }
-            );
+          if (playerData.stats && playerData.stats.gameModeStats) {
+            // Get stats from the most played game mode or default to squad
+            const gameModes = Object.keys(playerData.stats.gameModeStats) as PUBGGameMode[];
+            const primaryMode = gameModes.find(mode => mode === PUBGGameMode.SQUAD) || gameModes[0];
+            const stats = primaryMode ? playerData.stats.gameModeStats[primaryMode] : null;
+            
+            if (stats) {
+              const deaths = stats.roundsPlayed - stats.wins; // Approximate deaths calculation
+              successEmbed.addFields(
+                { name: '📊 Estatísticas', value: `**Kills:** ${stats.kills}\n**K/D:** ${deaths > 0 ? (stats.kills / deaths).toFixed(2) : stats.kills.toFixed(2)}\n**Vitórias:** ${stats.wins}\n**Top 10:** ${stats.top10s}`, inline: true },
+                { name: '🎯 Performance', value: `**Dano Médio:** ${Math.round(stats.damageDealt / Math.max(stats.roundsPlayed, 1))}\n**Kill Mais Longo:** ${stats.longestKill}m\n**Headshots:** ${stats.headshotKills}`, inline: true }
+              );
+            }
           }
           
           await interaction.editReply({ embeds: [successEmbed], components: [] });
@@ -331,7 +352,7 @@ const register: Command = {
           logger.info(`User ${interaction.user.tag} registered as ${nick} on ${platform} in guild ${guild.name}`);
           
           // Atualizar progresso de badges
-          await client.badgeService.updateUserProgress(interaction.user.id, guild.id, 'registration', 1);
+          await client.badgeService.updateProgress(interaction.user.id, 'registration', 1);
           
         } catch (error) {
           logger.error('PUBG API error during registration:', error);
@@ -425,7 +446,6 @@ const register: Command = {
           },
           create: {
             id: interaction.user.id,
-            guildId: guild.id,
             username: interaction.user.username,
             discriminator: interaction.user.discriminator,
             pubgUsername: nick,
@@ -476,13 +496,13 @@ function validatePUBGNick(nick: string): { valid: boolean; reason?: string } {
  * Get platform display name
  */
 function getPlatformName(platform: PUBGPlatform): string {
-  const platformNames = {
-    steam: '🖥️ Steam (PC)',
-    xbox: '🎮 Xbox',
-    psn: '🎯 PlayStation',
-    mobile: '📱 Mobile',
-    stadia: '🎮 Stadia'
-  };
+  const platformNames: Record<string, string> = {
+     [PUBGPlatform.STEAM]: '🖥️ Steam (PC)',
+     [PUBGPlatform.XBOX]: '🎮 Xbox',
+     [PUBGPlatform.PSN]: '🎯 PlayStation',
+     [PUBGPlatform.STADIA]: '🎮 Stadia',
+     [PUBGPlatform.KAKAO]: '🎮 Kakao'
+   };
   
   return platformNames[platform] || platform;
 }

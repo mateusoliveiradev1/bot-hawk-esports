@@ -18,14 +18,14 @@ const play: Command = {
     )
     .addBooleanOption(option =>
       option.setName('shuffle')
-        .setDescription('Embaralhar playlist (apenas para playlists)')
+        .setDescription('Embaralhar a playlist (padrão: false)')
         .setRequired(false)
     )
     .addBooleanOption(option =>
-      option.setName('priority')
-        .setDescription('Adicionar no início da fila')
+      option.setName('next')
+        .setDescription('Adicionar no início da fila (padrão: false)')
         .setRequired(false)
-    ),
+    ) as SlashCommandBuilder,
   
   category: CommandCategory.MUSIC,
   cooldown: 3,
@@ -34,9 +34,9 @@ const play: Command = {
     const logger = new Logger();
     const musicService = new MusicService();
     
-    const query = interaction.options.getString('query', true);
-    const shuffle = interaction.options.getBoolean('shuffle') || false;
-    const priority = interaction.options.getBoolean('priority') || false;
+    const query = (interaction as any).options?.getString('query', true);
+    const shuffle = (interaction as any).options?.getBoolean('shuffle') || false;
+    const playNext = (interaction as any).options?.getBoolean('next') || false;
     
     try {
       // Check if user is in a voice channel
@@ -68,9 +68,9 @@ const play: Command = {
       await interaction.deferReply();
       
       // Search for tracks
-      const searchResult = await musicService.searchTracks(query, interaction.user.id);
+      const tracks = await musicService.searchYouTube(query, 1);
       
-      if (!searchResult.success || !searchResult.tracks || searchResult.tracks.length === 0) {
+      if (!tracks || tracks.length === 0) {
         const notFoundEmbed = new EmbedBuilder()
           .setTitle('❌ Nenhuma música encontrada')
           .setDescription(`Não foi possível encontrar resultados para: **${query}**\n\nTente:\n• Verificar a ortografia\n• Usar termos mais específicos\n• Usar um link direto do YouTube/Spotify`)
@@ -80,11 +80,19 @@ const play: Command = {
         return;
       }
       
-      const tracks = searchResult.tracks;
       const isPlaylist = tracks.length > 1;
       
       // Join voice channel and add tracks to queue
-      const queue = await musicService.joinVoiceChannel(voiceChannel, interaction.channel!);
+      const connection = await musicService.joinChannel(voiceChannel);
+      if (!connection) {
+        const errorEmbed = new EmbedBuilder()
+          .setTitle('❌ Erro')
+          .setDescription('Não foi possível conectar ao canal de voz.')
+          .setColor('#FF0000');
+        await interaction.editReply({ embeds: [errorEmbed] });
+        return;
+      }
+      const queue = await musicService.getQueue(interaction.guildId!);
       
       if (shuffle && isPlaylist) {
         // Shuffle tracks except the first one
@@ -92,7 +100,11 @@ const play: Command = {
         const remainingTracks = tracks.slice(1);
         for (let i = remainingTracks.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
-          [remainingTracks[i], remainingTracks[j]] = [remainingTracks[j], remainingTracks[i]];
+          const temp = remainingTracks[i];
+          if (temp && remainingTracks[j]) {
+            remainingTracks[i] = remainingTracks[j];
+            remainingTracks[j] = temp;
+          }
         }
         tracks.splice(1, tracks.length - 1, ...remainingTracks);
       }
@@ -100,7 +112,25 @@ const play: Command = {
       // Add tracks to queue
       const addedTracks = [];
       for (const track of tracks) {
-        const success = await musicService.addToQueue(interaction.guildId!, track, priority);
+        const queue = musicService.getQueue(interaction.guildId!) || {
+          guildId: interaction.guildId!,
+          tracks: [],
+          currentTrack: null,
+          volume: 100,
+          loop: 'none' as const,
+          shuffle: false,
+          filters: [],
+          isPaused: false,
+          isPlaying: false
+        };
+        
+        if (playNext) {
+          queue.tracks.unshift(track);
+        } else {
+          queue.tracks.push(track);
+        }
+        
+        const success = true;
         if (success) {
           addedTracks.push(track);
         }
@@ -117,9 +147,11 @@ const play: Command = {
       }
       
       // Start playing if queue was empty
-      const wasEmpty = queue.tracks.length === addedTracks.length;
+      const wasEmpty = !queue || queue.tracks.length === addedTracks.length;
       if (wasEmpty) {
-        await musicService.play(interaction.guildId!);
+        if (queue && !queue.currentTrack) {
+          await musicService.playNext(interaction.guildId!);
+        }
       }
       
       // Create response embed
@@ -131,38 +163,42 @@ const play: Command = {
           .setDescription(`**${addedTracks.length}** músicas foram adicionadas à fila${shuffle ? ' (embaralhadas)' : ''}!`)
           .setColor('#00FF00')
           .addFields(
-            { name: '🎵 Primeira Música', value: `**${addedTracks[0].title}**\n${addedTracks[0].author}`, inline: true },
+            { name: '🎵 Primeira Música', value: `**${addedTracks[0]?.title}**\n${addedTracks[0]?.artist}`, inline: true },
             { name: '⏱️ Duração Total', value: formatDuration(addedTracks.reduce((total, track) => total + track.duration, 0)), inline: true },
             { name: '👤 Solicitado por', value: `<@${interaction.user.id}>`, inline: true }
           )
-          .setThumbnail(addedTracks[0].thumbnail)
+          .setThumbnail(addedTracks[0]?.thumbnail || '')
           .setTimestamp();
       } else {
         const track = addedTracks[0];
         embed = new EmbedBuilder()
           .setTitle(wasEmpty ? '🎵 Tocando Agora' : '📋 Adicionado à Fila')
-          .setDescription(`**${track.title}**\n${track.author}`)
+          .setDescription(track ? `**${track.title}**\n${track.artist}` : 'Música não encontrada')
           .setColor(wasEmpty ? '#00FF00' : '#0099FF')
-          .addFields(
-            { name: '⏱️ Duração', value: formatDuration(track.duration), inline: true },
-            { name: '👤 Solicitado por', value: `<@${interaction.user.id}>`, inline: true },
-            { name: '🔗 Fonte', value: track.source === 'youtube' ? 'YouTube' : 'Spotify', inline: true }
-          )
-          .setThumbnail(track.thumbnail)
           .setTimestamp();
         
-        if (!wasEmpty) {
-          const queuePosition = queue.tracks.length - addedTracks.length + 1;
+        if (track) {
           embed.addFields(
-            { name: '📍 Posição na Fila', value: `#${queuePosition}`, inline: true }
-          );
+            { name: '⏱️ Duração', value: formatDuration(track.duration), inline: true },
+            { name: '👤 Solicitado por', value: `<@${interaction.user.id}>`, inline: true },
+            { name: '🔗 Fonte', value: track.platform === 'youtube' ? 'YouTube' : 'Spotify', inline: true }
+          )
+          .setThumbnail(track.thumbnail || '');
+          
+          if (!wasEmpty && queue) {
+            const queuePosition = queue.tracks.length - addedTracks.length + 1;
+            embed.addFields(
+              { name: '📍 Posição na Fila', value: `#${queuePosition}`, inline: true }
+            );
+          }
         }
       }
       
       // Add queue info
-      if (queue.tracks.length > 1) {
-        const remainingTracks = queue.tracks.length - 1;
-        const totalDuration = queue.tracks.slice(1).reduce((total, track) => total + track.duration, 0);
+      const currentQueue = await musicService.getQueue(interaction.guildId!);
+      if (currentQueue && currentQueue.tracks.length > 1) {
+        const remainingTracks = currentQueue.tracks.length - 1;
+        const totalDuration = currentQueue.tracks.slice(1).reduce((total, track) => total + track.duration, 0);
         embed.addFields(
           { name: '📊 Fila', value: `${remainingTracks} música${remainingTracks !== 1 ? 's' : ''} • ${formatDuration(totalDuration)}`, inline: false }
         );
@@ -251,13 +287,7 @@ const play: Command = {
       });
       
       // Log music activity
-      logger.music(`Music played by ${interaction.user.tag} in ${interaction.guild?.name}`, {
-        userId: interaction.user.id,
-        guildId: interaction.guildId,
-        query,
-        tracksAdded: addedTracks.length,
-        isPlaylist
-      });
+      logger.music('MUSIC_PLAYED', interaction.guildId!, `Music played by ${interaction.user.tag} in ${interaction.guild?.name} - Query: ${query}, Tracks: ${addedTracks.length}, Playlist: ${isPlaylist}`);
       
     } catch (error) {
       logger.error('Play command error:', error);
@@ -296,14 +326,14 @@ async function createQueueEmbed(guildId: string, musicService: MusicService): Pr
   if (currentTrack) {
     embed.addFields({
       name: '🎵 Tocando Agora',
-      value: `**${currentTrack.title}**\n${currentTrack.author} • ${formatDuration(currentTrack.duration)}\nSolicitado por <@${currentTrack.requestedBy}>`,
+      value: `**${currentTrack.title}**\n${currentTrack.artist} • ${formatDuration(currentTrack.duration)}\nSolicitado por <@${currentTrack.requestedBy}>`,
       inline: false
     });
   }
   
   if (queue.tracks.length > 0) {
     const upcomingTracks = queue.tracks.slice(0, 10).map((track, index) => {
-      return `**${index + 1}.** ${track.title}\n${track.author} • ${formatDuration(track.duration)} • <@${track.requestedBy}>`;
+      return `**${index + 1}.** ${track.title}\n${track.artist} • ${formatDuration(track.duration)} • <@${track.requestedBy}>`;
     }).join('\n\n');
     
     embed.addFields({

@@ -77,16 +77,15 @@ const queue: Command = {
         )
     )
     .addSubcommand(subcommand =>
-      subcommand
-        .setName('save')
-        .setDescription('Salva a fila atual como playlist')
-        .addStringOption(option =>
-          option.setName('name')
-            .setDescription('Nome da playlist')
-            .setRequired(true)
-            .setMaxLength(50)
-        )
-    ),
+        subcommand
+          .setName('save')
+          .setDescription('Salva a fila atual como playlist')
+          .addStringOption(option =>
+            option.setName('name')
+              .setDescription('Nome da playlist')
+              .setRequired(true)
+          )
+      ) as SlashCommandBuilder,
   
   category: CommandCategory.MUSIC,
   cooldown: 5,
@@ -95,7 +94,7 @@ const queue: Command = {
     const logger = new Logger();
     const musicService = new MusicService();
     
-    const subcommand = interaction.options.getSubcommand();
+    const subcommand = (interaction as any).options?.getSubcommand();
     
     try {
       // Check if user is in voice channel for most commands
@@ -169,7 +168,7 @@ async function handleShowQueue(interaction: any, musicService: MusicService) {
   const page = interaction.options.getInteger('page') || 1;
   const queue = await musicService.getQueue(interaction.guildId!);
   
-  if (!queue || (queue.tracks.length === 0 && !queue.currentTrack)) {
+  if (!queue || ((!queue.tracks || queue.tracks.length === 0) && !queue.currentTrack)) {
     const emptyEmbed = new EmbedBuilder()
       .setTitle('📋 Fila de Música')
       .setDescription('A fila está vazia.\n\nUse `/play` para adicionar músicas!')
@@ -192,7 +191,7 @@ async function handleShowQueue(interaction: any, musicService: MusicService) {
     time: 300000 // 5 minutes
   });
   
-  collector.on('collect', async (i) => {
+  collector.on('collect', async (i: any) => {
     if (i.user.id !== interaction.user.id) {
       await i.reply({ content: '❌ Apenas quem executou o comando pode usar estes controles.', ephemeral: true });
       return;
@@ -243,7 +242,7 @@ async function handleShowQueue(interaction: any, musicService: MusicService) {
               break;
               
             case 'shuffle':
-              await musicService.shuffleQueue(interaction.guildId!);
+              await musicService.toggleShuffle(interaction.guildId!);
               await i.reply({ content: '🔀 Fila embaralhada!', ephemeral: true });
               break;
               
@@ -277,7 +276,20 @@ async function handleShowQueue(interaction: any, musicService: MusicService) {
  * Handle clear queue subcommand
  */
 async function handleClearQueue(interaction: any, musicService: MusicService) {
-  const cleared = await musicService.clearQueue(interaction.guildId!);
+  const queue = await musicService.getQueue(interaction.guildId!);
+  
+  if (!queue || !queue.tracks || queue.tracks.length === 0) {
+    const errorEmbed = new EmbedBuilder()
+      .setTitle('❌ Fila Vazia')
+      .setDescription('Não há músicas na fila para limpar.')
+      .setColor('#FF0000');
+    
+    await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+    return;
+  }
+  
+  await musicService.clearQueue(interaction.guildId!);
+  const cleared = true;
   
   const embed = new EmbedBuilder()
     .setTitle(cleared ? '🗑️ Fila Limpa' : '❌ Erro')
@@ -291,7 +303,19 @@ async function handleClearQueue(interaction: any, musicService: MusicService) {
  * Handle shuffle queue subcommand
  */
 async function handleShuffleQueue(interaction: any, musicService: MusicService) {
-  const shuffled = await musicService.shuffleQueue(interaction.guildId!);
+  const queue = await musicService.getQueue(interaction.guildId!);
+  
+  if (!queue || !queue.tracks || queue.tracks.length < 2) {
+    const errorEmbed = new EmbedBuilder()
+      .setTitle('❌ Fila Insuficiente')
+      .setDescription('É necessário pelo menos 2 músicas na fila para embaralhar.')
+      .setColor('#FF0000');
+    
+    await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+    return;
+  }
+  
+  const shuffled = await musicService.toggleShuffle(interaction.guildId!);
   
   const embed = new EmbedBuilder()
     .setTitle(shuffled ? '🔀 Fila Embaralhada' : '❌ Erro')
@@ -305,8 +329,10 @@ async function handleShuffleQueue(interaction: any, musicService: MusicService) 
  * Handle loop queue subcommand
  */
 async function handleLoopQueue(interaction: any, musicService: MusicService) {
-  const mode = interaction.options.getString('mode', true) as 'queue' | 'track' | 'off';
-  const success = await musicService.setLoop(interaction.guildId!, mode);
+  const mode = interaction.options.getString('mode', true) as 'off' | 'track' | 'queue';
+  const loopMode = mode === 'off' ? 'none' : mode;
+  await musicService.setLoop(interaction.guildId!, loopMode);
+  const success = true;
   
   const modeNames = {
     queue: '🔁 Repetir Fila',
@@ -329,7 +355,7 @@ async function handleRemoveTrack(interaction: any, musicService: MusicService) {
   const position = interaction.options.getInteger('position', true);
   const queue = await musicService.getQueue(interaction.guildId!);
   
-  if (!queue || position > queue.tracks.length) {
+  if (!queue || !queue.tracks || position > queue.tracks.length) {
     const errorEmbed = new EmbedBuilder()
       .setTitle('❌ Posição Inválida')
       .setDescription(`A posição ${position} não existe na fila.`)
@@ -340,6 +366,16 @@ async function handleRemoveTrack(interaction: any, musicService: MusicService) {
   }
   
   const trackToRemove = queue.tracks[position - 1];
+  if (!trackToRemove) {
+    const errorEmbed = new EmbedBuilder()
+      .setTitle('❌ Erro')
+      .setDescription('Música não encontrada na posição especificada.')
+      .setColor('#FF0000');
+    
+    await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+    return;
+  }
+  
   const removed = await musicService.removeFromQueue(interaction.guildId!, position - 1);
   
   const embed = new EmbedBuilder()
@@ -379,6 +415,16 @@ async function handleMoveTrack(interaction: any, musicService: MusicService) {
   }
   
   const trackToMove = queue.tracks[from - 1];
+  if (!trackToMove) {
+    const errorEmbed = new EmbedBuilder()
+      .setTitle('❌ Erro')
+      .setDescription('Música não encontrada na posição especificada.')
+      .setColor('#FF0000');
+    
+    await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+    return;
+  }
+  
   const moved = await musicService.moveInQueue(interaction.guildId!, from - 1, to - 1);
   
   const embed = new EmbedBuilder()

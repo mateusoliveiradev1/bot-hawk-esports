@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { Logger } from '@/utils/logger';
+import { Logger } from '../utils/logger';
 import { CacheService } from './cache.service';
 import {
   PUBGPlayer,
@@ -13,7 +13,7 @@ import {
   PUBGGameMode,
   PUBGLeaderboardEntry,
   PUBGRankTier
-} from '@/types/pubg';
+} from '../types/pubg';
 
 /**
  * PUBG API Service for fetching player data and statistics
@@ -117,7 +117,7 @@ export class PUBGService {
    */
   public async getPlayerByName(playerName: string, platform: PUBGPlatform): Promise<PUBGPlayer | null> {
     try {
-      const cacheKey = this.cache.keys.pubgPlayer(`${platform}:${playerName}`);
+      const cacheKey = this.cache.keyGenerators.pubgPlayer(`${platform}:${playerName}`);
       const cached = await this.cache.get<PUBGPlayer>(cacheKey);
       
       if (cached) {
@@ -145,8 +145,8 @@ export class PUBGService {
       // Cache for 1 hour
       await this.cache.set(cacheKey, player, 3600);
       
-      this.logger.pubg('PLAYER_FETCHED', player.id);
-      return player;
+      this.logger.pubg('PLAYER_FETCHED', player?.id || 'unknown');
+      return player || null;
     } catch (error) {
       this.logger.error(`Failed to get player ${playerName}:`, error);
       return null;
@@ -168,7 +168,7 @@ export class PUBGService {
         return null;
       }
 
-      const cacheKey = this.cache.keys.pubgStats(playerId, currentSeason, 'all');
+      const cacheKey = this.cache.keyGenerators.pubgStats(playerId, currentSeason, 'all');
       const cached = await this.cache.get<PUBGPlayerStats>(cacheKey);
       
       if (cached) {
@@ -203,7 +203,7 @@ export class PUBGService {
     gameMode: PUBGGameMode
   ): Promise<PUBGSeasonStats | null> {
     try {
-      const cacheKey = this.cache.keys.pubgStats(playerId, seasonId, gameMode);
+      const cacheKey = this.cache.keyGenerators.pubgStats(playerId, seasonId, gameMode);
       const cached = await this.cache.get<PUBGSeasonStats>(cacheKey);
       
       if (cached) {

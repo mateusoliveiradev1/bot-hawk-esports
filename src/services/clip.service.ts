@@ -1,8 +1,8 @@
-import { Logger } from '@/utils/logger';
+import { Logger } from '../utils/logger';
 import { CacheService } from './cache.service';
-import { DatabaseService } from '@/database/database.service';
+import { DatabaseService } from '../database/database.service';
 import { BadgeService } from './badge.service';
-import { ExtendedClient } from '@/types/client';
+import { ExtendedClient } from '../types/client';
 import { EmbedBuilder, TextChannel, User, GuildMember, ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder } from 'discord.js';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -887,7 +887,6 @@ export class ClipService {
     const userBadges = await this.database.client.userBadge.findMany({
       where: {
         userId,
-        guildId,
         badge: {
           category: 'clips'
         }
@@ -907,7 +906,7 @@ export class ClipService {
       averageScore,
       bestClip,
       recentClips: userClips.slice(0, 5),
-      badges: userBadges.map(ub => ub.badge.id)
+      badges: userBadges.map(ub => ub.badgeId)
     };
   }
 
@@ -1023,26 +1022,25 @@ export class ClipService {
       
       const { xp, coins } = settings.rewards.upload;
       
-      await this.database.client.userStats.upsert({
+      await this.database.client.user.upsert({
         where: {
-          userId_guildId: { userId, guildId }
+          id: userId
         },
         update: {
           xp: { increment: xp },
-          coins: { increment: coins },
-          clipsUploaded: { increment: 1 }
+          coins: { increment: coins }
         },
         create: {
-          userId,
-          guildId,
+          id: userId,
+          username: 'Unknown',
+          discriminator: '0000',
           xp,
-          coins,
-          clipsUploaded: 1
+          coins
         }
       });
       
-      // Check for upload badges
-      await this.badgeService.checkProgress(userId, guildId, 'clip_upload', 1);
+      // Update badge progress for clip uploads
+      await this.badgeService.updateProgress(userId, 'clips_uploaded', 1);
       
       this.logger.info(`Awarded upload rewards to user ${userId}: ${xp} XP, ${coins} coins`);
     } catch (error) {
@@ -1060,24 +1058,25 @@ export class ClipService {
       
       const { xp, coins } = settings.rewards.featured;
       
-      await this.database.client.userStats.upsert({
+      await this.database.client.user.upsert({
         where: {
-          userId_guildId: { userId, guildId }
+          id: userId
         },
         update: {
           xp: { increment: xp },
           coins: { increment: coins }
         },
         create: {
-          userId,
-          guildId,
+          id: userId,
+          username: 'Unknown',
+          discriminator: '0000',
           xp,
           coins
         }
       });
       
       // Award featured clip badge
-      await this.badgeService.awardBadge(userId, guildId, 'featured_clip');
+      await this.badgeService.awardBadge(userId, 'featured_clip');
       
       this.logger.info(`Awarded feature rewards to user ${userId}: ${xp} XP, ${coins} coins`);
     } catch (error) {
@@ -1098,26 +1097,32 @@ export class ClipService {
         if (!settings) continue;
         
         const topClip = weeklyRanking.clips[0];
+        if (!topClip) {
+          this.logger.info(`No clips found for weekly rewards in guild ${guildId}`);
+          continue;
+        }
+        
         const { xp, coins } = settings.rewards.topWeekly;
         
-        await this.database.client.userStats.upsert({
+        await this.database.client.user.upsert({
           where: {
-            userId_guildId: { userId: topClip.clip.userId, guildId }
+            id: topClip.clip.userId
           },
           update: {
             xp: { increment: xp },
             coins: { increment: coins }
           },
           create: {
-            userId: topClip.clip.userId,
-            guildId,
+            id: topClip.clip.userId,
+            username: 'Unknown',
+            discriminator: '0000',
             xp,
             coins
           }
         });
         
         // Award weekly winner badge
-        await this.badgeService.awardBadge(topClip.clip.userId, guildId, 'weekly_clip_winner');
+        await this.badgeService.awardBadge(topClip.clip.userId, 'weekly_clip_winner');
         
         this.logger.info(`Awarded weekly clip rewards to user ${topClip.clip.userId} in guild ${guildId}`);
       }
@@ -1139,26 +1144,32 @@ export class ClipService {
         if (!settings) continue;
         
         const topClip = monthlyRanking.clips[0];
+        if (!topClip) {
+          this.logger.info(`No clips found for monthly rewards in guild ${guildId}`);
+          return;
+        }
+        
         const { xp, coins } = settings.rewards.topMonthly;
         
-        await this.database.client.userStats.upsert({
+        await this.database.client.user.upsert({
           where: {
-            userId_guildId: { userId: topClip.clip.userId, guildId }
+            id: topClip.clip.userId
           },
           update: {
             xp: { increment: xp },
             coins: { increment: coins }
           },
           create: {
-            userId: topClip.clip.userId,
-            guildId,
+            id: topClip.clip.userId,
+            username: 'Unknown',
+            discriminator: '0000',
             xp,
             coins
           }
         });
         
         // Award monthly winner badge
-        await this.badgeService.awardBadge(topClip.clip.userId, guildId, 'monthly_clip_winner');
+        await this.badgeService.awardBadge(topClip.clip.userId, 'monthly_clip_winner');
         
         this.logger.info(`Awarded monthly clip rewards to user ${topClip.clip.userId} in guild ${guildId}`);
       }
@@ -1174,24 +1185,8 @@ export class ClipService {
     try {
       const userClips = this.getUserClips(guildId, userId, 1000);
       
-      await this.database.client.userStats.upsert({
-        where: {
-          userId: userId
-        },
-        update: {
-          clipsUploaded: userClips.length
-        },
-        create: {
-          userId,
-          clipsUploaded: userClips.length,
-          commandsUsed: 0,
-          messagesCount: 0,
-          voiceTime: 0,
-          gamesPlayed: 0,
-          quizzesCompleted: 0,
-          checkIns: 0
-        }
-      });
+      // User stats are now tracked in the User model
+      // No need to update separate stats table
     } catch (error) {
       this.logger.error(`Failed to update user stats for ${userId}:`, error);
     }

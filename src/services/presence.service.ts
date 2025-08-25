@@ -1,8 +1,8 @@
-import { Logger } from '@/utils/logger';
+import { Logger } from '../utils/logger';
 import { CacheService } from './cache.service';
-import { DatabaseService } from '@/database/database.service';
+import { DatabaseService } from '../database/database.service';
 import { BadgeService } from './badge.service';
-import { ExtendedClient } from '@/types/client';
+import { ExtendedClient } from '../types/client';
 import { EmbedBuilder, GuildMember, TextChannel } from 'discord.js';
 
 export interface PresenceRecord {
@@ -181,21 +181,22 @@ export class PresenceService {
       const guildConfigs = await this.database.client.guildConfig.findMany();
       
       for (const config of guildConfigs) {
+        const configData = config.config as any;
         const settings: PresenceSettings = {
           guildId: config.guildId,
-          enabled: config.presenceEnabled || false,
-          requireLocation: config.presenceRequireLocation || false,
-          allowNotes: config.presenceAllowNotes || true,
-          autoCheckOut: config.presenceAutoCheckOut || true,
-          autoCheckOutHours: config.presenceAutoCheckOutHours || 12,
-          notificationChannelId: config.presenceNotificationChannel || undefined,
-          streakRewards: config.presenceStreakRewards ? JSON.parse(config.presenceStreakRewards) : [
+          enabled: configData?.presenceEnabled || false,
+          requireLocation: configData?.presenceRequireLocation || false,
+          allowNotes: configData?.presenceAllowNotes || true,
+          autoCheckOut: configData?.presenceAutoCheckOut || true,
+          autoCheckOutHours: configData?.presenceAutoCheckOutHours || 12,
+          notificationChannelId: configData?.presenceNotificationChannel || undefined,
+          streakRewards: configData?.presenceStreakRewards ? JSON.parse(configData.presenceStreakRewards) : [
             { days: 7, xp: 100, coins: 50 },
             { days: 30, xp: 500, coins: 250 },
             { days: 90, xp: 1500, coins: 750 },
             { days: 365, xp: 10000, coins: 5000, badgeId: 'yearly_attendance' }
           ],
-          dailyRewards: config.presenceDailyRewards ? JSON.parse(config.presenceDailyRewards) : {
+          dailyRewards: configData?.presenceDailyRewards ? JSON.parse(configData.presenceDailyRewards) : {
             xp: 10,
             coins: 5
           }
@@ -624,9 +625,7 @@ export class PresenceService {
               const existingReward = await this.database.client.transaction.findFirst({
                 where: {
                   userId,
-                  guildId,
-                  type: 'streak_reward',
-                  description: `${reward.days} day streak`
+                  type: 'streak_reward'
                 }
               });
               
@@ -648,13 +647,13 @@ export class PresenceService {
                     amount: reward.xp,
                     balance: 0, // TODO: Calculate actual balance
                     reason: `${reward.days} day streak reward`,
-                    metadata: { xp: reward.xp, coins: reward.coins, guildId }
+                    metadata: { xp: reward.xp, coins: reward.coins }
                   }
                 });
                 
                 // Award badge if specified
                 if (reward.badgeId) {
-                  await this.badgeService.awardBadge(userId, guildId, reward.badgeId);
+                  await this.badgeService.awardBadge(userId, reward.badgeId);
                 }
                 
                 this.logger.info(`Awarded ${reward.days}-day streak reward to user ${userId}`);

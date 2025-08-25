@@ -1,6 +1,7 @@
 import { 
   SlashCommandBuilder, 
   CommandInteraction, 
+  ChatInputCommandInteraction,
   PermissionResolvable,
   AutocompleteInteraction,
   ContextMenuCommandBuilder,
@@ -40,7 +41,8 @@ export interface Command {
   nsfw?: boolean;
   disabled?: boolean;
   premium?: boolean;
-  execute: (interaction: CommandInteraction, client: ExtendedClient) => Promise<void>;
+  aliases?: string[];
+  execute: (interaction: CommandInteraction | ChatInputCommandInteraction, client: ExtendedClient) => Promise<void>;
   autocomplete?: (interaction: AutocompleteInteraction, client: ExtendedClient) => Promise<void>;
 }
 

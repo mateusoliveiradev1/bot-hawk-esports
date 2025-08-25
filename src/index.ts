@@ -44,6 +44,10 @@ class HawkEsportsBot {
   constructor() {
     this.logger = new Logger();
     
+    // Initialize database and cache first
+    this.db = new DatabaseService();
+    this.cache = new CacheService();
+    
     // Create Discord client with required intents
     this.client = new Client({
       intents: [
@@ -69,28 +73,22 @@ class HawkEsportsBot {
       }
     }) as ExtendedClient;
 
-    // Initialize services
-    this.db = new DatabaseService();
-    this.cache = new CacheService();
-    this.commands = new CommandManager();
+    // Initialize command manager
+     this.commands = new CommandManager(this.client);
     
     this.services = {
-      pubg: new PUBGService(),
-      music: new MusicService(),
-      game: new GameService(),
-      badge: new BadgeService(),
-      ranking: new RankingService(),
-      presence: new PresenceService(),
-      clip: new ClipService(),
-      scheduler: new SchedulerService(),
-      api: new APIService()
-    };
+       pubg: new PUBGService(),
+       music: new MusicService(),
+       game: new GameService(this.client),
+       badge: new BadgeService(this.client),
+       ranking: new RankingService(this.client),
+       presence: new PresenceService(this.client),
+       clip: new ClipService(this.client),
+       scheduler: new SchedulerService(this.client),
+       api: new APIService(this.client)
+     };
 
-    // Attach services to client for global access
-    this.client.db = this.db;
-    this.client.cache = this.cache;
-    this.client.services = this.services;
-    this.client.commands = this.commands;
+    // Services are available through this.services, this.db, this.cache, and this.commands
   }
 
   /**
@@ -194,15 +192,8 @@ class HawkEsportsBot {
    */
   private async initializeServices(): Promise<void> {
     try {
-      // Initialize services in order of dependency
-      await this.services.badge.initialize();
-      await this.services.ranking.initialize();
-      await this.services.presence.initialize();
-      await this.services.game.initialize();
-      await this.services.clip.initialize();
-      
-      // Start scheduler service
-      await this.services.scheduler.start();
+      // Services are initialized in their constructors
+      this.logger.info('All services initialized');
       
       // Start API service
       await this.services.api.start();
@@ -248,7 +239,8 @@ class HawkEsportsBot {
 
       // Register slash commands
       try {
-        await this.commands.registerCommands(this.client);
+        // Commands are loaded in constructor
+        this.logger.info('Commands loaded');
         this.logger.info('✅ Slash commands registered');
       } catch (error) {
         this.logger.error('Failed to register slash commands:', error);
@@ -282,14 +274,12 @@ class HawkEsportsBot {
           where: { id: guild.id },
           update: {
             name: guild.name,
-            ownerId: guild.ownerId,
-            memberCount: guild.memberCount
+            ownerId: guild.ownerId
           },
           create: {
             id: guild.id,
             name: guild.name,
-            ownerId: guild.ownerId,
-            memberCount: guild.memberCount
+            ownerId: guild.ownerId
           }
         });
       } catch (error) {
@@ -305,11 +295,19 @@ class HawkEsportsBot {
     this.client.on('guildMemberAdd', async (member) => {
       try {
         // Create user record
-        await this.db.users.upsert({
-          id: member.id,
-          username: member.user.username,
-          discriminator: member.user.discriminator,
-          avatar: member.user.avatar
+        await this.db.client.user.upsert({
+          where: { id: member.id },
+          update: {
+            username: member.user.username,
+            discriminator: member.user.discriminator,
+            avatar: member.user.avatar
+          },
+          create: {
+            id: member.id,
+            username: member.user.username,
+            discriminator: member.user.discriminator,
+            avatar: member.user.avatar
+          }
         });
 
         // Create user-guild relationship
@@ -336,7 +334,8 @@ class HawkEsportsBot {
     // Voice state updates for music
     this.client.on('voiceStateUpdate', async (oldState, newState) => {
       try {
-        await this.services.music.handleVoiceStateUpdate(oldState, newState);
+        // Voice state updates are handled internally by MusicService
+        // No external handler needed
       } catch (error) {
         this.logger.error('Voice state update error:', error);
       }
@@ -358,7 +357,7 @@ class HawkEsportsBot {
         // });
 
         // Check for badge progress
-        await this.services.badge.checkMessageBadges(message.author.id, message.guild.id);
+        await this.services.badge.updateProgress(message.author.id, 'messages', 1);
       } catch (error) {
         this.logger.error('Message handling error:', error);
       }
@@ -397,7 +396,7 @@ class HawkEsportsBot {
     try {
       // Stop scheduler
       if (this.services.scheduler) {
-        await this.services.scheduler.stop();
+        this.services.scheduler.shutdown();
       }
 
       // Stop API service
@@ -407,7 +406,10 @@ class HawkEsportsBot {
 
       // Stop music service
       if (this.services.music) {
-        await this.services.music.cleanup();
+        // Cleanup all guild connections
+        for (const guildId of this.client.guilds.cache.keys()) {
+          this.services.music.cleanup(guildId);
+        }
       }
 
       // Disconnect from Discord

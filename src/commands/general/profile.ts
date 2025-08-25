@@ -24,18 +24,18 @@ const profile: Command = {
       option.setName('public')
         .setDescription('Tornar a resposta pública (padrão: privado)')
         .setRequired(false)
-    ),
+    ) as SlashCommandBuilder,
   
-  category: CommandCategory.PROFILE,
+  category: CommandCategory.GENERAL,
   cooldown: 10,
   
-  async execute(interaction, client: ExtendedClient) {
+  async execute(interaction: any, client: ExtendedClient) {
     const logger = new Logger();
     const db = new DatabaseService();
     const pubgService = new PUBGService();
-    const badgeService = new BadgeService();
-    const rankingService = new RankingService();
-    const presenceService = new PresenceService();
+    const badgeService = new BadgeService(client);
+    const rankingService = new RankingService(client);
+    const presenceService = new PresenceService(client);
     
     const targetUser = interaction.options.getUser('user') || interaction.user;
     const isPublic = interaction.options.getBoolean('public') || false;
@@ -45,7 +45,7 @@ const profile: Command = {
       await interaction.deferReply({ ephemeral: !isPublic });
       
       // Get user data from database
-      const userData = await db.getUser(targetUser.id);
+      const userData = await db.users.findById(targetUser.id);
       
       if (!userData) {
         const notFoundEmbed = new EmbedBuilder()
@@ -59,34 +59,34 @@ const profile: Command = {
       
       // Get additional data
       const [pubgStats, userBadges, rankingData, presenceStats] = await Promise.all([
-        userData.pubgNickname ? pubgService.getPlayerStats(userData.pubgNickname, userData.pubgPlatform!) : null,
+        userData?.pubgUsername ? pubgService.getPlayerStats(userData.pubgUsername, userData.pubgPlatform as any || 'steam') : null,
         badgeService.getUserBadges(targetUser.id),
-        rankingService.getUserRankingData(targetUser.id),
-        presenceService.getUserStats(targetUser.id)
+        rankingService.getUserRank(targetUser.id, 'weekly', 'pubg'),
+        null // presenceService.getUserStats not implemented yet
       ]);
       
       // Create main profile embed
       const profileEmbed = new EmbedBuilder()
         .setTitle(`👤 Perfil de ${targetUser.displayName}`)
         .setThumbnail(targetUser.displayAvatarURL({ size: 256 }))
-        .setColor(userData.profileColor || '#0099FF')
+        .setColor('#0099FF')
         .setTimestamp();
       
       // Basic info
-      const joinedAt = userData.joinedAt ? new Date(userData.joinedAt).toLocaleDateString('pt-BR') : 'Desconhecido';
-      const lastSeen = userData.lastSeen ? `<t:${Math.floor(new Date(userData.lastSeen).getTime() / 1000)}:R>` : 'Nunca';
+      const createdAt = userData.createdAt ? new Date(userData.createdAt).toLocaleDateString('pt-BR') : 'Desconhecido';
+      const updatedAt = userData.updatedAt ? `<t:${Math.floor(new Date(userData.updatedAt).getTime() / 1000)}:R>` : 'Nunca';
       
       profileEmbed.addFields(
-        { name: '📅 Membro desde', value: joinedAt, inline: true },
-        { name: '👁️ Visto por último', value: lastSeen, inline: true },
+        { name: '📅 Membro desde', value: createdAt, inline: true },
+        { name: '🔄 Última atualização', value: updatedAt, inline: true },
         { name: '🎯 Nível', value: `${userData.level} (${userData.xp} XP)`, inline: true }
       );
       
       // PUBG Info
-      if (userData.pubgNickname) {
+      if (userData.pubgUsername) {
         const platformEmoji = userData.pubgPlatform === 'steam' ? '💻' : userData.pubgPlatform === 'xbox' ? '🎮' : '🎮';
         profileEmbed.addFields(
-          { name: '🎮 PUBG', value: `${platformEmoji} ${userData.pubgNickname}\n🏆 ${userData.pubgRank || 'Sem rank'}`, inline: true }
+          { name: '🎮 PUBG', value: `${platformEmoji} ${userData.pubgUsername}\n🏆 Sem rank disponível`, inline: true }
         );
       } else {
         profileEmbed.addFields(
@@ -96,13 +96,13 @@ const profile: Command = {
       
       // Economy
       profileEmbed.addFields(
-        { name: '💰 Economia', value: `🪙 ${userData.coins} moedas\n💎 ${userData.gems} gemas`, inline: true }
+        { name: '💰 Economia', value: `🪙 ${userData.coins || 0} moedas`, inline: true }
       );
       
       // Badges preview (top 3)
       const topBadges = userBadges.slice(0, 3);
       if (topBadges.length > 0) {
-        const badgeText = topBadges.map(badge => `${badge.emoji} ${badge.name}`).join('\n');
+        const badgeText = topBadges.map((badge: any) => `${badge.emoji} ${badge.name}`).join('\n');
         const totalBadges = userBadges.length;
         profileEmbed.addFields(
           { name: `🏅 Badges (${totalBadges})`, value: `${badgeText}${totalBadges > 3 ? `\n... e mais ${totalBadges - 3}` : ''}`, inline: true }
@@ -115,28 +115,22 @@ const profile: Command = {
       
       // Rankings
       if (rankingData) {
-        const pubgRank = rankingData.pubgRank ? `#${rankingData.pubgRank}` : 'N/A';
-        const internalRank = rankingData.internalRank ? `#${rankingData.internalRank}` : 'N/A';
         profileEmbed.addFields(
-          { name: '📊 Rankings', value: `🎮 PUBG: ${pubgRank}\n⭐ Interno: ${internalRank}`, inline: true }
+          { name: '📊 Rankings', value: `🎮 PUBG: #${rankingData.rank}/${rankingData.total}\n⭐ Interno: #${rankingData.rank}/${rankingData.total}`, inline: true }
         );
       }
       
-      // Presence stats
-      if (presenceStats) {
-        const totalHours = Math.floor(presenceStats.totalTime / 3600000); // Convert ms to hours
-        const currentStreak = presenceStats.currentStreak || 0;
-        profileEmbed.addFields(
-          { name: '⏰ Presença', value: `🕐 ${totalHours}h total\n🔥 ${currentStreak} dias seguidos`, inline: true }
-        );
-      }
+      // Presence stats not available yet
+      profileEmbed.addFields(
+        { name: '⏰ Presença', value: 'Dados não disponíveis', inline: true }
+      );
       
       // Activity stats
       const activityStats = [
-        `🎵 ${userData.musicPlayed || 0} músicas tocadas`,
-        `🎯 ${userData.gamesPlayed || 0} jogos jogados`,
-        `🎬 ${userData.clipsUploaded || 0} clips enviados`,
-        `💬 ${userData.messagesCount || 0} mensagens`
+        `🎵 ${userData.stats?.commandsUsed || 0} comandos usados`,
+        `🎯 ${userData.stats?.gamesPlayed || 0} jogos jogados`,
+        `🎬 ${userData.stats?.clipsUploaded || 0} clips enviados`,
+        `💬 ${userData.stats?.messagesCount || 0} mensagens`
       ].join('\n');
       
       profileEmbed.addFields(
@@ -174,7 +168,7 @@ const profile: Command = {
             .setLabel('Estatísticas PUBG')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('🎮')
-            .setDisabled(!userData.pubgNickname),
+            .setDisabled(!userData.pubgUsername),
           new ButtonBuilder()
             .setCustomId('profile_achievements')
             .setLabel('Conquistas')
@@ -211,7 +205,7 @@ const profile: Command = {
         time: 300000 // 5 minutes
       });
       
-      collector.on('collect', async (i) => {
+      collector.on('collect', async (i: any) => {
         if (i.user.id !== interaction.user.id) {
           await i.reply({ content: '❌ Apenas quem executou o comando pode usar estes botões.', ephemeral: true });
           return;
@@ -348,7 +342,7 @@ async function createPUBGStatsEmbed(user: any, stats: any, userData: any): Promi
   }
   
   embed.setFooter({ 
-    text: `PUBG: ${userData.pubgNickname} • Plataforma: ${userData.pubgPlatform?.toUpperCase()}` 
+    text: `PUBG: ${userData.pubgUsername} • Plataforma: ${userData.pubgPlatform?.toUpperCase()}` 
   });
   
   return embed;
@@ -367,11 +361,11 @@ async function createAchievementsEmbed(user: any, userData: any): Promise<EmbedB
   // Mock achievements data - replace with actual data from database
   const achievements = [
     { name: 'Primeiro Registro', description: 'Registrou-se no sistema', completed: true, date: userData.createdAt },
-    { name: 'Veterano', description: 'Membro há mais de 30 dias', completed: userData.joinedAt && Date.now() - new Date(userData.joinedAt).getTime() > 30 * 24 * 60 * 60 * 1000 },
-    { name: 'Ativo', description: 'Enviou mais de 100 mensagens', completed: (userData.messagesCount || 0) >= 100 },
-    { name: 'Músico', description: 'Tocou mais de 50 músicas', completed: (userData.musicPlayed || 0) >= 50 },
-    { name: 'Gamer', description: 'Jogou mais de 20 jogos', completed: (userData.gamesPlayed || 0) >= 20 },
-    { name: 'Criador', description: 'Enviou mais de 5 clips', completed: (userData.clipsUploaded || 0) >= 5 }
+    { name: 'Veterano', description: 'Membro há mais de 30 dias', completed: userData.createdAt && Date.now() - new Date(userData.createdAt).getTime() > 30 * 24 * 60 * 60 * 1000 },
+    { name: 'Ativo', description: 'Enviou mais de 100 mensagens', completed: (userData.stats?.messagesCount || 0) >= 100 },
+    { name: 'Ativo no Chat', description: 'Usou mais de 50 comandos', completed: (userData.stats?.commandsUsed || 0) >= 50 },
+    { name: 'Gamer', description: 'Jogou mais de 20 jogos', completed: (userData.stats?.gamesPlayed || 0) >= 20 },
+    { name: 'Criador', description: 'Enviou mais de 5 clips', completed: (userData.stats?.clipsUploaded || 0) >= 5 }
   ];
   
   const completed = achievements.filter(a => a.completed);

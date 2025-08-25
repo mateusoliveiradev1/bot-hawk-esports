@@ -1,8 +1,8 @@
-import { Logger } from '@/utils/logger';
+import { Logger } from '../utils/logger';
 import { CacheService } from './cache.service';
-import { DatabaseService } from '@/database/database.service';
+import { DatabaseService } from '../database/database.service';
 import { User, GuildMember, TextChannel, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } from 'discord.js';
-import { ExtendedClient } from '@/types/client';
+import { ExtendedClient } from '../types/client';
 
 export interface QuizQuestion {
   id: string;
@@ -353,7 +353,7 @@ export class GameService {
       type: 'daily',
       startDate,
       endDate
-    });
+    } as Omit<Challenge, 'id' | 'isActive'>);
   }
 
   /**
@@ -388,7 +388,7 @@ export class GameService {
       type: 'weekly',
       startDate,
       endDate
-    });
+    } as Omit<Challenge, 'id' | 'isActive'>);
   }
 
   /**
@@ -423,7 +423,7 @@ export class GameService {
       type: 'monthly',
       startDate,
       endDate
-    });
+    } as Omit<Challenge, 'id' | 'isActive'>);
   }
 
   /**
@@ -461,7 +461,7 @@ export class GameService {
       
       this.activeChallenges.set(challenge.id, newChallenge);
       
-      this.logger.game('CHALLENGE_CREATED', challenge.id, {
+      this.logger.game('CHALLENGE_CREATED', challenge.id, 'system', {
         name: challenge.name,
         type: challenge.type
       });
@@ -516,9 +516,8 @@ export class GameService {
       }
     });
     
-    this.logger.game('QUIZ_STARTED', sessionId, {
+    this.logger.game('QUIZ_STARTED', sessionId, hostId, {
       guildId,
-      hostId,
       questionCount: questions.length
     });
     
@@ -566,7 +565,7 @@ export class GameService {
         lastAnswerTime: 0
       });
       
-      this.logger.game('QUIZ_JOINED', sessionId, { userId, username });
+      this.logger.game('QUIZ_JOINED', sessionId, userId, { username });
     }
     
     return true;
@@ -616,8 +615,7 @@ export class GameService {
       participant.streak = 0;
     }
     
-    this.logger.game('QUIZ_ANSWER', sessionId, {
-      userId,
+    this.logger.game('QUIZ_ANSWER', sessionId, userId, {
       questionIndex: session.currentQuestionIndex,
       correct: isCorrect,
       points
@@ -675,7 +673,7 @@ export class GameService {
     
     this.quizSessions.delete(sessionId);
     
-    this.logger.game('QUIZ_ENDED', sessionId, {
+    this.logger.game('QUIZ_ENDED', sessionId, results[0]?.userId || 'none', {
       participantCount: results.length,
       winner: results[0]?.username
     });
@@ -721,10 +719,9 @@ export class GameService {
       await this.endMiniGame(sessionId);
     }, game.duration * 1000);
     
-    this.logger.game('MINI_GAME_STARTED', sessionId, {
+    this.logger.game('MINI_GAME_STARTED', sessionId, hostId, {
       gameId,
-      guildId,
-      hostId
+      guildId
     });
     
     return session;
@@ -810,10 +807,11 @@ export class GameService {
    */
   private generateEmojiSequence(length: number): string[] {
     const emojis = ['🎯', '🎮', '🏆', '⚡', '🔥', '💎', '🌟', '🎊'];
-    const sequence = [];
+    const sequence: string[] = [];
     
     for (let i = 0; i < length; i++) {
-      sequence.push(emojis[Math.floor(Math.random() * emojis.length)]);
+      const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)] || '🎯';
+      sequence.push(randomEmoji);
     }
     
     return sequence;
@@ -837,7 +835,7 @@ export class GameService {
         data: {}
       });
       
-      this.logger.game('MINI_GAME_JOINED', sessionId, { userId, username });
+      this.logger.game('MINI_GAME_JOINED', sessionId, userId, { username });
     }
     
     return true;
@@ -862,7 +860,7 @@ export class GameService {
       const winner = results[0];
       const game = this.miniGames.find(g => g.id === session.gameId);
       
-      if (game) {
+      if (game && winner) {
         // Update challenge progress for winner
         await this.updateChallengeProgress(winner.userId, 'mini_game_wins', 1);
         
@@ -881,7 +879,7 @@ export class GameService {
     
     this.gameSessions.delete(sessionId);
     
-    this.logger.game('MINI_GAME_ENDED', sessionId, {
+    this.logger.game('MINI_GAME_ENDED', sessionId, results[0]?.userId || 'none', {
       participantCount: results.length,
       winner: results[0]?.username
     });
@@ -949,8 +947,7 @@ export class GameService {
         progress.completed = true;
         progress.completedAt = new Date();
         
-        this.logger.game('CHALLENGE_COMPLETED', challenge.id, {
-          userId,
+        this.logger.game('CHALLENGE_COMPLETED', challenge.id, userId, {
           challengeName: challenge.name
         });
         
@@ -978,8 +975,7 @@ export class GameService {
     progress.claimed = true;
     
     // Award rewards (this would integrate with economy/badge systems)
-    this.logger.game('CHALLENGE_REWARDS_CLAIMED', challengeId, {
-      userId,
+    this.logger.game('CHALLENGE_REWARDS_CLAIMED', challengeId, userId, {
       rewards: challenge.rewards
     });
     
@@ -1007,7 +1003,7 @@ export class GameService {
         data: { isActive: false }
       });
       
-      this.logger.game('CHALLENGE_EXPIRED', id);
+      this.logger.game('CHALLENGE_EXPIRED', id, 'system');
     }
   }
 

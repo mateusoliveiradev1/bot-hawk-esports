@@ -1,11 +1,11 @@
-import { Logger } from '@/utils/logger';
+import { Logger } from '../utils/logger';
 import { CacheService } from './cache.service';
-import { DatabaseService } from '@/database/database.service';
+import { DatabaseService } from '../database/database.service';
 import { RankingService } from './ranking.service';
 import { BadgeService } from './badge.service';
 import { PresenceService } from './presence.service';
 import { ClipService } from './clip.service';
-import { ExtendedClient } from '@/types/client';
+import { ExtendedClient } from '../types/client';
 import { EmbedBuilder, TextChannel } from 'discord.js';
 import * as cron from 'node-cron';
 

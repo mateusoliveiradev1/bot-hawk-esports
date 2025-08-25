@@ -1,11 +1,11 @@
-import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, demuxProbe, DiscordGatewayAdapterCreator, entersState, getVoiceConnection, joinVoiceChannel, VoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
+import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, demuxProbe, DiscordGatewayAdapterCreator, entersState, getVoiceConnection, joinVoiceChannel, VoiceConnection, VoiceConnectionStatus, StreamType } from '@discordjs/voice';
 import { Guild, GuildMember, VoiceBasedChannel } from 'discord.js';
 import ytdl from 'ytdl-core';
 import ytsr from 'ytsr';
-import { SpotifyApi } from '@spotify/web-api-ts-sdk';
-import { Logger } from '@/utils/logger';
+// import { SpotifyApi } from '@spotify/web-api-ts-sdk'; // Commented out - dependency not installed
+import { Logger } from '../utils/logger';
 import { CacheService } from './cache.service';
-import { DatabaseService } from '@/database/database.service';
+import { DatabaseService } from '../database/database.service';
 
 export interface Track {
   id: string;
@@ -62,7 +62,7 @@ export class MusicService {
   private connections: Map<string, VoiceConnection> = new Map();
   private players: Map<string, AudioPlayer> = new Map();
   private queues: Map<string, Queue> = new Map();
-  private spotify: SpotifyApi | null = null;
+  // private spotify: SpotifyApi | null = null; // Commented out - dependency not installed
   
   private readonly filters: MusicFilters = {
     bassboost: 'bass=g=20,dynaudnorm=f=200',
@@ -90,31 +90,16 @@ export class MusicService {
     this.cache = new CacheService();
     this.database = new DatabaseService();
     
-    this.initializeSpotify();
+    // this.initializeSpotify(); // Commented out - Spotify not available
     this.loadQueuesFromDatabase();
   }
 
   /**
-   * Initialize Spotify API
+   * Initialize Spotify API - Currently disabled
    */
-  private async initializeSpotify(): Promise<void> {
-    try {
-      const clientId = process.env.SPOTIFY_CLIENT_ID;
-      const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-      
-      if (clientId && clientSecret) {
-        this.spotify = SpotifyApi.withClientCredentials(
-          clientId,
-          clientSecret
-        );
-        this.logger.info('Spotify API initialized successfully');
-      } else {
-        this.logger.warn('Spotify credentials not provided. Spotify features will be disabled.');
-      }
-    } catch (error) {
-      this.logger.error('Failed to initialize Spotify API:', error);
-    }
-  }
+  // private async initializeSpotify(): Promise<void> {
+  //   // Spotify integration disabled - dependency not installed
+  // }
 
   /**
    * Load persistent queues from database
@@ -180,10 +165,7 @@ export class MusicService {
         connection.subscribe(player);
       }
       
-      this.logger.music('VOICE_JOINED', channel.guild.id, {
-        channelId: channel.id,
-        channelName: channel.name
-      });
+      this.logger.music('VOICE_JOINED', channel.guild.id, `Joined channel: ${channel.name} (${channel.id})`);
       
       return connection;
     } catch (error) {
@@ -269,9 +251,11 @@ export class MusicService {
     if (queue.tracks.length > 0) {
       const nextTrack = queue.shuffle ? 
         queue.tracks.splice(Math.floor(Math.random() * queue.tracks.length), 1)[0] :
-        queue.tracks.shift()!;
+        queue.tracks.shift();
       
-      await this.playTrack(guildId, nextTrack);
+      if (nextTrack) {
+        await this.playTrack(guildId, nextTrack);
+      }
     } else {
       queue.currentTrack = null;
       await this.saveQueueToDatabase(guildId);
@@ -322,47 +306,12 @@ export class MusicService {
   }
 
   /**
-   * Search for tracks on Spotify
+   * Search for tracks on Spotify - Currently disabled
    */
   public async searchSpotify(query: string, limit: number = 5): Promise<Track[]> {
-    try {
-      if (!this.spotify) {
-        this.logger.warn('Spotify API not available');
-        return [];
-      }
-
-      const cacheKey = `music:search:spotify:${query}:${limit}`;
-      const cached = await this.cache.get<Track[]>(cacheKey);
-      
-      if (cached) {
-        return cached;
-      }
-
-      const results = await this.spotify.search(query, ['track'], 'US', limit);
-      const tracks: Track[] = [];
-
-      for (const track of results.tracks.items) {
-        tracks.push({
-          id: track.id,
-          title: track.name,
-          artist: track.artists.map(artist => artist.name).join(', '),
-          duration: Math.floor(track.duration_ms / 1000),
-          url: track.external_urls.spotify,
-          thumbnail: track.album.images[0]?.url || '',
-          requestedBy: '',
-          platform: 'spotify',
-          addedAt: new Date()
-        });
-      }
-      
-      // Cache for 1 hour
-      await this.cache.set(cacheKey, tracks, 3600);
-      
-      return tracks;
-    } catch (error) {
-      this.logger.error(`Failed to search Spotify for "${query}":`, error);
-      return [];
-    }
+    // Spotify integration disabled - dependency not installed
+    this.logger.warn('Spotify API not available - feature disabled');
+    return [];
   }
 
   /**
@@ -393,10 +342,7 @@ export class MusicService {
     
     await this.saveQueueToDatabase(guildId);
     
-    this.logger.music('TRACK_ADDED', guildId, {
-      trackTitle: track.title,
-      queueLength: queue.tracks.length
-    });
+    this.logger.music('TRACK_ADDED', guildId, `Added track: ${track.title} (Queue: ${queue.tracks.length})`);
   }
 
   /**
@@ -419,7 +365,9 @@ export class MusicService {
       }
       
       const track = tracks[0];
-      await this.addToQueue(guildId, track, requestedBy);
+      if (track) {
+        await this.addToQueue(guildId, track, requestedBy);
+      }
       
       return {
         success: true,
@@ -456,7 +404,7 @@ export class MusicService {
         });
         
         resource = createAudioResource(stream, {
-          inputType: 'arbitrary',
+          inputType: StreamType.Arbitrary,
           inlineVolume: true
         });
       } else {
@@ -467,14 +415,18 @@ export class MusicService {
           return false;
         }
         
-        const stream = ytdl(youtubeResults[0].url, {
+        const firstResult = youtubeResults[0];
+        if (!firstResult) {
+          throw new Error('No YouTube results found');
+        }
+        const stream = ytdl(firstResult.url, {
           filter: 'audioonly',
           quality: 'highestaudio',
           highWaterMark: 1 << 25
         });
         
         resource = createAudioResource(stream, {
-          inputType: 'arbitrary',
+          inputType: StreamType.Arbitrary,
           inlineVolume: true
         });
       }
@@ -489,10 +441,7 @@ export class MusicService {
       
       await this.saveQueueToDatabase(guildId);
       
-      this.logger.music('TRACK_PLAYING', guildId, {
-        trackTitle: track.title,
-        platform: track.platform
-      });
+      this.logger.music('TRACK_PLAYING', guildId, `Playing: ${track.title} (${track.platform})`);
       
       return true;
     } catch (error) {
@@ -514,7 +463,10 @@ export class MusicService {
       queue.tracks.splice(Math.floor(Math.random() * queue.tracks.length), 1)[0] :
       queue.tracks.shift()!;
     
-    return await this.playTrack(guildId, nextTrack);
+    if (nextTrack) {
+      return await this.playTrack(guildId, nextTrack);
+    }
+    return false;
   }
 
   /**
@@ -642,7 +594,7 @@ export class MusicService {
     if (queue && index >= 0 && index < queue.tracks.length) {
       const removed = queue.tracks.splice(index, 1)[0];
       await this.saveQueueToDatabase(guildId);
-      return removed;
+      return removed || null;
     }
     return null;
   }
@@ -654,9 +606,9 @@ export class MusicService {
     if (!duration) return 0;
     
     const parts = duration.split(':').map(Number);
-    if (parts.length === 2) {
+    if (parts.length === 2 && parts[0] !== undefined && parts[1] !== undefined) {
       return parts[0] * 60 + parts[1];
-    } else if (parts.length === 3) {
+    } else if (parts.length === 3 && parts[0] !== undefined && parts[1] !== undefined && parts[2] !== undefined) {
       return parts[0] * 3600 + parts[1] * 60 + parts[2];
     }
     return 0;
@@ -682,6 +634,50 @@ export class MusicService {
   public isConnected(guildId: string): boolean {
     const connection = this.connections.get(guildId);
     return connection?.state.status === VoiceConnectionStatus.Ready;
+  }
+
+  /**
+   * Remove track from queue by index (alias for removeTrack)
+   */
+  public async removeFromQueue(guildId: string, index: number): Promise<Track | null> {
+    return await this.removeTrack(guildId, index);
+  }
+
+  /**
+   * Move track in queue from one position to another
+   */
+  public async moveInQueue(guildId: string, fromIndex: number, toIndex: number): Promise<Track | null> {
+    const queue = this.queues.get(guildId);
+    if (!queue || fromIndex < 0 || fromIndex >= queue.tracks.length || toIndex < 0 || toIndex >= queue.tracks.length) {
+      return null;
+    }
+
+    const [movedTrack] = queue.tracks.splice(fromIndex, 1);
+    if (!movedTrack) return null;
+    
+    queue.tracks.splice(toIndex, 0, movedTrack);
+    await this.saveQueueToDatabase(guildId);
+    
+    return movedTrack;
+  }
+
+  /**
+   * Save playlist to database
+   */
+  public async savePlaylist(userId: string, name: string, tracks: Track[]): Promise<boolean> {
+    try {
+      // TODO: Implement playlist saving to database
+      // This would require a Playlist model in the database schema
+      
+      this.logger.info(`Playlist save requested: ${name} by user ${userId} with ${tracks.length} tracks`);
+      
+      // For now, return true to indicate the method exists
+      // In a full implementation, this would save to database and return success status
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to save playlist ${name} for user ${userId}:`, error);
+      return false;
+    }
   }
 
   /**

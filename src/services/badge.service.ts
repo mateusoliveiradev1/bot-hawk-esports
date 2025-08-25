@@ -1,7 +1,7 @@
-import { Logger } from '@/utils/logger';
+import { Logger } from '../utils/logger';
 import { CacheService } from './cache.service';
-import { DatabaseService } from '@/database/database.service';
-import { ExtendedClient } from '@/types/client';
+import { DatabaseService } from '../database/database.service';
+import { ExtendedClient } from '../types/client';
 import { User, GuildMember, TextChannel, EmbedBuilder } from 'discord.js';
 
 export interface BadgeDefinition {
@@ -437,7 +437,6 @@ export class BadgeService {
             category: badgeData.category,
             rarity: badgeData.rarity,
             requirements: JSON.stringify(badgeData.requirements),
-            rewards: JSON.stringify(badgeData.rewards || {}),
             isSecret: badgeData.isSecret,
             isActive: badgeData.isActive
           }
@@ -460,8 +459,7 @@ export class BadgeService {
         icon: badge.icon,
         category: badge.category as any,
         rarity: badge.rarity as any,
-        requirements: JSON.parse(badge.requirements),
-        rewards: JSON.parse(badge.rewards),
+        requirements: JSON.parse(badge.requirements as string),
         isSecret: badge.isSecret,
         isActive: badge.isActive,
         createdAt: badge.createdAt
@@ -600,8 +598,7 @@ export class BadgeService {
         data: {
           userId,
           badgeId,
-          earnedAt: new Date(),
-          notified: !notify
+          earnedAt: new Date()
         }
       });
       
@@ -621,8 +618,7 @@ export class BadgeService {
         await this.sendBadgeNotification(userId, badge);
       }
       
-      this.logger.badge('BADGE_AWARDED', userId, {
-        badgeId,
+      this.logger.badge('BADGE_AWARDED', badgeId, userId, {
         badgeName: badge.name,
         rarity: badge.rarity
       });
@@ -654,7 +650,7 @@ export class BadgeService {
       // Award role (would integrate with role management)
       if (rewards.role) {
         // This would call the role service to assign role
-        this.logger.badge('ROLE_AWARDED', userId, { role: rewards.role });
+        this.logger.badge('ROLE_AWARDED', rewards.role, userId, {});
       }
     } catch (error) {
       this.logger.error(`Failed to award rewards to user ${userId}:`, error);
@@ -677,7 +673,7 @@ export class BadgeService {
           { name: 'Raridade', value: `${this.rarityEmojis[badge.rarity]} ${badge.rarity.toUpperCase()}`, inline: true },
           { name: 'Categoria', value: badge.category.toUpperCase(), inline: true }
         )
-        .setColor(this.rarityColors[badge.rarity])
+        .setColor((this.rarityColors[badge.rarity] || '#95A5A6') as any)
         .setThumbnail(user.displayAvatarURL())
         .setTimestamp();
       
@@ -697,11 +693,7 @@ export class BadgeService {
         this.logger.warn(`Could not send badge notification to user ${userId}`);
       });
       
-      // Mark as notified
-      await this.database.client.userBadge.updateMany({
-        where: { userId, badgeId: badge.id },
-        data: { notified: true }
-      });
+      // Badge notification sent successfully
       
     } catch (error) {
       this.logger.error(`Failed to send badge notification to user ${userId}:`, error);
@@ -831,7 +823,6 @@ export class BadgeService {
           category: badgeData.category,
           rarity: badgeData.rarity,
           requirements: JSON.stringify(badgeData.requirements),
-          rewards: JSON.stringify(badgeData.rewards || {}),
           isSecret: badgeData.isSecret,
           isActive: badgeData.isActive
         }
@@ -843,7 +834,7 @@ export class BadgeService {
         createdAt: new Date()
       });
       
-      this.logger.badge('CUSTOM_BADGE_CREATED', badgeData.id, {
+      this.logger.badge('CUSTOM_BADGE_CREATED', badgeData.id, 'system', {
         name: badgeData.name,
         category: badgeData.category
       });
@@ -868,7 +859,7 @@ export class BadgeService {
       // Remove from memory
       this.userBadges.get(userId)?.delete(badgeId);
       
-      this.logger.badge('BADGE_REMOVED', userId, { badgeId });
+      this.logger.badge('BADGE_REMOVED', badgeId, userId, {});
       
       return true;
     } catch (error) {

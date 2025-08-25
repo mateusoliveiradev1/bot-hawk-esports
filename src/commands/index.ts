@@ -1,7 +1,7 @@
-import { Collection } from 'discord.js';
-import { Command, ContextMenuCommand } from '@/types/command';
-import { ExtendedClient } from '@/types/client';
-import { Logger } from '@/utils/logger';
+import { Collection, ChatInputCommandInteraction, ContextMenuCommandInteraction, AutocompleteInteraction } from 'discord.js';
+import { Command, ContextMenuCommand } from '../types/command';
+import { ExtendedClient } from '../types/client';
+import { Logger } from '../utils/logger';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -16,8 +16,8 @@ export class CommandManager {
   public aliases: Collection<string, string>;
   public cooldowns: Collection<string, Collection<string, number>>;
 
-  constructor(client: ExtendedClient) {
-    this.client = client;
+  constructor(client?: ExtendedClient) {
+    this.client = client!;
     this.logger = new Logger();
     this.commands = new Collection();
     this.contextMenus = new Collection();
@@ -249,5 +249,70 @@ export class CommandManager {
     
     await this.loadCommands();
     this.logger.info('All commands reloaded');
+  }
+
+  /**
+   * Handle slash command interactions
+   */
+  public async handleSlashCommand(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+    const command = this.getCommand(interaction.commandName);
+    if (!command) return;
+
+    try {
+      const cooldownCheck = this.isOnCooldown(command.data.name, interaction.user.id);
+      if (cooldownCheck.onCooldown) {
+        await interaction.reply({
+          content: `⏰ Você deve aguardar ${Math.ceil(cooldownCheck.timeLeft! / 1000)} segundos antes de usar este comando novamente.`,
+          ephemeral: true
+        });
+        return;
+      }
+
+      await command.execute(interaction, client);
+    } catch (error) {
+      this.logger.error(`Error executing command ${command.data.name}:`, error);
+      
+      const errorMessage = 'Ocorreu um erro ao executar este comando!';
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp({ content: errorMessage, ephemeral: true });
+      } else {
+        await interaction.reply({ content: errorMessage, ephemeral: true });
+      }
+    }
+  }
+
+  /**
+   * Handle context menu command interactions
+   */
+  public async handleContextCommand(interaction: ContextMenuCommandInteraction, client: ExtendedClient): Promise<void> {
+    const command = this.getContextMenu(interaction.commandName);
+    if (!command) return;
+
+    try {
+      await command.execute(interaction as any, client);
+    } catch (error) {
+      this.logger.error(`Error executing context menu ${command.data.name}:`, error);
+      
+      const errorMessage = 'Ocorreu um erro ao executar este comando!';
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp({ content: errorMessage, ephemeral: true });
+      } else {
+        await interaction.reply({ content: errorMessage, ephemeral: true });
+      }
+    }
+  }
+
+  /**
+   * Handle autocomplete interactions
+   */
+  public async handleAutocomplete(interaction: AutocompleteInteraction, client: ExtendedClient): Promise<void> {
+    const command = this.getCommand(interaction.commandName);
+    if (!command || !command.autocomplete) return;
+
+    try {
+      await command.autocomplete(interaction, client);
+    } catch (error) {
+      this.logger.error(`Error handling autocomplete for ${command.data.name}:`, error);
+    }
   }
 }

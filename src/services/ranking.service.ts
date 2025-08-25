@@ -1,9 +1,9 @@
-import { Logger } from '@/utils/logger';
+import { Logger } from '../utils/logger';
 import { CacheService } from './cache.service';
-import { DatabaseService } from '@/database/database.service';
+import { DatabaseService } from '../database/database.service';
 import { PUBGService } from './pubg.service';
-import { ExtendedClient } from '@/types/client';
-import { PUBGPlatform, PUBGGameMode, PUBGRankTier, InternalRankingEntry, PUBGRankingEntry } from '@/types/pubg';
+import { ExtendedClient } from '../types/client';
+import { PUBGPlatform, PUBGGameMode, PUBGRankTier, InternalRankingEntry, PUBGRankingEntry } from '../types/pubg';
 import { GuildMember, Role, EmbedBuilder } from 'discord.js';
 
 export interface RankingPeriod {
@@ -122,57 +122,6 @@ export class RankingService {
       
       this.logger.info('Ranking loading disabled - database schema needs updates');
       return;
-      
-      for (const guild of guilds) {
-        const guildRankings = new Map<string, UserRankingData>();
-        
-        for (const guildUser of guild.users) {
-          const user = guildUser.user;
-          const pubgStats = user.pubgStats[0]; // Get latest PUBG stats
-          const userStats = user.userStats[0]; // Get latest user stats
-          
-          const rankingData: UserRankingData = {
-            userId: user.id,
-            username: user.username,
-            pubgName: user.pubgName || undefined,
-            pubgPlatform: user.pubgPlatform as PUBGPlatform || undefined,
-            stats: {
-              // PUBG Stats
-              kills: pubgStats?.kills || 0,
-              wins: pubgStats?.wins || 0,
-              games: pubgStats?.games || 0,
-              damage: pubgStats?.damage || 0,
-              headshots: pubgStats?.headshots || 0,
-              kda: pubgStats?.kda || 0,
-              winRate: pubgStats?.winRate || 0,
-              averageDamage: pubgStats?.averageDamage || 0,
-              rankPoints: pubgStats?.rankPoints || 0,
-              tier: (pubgStats?.tier as PUBGRankTier) || PUBGRankTier.BRONZE,
-              subTier: pubgStats?.subTier || 'V',
-              
-              // Internal Stats
-              level: userStats?.level || 1,
-              xp: userStats?.xp || 0,
-              coins: userStats?.coins || 0,
-              messages: userStats?.messages || 0,
-              voiceTime: userStats?.voiceTime || 0,
-              quizScore: userStats?.quizScore || 0,
-              miniGameWins: userStats?.miniGameWins || 0,
-              badgeCount: userStats?.badgeCount || 0,
-              checkIns: userStats?.checkIns || 0,
-              clipsUploaded: userStats?.clipsUploaded || 0,
-              clipsVotes: userStats?.clipsVotes || 0
-            },
-            lastUpdated: userStats?.updatedAt || new Date()
-          };
-          
-          guildRankings.set(user.id, rankingData);
-        }
-        
-        this.rankings.set(guild.id, guildRankings);
-      }
-      
-      this.logger.info(`Loaded rankings for ${guilds.length} guilds`);
     } catch (error) {
       this.logger.error('Failed to load rankings:', error);
     }
@@ -186,8 +135,9 @@ export class RankingService {
       const guildConfigs = await this.database.client.guildConfig.findMany();
       
       for (const config of guildConfigs) {
-        if (config.rankingRoles) {
-          const roleRewards: RoleReward[] = JSON.parse(config.rankingRoles);
+        const configData = config.config as any;
+        if (configData && configData.rankingRoles) {
+          const roleRewards: RoleReward[] = configData.rankingRoles;
           this.roleRewards.set(config.guildId, roleRewards);
         }
       }
@@ -374,10 +324,10 @@ export class RankingService {
    */
   private async updateAllRankings(): Promise<void> {
     try {
-      for (const guildId of this.rankings.keys()) {
+      for (const guildId of Array.from(this.rankings.keys())) {
         const guildRankings = this.rankings.get(guildId)!;
         
-        for (const userId of guildRankings.keys()) {
+        for (const userId of Array.from(guildRankings.keys())) {
           await this.updateUserRanking(guildId, userId);
         }
       }
@@ -403,7 +353,7 @@ export class RankingService {
     
     const entries: PUBGRankingEntry[] = [];
     
-    for (const [userId, data] of guildRankings) {
+    for (const [userId, data] of Array.from(guildRankings.entries())) {
       if (!data.pubgName || !data.pubgPlatform) continue;
       
       entries.push({
@@ -411,7 +361,7 @@ export class RankingService {
         userId,
         username: data.username,
         pubgName: data.pubgName,
-        platform: data.pubgPlatform,
+        pubgPlatform: data.pubgPlatform,
         stats: {
           kills: data.stats.kills,
           wins: data.stats.wins,
@@ -425,11 +375,7 @@ export class RankingService {
           tier: data.stats.tier,
           subTier: data.stats.subTier
         },
-        change: {
-          rank: 0, // Would need historical data
-          points: 0 // Would need historical data
-        },
-        lastUpdated: data.lastUpdated.toISOString()
+        lastUpdated: data.lastUpdated
       });
     }
     
@@ -472,7 +418,7 @@ export class RankingService {
     
     const entries: InternalRankingEntry[] = [];
     
-    for (const [userId, data] of guildRankings) {
+    for (const [userId, data] of Array.from(guildRankings.entries())) {
       entries.push({
         rank: 0, // Will be set after sorting
         userId,
@@ -490,11 +436,7 @@ export class RankingService {
           clipsUploaded: data.stats.clipsUploaded,
           clipsVotes: data.stats.clipsVotes
         },
-        change: {
-          rank: 0, // Would need historical data
-          value: 0 // Would need historical data
-        },
-        lastUpdated: data.lastUpdated.toISOString()
+        lastUpdated: data.lastUpdated
       });
     }
     
@@ -576,7 +518,7 @@ export class RankingService {
       endDate: today
     };
     
-    for (const guildId of this.rankings.keys()) {
+    for (const guildId of Array.from(this.rankings.keys())) {
       await this.createSnapshot(guildId, period, 'pubg');
       await this.createSnapshot(guildId, period, 'internal');
     }
@@ -601,7 +543,7 @@ export class RankingService {
       endDate: today
     };
     
-    for (const guildId of this.rankings.keys()) {
+    for (const guildId of Array.from(this.rankings.keys())) {
       await this.createSnapshot(guildId, period, 'pubg');
       await this.createSnapshot(guildId, period, 'internal');
     }
@@ -665,13 +607,18 @@ export class RankingService {
       await this.database.client.rankingSnapshot.create({
         data: {
           id: snapshot.id,
+          userId: 'system', // System-generated snapshot
           guildId,
           type,
           period: period.type,
-          gameMode: gameMode || null,
-          startDate: period.startDate,
-          endDate: period.endDate,
-          data: JSON.stringify(data)
+          rank: 0,
+          value: 0,
+          metadata: JSON.parse(JSON.stringify({
+            gameMode: gameMode || null,
+            startDate: period.startDate.toISOString(),
+            endDate: period.endDate.toISOString(),
+            data: data
+          }))
         }
       });
       
@@ -704,7 +651,7 @@ export class RankingService {
    */
   private async updateRoleAssignments(): Promise<void> {
     try {
-      for (const [guildId, roleRewards] of this.roleRewards) {
+      for (const [guildId, roleRewards] of Array.from(this.roleRewards.entries())) {
         const guild = this.client.guilds.cache.get(guildId);
         if (!guild) continue;
         
@@ -801,14 +748,21 @@ export class RankingService {
       this.roleRewards.set(guildId, roleRewards);
       
       // Save to database
+      const existingConfig = await this.database.client.guildConfig.findUnique({
+        where: { guildId }
+      });
+      
+      const currentConfig = existingConfig?.config as any || {};
+      currentConfig.rankingRoles = roleRewards;
+      
       await this.database.client.guildConfig.upsert({
         where: { guildId },
         update: {
-          rankingRoles: JSON.stringify(roleRewards)
+          config: JSON.parse(JSON.stringify(currentConfig))
         },
         create: {
           guildId,
-          rankingRoles: JSON.stringify(roleRewards)
+          config: JSON.parse(JSON.stringify({ rankingRoles: roleRewards }))
         }
       });
       

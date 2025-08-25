@@ -326,3 +326,51 @@ export enum RankingType {
   LEVEL = 'level',
   COINS = 'coins'
 }
+
+/**
+ * PUBG Ranking Entry interface
+ */
+export interface PUBGRankingEntry {
+  rank: number;
+  userId: string;
+  username: string;
+  pubgName: string;
+  pubgPlatform: PUBGPlatform;
+  stats: {
+    kills: number;
+    wins: number;
+    games: number;
+    damage: number;
+    headshots: number;
+    kda: number;
+    winRate: number;
+    averageDamage: number;
+    rankPoints: number;
+    tier: PUBGRankTier;
+    subTier: string;
+  };
+  lastUpdated: Date;
+}
+
+/**
+ * Internal Ranking Entry interface
+ */
+export interface InternalRankingEntry {
+  rank: number;
+  userId: string;
+  username: string;
+  stats: {
+    level: number;
+    xp: number;
+    coins: number;
+    messages: number;
+    voiceTime: number;
+    quizScore: number;
+    miniGameWins: number;
+    badgeCount: number;
+    checkIns: number;
+    clipsUploaded: number;
+    clipsVotes: number;
+  };
+  lastUpdated: Date;
+}
