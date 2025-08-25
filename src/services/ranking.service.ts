@@ -400,7 +400,7 @@ export class RankingService {
   /**
    * Update all rankings
    */
-  private async updateAllRankings(): Promise<void> {
+  public async updateAllRankings(): Promise<void> {
     try {
       for (const guildId of Array.from(this.rankings.keys())) {
         const guildRankings = this.rankings.get(guildId)!;

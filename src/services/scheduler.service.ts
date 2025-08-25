@@ -461,8 +461,7 @@ export class SchedulerService {
    * Update daily rankings
    */
   private async updateDailyRankings(): Promise<void> {
-    // TODO: Implement updateAllRankings method or make it public
-    // await this.rankingService.updateAllRankings();
+    await this.rankingService.updateAllRankings();
     
     // Send daily ranking notifications
     for (const guild of this.client.guilds.cache.values()) {
@@ -485,8 +484,7 @@ export class SchedulerService {
    * Update weekly rankings
    */
   private async updateWeeklyRankings(): Promise<void> {
-    // TODO: Implement updateAllRankings method or make it public
-    // await this.rankingService.updateAllRankings();
+    await this.rankingService.updateAllRankings();
     
     // Award weekly rewards
     for (const guild of this.client.guilds.cache.values()) {
@@ -510,8 +508,7 @@ export class SchedulerService {
    * Update monthly rankings
    */
   private async updateMonthlyRankings(): Promise<void> {
-    // TODO: Implement updateAllRankings method or make it public
-    // await this.rankingService.updateAllRankings();
+    await this.rankingService.updateAllRankings();
     
     // Award monthly rewards
     for (const guild of this.client.guilds.cache.values()) {

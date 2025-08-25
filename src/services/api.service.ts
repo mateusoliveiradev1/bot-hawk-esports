@@ -309,49 +309,43 @@ export class APIService {
 
       const decoded = jwt.verify(token, this.config.jwtSecret) as any;
 
-      // TODO: Fix user authentication - commenting out until User model relations are corrected
-      // const user = await this.database.client.user.findUnique({
-      //   where: { id: decoded.userId },
-      //   include: {
-      //     guilds: {  // Fixed: guild -> guilds (UserGuild relation)
-      //       include: {
-      //         guild: true
-      //       }
-      //     }
-      //   }
-      // });
-      //
-      // if (!user) {
-      //   res.status(401).json({
-      //     success: false,
-      //     error: 'Invalid token'
-      //   });
-      //   return;
-      // }
-      //
-      // // Get Discord user info
-      // const discordUser = await this.client.users.fetch(user.id).catch(() => null);
-      // // TODO: Need to determine guildId from UserGuild relation
-      // const guildId = user.guilds[0]?.guildId;  // Fixed: user.guildId -> user.guilds[0]?.guildId
-      // const guild = guildId ? this.client.guilds.cache.get(guildId) : null;
-      // const member = guild ? await guild.members.fetch(user.id).catch(() => null) : null;
-      //
-      // req.user = {
-      //   id: user.id,
-      //   guildId: guildId || '',  // Fixed: user.guildId -> guildId
-      //   username: discordUser?.username || user.username,
-      //   discriminator: discordUser?.discriminator || '0000',
-      //   avatar: discordUser?.avatar || undefined,
-      //   roles: member ? member.roles.cache.map(role => role.id) : [],
-      //   permissions: member ? member.permissions.toArray() : []
-      // };
-
-      // Temporary bypass for authentication
-      res.status(401).json({
-        success: false,
-        error: 'Authentication disabled - database schema needs updates',
+      // Get user from database
+      const user = await this.database.client.user.findUnique({
+        where: { id: decoded.userId },
+        include: {
+          guilds: {
+            include: {
+              guild: true
+            }
+          }
+        }
       });
-      return;
+
+      if (!user) {
+        res.status(401).json({
+          success: false,
+          error: 'Invalid token'
+        });
+        return;
+      }
+
+      // Get Discord user info
+      const discordUser = await this.client.users.fetch(user.id).catch(() => null);
+      // Get first active guild from UserGuild relation
+       const primaryUserGuild = user.guilds.find(ug => ug.isActive) || user.guilds[0];
+      const guildId = primaryUserGuild?.guildId || '';
+      const guild = guildId ? this.client.guilds.cache.get(guildId) : null;
+      const member = guild ? await guild.members.fetch(user.id).catch(() => null) : null;
+
+      req.user = {
+        id: user.id,
+        guildId: guildId,
+        username: discordUser?.username || user.username,
+        discriminator: discordUser?.discriminator || '0000',
+        avatar: discordUser?.avatar || undefined,
+        roles: member ? member.roles.cache.map(role => role.id) : [],
+        permissions: member ? member.permissions.toArray() : []
+      };
 
       next();
     } catch (error) {
@@ -487,29 +481,21 @@ export class APIService {
     // Update user profile
     router.put('/me', async (req: AuthenticatedRequest, res: Response) => {
       try {
-        // TODO: Fix user update - commenting out until User model is corrected
-        // const { pubgUsername, pubgPlatform } = req.body;
-        //
-        // const updatedUser = await this.database.client.user.update({
-        //   where: { id: req.user!.id },
+        const { pubgUsername, pubgPlatform } = req.body;
 
-        res.status(503).json({
-          success: false,
-          error: 'User update disabled - database schema needs updates',
+        const updatedUser = await this.database.client.user.update({
+          where: { id: req.user!.id },
+          data: {
+            pubgUsername,
+            pubgPlatform,
+            updatedAt: new Date()
+          }
         });
 
-        // TODO: Complete the user update implementation
-        //   data: {
-        //     pubgUsername,
-        //     pubgPlatform,
-        //     updatedAt: new Date()
-        //   }
-        // });
-        //
-        // res.json({
-        //   success: true,
-        //   data: updatedUser
-        // });
+        res.json({
+          success: true,
+          data: updatedUser
+        });
       } catch (error) {
         this.logger.error('Update user error:', error);
         res.status(500).json({
@@ -524,23 +510,16 @@ export class APIService {
       '/me/stats',
       async (req: AuthenticatedRequest, res: Response) => {
         try {
-          // TODO: Fix UserStats query - UserStats model has userId field, not userId_guildId composite key
-          // const stats = await this.database.client.userStats.findUnique({
-          //   where: {
-          //     userId: req.user!.id
-          //   }
-          // });
-
-          // Temporarily disabled until UserStats model is properly configured
-          res.status(503).json({
-            success: false,
-            error: 'User stats disabled - database schema needs updates',
+          const stats = await this.database.client.userStats.findUnique({
+            where: {
+              userId: req.user!.id
+            }
           });
 
-          // res.json({
-          //   success: true,
-          //   data: stats
-          // });
+          res.json({
+            success: true,
+            data: stats
+          });
         } catch (error) {
           this.logger.error('Get user stats error:', error);
           res.status(500).json({
@@ -618,34 +597,26 @@ export class APIService {
 
           const skip = (Number(page) - 1) * Number(limit);
 
-          // TODO: Fix guild member queries - User model doesn't have guildId or joinedAt fields
-          // Need to use UserGuild relation instead
-          /*
-        const [members, total] = await Promise.all([
-          this.database.client.userGuild.findMany({
-            where: { guildId },
-            include: {
-              user: {
-                include: {
-                  stats: true
-                }
+          const [members, total] = await Promise.all([
+            this.database.client.userGuild.findMany({
+              where: { guildId },
+              include: {
+                user: {
+                   include: {
+                     stats: true
+                   }
+                 }
+              },
+              skip,
+              take: Number(limit),
+              orderBy: {
+                joinedAt: 'desc'
               }
-            },
-            skip,
-            take: Number(limit),
-            orderBy: {
-              joinedAt: 'desc'
-            }
-          }),
-          this.database.client.userGuild.count({
-            where: { guildId }
-          })
-        ]);
-        */
-
-          // Temporarily return empty data
-          const members: any[] = [];
-          const total = 0;
+            }),
+            this.database.client.userGuild.count({
+              where: { guildId }
+            })
+          ]);
 
           return res.json({
             success: true,

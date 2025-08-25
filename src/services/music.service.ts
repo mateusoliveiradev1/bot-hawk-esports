@@ -103,21 +103,65 @@ export class MusicService {
 
   /**
    * Load persistent queues from database
-   * TODO: Update MusicQueue schema to support full queue persistence
+   * Loads saved music queues and reconstructs them in memory
    */
   private async loadQueuesFromDatabase(): Promise<void> {
     try {
-      // Temporarily disabled due to schema mismatch
-      // The current MusicQueue model only stores individual tracks, not full queues
-      // Need to update schema to include queue state fields
+      // Load all saved music queue entries (excluding playlists)
+      const savedTracks = await this.database.client.musicQueue.findMany({
+        where: {
+          channelId: {
+            not: 'playlist' // Exclude playlist entries
+          }
+        },
+        orderBy: [
+          { guildId: 'asc' },
+          { position: 'asc' }
+        ]
+      });
       
-      // const savedQueues = await this.database.client.musicQueue.findMany({
-      //   include: {
-      //     guild: true
-      //   }
-      // });
+      // Group tracks by guildId and reconstruct queues
+      const guildTracks = new Map<string, any[]>();
       
-      this.logger.info('Queue loading temporarily disabled - schema update required');
+      for (const track of savedTracks) {
+        if (!guildTracks.has(track.guildId)) {
+          guildTracks.set(track.guildId, []);
+        }
+        
+        // Convert database track to Track interface
+        const queueTrack = {
+          title: track.title,
+          artist: 'Unknown Artist', // Not stored in current schema
+          url: track.url,
+          duration: track.duration || 0,
+          thumbnail: track.thumbnail || '',
+          platform: track.url.includes('youtube') ? 'youtube' as const : 'spotify' as const,
+          requestedBy: track.requestedBy
+        };
+        
+        guildTracks.get(track.guildId)!.push(queueTrack);
+      }
+      
+      // Reconstruct queues in memory
+      for (const [guildId, tracks] of guildTracks) {
+        if (tracks.length > 0) {
+          const queue: Queue = {
+            guildId,
+            tracks,
+            currentTrack: null,
+            volume: 100,
+            loop: 'none',
+            shuffle: false,
+            filters: [],
+            isPaused: false,
+            isPlaying: false
+          };
+          
+          this.queues.set(guildId, queue);
+        }
+      }
+      
+      this.logger.info(`Loaded ${guildTracks.size} persistent queues from database`);
     } catch (error) {
       this.logger.error('Failed to load queues from database:', error);
     }
@@ -125,17 +169,44 @@ export class MusicService {
 
   /**
    * Save queue to database
+   * Persists current queue state to database for recovery
    */
   private async saveQueueToDatabase(guildId: string): Promise<void> {
     try {
-      // Temporarily disabled due to schema mismatch
-      // The current MusicQueue model doesn't support full queue persistence
-      // TODO: Update schema to include queue state fields or implement track-by-track storage
+      const queue = this.queues.get(guildId);
+      if (!queue) return;
       
-      // const queue = this.queues.get(guildId);
-      // if (!queue) return;
+      // Remove existing queue entries for this guild
+      await this.database.client.musicQueue.deleteMany({
+        where: {
+          guildId,
+          channelId: {
+            not: 'playlist' // Don't delete playlist entries
+          }
+        }
+      });
       
-      this.logger.debug(`Queue save skipped for guild ${guildId} - schema update required`);
+      // Save current queue tracks
+       for (let i = 0; i < queue.tracks.length; i++) {
+         const track = queue.tracks[i];
+         if (!track) continue;
+         
+         await this.database.client.musicQueue.create({
+           data: {
+             guildId,
+             channelId: 'queue', // Identifier for active queue
+             title: track.title,
+             url: track.url,
+             duration: track.duration,
+             thumbnail: track.thumbnail || null,
+             requestedBy: track.requestedBy,
+             position: i,
+             isPlaying: false
+           }
+         });
+       }
+      
+      this.logger.debug(`Queue saved for guild ${guildId} with ${queue.tracks.length} tracks`);
     } catch (error) {
       this.logger.error(`Failed to save queue for guild ${guildId}:`, error);
     }
@@ -671,16 +742,41 @@ export class MusicService {
 
   /**
    * Save playlist to database
+   * Uses MusicQueue model to store playlist tracks with special naming convention
    */
   public async savePlaylist(userId: string, name: string, tracks: Track[]): Promise<boolean> {
     try {
-      // TODO: Implement playlist saving to database
-      // This would require a Playlist model in the database schema
+      // Create a special guildId for playlists: playlist_userId_playlistName
+      const playlistId = `playlist_${userId}_${name.replace(/[^a-zA-Z0-9]/g, '_')}`;
       
-      this.logger.info(`Playlist save requested: ${name} by user ${userId} with ${tracks.length} tracks`);
+      // Remove existing playlist with same name
+      await this.database.client.musicQueue.deleteMany({
+        where: {
+          guildId: playlistId
+        }
+      });
       
-      // For now, return true to indicate the method exists
-      // In a full implementation, this would save to database and return success status
+      // Save each track as a MusicQueue entry
+       for (let i = 0; i < tracks.length; i++) {
+         const track = tracks[i];
+         if (!track) continue;
+         
+         await this.database.client.musicQueue.create({
+           data: {
+             guildId: playlistId,
+             channelId: 'playlist', // Special identifier for playlists
+             title: track.title,
+             url: track.url,
+             duration: track.duration,
+             thumbnail: track.thumbnail || null,
+             requestedBy: userId,
+             position: i,
+             isPlaying: false
+           }
+         });
+       }
+      
+      this.logger.info(`Playlist '${name}' saved successfully for user ${userId} with ${tracks.length} tracks`);
       return true;
     } catch (error) {
       this.logger.error(`Failed to save playlist ${name} for user ${userId}:`, error);

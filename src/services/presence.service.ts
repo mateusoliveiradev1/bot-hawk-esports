@@ -246,9 +246,44 @@ export class PresenceService {
     deviceInfo?: string,
   ): Promise<{ success: boolean; message: string; session?: PresenceSession }> {
     try {
-      // TODO: Implement check-in with current Presence model
-      // Current model: id, userId, type, timestamp, metadata, createdAt
-      // Need to store guildId, location, note, ipAddress, deviceInfo in metadata
+      // Check if user is already checked in
+      const existingCheckIn = await this.database.client.presence.findFirst({
+        where: {
+          userId,
+          type: 'checkin',
+          metadata: {
+            path: ['guildId'],
+            equals: guildId
+          }
+        },
+        orderBy: {
+          timestamp: 'desc'
+        }
+      });
+      
+      // Check if there's a corresponding checkout
+      if (existingCheckIn) {
+        const checkOut = await this.database.client.presence.findFirst({
+          where: {
+            userId,
+            type: 'checkout',
+            timestamp: {
+              gt: existingCheckIn.timestamp
+            },
+            metadata: {
+              path: ['guildId'],
+              equals: guildId
+            }
+          }
+        });
+        
+        if (!checkOut) {
+          return {
+            success: false,
+            message: 'Você já está em uma sessão ativa. Faça checkout primeiro.'
+          };
+        }
+      }
       
       const presenceRecord = await this.database.client.presence.create({
         data: {
@@ -265,12 +300,43 @@ export class PresenceService {
         },
       });
       
+      // Create session object for response
+      const session: PresenceSession = {
+        id: presenceRecord.id,
+        userId,
+        guildId,
+        checkInTime: presenceRecord.timestamp,
+        location,
+        note,
+        status: 'active'
+      };
+      
+      // Add to active sessions
+      if (!this.activeSessions.has(guildId)) {
+        this.activeSessions.set(guildId, new Map());
+      }
+      this.activeSessions.get(guildId)!.set(userId, session);
+      
+      // Award check-in rewards
+      await this.awardDailyRewards(userId, guildId);
+      
+      // Send notification
+      await this.sendCheckInNotification(userId, guildId, session);
+      
       this.logger.info(`User ${userId} checked in to guild ${guildId}`);
       
       return {
         success: true,
         message: `Check-in realizado com sucesso às ${new Date().toLocaleString('pt-BR')}.`,
+        session
       };
+      
+      /*
+      return {
+        success: false,
+        message: 'Check-in temporariamente desabilitado para manutenção do modelo de dados.'
+      };
+      */
       
     } catch (error) {
       this.logger.error(`Failed to check in user ${userId}:`, error);
@@ -290,9 +356,36 @@ export class PresenceService {
     note?: string,
   ): Promise<{ success: boolean; message: string; session?: PresenceSession }> {
     try {
-      // TODO: Implement check-out with current Presence model
-      // Current model: id, userId, type, timestamp, metadata, createdAt
-      // Need to store guildId and note in metadata
+      // Check if user has an active session
+      const activeSession = this.activeSessions.get(guildId)?.get(userId);
+      if (!activeSession) {
+        return {
+          success: false,
+          message: 'Você não possui uma sessão ativa para fazer checkout.'
+        };
+      }
+      
+      // Find the most recent check-in
+      const lastCheckIn = await this.database.client.presence.findFirst({
+        where: {
+          userId,
+          type: 'checkin',
+          metadata: {
+            path: ['guildId'],
+            equals: guildId
+          }
+        },
+        orderBy: {
+          timestamp: 'desc'
+        }
+      });
+      
+      if (!lastCheckIn) {
+        return {
+          success: false,
+          message: 'Nenhum check-in encontrado para fazer checkout.'
+        };
+      }
       
       const presenceRecord = await this.database.client.presence.create({
         data: {
@@ -302,16 +395,49 @@ export class PresenceService {
           metadata: {
             guildId,
             note,
+            checkInId: lastCheckIn.id
           },
         },
       });
       
-      this.logger.info(`User ${userId} checked out from guild ${guildId}`);
+      // Calculate session duration
+      const duration = presenceRecord.timestamp.getTime() - lastCheckIn.timestamp.getTime();
+      const durationMinutes = Math.floor(duration / (1000 * 60));
+      
+      // Update session
+      const updatedSession: PresenceSession = {
+        ...activeSession,
+        checkOutTime: presenceRecord.timestamp,
+        duration: durationMinutes,
+        status: 'completed'
+      };
+      
+      // Remove from active sessions
+      this.activeSessions.get(guildId)?.delete(userId);
+      
+      // Award session rewards
+      await this.awardSessionRewards(userId, guildId, durationMinutes);
+      
+      // Update user stats
+       await this.updateUserStats(guildId, userId);
+      
+      // Send notification
+      await this.sendCheckOutNotification(userId, guildId, updatedSession);
+      
+      this.logger.info(`User ${userId} checked out from guild ${guildId} after ${durationMinutes} minutes`);
       
       return {
         success: true,
-        message: `Check-out realizado com sucesso às ${new Date().toLocaleString('pt-BR')}.`,
+        message: `Check-out realizado com sucesso às ${new Date().toLocaleString('pt-BR')}. Sessão: ${durationMinutes} minutos.`,
+        session: updatedSession
       };
+      
+      /*
+      return {
+        success: false,
+        message: 'Check-out temporariamente desabilitado para manutenção do modelo de dados.'
+      };
+      */
       
     } catch (error) {
       this.logger.error(`Failed to check out user ${userId}:`, error);
