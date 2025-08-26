@@ -421,27 +421,34 @@ export class BadgeService {
       },
     ];
     
-    // Load existing badges from database
-    const existingBadges = await this.database.client.badge.findMany();
-    const existingIds = new Set(existingBadges.map(b => b.id));
+    // No need to check existing badges when using upsert
     
-    // Create new badges
+    // Create or update badges
     for (const badgeData of badgeDefinitions) {
-      if (!existingIds.has(badgeData.id)) {
-        await this.database.client.badge.create({
-          data: {
-            id: badgeData.id,
-            name: badgeData.name,
-            description: badgeData.description,
-            icon: badgeData.icon,
-            category: badgeData.category,
-            rarity: badgeData.rarity,
-            requirements: JSON.stringify(badgeData.requirements),
-            isSecret: badgeData.isSecret,
-            isActive: badgeData.isActive,
-          },
-        });
-      }
+      await this.database.client.badge.upsert({
+        where: { id: badgeData.id },
+        update: {
+          name: badgeData.name,
+          description: badgeData.description,
+          icon: badgeData.icon,
+          category: badgeData.category,
+          rarity: badgeData.rarity,
+          requirements: JSON.stringify(badgeData.requirements),
+          isSecret: badgeData.isSecret,
+          isActive: badgeData.isActive,
+        },
+        create: {
+          id: badgeData.id,
+          name: badgeData.name,
+          description: badgeData.description,
+          icon: badgeData.icon,
+          category: badgeData.category,
+          rarity: badgeData.rarity,
+          requirements: JSON.stringify(badgeData.requirements),
+          isSecret: badgeData.isSecret,
+          isActive: badgeData.isActive,
+        },
+      });
       
       this.badges.set(badgeData.id, {
         ...badgeData,

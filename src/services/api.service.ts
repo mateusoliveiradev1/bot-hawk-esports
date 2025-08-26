@@ -15,6 +15,7 @@ import { GameService } from './game.service';
 import { ClipService } from './clip.service';
 import { ExtendedClient } from '../types/client';
 import { Server } from 'http';
+import { Server as SocketIOServer } from 'socket.io';
 import * as jwt from 'jsonwebtoken';
 import * as bcrypt from 'bcryptjs';
 import multer from 'multer';
@@ -64,6 +65,7 @@ export interface APIResponse<T = any> {
 export class APIService {
   private app: Express;
   private server: Server | null = null;
+  private io: SocketIOServer | null = null;
   private logger: Logger;
   private database: DatabaseService;
   private cache: CacheService;
@@ -235,6 +237,12 @@ export class APIService {
 
     // API routes
     this.app.use('/api/auth', this.getAuthRoutes());
+    
+    // Development routes (no auth required)
+    if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+      this.app.use('/api/dev', this.getDevRoutes());
+    }
+    
     this.app.use('/api/users', this.authenticateToken, this.getUserRoutes());
     this.app.use('/api/guilds', this.authenticateToken, this.getGuildRoutes());
     this.app.use(
@@ -355,6 +363,333 @@ export class APIService {
       });
     }
   };
+
+  /**
+   * Development routes (no auth required)
+   */
+  private getDevRoutes(): express.Router {
+    const router = express.Router();
+
+    // Get guild stats without auth for development
+    router.get('/stats/:guildId', async (req: Request, res: Response) => {
+      try {
+        const { guildId } = req.params;
+        if (!guildId) {
+          return res.status(400).json({
+            success: false,
+            error: 'Guild ID is required'
+          });
+        }
+        const stats = await this.getGuildStats(guildId);
+        
+        return res.json({
+          success: true,
+          data: stats
+        });
+      } catch (error) {
+        this.logger.error('Error fetching dev stats:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Internal server error'
+        });
+      }
+    });
+
+    // Get guild info without auth for development
+    router.get('/guild/:guildId', async (req: Request, res: Response) => {
+      try {
+        const { guildId } = req.params;
+        
+        // For development, return mock data
+        const mockGuildData = {
+          id: guildId,
+          name: 'Hawk Esports',
+          icon: null,
+          memberCount: 156,
+          config: {},
+          users: [
+            {
+              user: {
+                id: '1',
+                username: 'João',
+                discriminator: '1234',
+                avatar: null,
+                level: 15,
+                totalXp: 125430,
+                coins: 2450,
+                lastSeen: new Date(Date.now() - 2 * 60 * 1000).toISOString(), // 2 minutes ago
+                joinedAt: '2024-01-15T10:30:00Z'
+              },
+              isActive: true,
+              joinedAt: '2024-01-15T10:30:00Z'
+            },
+            {
+              user: {
+                id: '2',
+                username: 'Maria',
+                discriminator: '5678',
+                avatar: null,
+                level: 8,
+                totalXp: 89230,
+                coins: 1890,
+                lastSeen: new Date(Date.now() - 15 * 60 * 1000).toISOString(), // 15 minutes ago
+                joinedAt: '2024-01-10T08:15:00Z'
+              },
+              isActive: true,
+              joinedAt: '2024-01-10T08:15:00Z'
+            },
+            {
+              user: {
+                id: '3',
+                username: 'Pedro',
+                discriminator: '9012',
+                avatar: null,
+                level: 22,
+                totalXp: 234560,
+                coins: 3780,
+                lastSeen: new Date(Date.now() - 60 * 60 * 1000).toISOString(), // 1 hour ago
+                joinedAt: '2024-01-05T16:20:00Z'
+              },
+              isActive: false,
+              joinedAt: '2024-01-05T16:20:00Z'
+            },
+            {
+              user: {
+                id: '4',
+                username: 'Ana',
+                discriminator: '3456',
+                avatar: null,
+                level: 12,
+                totalXp: 98760,
+                coins: 2100,
+                lastSeen: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
+                joinedAt: '2024-01-12T14:45:00Z'
+              },
+              isActive: true,
+              joinedAt: '2024-01-12T14:45:00Z'
+            },
+            {
+              user: {
+                id: '5',
+                username: 'Carlos',
+                discriminator: '7890',
+                avatar: null,
+                level: 18,
+                totalXp: 167890,
+                coins: 3200,
+                lastSeen: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
+                joinedAt: '2024-01-08T09:20:00Z'
+              },
+              isActive: true,
+              joinedAt: '2024-01-08T09:20:00Z'
+            }
+          ]
+        };
+
+        res.json({
+          success: true,
+          data: mockGuildData
+        });
+      } catch (error) {
+        this.logger.error('Error fetching dev guild:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Internal server error'
+        });
+      }
+    });
+
+    // Get commands without auth for development
+    router.get('/commands', async (req: Request, res: Response) => {
+      try {
+        // For development, return mock data based on real commands structure
+        const mockCommandsData = [
+          {
+            id: 'bootstrap',
+            name: 'bootstrap',
+            description: 'Configura o servidor inicial',
+            category: 'ADMIN',
+            usageCount: Math.floor(Math.random() * 500) + 50,
+            successRate: 95 + Math.random() * 5,
+            avgResponseTime: Math.floor(Math.random() * 300) + 50,
+            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+            enabled: true,
+            premium: true,
+            aliases: []
+          },
+          {
+            id: 'onboarding',
+            name: 'onboarding',
+            description: 'Sistema de boas-vindas do servidor',
+            category: 'ADMIN',
+            usageCount: Math.floor(Math.random() * 1000) + 100,
+            successRate: 95 + Math.random() * 5,
+            avgResponseTime: Math.floor(Math.random() * 300) + 50,
+            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+            enabled: true,
+            premium: true,
+            aliases: []
+          },
+          {
+            id: 'badges',
+            name: 'badges',
+            description: 'Sistema de emblemas e conquistas',
+            category: 'GENERAL',
+            usageCount: Math.floor(Math.random() * 3000) + 500,
+            successRate: 95 + Math.random() * 5,
+            avgResponseTime: Math.floor(Math.random() * 300) + 50,
+            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+            enabled: true,
+            premium: false,
+            aliases: ['badge', 'emblemas']
+          },
+          {
+            id: 'challenge',
+            name: 'challenge',
+            description: 'Cria desafios entre usuários',
+            category: 'GENERAL',
+            usageCount: Math.floor(Math.random() * 2000) + 300,
+            successRate: 95 + Math.random() * 5,
+            avgResponseTime: Math.floor(Math.random() * 300) + 50,
+            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+            enabled: true,
+            premium: false,
+            aliases: ['desafio']
+          },
+          {
+            id: 'daily',
+            name: 'daily',
+            description: 'Recompensa diária',
+            category: 'GENERAL',
+            usageCount: Math.floor(Math.random() * 5000) + 1000,
+            successRate: 95 + Math.random() * 5,
+            avgResponseTime: Math.floor(Math.random() * 300) + 50,
+            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+            enabled: true,
+            premium: false,
+            aliases: ['diario']
+          },
+          {
+            id: 'help',
+            name: 'help',
+            description: 'Mostra ajuda sobre comandos',
+            category: 'GENERAL',
+            usageCount: Math.floor(Math.random() * 8000) + 2000,
+            successRate: 95 + Math.random() * 5,
+            avgResponseTime: Math.floor(Math.random() * 300) + 50,
+            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+            enabled: true,
+            premium: false,
+            aliases: ['ajuda', 'h']
+          },
+          {
+            id: 'minigame',
+            name: 'minigame',
+            description: 'Mini-jogos interativos',
+            category: 'GENERAL',
+            usageCount: Math.floor(Math.random() * 4000) + 800,
+            successRate: 95 + Math.random() * 5,
+            avgResponseTime: Math.floor(Math.random() * 300) + 50,
+            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+            enabled: true,
+            premium: false,
+            aliases: ['jogo', 'game']
+          },
+          {
+            id: 'profile',
+            name: 'profile',
+            description: 'Mostra perfil do usuário',
+            category: 'GENERAL',
+            usageCount: Math.floor(Math.random() * 6000) + 1500,
+            successRate: 95 + Math.random() * 5,
+            avgResponseTime: Math.floor(Math.random() * 300) + 50,
+            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+            enabled: true,
+            premium: false,
+            aliases: ['perfil', 'p']
+          },
+          {
+            id: 'quiz',
+            name: 'quiz',
+            description: 'Quiz interativo com perguntas',
+            category: 'GENERAL',
+            usageCount: Math.floor(Math.random() * 3000) + 600,
+            successRate: 95 + Math.random() * 5,
+            avgResponseTime: Math.floor(Math.random() * 300) + 50,
+            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+            enabled: true,
+            premium: false,
+            aliases: ['pergunta']
+          },
+          {
+            id: 'play',
+            name: 'play',
+            description: 'Reproduz música no canal de voz',
+            category: 'MUSIC',
+            usageCount: Math.floor(Math.random() * 15000) + 5000,
+            successRate: 95 + Math.random() * 5,
+            avgResponseTime: Math.floor(Math.random() * 300) + 50,
+            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+            enabled: true,
+            premium: true,
+            aliases: ['p', 'tocar']
+          },
+          {
+            id: 'queue',
+            name: 'queue',
+            description: 'Mostra a fila de reprodução',
+            category: 'MUSIC',
+            usageCount: Math.floor(Math.random() * 8000) + 2000,
+            successRate: 95 + Math.random() * 5,
+            avgResponseTime: Math.floor(Math.random() * 300) + 50,
+            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+            enabled: true,
+            premium: true,
+            aliases: ['q', 'fila']
+          },
+          {
+            id: 'ranking',
+            name: 'ranking',
+            description: 'Mostra ranking de jogadores',
+            category: 'PUBG',
+            usageCount: Math.floor(Math.random() * 4000) + 1000,
+            successRate: 95 + Math.random() * 5,
+            avgResponseTime: Math.floor(Math.random() * 300) + 50,
+            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+            enabled: true,
+            premium: false,
+            aliases: ['rank', 'top']
+          },
+          {
+            id: 'register',
+            name: 'register',
+            description: 'Registra jogador no sistema PUBG',
+            category: 'PUBG',
+            usageCount: Math.floor(Math.random() * 2000) + 400,
+            successRate: 95 + Math.random() * 5,
+            avgResponseTime: Math.floor(Math.random() * 300) + 50,
+            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+            enabled: true,
+            premium: false,
+            aliases: ['registrar']
+          }
+        ];
+
+        res.json({
+          success: true,
+          data: mockCommandsData
+        });
+      } catch (error) {
+        this.logger.error('Error fetching dev commands:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Internal server error'
+        });
+      }
+    });
+
+    return router;
+  }
 
   /**
    * Auth routes
@@ -1298,7 +1633,16 @@ export class APIService {
             this.logger.info(
               `API server started on ${this.config.host}:${this.config.port}`,
             );
-            resolve();
+            
+            // Setup WebSocket
+            this.setupWebSocket();
+              
+              // Start simulated updates in development
+              if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+                this.startSimulatedUpdates();
+              }
+              
+              resolve();
           },
         );
 
@@ -1313,10 +1657,81 @@ export class APIService {
   }
 
   /**
+   * Setup WebSocket server
+   */
+  private setupWebSocket(): void {
+    if (!this.server) {
+      this.logger.error('HTTP server not initialized');
+      return;
+    }
+
+    this.io = new SocketIOServer(this.server, {
+      cors: {
+        origin: this.config.corsOrigins,
+        methods: ['GET', 'POST']
+      }
+    });
+
+    this.io.on('connection', (socket) => {
+      this.logger.info(`WebSocket client connected: ${socket.id}`);
+
+      // Handle dashboard subscription
+      socket.on('subscribe:dashboard', (guildId: string) => {
+        socket.join(`dashboard:${guildId}`);
+        this.logger.info(`Client ${socket.id} subscribed to dashboard:${guildId}`);
+        
+        // Send initial data
+        this.sendDashboardUpdate(guildId);
+      });
+
+      // Handle disconnection
+      socket.on('disconnect', () => {
+        this.logger.info(`WebSocket client disconnected: ${socket.id}`);
+      });
+    });
+
+    this.logger.info('🔌 WebSocket server initialized');
+  }
+
+  /**
+   * Send dashboard update to subscribed clients
+   */
+  private async sendDashboardUpdate(guildId: string): Promise<void> {
+    try {
+      const stats = await this.getGuildStats(guildId);
+      this.io?.to(`dashboard:${guildId}`).emit('dashboard:update', {
+        type: 'stats',
+        data: stats
+      });
+    } catch (error) {
+      this.logger.error('Error sending dashboard update:', error);
+    }
+  }
+
+  /**
+   * Broadcast real-time updates
+   */
+  public broadcastUpdate(guildId: string, type: string, data: any): void {
+    if (this.io) {
+      this.io.to(`dashboard:${guildId}`).emit('dashboard:update', {
+        type,
+        data,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  /**
    * Stop the API server
    */
   public async stop(): Promise<void> {
     return new Promise((resolve) => {
+      if (this.io) {
+        this.io.close();
+        this.io = null;
+        this.logger.info('🔌 WebSocket server stopped');
+      }
+      
       if (this.server) {
         this.server.close(() => {
           this.logger.info('API server stopped');
@@ -1326,6 +1741,38 @@ export class APIService {
         resolve();
       }
     });
+  }
+
+  /**
+   * Simulate real-time updates for development
+   */
+  private startSimulatedUpdates(): void {
+    setInterval(() => {
+      if (this.io) {
+        const mockStats = {
+          users: {
+            total: Math.floor(Math.random() * 1000) + 500,
+            active: Math.floor(Math.random() * 200) + 100,
+            new: Math.floor(Math.random() * 50) + 10
+          },
+          economy: {
+            totalXP: Math.floor(Math.random() * 100000) + 50000,
+            totalCoins: Math.floor(Math.random() * 50000) + 25000,
+            transactions: Math.floor(Math.random() * 1000) + 500
+          },
+          commands: {
+            total: Math.floor(Math.random() * 10000) + 5000,
+            today: Math.floor(Math.random() * 500) + 100
+          },
+          music: {
+            songsPlayed: Math.floor(Math.random() * 5000) + 2000,
+            queueLength: Math.floor(Math.random() * 20) + 5
+          }
+        };
+
+        this.broadcastUpdate('1409723307489755270', 'stats', mockStats);
+      }
+    }, 10000); // Update every 10 seconds
   }
 
   /**
