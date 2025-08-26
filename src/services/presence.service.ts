@@ -116,8 +116,8 @@ export class PresenceService {
 
   constructor(client: ExtendedClient) {
     this.logger = new Logger();
-    this.cache = new CacheService();
-    this.database = new DatabaseService();
+    this.cache = client.cache;
+    this.database = client.database;
     this.badgeService = new BadgeService(client);
     this.client = client;
     

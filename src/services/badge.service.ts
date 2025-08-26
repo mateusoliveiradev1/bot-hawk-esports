@@ -82,8 +82,8 @@ export class BadgeService {
 
   constructor(client: ExtendedClient) {
     this.logger = new Logger();
-    this.cache = new CacheService();
-    this.database = new DatabaseService();
+    this.cache = client.cache;
+    this.database = client.database;
     this.client = client;
     
     this.initializeBadges();

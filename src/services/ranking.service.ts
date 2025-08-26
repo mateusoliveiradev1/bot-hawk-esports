@@ -88,9 +88,9 @@ export class RankingService {
 
   constructor(client: ExtendedClient) {
     this.logger = new Logger();
-    this.cache = new CacheService();
-    this.database = new DatabaseService();
-    this.pubgService = new PUBGService();
+    this.cache = client.cache;
+    this.database = client.database;
+    this.pubgService = client.pubgService;
     this.client = client;
     
     this.loadRankings();

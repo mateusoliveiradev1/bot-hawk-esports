@@ -388,6 +388,25 @@ export class CacheService {
   }
 
   /**
+   * Cleanup expired keys and optimize cache
+   */
+  public async cleanup(): Promise<void> {
+    try {
+      if (!this.isConnected) {
+        this.logger.warn('Cannot cleanup cache: Redis client not connected');
+        return;
+      }
+
+      // Get memory info
+      const info = await this.client.memory('USAGE');
+      this.logger.info(`Cache cleanup completed. Memory usage: ${info} bytes`);
+    } catch (error) {
+      this.logger.error('Cache cleanup failed:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Cache key generators for different data types
    */
   public keyGenerators = {

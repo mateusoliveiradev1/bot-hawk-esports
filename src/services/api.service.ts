@@ -87,15 +87,15 @@ export class APIService {
   constructor(client: ExtendedClient) {
     this.client = client;
     this.logger = new Logger();
-    this.database = new DatabaseService();
-    this.cache = new CacheService();
-    this.pubgService = new PUBGService();
-    this.rankingService = new RankingService(client);
-    this.badgeService = new BadgeService(client);
-    this.presenceService = new PresenceService(client);
-    this.musicService = new MusicService();
-    this.gameService = new GameService(client);
-    this.clipService = new ClipService(client);
+    this.database = client.database;
+    this.cache = client.cache;
+    this.pubgService = client.pubgService;
+    this.rankingService = client.rankingService;
+    this.badgeService = client.badgeService;
+    this.presenceService = client.presenceService;
+    this.musicService = client.musicService;
+    this.gameService = client.gameService;
+    this.clipService = client.clipService;
     this.securityService = new SecurityService(this.database);
 
     this.config = {

@@ -82,8 +82,8 @@ class HawkEsportsBot {
     
     // Initialize services first
     this.services = {
-      pubg: new PUBGService(),
-      music: new MusicService(),
+      pubg: new PUBGService(this.cache),
+      music: new MusicService(this.cache, this.db),
       game: new GameService(this.client),
       badge: new BadgeService(this.client),
       ranking: new RankingService(this.client),

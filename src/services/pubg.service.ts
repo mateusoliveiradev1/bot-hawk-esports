@@ -27,9 +27,9 @@ export class PUBGService {
   private readonly rateLimitDelay: number = 1000; // 1 second between requests
   private lastRequestTime: number = 0;
 
-  constructor() {
+  constructor(cache?: CacheService) {
     this.logger = new Logger();
-    this.cache = new CacheService();
+    this.cache = cache || new CacheService();
     this.baseURL = process.env.PUBG_API_BASE_URL || 'https://api.pubg.com';
     this.apiKey = process.env.PUBG_API_KEY || '';
 

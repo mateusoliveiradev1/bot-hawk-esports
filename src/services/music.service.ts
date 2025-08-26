@@ -85,10 +85,10 @@ export class MusicService {
     surrounding: 'surround',
   };
 
-  constructor() {
+  constructor(cache?: CacheService, database?: DatabaseService) {
     this.logger = new Logger();
-    this.cache = new CacheService();
-    this.database = new DatabaseService();
+    this.cache = cache || new CacheService();
+    this.database = database || new DatabaseService();
     
     this.initializeSpotify();
     this.loadQueuesFromDatabase();
