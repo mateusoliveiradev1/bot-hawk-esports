@@ -1,7 +1,7 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, demuxProbe, DiscordGatewayAdapterCreator, entersState, getVoiceConnection, joinVoiceChannel, VoiceConnection, VoiceConnectionStatus, StreamType } from '@discordjs/voice';
 import { Guild, GuildMember, VoiceBasedChannel } from 'discord.js';
 import ytdl from 'ytdl-core';
-import ytsr from 'ytsr';
+import { search, video_basic_info } from 'play-dl';
 import { SpotifyApi } from '@spotify/web-api-ts-sdk';
 import { Logger } from '../utils/logger';
 import { CacheService } from './cache.service';
@@ -368,20 +368,22 @@ export class MusicService {
         return cached;
       }
 
-      const searchResults = await ytsr(query, { limit });
+      const searchResults = await search(query, {
+        limit,
+        source: { youtube: 'video' }
+      });
+      
       const tracks: Track[] = [];
 
-      for (const item of searchResults.items) {
-        if (item.type === 'video') {
-          const video = item as ytsr.Video;
-          
+      for (const video of searchResults) {
+        if (video.type === 'video') {
           tracks.push({
-            id: video.id,
-            title: video.title,
-            artist: video.author?.name || 'Unknown',
-            duration: this.parseDuration(video.duration),
+            id: video.id || '',
+            title: video.title || 'Unknown Title',
+            artist: video.channel?.name || 'Unknown Artist',
+            duration: video.durationInSec || 0,
             url: video.url,
-            thumbnail: video.bestThumbnail?.url || '',
+            thumbnail: video.thumbnails?.[0]?.url || '',
             requestedBy: '',
             platform: 'youtube',
             addedAt: new Date(),
