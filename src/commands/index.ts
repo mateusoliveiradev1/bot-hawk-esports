@@ -31,22 +31,32 @@ export class CommandManager {
   public async loadCommands(): Promise<void> {
     try {
       const commandsPath = path.join(__dirname);
+      this.logger.debug(`Loading commands from: ${commandsPath}`);
+      
       const commandFolders = fs.readdirSync(commandsPath).filter(folder => 
         fs.statSync(path.join(commandsPath, folder)).isDirectory(),
       );
+      
+      this.logger.debug(`Found command folders: ${commandFolders.join(', ')}`);
 
       for (const folder of commandFolders) {
         const folderPath = path.join(commandsPath, folder);
         const commandFiles = fs.readdirSync(folderPath).filter(file => 
           file.endsWith('.ts') || file.endsWith('.js'),
         );
+        
+        this.logger.debug(`Found ${commandFiles.length} command files in ${folder}: ${commandFiles.join(', ')}`);
 
         for (const file of commandFiles) {
           const filePath = path.join(folderPath, file);
+          this.logger.debug(`Loading command from: ${filePath}`);
           const command = await this.loadCommand(filePath);
           
           if (command) {
             this.registerCommand(command);
+            this.logger.debug(`Successfully loaded command: ${command.data.name}`);
+          } else {
+            this.logger.warn(`Failed to load command from: ${filePath}`);
           }
         }
       }
@@ -62,7 +72,9 @@ export class CommandManager {
    */
   private async loadCommand(filePath: string): Promise<Command | ContextMenuCommand | null> {
     try {
-      const commandModule = await import(filePath);
+      // Convert Windows absolute path to file:// URL for ESM loader
+      const fileUrl = `file:///${filePath.replace(/\\/g, '/')}`;
+      const commandModule = await import(fileUrl);
       const command = commandModule.default || commandModule;
 
       if (!command || typeof command !== 'object') {

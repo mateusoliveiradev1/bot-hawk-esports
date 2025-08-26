@@ -2,12 +2,14 @@ import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, But
 import { PrismaClient } from '@prisma/client';
 import { BadgeService } from '../../services/badge.service';
 import { DatabaseService } from '../../database/database.service';
+import { Command, CommandCategory } from '../../types/command';
+import { ExtendedClient } from '../../types/client';
 
 const prisma = new PrismaClient();
 const database = new DatabaseService();
 const badgeService = new BadgeService(null as any); // Will be properly initialized in main bot
 
-export const data = new SlashCommandBuilder()
+const data = new SlashCommandBuilder()
   .setName('clips')
   .setDescription('Sistema de clips e highlights')
   .addSubcommand(subcommand =>
@@ -132,7 +134,7 @@ export const data = new SlashCommandBuilder()
       ),
   );
 
-export async function execute(interaction: ChatInputCommandInteraction) {
+async function execute(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
   const subcommand = interaction.options.getSubcommand();
 
   try {
@@ -690,3 +692,12 @@ function formatFileSize(bytes: number): string {
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
   return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
 }
+
+const clips: Command = {
+  data,
+  category: CommandCategory.CLIPS,
+  cooldown: 5,
+  execute
+};
+
+export default clips;
