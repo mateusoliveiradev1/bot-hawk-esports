@@ -368,26 +368,50 @@ export class MusicService {
         return cached;
       }
 
-      const searchResults = await search(query, {
-        limit,
-        source: { youtube: 'video' }
-      });
-      
-      const tracks: Track[] = [];
+      let tracks: Track[] = [];
 
-      for (const video of searchResults) {
-        if (video.type === 'video') {
+      // Check if query is a YouTube URL
+      if (this.isYouTubeUrl(query)) {
+        try {
+          // Get video info directly from URL
+          const videoInfo = await video_basic_info(query);
+          
           tracks.push({
-            id: video.id || '',
-            title: video.title || 'Unknown Title',
-            artist: video.channel?.name || 'Unknown Artist',
-            duration: video.durationInSec || 0,
-            url: video.url,
-            thumbnail: video.thumbnails?.[0]?.url || '',
+            id: videoInfo.video_details.id || '',
+            title: videoInfo.video_details.title || 'Unknown Title',
+            artist: videoInfo.video_details.channel?.name || 'Unknown Artist',
+            duration: videoInfo.video_details.durationInSec || 0,
+            url: videoInfo.video_details.url,
+            thumbnail: videoInfo.video_details.thumbnails?.[0]?.url || '',
             requestedBy: '',
             platform: 'youtube',
             addedAt: new Date(),
           });
+        } catch (urlError) {
+          this.logger.error(`Failed to get video info from URL "${query}":`, urlError);
+          return [];
+        }
+      } else {
+        // Search by text query
+        const searchResults = await search(query, {
+          limit,
+          source: { youtube: 'video' }
+        });
+        
+        for (const video of searchResults) {
+          if (video.type === 'video') {
+            tracks.push({
+              id: video.id || '',
+              title: video.title || 'Unknown Title',
+              artist: video.channel?.name || 'Unknown Artist',
+              duration: video.durationInSec || 0,
+              url: video.url,
+              thumbnail: video.thumbnails?.[0]?.url || '',
+              requestedBy: '',
+              platform: 'youtube',
+              addedAt: new Date(),
+            });
+          }
         }
       }
       
