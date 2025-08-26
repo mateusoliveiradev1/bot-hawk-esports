@@ -29,6 +29,11 @@ export interface ExtendedClient extends Client {
   gameService: GameService;
   badgeService: BadgeService;
   rankingService: RankingService;
+  presenceService: PresenceService;
+  clipService: ClipService;
+  schedulerService: SchedulerService;
+  apiService: APIService;
+  onboardingService: OnboardingService;
   // New properties for the updated architecture
   db?: DatabaseService;
   services?: {

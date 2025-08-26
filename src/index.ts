@@ -80,9 +80,7 @@ class HawkEsportsBot {
     this.client.cache = this.cache;
     this.client.logger = this.logger;
     
-    // Initialize command manager
-    this.commands = new CommandManager(this.client);
-    
+    // Initialize services first
     this.services = {
       pubg: new PUBGService(),
       music: new MusicService(),
@@ -95,6 +93,21 @@ class HawkEsportsBot {
       api: new APIService(this.client),
       onboarding: new OnboardingService(this.client),
     };
+    
+    // Attach individual services to client for direct access
+    this.client.pubgService = this.services.pubg;
+    this.client.musicService = this.services.music;
+    this.client.gameService = this.services.game;
+    this.client.badgeService = this.services.badge;
+    this.client.rankingService = this.services.ranking;
+    this.client.presenceService = this.services.presence;
+    this.client.clipService = this.services.clip;
+    this.client.schedulerService = this.services.scheduler;
+    this.client.apiService = this.services.api;
+    this.client.onboardingService = this.services.onboarding;
+    
+    // Initialize command manager
+    this.commands = new CommandManager(this.client);
     
     // Attach services to client
     this.client.services = this.services;
