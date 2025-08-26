@@ -190,7 +190,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="dashboard-stats">
         <StatCard
           title="Total de Usuários"
           value={stats?.users.total || 0}
@@ -245,7 +245,8 @@ export default function Dashboard() {
             <h3 className="text-lg font-semibold text-card-foreground mb-4">
               Comandos Mais Usados
             </h3>
-            <ResponsiveContainer width="100%" height={300}>
+            <div className="analytics-chart-container">
+               <ResponsiveContainer width="100%" height={300}>
               <BarChart data={mockCommandUsage}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
@@ -253,7 +254,8 @@ export default function Dashboard() {
                 <Tooltip />
                 <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
               </BarChart>
-            </ResponsiveContainer>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
 
@@ -265,21 +267,23 @@ export default function Dashboard() {
             <h3 className="text-lg font-semibold text-card-foreground mb-4">
               Atividade nas Últimas 24h
             </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={mockActivityData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="time" />
-                <YAxis />
-                <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="commands"
-                  stroke="#10b981"
-                  strokeWidth={3}
-                  dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="analytics-chart-container">
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={mockActivityData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="time" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line
+                    type="monotone"
+                    dataKey="commands"
+                    stroke="#10b981"
+                    strokeWidth={3}
+                    dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
       </div>

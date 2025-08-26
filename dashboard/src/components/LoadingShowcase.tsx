@@ -76,7 +76,7 @@ const LoadingShowcaseContent: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 items-center">
+          <div className="loading-showcase-grid cols-4 gap-6">
             <div className="text-center space-y-2">
               <Spinner size="sm" />
               <p className="text-xs text-muted-foreground">Spinner SM</p>
@@ -106,7 +106,7 @@ const LoadingShowcaseContent: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 items-center">
+          <div className="loading-showcase-grid cols-6 gap-6">
             <div className="text-center space-y-2">
               <WaveSpinner size="md" color="primary" />
               <p className="text-xs text-muted-foreground">Wave</p>
@@ -288,7 +288,7 @@ const LoadingShowcaseContent: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="loading-showcase-grid cols-3 gap-6">
             <ShimmerSkeleton lines={4} avatar />
             <ShimmerSkeleton lines={3} />
           </div>

@@ -134,7 +134,7 @@ export default function Settings() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sidebar */}
         <div className="lg:col-span-1">
-          <nav className="space-y-1">
+          <nav className="settings-sidebar space-y-1">
             {sections.map((section) => {
               const isActive = activeSection === section.id
               return (
@@ -169,7 +169,7 @@ export default function Settings() {
                   </h3>
                 </div>
                 
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div className="form-grid cols-2 gap-6">
                   <div>
                     <label className="label">Nome do Bot</label>
                     <input

@@ -1,0 +1,336 @@
+/* Responsive improvements for mobile devices */
+
+/* Mobile-first approach with better spacing and layout */
+@media (max-width: 640px) {
+  /* General mobile improvements */
+  .space-y-8 > * + * {
+    margin-top: 1.5rem !important;
+  }
+  
+  .space-y-6 > * + * {
+    margin-top: 1rem !important;
+  }
+  
+  .p-6 {
+    padding: 1rem !important;
+  }
+  
+  .px-6 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  .py-6 {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+  
+  /* Typography adjustments */
+  .text-3xl {
+    font-size: 1.875rem !important;
+    line-height: 2.25rem !important;
+  }
+  
+  .text-2xl {
+    font-size: 1.5rem !important;
+    line-height: 2rem !important;
+  }
+  
+  .text-xl {
+    font-size: 1.25rem !important;
+    line-height: 1.75rem !important;
+  }
+  
+  .text-lg {
+    font-size: 1rem !important;
+    line-height: 1.5rem !important;
+  }
+  
+  /* Grid improvements for mobile */
+  .grid-cols-2 {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+  
+  .grid-cols-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  
+  .grid-cols-6 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  
+  /* Gap adjustments */
+  .gap-8 {
+    gap: 1rem !important;
+  }
+  
+  .gap-6 {
+    gap: 0.75rem !important;
+  }
+  
+  .gap-4 {
+    gap: 0.5rem !important;
+  }
+  
+  /* Button improvements */
+  .flex-wrap {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  
+  .flex-wrap > button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  
+  /* Card content improvements */
+  .card {
+    margin: 0 !important;
+    border-radius: 0.5rem !important;
+  }
+  
+  /* Chart container improvements */
+  .recharts-responsive-container {
+    min-height: 200px !important;
+  }
+  
+  /* Status badge improvements */
+  .flex.items-center.space-x-2 {
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+  }
+  
+  /* Progress bar improvements */
+  .space-y-4 > * + * {
+    margin-top: 0.75rem !important;
+  }
+}
+
+/* Tablet improvements */
+@media (min-width: 641px) and (max-width: 1024px) {
+  /* Adjust grid for tablet */
+  .lg\:grid-cols-6 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+  
+  .lg\:grid-cols-4 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  
+  .lg\:grid-cols-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  
+  /* Reduce padding slightly */
+  .p-6 {
+    padding: 1.25rem !important;
+  }
+}
+
+/* Specific component improvements */
+
+/* Dashboard stats cards */
+.dashboard-stats {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+@media (max-width: 640px) {
+  .dashboard-stats {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}
+
+/* Analytics charts */
+.analytics-chart-container {
+  min-height: 250px;
+}
+
+@media (max-width: 640px) {
+  .analytics-chart-container {
+    min-height: 200px;
+  }
+  
+  .analytics-chart-container .recharts-cartesian-axis-tick-value {
+    font-size: 10px !important;
+  }
+}
+
+/* Settings page improvements */
+.settings-sidebar {
+  position: sticky;
+  top: 1rem;
+  height: fit-content;
+}
+
+@media (max-width: 1024px) {
+  .settings-sidebar {
+    position: static;
+    margin-bottom: 1.5rem;
+  }
+  
+  .settings-sidebar nav {
+    display: flex;
+    overflow-x: auto;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  
+  .settings-sidebar nav button {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
+/* Loading showcase improvements */
+.loading-showcase-grid {
+  display: grid;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.loading-showcase-grid.cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.loading-showcase-grid.cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.loading-showcase-grid.cols-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.loading-showcase-grid.cols-6 {
+  grid-template-columns: repeat(6, 1fr);
+}
+
+@media (max-width: 640px) {
+  .loading-showcase-grid.cols-2 {
+    grid-template-columns: 1fr;
+  }
+  
+  .loading-showcase-grid.cols-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .loading-showcase-grid.cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .loading-showcase-grid.cols-6 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 641px) and (max-width: 768px) {
+  .loading-showcase-grid.cols-6 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Form improvements */
+.form-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.form-grid.cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (max-width: 640px) {
+  .form-grid.cols-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Navigation improvements */
+@media (max-width: 1024px) {
+  .nav-title {
+    font-size: 1rem !important;
+  }
+  
+  .nav-title.hidden {
+    display: none !important;
+  }
+}
+
+/* Toast improvements for mobile */
+@media (max-width: 640px) {
+  .toast-container {
+    left: 1rem !important;
+    right: 1rem !important;
+    bottom: 1rem !important;
+    top: auto !important;
+  }
+  
+  .toast-item {
+    width: 100% !important;
+    max-width: none !important;
+  }
+}
+
+/* Utility classes for responsive design */
+.mobile-hidden {
+  display: block;
+}
+
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .mobile-hidden {
+    display: none !important;
+  }
+  
+  .mobile-only {
+    display: block !important;
+  }
+}
+
+/* Scroll improvements */
+.scroll-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scroll-container::-webkit-scrollbar {
+  height: 4px;
+}
+
+.scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
+}
+
+.scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Touch improvements */
+@media (hover: none) and (pointer: coarse) {
+  button, .button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
