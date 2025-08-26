@@ -860,6 +860,148 @@ export class APIService {
       },
     );
 
+    // Get bot activity stats
+    router.get('/activity', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const guildId = req.user!.guildId;
+        const { period = '7d' } = req.query;
+
+        // Mock activity data based on period
+        let multiplier = 1;
+        switch (period) {
+        case '1d':
+          multiplier = 0.14; // 1/7 of weekly
+          break;
+        case '7d':
+          multiplier = 1;
+          break;
+        case '30d':
+          multiplier = 4.3; // ~30/7
+          break;
+        }
+
+        const activityStats = {
+          commands: {
+            total: Math.floor((Math.random() * 1000 + 500) * multiplier),
+            mostUsed: [
+              { name: '/rank', count: Math.floor((Math.random() * 200 + 100) * multiplier) },
+              { name: '/profile', count: Math.floor((Math.random() * 150 + 80) * multiplier) },
+              { name: '/leaderboard', count: Math.floor((Math.random() * 120 + 60) * multiplier) },
+              { name: '/badges', count: Math.floor((Math.random() * 100 + 50) * multiplier) },
+              { name: '/clip', count: Math.floor((Math.random() * 80 + 40) * multiplier) },
+            ],
+          },
+          interactions: {
+            messages: Math.floor((Math.random() * 5000 + 2000) * multiplier),
+            reactions: Math.floor((Math.random() * 1000 + 500) * multiplier),
+            voiceMinutes: Math.floor((Math.random() * 10000 + 5000) * multiplier),
+          },
+          growth: {
+            newUsers: Math.floor((Math.random() * 50 + 10) * multiplier),
+            newBadges: Math.floor((Math.random() * 100 + 20) * multiplier),
+            completedQuizzes: Math.floor((Math.random() * 30 + 10) * multiplier),
+          },
+        };
+
+        res.json({
+          success: true,
+          data: activityStats,
+        });
+      } catch (error) {
+        this.logger.error('Get activity stats error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get activity statistics',
+        });
+      }
+    });
+
+    // Get real-time stats
+    router.get('/realtime', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const guildId = req.user!.guildId;
+
+        const realtimeStats = {
+          online: {
+            users: Math.floor(Math.random() * 100 + 50),
+            bots: 1,
+            total: Math.floor(Math.random() * 100 + 51),
+          },
+          activity: {
+            commandsLastHour: Math.floor(Math.random() * 50 + 10),
+            messagesLastHour: Math.floor(Math.random() * 200 + 50),
+            activeVoiceChannels: Math.floor(Math.random() * 5 + 1),
+          },
+          system: {
+            uptime: Date.now() - (Math.random() * 86400000 + 3600000), // 1-24 hours ago
+            memoryUsage: Math.floor(Math.random() * 200 + 100), // MB
+            responseTime: Math.floor(Math.random() * 50 + 10), // ms
+          },
+        };
+
+        res.json({
+          success: true,
+          data: realtimeStats,
+        });
+      } catch (error) {
+        this.logger.error('Get realtime stats error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get realtime statistics',
+        });
+      }
+    });
+
+    // Get user engagement stats
+    router.get('/engagement', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const guildId = req.user!.guildId;
+        const { period = '30d' } = req.query;
+
+        let multiplier = 1;
+        switch (period) {
+        case '7d':
+          multiplier = 0.25;
+          break;
+        case '30d':
+          multiplier = 1;
+          break;
+        case '90d':
+          multiplier = 3;
+          break;
+        }
+
+        const engagementStats = {
+          participation: {
+            activeUsers: Math.floor((Math.random() * 300 + 200) * multiplier),
+            dailyActiveUsers: Math.floor((Math.random() * 100 + 50) * multiplier),
+            weeklyActiveUsers: Math.floor((Math.random() * 200 + 100) * multiplier),
+          },
+          content: {
+            clipsUploaded: Math.floor((Math.random() * 50 + 20) * multiplier),
+            quizzesCompleted: Math.floor((Math.random() * 100 + 30) * multiplier),
+            badgesEarned: Math.floor((Math.random() * 200 + 50) * multiplier),
+          },
+          retention: {
+            returningUsers: Math.floor((Math.random() * 150 + 100) * multiplier),
+            averageSessionTime: Math.floor(Math.random() * 60 + 30), // minutes
+            engagementRate: Math.floor(Math.random() * 30 + 60), // percentage
+          },
+        };
+
+        res.json({
+          success: true,
+          data: engagementStats,
+        });
+      } catch (error) {
+        this.logger.error('Get engagement stats error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get engagement statistics',
+        });
+      }
+    });
+
     return router;
   }
 
@@ -1128,6 +1270,179 @@ export class APIService {
       },
     );
 
+    // Get combined leaderboard
+    router.get('/leaderboard', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { type = 'combined', period = 'monthly', limit = 50 } = req.query;
+
+        if (!['daily', 'weekly', 'monthly'].includes(period as string)) {
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid period',
+          });
+        }
+
+        // Create RankingPeriod object
+        const now = new Date();
+        let rankingPeriod;
+        switch (period) {
+        case 'daily':
+          rankingPeriod = {
+            type: 'daily' as const,
+            startDate: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+            endDate: now,
+          };
+          break;
+        case 'weekly':
+          rankingPeriod = {
+            type: 'weekly' as const,
+            startDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+            endDate: now,
+          };
+          break;
+        case 'monthly':
+          rankingPeriod = {
+            type: 'monthly' as const,
+            startDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+            endDate: now,
+          };
+          break;
+        }
+
+        let leaderboard;
+        if (type === 'pubg') {
+          leaderboard = this.rankingService.getPUBGRanking(
+            req.user!.guildId,
+            rankingPeriod!,
+            undefined,
+            'rankPoints',
+            Number(limit),
+          );
+        } else if (type === 'internal') {
+          leaderboard = this.rankingService.getInternalRanking(
+            req.user!.guildId,
+            rankingPeriod!,
+            'level',
+            Number(limit),
+          );
+        } else {
+          // Combined leaderboard - mix both rankings
+          const pubgRanking = this.rankingService.getPUBGRanking(
+            req.user!.guildId,
+            rankingPeriod!,
+            undefined,
+            'rankPoints',
+            25,
+          );
+          const internalRanking = this.rankingService.getInternalRanking(
+            req.user!.guildId,
+            rankingPeriod!,
+            'level',
+            25,
+          );
+
+          leaderboard = {
+            pubg: pubgRanking,
+            internal: internalRanking,
+          };
+        }
+
+        return res.json({
+          success: true,
+          data: leaderboard,
+        });
+      } catch (error) {
+        this.logger.error('Get leaderboard error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get leaderboard',
+        });
+      }
+    });
+
+    // Get ranking statistics
+    router.get('/stats', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const guildId = req.user!.guildId;
+
+        // Get total users with rankings (using mock data for now)
+        const totalPubgUsers = Math.floor(Math.random() * 200 + 100);
+        const totalInternalUsers = Math.floor(Math.random() * 300 + 150);
+
+        res.json({
+          success: true,
+          data: {
+            totalPubgUsers,
+            totalInternalUsers,
+            averageStats: {
+              pubg: {
+                rankPoints: Math.floor(Math.random() * 2000 + 1000),
+                kills: Math.floor(Math.random() * 100 + 50),
+                wins: Math.floor(Math.random() * 20 + 5),
+              },
+              internal: {
+                level: Math.floor(Math.random() * 50 + 25),
+                experience: Math.floor(Math.random() * 10000 + 5000),
+                badges: Math.floor(Math.random() * 15 + 5),
+              },
+            },
+          },
+        });
+      } catch (error) {
+        this.logger.error('Get ranking stats error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get ranking statistics',
+        });
+      }
+    });
+
+    // Get user ranking history
+    router.get('/history/:userId', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { userId } = req.params;
+        const { type = 'both', limit = 30 } = req.query;
+
+        // Generate mock historical data for the user
+        const userHistory = [];
+        const now = new Date();
+        
+        for (let i = 0; i < Number(limit); i++) {
+          const date = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000)); // Go back i days
+          
+          const entry = {
+            date,
+            period: 'daily',
+            pubgRank: type !== 'internal' ? Math.floor(Math.random() * 100 + 1) : null,
+            pubgStats: type !== 'internal' ? {
+              rankPoints: Math.floor(Math.random() * 2000 + 1000),
+              kills: Math.floor(Math.random() * 10 + 1),
+              wins: Math.floor(Math.random() * 3),
+            } : null,
+            internalRank: type !== 'pubg' ? Math.floor(Math.random() * 50 + 1) : null,
+            internalStats: type !== 'pubg' ? {
+              level: Math.floor(Math.random() * 50 + 25),
+              experience: Math.floor(Math.random() * 1000 + 500),
+              badges: Math.floor(Math.random() * 5 + 1),
+            } : null,
+          };
+          
+          userHistory.push(entry);
+        }
+
+        res.json({
+          success: true,
+          data: userHistory,
+        });
+      } catch (error) {
+        this.logger.error('Get ranking history error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get ranking history',
+        });
+      }
+    });
+
     return router;
   }
 
@@ -1188,6 +1503,150 @@ export class APIService {
         res.status(500).json({
           success: false,
           error: 'Failed to get badges',
+        });
+      }
+    });
+
+    // Get badge leaderboard
+    router.get('/leaderboard', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { limit = 50 } = req.query;
+
+        const leaderboard = await this.database.client.user.findMany({
+          select: {
+            id: true,
+            username: true,
+            badges: {
+              include: {
+                badge: true,
+              },
+            },
+          },
+          orderBy: {
+            badges: {
+              _count: 'desc',
+            },
+          },
+          take: Number(limit),
+        });
+
+        const formattedLeaderboard = leaderboard.map((user, index) => ({
+          rank: index + 1,
+          userId: user.id,
+          username: user.username,
+          badgeCount: user.badges.length,
+          badges: user.badges.map(ub => ub.badge),
+        }));
+
+        res.json({
+          success: true,
+          data: formattedLeaderboard,
+        });
+      } catch (error) {
+        this.logger.error('Get badge leaderboard error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get badge leaderboard',
+        });
+      }
+    });
+
+    // Get badge statistics
+    router.get('/stats', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const totalBadges = await this.database.client.badge.count();
+        const totalAwarded = await this.database.client.userBadge.count();
+        const activeBadges = await this.database.client.badge.count({
+          where: { isActive: true },
+        });
+
+        // Get category distribution
+        const categoryStats = await this.database.client.badge.groupBy({
+          by: ['category'],
+          _count: {
+            id: true,
+          },
+        });
+
+        // Get rarity distribution
+        const rarityStats = await this.database.client.badge.groupBy({
+          by: ['rarity'],
+          _count: {
+            id: true,
+          },
+        });
+
+        res.json({
+          success: true,
+          data: {
+            totalBadges,
+            totalAwarded,
+            activeBadges,
+            categoryDistribution: categoryStats.reduce((acc, stat) => {
+              acc[stat.category] = stat._count.id;
+              return acc;
+            }, {} as Record<string, number>),
+            rarityDistribution: rarityStats.reduce((acc, stat) => {
+              acc[stat.rarity] = stat._count.id;
+              return acc;
+            }, {} as Record<string, number>),
+          },
+        });
+      } catch (error) {
+        this.logger.error('Get badge stats error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get badge statistics',
+        });
+      }
+    });
+
+    // Get user badge progress
+    router.get('/progress/:userId', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { userId } = req.params;
+
+        // Get user's current badges
+        const userBadges = await this.database.client.userBadge.findMany({
+          where: { userId },
+          select: { badgeId: true },
+        });
+
+        const earnedBadgeIds = new Set(userBadges.map(ub => ub.badgeId));
+
+        // Get all available badges
+        const allBadges = await this.database.client.badge.findMany({
+          where: { isActive: true },
+        });
+
+        // Calculate progress for each badge
+        const progress = allBadges.map(badge => {
+          const isEarned = earnedBadgeIds.has(badge.id);
+          const requirements = JSON.parse(badge.requirements as string);
+          
+          return {
+            badgeId: badge.id,
+            name: badge.name,
+            description: badge.description,
+            icon: badge.icon,
+            category: badge.category,
+            rarity: badge.rarity,
+            isEarned,
+            requirements,
+            // Note: Actual progress calculation would require user stats
+            progress: isEarned ? 100 : 0,
+          };
+        });
+
+        res.json({
+          success: true,
+          data: progress,
+        });
+      } catch (error) {
+        this.logger.error('Get badge progress error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get badge progress',
         });
       }
     });
