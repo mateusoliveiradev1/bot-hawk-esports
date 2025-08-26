@@ -62,16 +62,16 @@ function StatCard({ title, value, icon: Icon, trend, trendValue }: {
   trendValue?: string
 }) {
   return (
-    <div className="card">
+    <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-secondary-600">{title}</p>
-          <p className="text-2xl font-bold text-secondary-900">
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <p className="text-2xl font-bold text-card-foreground">
             {typeof value === 'number' ? formatNumber(value) : value}
           </p>
           {trend && trendValue && (
             <div className={`flex items-center mt-1 text-sm ${
-              trend === 'up' ? 'text-success-600' : 'text-error-600'
+              trend === 'up' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
             }`}>
               <TrendingUp className={`h-4 w-4 mr-1 ${
                 trend === 'down' ? 'rotate-180' : ''
@@ -80,8 +80,8 @@ function StatCard({ title, value, icon: Icon, trend, trendValue }: {
             </div>
           )}
         </div>
-        <div className="p-3 bg-primary-100 rounded-lg">
-          <Icon className="h-6 w-6 text-primary-600" />
+        <div className="p-3 bg-primary/10 rounded-lg">
+          <Icon className="h-6 w-6 text-primary" />
         </div>
       </div>
     </div>
@@ -188,8 +188,8 @@ export default function Dashboard() {
       {/* Charts Grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Command Usage Chart */}
-        <div className="card">
-          <h3 className="text-lg font-semibold text-secondary-900 mb-4">
+        <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-card-foreground mb-4">
             Comandos Mais Usados
           </h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -204,8 +204,8 @@ export default function Dashboard() {
         </div>
 
         {/* Activity Chart */}
-        <div className="card">
-          <h3 className="text-lg font-semibold text-secondary-900 mb-4">
+        <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-card-foreground mb-4">
             Atividade nas Últimas 24h
           </h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -229,8 +229,8 @@ export default function Dashboard() {
       {/* Guild Types and Recent Activity */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Guild Types */}
-        <div className="card">
-          <h3 className="text-lg font-semibold text-secondary-900 mb-4">
+        <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-card-foreground mb-4">
             Tipos de Servidores
           </h3>
           <ResponsiveContainer width="100%" height={250}>
@@ -259,9 +259,9 @@ export default function Dashboard() {
                     className="w-3 h-3 rounded-full mr-2"
                     style={{ backgroundColor: type.color }}
                   />
-                  <span className="text-sm text-secondary-600">{type.name}</span>
+                  <span className="text-sm text-muted-foreground">{type.name}</span>
                 </div>
-                <span className="text-sm font-medium text-secondary-900">
+                <span className="text-sm font-medium text-card-foreground">
                   {type.value}%
                 </span>
               </div>
@@ -270,8 +270,8 @@ export default function Dashboard() {
         </div>
 
         {/* Recent Activity */}
-        <div className="card lg:col-span-2">
-          <h3 className="text-lg font-semibold text-secondary-900 mb-4">
+        <div className="bg-card border border-border rounded-lg p-6 shadow-sm lg:col-span-2">
+          <h3 className="text-lg font-semibold text-card-foreground mb-4">
             Atividade Recente
           </h3>
           <div className="space-y-4">
@@ -303,20 +303,20 @@ export default function Dashboard() {
             ].map((activity, index) => (
               <div key={index} className="flex items-center space-x-3">
                 <div className={`w-2 h-2 rounded-full ${
-                  activity.type === 'success' ? 'bg-success-500' :
-                  activity.type === 'info' ? 'bg-primary-500' :
-                  activity.type === 'warning' ? 'bg-warning-500' :
-                  'bg-error-500'
+                  activity.type === 'success' ? 'bg-green-500' :
+                  activity.type === 'info' ? 'bg-blue-500' :
+                  activity.type === 'warning' ? 'bg-yellow-500' :
+                  'bg-red-500'
                 }`} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-secondary-900">
+                  <p className="text-sm font-medium text-card-foreground">
                     {activity.action}
                   </p>
-                  <p className="text-sm text-secondary-500">
+                  <p className="text-sm text-muted-foreground">
                     {activity.server}
                   </p>
                 </div>
-                <div className="text-sm text-secondary-400">
+                <div className="text-sm text-muted-foreground">
                   {activity.time}
                 </div>
               </div>

@@ -1,8 +1,11 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
+import Onboarding from './pages/Onboarding'
+import Setup from './pages/Setup'
 import Dashboard from './pages/Dashboard'
 import Users from './pages/Users'
 import Guilds from './pages/Guilds'
@@ -12,13 +15,25 @@ import Settings from './pages/Settings'
 
 function App() {
   return (
-    <AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
       <Routes>
         {/* Public routes */}
+        <Route path="/" element={<Onboarding />} />
+        <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/login" element={<Login />} />
         
+        {/* Setup route - protected but accessible after login */}
+        <Route 
+          path="/setup" 
+          element={
+            <ProtectedRoute>
+              <Setup />
+            </ProtectedRoute>
+          } 
+        />
+        
         {/* Protected routes */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route 
           path="/dashboard" 
           element={
@@ -83,7 +98,8 @@ function App() {
         {/* Catch all - redirect to dashboard */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
-    </AuthProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 

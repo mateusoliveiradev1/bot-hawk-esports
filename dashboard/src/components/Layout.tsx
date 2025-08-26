@@ -16,6 +16,7 @@ import {
 import { cn } from '../lib/utils'
 import { useAuth } from '../contexts/AuthContext'
 import NotificationSystem from './NotificationSystem'
+import ThemeToggle from './ThemeToggle'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -37,22 +38,22 @@ export default function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth()
 
   return (
-    <div className="flex h-screen bg-secondary-50">
+    <div className="flex h-screen bg-background">
       {/* Mobile sidebar */}
       <div className={cn(
         'fixed inset-0 z-50 lg:hidden',
         sidebarOpen ? 'block' : 'hidden'
       )}>
-        <div className="fixed inset-0 bg-secondary-600/75" onClick={() => setSidebarOpen(false)} />
-        <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white">
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/75" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-card border-r border-border">
           <div className="flex h-16 items-center justify-between px-6">
             <div className="flex items-center space-x-2">
               <Bot className="h-8 w-8 text-primary-600" />
-              <span className="text-xl font-bold text-secondary-900">Hawk Dashboard</span>
+              <span className="text-xl font-bold text-card-foreground">Hawk Dashboard</span>
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="text-secondary-400 hover:text-secondary-600"
+              className="text-muted-foreground hover:text-foreground"
             >
               <X className="h-6 w-6" />
             </button>
@@ -67,15 +68,15 @@ export default function Layout({ children }: LayoutProps) {
                   className={cn(
                     'group flex items-center rounded-md px-2 py-2 text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-primary-100 text-primary-700'
-                      : 'text-secondary-600 hover:bg-secondary-100 hover:text-secondary-900'
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                   )}
                   onClick={() => setSidebarOpen(false)}
                 >
                   <item.icon
                     className={cn(
                       'mr-3 h-5 w-5 flex-shrink-0',
-                      isActive ? 'text-primary-500' : 'text-secondary-400 group-hover:text-secondary-500'
+                      isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-accent-foreground'
                     )}
                   />
                   {item.name}
@@ -88,10 +89,10 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Desktop sidebar */}
       <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
-        <div className="flex flex-col flex-grow bg-white border-r border-secondary-200">
-          <div className="flex items-center h-16 px-6 border-b border-secondary-200">
+        <div className="flex flex-col flex-grow bg-card border-r border-border">
+          <div className="flex items-center h-16 px-6 border-b border-border">
             <Bot className="h-8 w-8 text-primary-600" />
-            <span className="ml-2 text-xl font-bold text-secondary-900">Hawk Dashboard</span>
+            <span className="ml-2 text-xl font-bold text-card-foreground">Hawk Dashboard</span>
           </div>
           <nav className="flex-1 space-y-1 px-4 py-4">
             {navigation.map((item) => {
@@ -103,14 +104,14 @@ export default function Layout({ children }: LayoutProps) {
                   className={cn(
                     'group flex items-center rounded-md px-2 py-2 text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-primary-100 text-primary-700'
-                      : 'text-secondary-600 hover:bg-secondary-100 hover:text-secondary-900'
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                   )}
                 >
                   <item.icon
                     className={cn(
                       'mr-3 h-5 w-5 flex-shrink-0',
-                      isActive ? 'text-primary-500' : 'text-secondary-400 group-hover:text-secondary-500'
+                      isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-accent-foreground'
                     )}
                   />
                   {item.name}
@@ -124,31 +125,32 @@ export default function Layout({ children }: LayoutProps) {
       {/* Main content */}
       <div className="flex flex-1 flex-col lg:pl-64">
         {/* Top bar */}
-        <div className="sticky top-0 z-10 flex h-16 bg-white border-b border-secondary-200 lg:border-none">
+        <div className="sticky top-0 z-10 flex h-16 bg-card border-b border-border lg:border-none">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="border-r border-secondary-200 px-4 text-secondary-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 lg:hidden"
+            className="border-r border-border px-4 text-muted-foreground focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ring lg:hidden"
           >
             <Menu className="h-6 w-6" />
           </button>
           <div className="flex flex-1 justify-between px-4 sm:px-6 lg:px-8">
             <div className="flex flex-1 items-center">
-              <h1 className="text-lg font-semibold text-secondary-900">
+              <h1 className="text-lg font-semibold text-foreground">
                 {navigation.find(item => item.href === location.pathname)?.name || 'Dashboard'}
               </h1>
             </div>
             <div className="flex items-center space-x-4">
+              <ThemeToggle />
               <NotificationSystem guildId="1409723307489755270" />
               <div className="flex items-center space-x-2">
                 <div className="h-2 w-2 bg-success-500 rounded-full animate-pulse"></div>
-                <span className="text-sm text-secondary-600">Bot Online</span>
+                <span className="text-sm text-muted-foreground">Bot Online</span>
               </div>
               
               {/* User Menu */}
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-secondary-100 transition-colors"
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-accent transition-colors"
                 >
                   {user?.avatar ? (
                     <img
@@ -161,19 +163,19 @@ export default function Layout({ children }: LayoutProps) {
                       <User className="h-4 w-4 text-white" />
                     </div>
                   )}
-                  <span className="text-sm font-medium text-secondary-700 hidden sm:block">
+                  <span className="text-sm font-medium text-foreground hidden sm:block">
                     {user?.username}#{user?.discriminator}
                   </span>
                 </button>
                 
                 {/* User Dropdown */}
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-secondary-200 py-1 z-50">
-                    <div className="px-4 py-2 border-b border-secondary-100">
-                      <p className="text-sm font-medium text-secondary-900">
+                  <div className="absolute right-0 mt-2 w-48 bg-popover rounded-lg shadow-lg border border-border py-1 z-50">
+                    <div className="px-4 py-2 border-b border-border">
+                      <p className="text-sm font-medium text-popover-foreground">
                         {user?.username}#{user?.discriminator}
                       </p>
-                      <p className="text-xs text-secondary-500">
+                      <p className="text-xs text-muted-foreground">
                         ID: {user?.id}
                       </p>
                     </div>
@@ -183,7 +185,7 @@ export default function Layout({ children }: LayoutProps) {
                         logout();
                         setUserMenuOpen(false);
                       }}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                      className="w-full text-left px-4 py-2 text-sm text-destructive hover:bg-destructive/10 flex items-center space-x-2"
                     >
                       <LogOut className="h-4 w-4" />
                       <span>Sair</span>

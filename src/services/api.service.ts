@@ -21,6 +21,8 @@ import * as bcrypt from 'bcryptjs';
 import multer from 'multer';
 import * as path from 'path';
 import * as fs from 'fs';
+import session from 'express-session';
+import { SecurityService } from './security.service';
 
 export interface APIConfig {
   port: number;
@@ -78,6 +80,7 @@ export class APIService {
   private clipService: ClipService;
   private client: ExtendedClient;
   private config: APIConfig;
+  private securityService: SecurityService;
 
   private upload!: multer.Multer;
 
@@ -93,6 +96,7 @@ export class APIService {
     this.musicService = new MusicService();
     this.gameService = new GameService(client);
     this.clipService = new ClipService(client);
+    this.securityService = new SecurityService(this.database);
 
     this.config = {
       port: parseInt(process.env.API_PORT || '3001'),
@@ -147,6 +151,18 @@ export class APIService {
       }),
     );
 
+    // Session middleware
+    this.app.use(session({
+      secret: this.config.jwtSecret,
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      }
+    }));
+
     // Rate limiting
     const limiter = rateLimit({
       windowMs: this.config.rateLimitWindowMs,
@@ -159,6 +175,24 @@ export class APIService {
       legacyHeaders: false,
     });
     this.app.use('/api/', limiter);
+
+    // Security middleware for bot detection
+    this.app.use('/api/auth/register', (req: Request, res: Response, next: NextFunction) => {
+      const securityCheck = this.securityService.analyzeRequest(req);
+      
+      if (securityCheck.isBot) {
+        return res.status(429).json({
+          success: false,
+          error: 'Suspicious activity detected. Please try again later.',
+          requiresCaptcha: true,
+          reasons: securityCheck.reasons
+        });
+      }
+      
+      // Add security info to request
+      (req as any).securityCheck = securityCheck;
+      return next();
+    });
 
     // Compression
     this.app.use(compression());
@@ -584,6 +618,154 @@ export class APIService {
         res.status(500).json({
           success: false,
           error: 'Internal server error'
+        });
+      }
+    });
+
+    // Generate CAPTCHA
+    router.get('/captcha', (req: Request, res: Response) => {
+      try {
+        const captcha = this.securityService.generateCaptcha();
+        
+        res.json({
+          success: true,
+          data: {
+            id: captcha.id,
+            svg: captcha.svg
+          }
+        });
+      } catch (error) {
+        this.logger.error('CAPTCHA generation error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to generate CAPTCHA'
+        });
+      }
+    });
+
+    // Verify CAPTCHA
+    router.post('/captcha/verify', (req: Request, res: Response) => {
+      try {
+        const { captchaId, answer } = req.body;
+        
+        if (!captchaId || !answer) {
+          return res.status(400).json({
+            success: false,
+            error: 'CAPTCHA ID and answer are required'
+          });
+        }
+        
+        const isValid = this.securityService.verifyCaptcha(captchaId, answer);
+        
+        return res.json({
+          success: true,
+          data: { valid: isValid }
+        });
+      } catch (error) {
+        this.logger.error('CAPTCHA verification error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to verify CAPTCHA'
+        });
+      }
+    });
+
+    // Setup 2FA
+    router.post('/2fa/setup', this.authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const setup = await this.securityService.setup2FA(req.user!.id);
+        
+        res.json({
+          success: true,
+          data: {
+            qrCode: setup.qrCode,
+            backupCodes: setup.backupCodes
+          }
+        });
+      } catch (error) {
+        this.logger.error('2FA setup error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to setup 2FA'
+        });
+      }
+    });
+
+    // Enable 2FA
+    router.post('/2fa/enable', this.authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { token } = req.body;
+        
+        if (!token) {
+          return res.status(400).json({
+            success: false,
+            error: '2FA token is required'
+          });
+        }
+        
+        const success = await this.securityService.enable2FA(req.user!.id, token);
+        
+        if (success) {
+          return res.json({
+            success: true,
+            message: '2FA enabled successfully'
+          });
+        } else {
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid 2FA token'
+          });
+        }
+      } catch (error) {
+        this.logger.error('2FA enable error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to enable 2FA'
+        });
+      }
+    });
+
+    // Disable 2FA
+    router.post('/2fa/disable', this.authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        await this.securityService.disable2FA(req.user!.id);
+        
+        res.json({
+          success: true,
+          message: '2FA disabled successfully'
+        });
+      } catch (error) {
+        this.logger.error('2FA disable error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to disable 2FA'
+        });
+      }
+    });
+
+    // Verify 2FA
+    router.post('/2fa/verify', this.authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { token } = req.body;
+        
+        if (!token) {
+          return res.status(400).json({
+            success: false,
+            error: '2FA token is required'
+          });
+        }
+        
+        const isValid = await this.securityService.verify2FA(req.user!.id, token);
+        
+        return res.json({
+          success: true,
+          data: { valid: isValid }
+        });
+      } catch (error) {
+        this.logger.error('2FA verification error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to verify 2FA'
         });
       }
     });

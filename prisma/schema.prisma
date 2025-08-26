@@ -37,6 +37,16 @@ model User {
   timezone      String   @default("America/Sao_Paulo")
   notifications Boolean  @default(true)
   privacy       String   @default("public") // public, friends, private
+  
+  // Security & 2FA fields
+  twoFactorEnabled     Boolean  @default(false)
+  twoFactorSecret      String?
+  twoFactorBackupCodes String?
+  securityFingerprint  String?
+  lastLoginAt          DateTime?
+  loginAttempts        Int      @default(0)
+  lockedUntil          DateTime?
+  
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
