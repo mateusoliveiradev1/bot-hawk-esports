@@ -74,6 +74,12 @@ class HawkEsportsBot {
       },
     }) as ExtendedClient;
 
+    // Attach services to client for command access
+    this.client.database = this.db;
+    this.client.db = this.db;
+    this.client.cache = this.cache;
+    this.client.logger = this.logger;
+    
     // Initialize command manager
     this.commands = new CommandManager(this.client);
     
@@ -89,6 +95,9 @@ class HawkEsportsBot {
       api: new APIService(this.client),
       onboarding: new OnboardingService(this.client),
     };
+    
+    // Attach services to client
+    this.client.services = this.services;
 
     // Services are available through this.services, this.db, this.cache, and this.commands
   }
