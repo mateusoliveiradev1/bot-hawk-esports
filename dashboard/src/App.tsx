@@ -13,6 +13,7 @@ import Guilds from './pages/Guilds'
 import Commands from './pages/Commands'
 import Analytics from './pages/Analytics'
 import Settings from './pages/Settings'
+import LoadingShowcase from './components/LoadingShowcase'
 
 function App() {
   return (
@@ -92,6 +93,16 @@ function App() {
             <ProtectedRoute requiredPermissions={['Administrator']}>
               <Layout>
                 <Settings />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/showcase" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <LoadingShowcase />
               </Layout>
             </ProtectedRoute>
           } 

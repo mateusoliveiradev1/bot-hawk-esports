@@ -12,6 +12,7 @@ import {
   X,
   LogOut,
   User,
+  Palette,
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { useAuth } from '../contexts/AuthContext'
@@ -23,12 +24,13 @@ interface LayoutProps {
 }
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: Home },
+  { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Usuários', href: '/users', icon: Users },
   { name: 'Servidores', href: '/guilds', icon: Server },
   { name: 'Comandos', href: '/commands', icon: Command },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'Configurações', href: '/settings', icon: Settings },
+  { name: 'Showcase', href: '/showcase', icon: Palette },
 ]
 
 export default function Layout({ children }: LayoutProps) {
