@@ -102,7 +102,7 @@ export default function Dashboard() {
     onOpen: () => {
       console.log('WebSocket connected');
       // Subscribe to dashboard updates for this guild
-      sendMessage('subscribe:dashboard', { guildId });
+      sendMessage('subscribe:dashboard', guildId);
     },
     onClose: () => console.log('WebSocket disconnected'),
     onError: (error) => console.error('WebSocket error:', error),
@@ -138,13 +138,10 @@ export default function Dashboard() {
   
   // Handle WebSocket messages for real-time updates
    useEffect(() => {
-     if (lastMessage && lastMessage.type === 'dashboard:update') {
-       const data = lastMessage.data;
-       if (data.guildId === guildId) {
-         setStats(data.stats);
-       }
+     if (lastMessage && lastMessage.type === 'stats') {
+       setStats(lastMessage.data);
      }
-   }, [lastMessage, guildId])
+   }, [lastMessage])
 
   return (
     <div className="space-y-6">

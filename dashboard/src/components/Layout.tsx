@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import NotificationSystem from './NotificationSystem'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -132,6 +133,7 @@ export default function Layout({ children }: LayoutProps) {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
+              <NotificationSystem guildId="1409723307489755270" />
               <div className="flex items-center space-x-2">
                 <div className="h-2 w-2 bg-success-500 rounded-full animate-pulse"></div>
                 <span className="text-sm text-secondary-600">Bot Online</span>

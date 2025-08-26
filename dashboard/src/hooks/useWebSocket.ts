@@ -38,25 +38,39 @@ export function useWebSocket<T = any>(
   } = options;
 
   const connect = useCallback(() => {
+    // Prevent multiple connections
+    if (socketRef.current?.connected) {
+      return;
+    }
+
     try {
       const socket = io(url, {
         transports: ['websocket', 'polling'],
         timeout: 5000,
+        forceNew: true,
       });
 
       socket.on('connect', () => {
+        console.log('WebSocket connected successfully');
         setIsConnected(true);
         setError(null);
         reconnectAttemptsRef.current = 0;
         onOpen?.();
       });
 
-      socket.on('disconnect', () => {
+      socket.on('disconnect', (reason) => {
+        console.log('WebSocket disconnected:', reason);
         setIsConnected(false);
         onClose?.();
+        
+        // Only attempt reconnect for certain disconnect reasons
+        if (reason === 'io server disconnect' || reason === 'transport close') {
+          attemptReconnect();
+        }
       });
 
       socket.on('connect_error', (err) => {
+        console.error('WebSocket connection error:', err.message);
         setError(`Connection error: ${err.message}`);
         onError?.(err as any);
         attemptReconnect();
@@ -68,18 +82,29 @@ export function useWebSocket<T = any>(
 
       socketRef.current = socket;
     } catch (err) {
+      console.error('Failed to create WebSocket connection:', err);
       setError('Failed to connect to WebSocket');
       onError?.(err as Event);
       attemptReconnect();
     }
-  }, [url, onOpen, onClose, onError]);
+  }, [url]);
 
   const attemptReconnect = useCallback(() => {
     if (reconnectAttemptsRef.current < reconnectAttempts) {
       reconnectAttemptsRef.current++;
+      console.log(`Attempting reconnect ${reconnectAttemptsRef.current}/${reconnectAttempts}`);
+      
+      // Clear existing timeout
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      
       reconnectTimeoutRef.current = setTimeout(() => {
         connect();
       }, reconnectInterval);
+    } else {
+      console.log('Max reconnection attempts reached');
+      setError('Connection failed after maximum attempts');
     }
   }, [connect, reconnectAttempts, reconnectInterval]);
 
@@ -102,8 +127,10 @@ export function useWebSocket<T = any>(
 
   useEffect(() => {
     connect();
-    return disconnect;
-  }, [connect, disconnect]);
+    return () => {
+      disconnect();
+    };
+  }, [url]); // Only depend on URL to prevent unnecessary reconnections
 
   return {
     isConnected,
@@ -120,52 +147,60 @@ export function useDashboardWebSocket(guildId: string) {
   const [users, setUsers] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
 
-  const { isConnected, connectionStatus, sendMessage } = useWebSocket({
-    url: `ws://localhost:3001/ws?guildId=${guildId}`,
-    onMessage: (message) => {
-      switch (message.type) {
-        case 'stats_update':
-          setStats(message.data);
+  const { isConnected, lastMessage, sendMessage, error } = useWebSocket(
+    'http://localhost:3001',
+    {
+      onOpen: () => {
+        console.log('Dashboard WebSocket connected');
+        // Subscribe to dashboard updates for this guild
+        sendMessage('subscribe:dashboard', guildId);
+      },
+      onClose: () => {
+        console.log('Dashboard WebSocket disconnected');
+      },
+      onError: (error) => {
+        console.error('Dashboard WebSocket error:', error);
+      },
+      reconnectAttempts: 3,
+      reconnectInterval: 5000,
+    }
+  );
+
+  // Handle incoming messages
+  useEffect(() => {
+    if (lastMessage) {
+      switch (lastMessage.type) {
+        case 'stats':
+          setStats(lastMessage.data);
           break;
         case 'user_update':
           setUsers(prev => {
-            const index = prev.findIndex(u => u.id === message.data.id);
+            const index = prev.findIndex(u => u.id === lastMessage.data.id);
             if (index >= 0) {
               const newUsers = [...prev];
-              newUsers[index] = message.data;
+              newUsers[index] = lastMessage.data;
               return newUsers;
             }
-            return [...prev, message.data];
+            return [...prev, lastMessage.data];
           });
           break;
         case 'user_activity':
-          setActivities(prev => [message.data, ...prev.slice(0, 49)]); // Keep last 50 activities
+          setActivities(prev => [lastMessage.data, ...prev.slice(0, 49)]); // Keep last 50 activities
           break;
         case 'initial_data':
-          setStats(message.data.stats);
-          setUsers(message.data.users);
-          setActivities(message.data.activities || []);
+          setStats(lastMessage.data.stats);
+          setUsers(lastMessage.data.users);
+          setActivities(lastMessage.data.activities || []);
           break;
         default:
-          console.log('Unknown message type:', message.type);
+          console.log('Unknown message type:', lastMessage.type);
       }
-    },
-    onConnect: () => {
-      console.log('Dashboard WebSocket connected');
-      // Request initial data
-      sendMessage({ type: 'subscribe', guildId });
-    },
-    onDisconnect: () => {
-      console.log('Dashboard WebSocket disconnected');
-    },
-    onError: (error) => {
-      console.error('Dashboard WebSocket error:', error);
     }
-  });
+  }, [lastMessage]);
 
   return {
     isConnected,
-    connectionStatus,
+    error,
     stats,
     users,
     activities,
