@@ -103,7 +103,7 @@ export class MusicService {
       const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
       
       if (!clientId || !clientSecret) {
-        this.logger.warn('Spotify credentials not found in environment variables');
+        this.logger.warn('🎵 Spotify credentials not found - running in YouTube-only mode');
         return;
       }
       
@@ -112,12 +112,19 @@ export class MusicService {
         clientSecret
       );
       
-      // Test the connection
-      await this.spotify.search('test', ['track'], 'US', 1);
+      // Test the connection with timeout
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Spotify connection timeout')), 5000);
+      });
       
-      this.logger.info('Spotify API initialized successfully');
+      await Promise.race([
+        this.spotify.search('test', ['track'], 'US', 1),
+        timeoutPromise
+      ]);
+      
+      this.logger.info('✅ Spotify API initialized successfully');
     } catch (error) {
-      this.logger.error('Failed to initialize Spotify API:', error);
+      this.logger.warn('⚠️ Spotify API unavailable - continuing with YouTube-only mode:', (error as Error).message || 'Connection failed');
       this.spotify = null;
     }
   }
