@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import {
   Search,
   Filter,
   MoreVertical,
   Shield,
-  ShieldCheck,
   User,
   Calendar,
   Activity,
@@ -13,45 +11,7 @@ import {
 import { formatDate, formatRelativeTime } from '../lib/utils'
 import { apiService, type Guild } from '../services/api'
 
-// Mock data
-const mockUsers = [
-  {
-    id: '1',
-    username: 'João#1234',
-    displayName: 'João Silva',
-    avatar: null,
-    joinedAt: '2024-01-15T10:30:00Z',
-    lastSeen: '2024-01-20T14:22:00Z',
-    commandsUsed: 156,
-    level: 15,
-    badges: ['premium', 'early_supporter'],
-    status: 'online',
-  },
-  {
-    id: '2',
-    username: 'Maria#5678',
-    displayName: 'Maria Santos',
-    avatar: null,
-    joinedAt: '2024-01-10T08:15:00Z',
-    lastSeen: '2024-01-20T12:45:00Z',
-    commandsUsed: 89,
-    level: 8,
-    badges: ['active_user'],
-    status: 'away',
-  },
-  {
-    id: '3',
-    username: 'Pedro#9012',
-    displayName: 'Pedro Costa',
-    avatar: null,
-    joinedAt: '2024-01-05T16:20:00Z',
-    lastSeen: '2024-01-19T20:10:00Z',
-    commandsUsed: 234,
-    level: 22,
-    badges: ['premium', 'top_user'],
-    status: 'offline',
-  },
-]
+// Mock data removed - using guild.users instead
 
 const statusColors = {
   online: 'bg-success-500',
@@ -59,12 +19,7 @@ const statusColors = {
   offline: 'bg-secondary-400',
 }
 
-const badgeColors = {
-  premium: 'bg-yellow-100 text-yellow-800',
-  early_supporter: 'bg-purple-100 text-purple-800',
-  active_user: 'bg-blue-100 text-blue-800',
-  top_user: 'bg-green-100 text-green-800',
-}
+// Badge colors removed - not currently used
 
 export default function Users() {
   const [searchTerm, setSearchTerm] = useState('')

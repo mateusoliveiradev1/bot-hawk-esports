@@ -21,11 +21,17 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react'
-import { Button } from '../components/ui/button'
 import { RefreshCw } from 'lucide-react'
 import { formatNumber } from '../lib/utils'
 import { apiService, type GuildStats } from '../services/api'
 import { useWebSocket } from '../hooks/useWebSocket'
+import { 
+  StatCardSkeleton, 
+  ChartSkeleton, 
+
+  useToast,
+  toast
+} from '../components/ui'
 
 const mockCommandUsage = [
   { name: 'help', count: 450 },
@@ -54,15 +60,20 @@ const mockGuildTypes = [
   { name: 'Other', value: 10, color: '#ef4444' },
 ]
 
-function StatCard({ title, value, icon: Icon, trend, trendValue }: {
+function StatCard({ title, value, icon: Icon, trend, trendValue, isLoading }: {
   title: string
   value: string | number
   icon: any
   trend?: 'up' | 'down'
   trendValue?: string
+  isLoading?: boolean
 }) {
+  if (isLoading) {
+    return <StatCardSkeleton />
+  }
+
   return (
-    <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+    <div className="bg-card border border-border rounded-lg p-6 shadow-sm transition-all duration-200 hover:shadow-md">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
@@ -91,14 +102,16 @@ function StatCard({ title, value, icon: Icon, trend, trendValue }: {
 export default function Dashboard() {
   const [stats, setStats] = useState<GuildStats | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const [, setError] = useState<string | null>(null)
+  const { addToast } = useToast()
   
   
   // Use the guild ID from environment
   const guildId = '1409723307489755270' // Guild ID from .env
   
   // WebSocket connection for real-time updates
-  const { isConnected, lastMessage, sendMessage } = useWebSocket('http://localhost:3001', {
+  const { lastMessage, sendMessage } = useWebSocket('http://localhost:3001', {
     onOpen: () => {
       console.log('WebSocket connected');
       // Subscribe to dashboard updates for this guild
@@ -108,31 +121,46 @@ export default function Dashboard() {
     onError: (error) => console.error('WebSocket error:', error),
   });
   
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
+  const fetchStats = async (isManualRefresh = false) => {
+    try {
+      if (isManualRefresh) {
+        setRefreshing(true)
+      } else {
         setLoading(true)
-        const guildStats = await apiService.getGuildStats(guildId)
-        setStats(guildStats)
-        setError(null)
-      } catch (err) {
-        console.error('Failed to fetch stats:', err)
-        setError('Falha ao carregar estatísticas')
-        // Fallback to mock data
-        setStats({
-          users: { total: 15420, active: 12340 },
-          economy: { totalXP: 156780, totalCoins: 45230, totalMessages: 2847 },
-          engagement: { badges: 234, clips: 89, presenceSessions: 1456, quizzes: 67 }
-        })
-      } finally {
-        setLoading(false)
       }
+      
+      const guildStats = await apiService.getGuildStats(guildId)
+      setStats(guildStats)
+      setError(null)
+      
+      if (isManualRefresh) {
+        addToast(toast.success('Dados atualizados com sucesso!'))
+      }
+    } catch (err) {
+      console.error('Failed to fetch stats:', err)
+      setError('Falha ao carregar estatísticas')
+      
+      if (isManualRefresh) {
+        addToast(toast.error('Erro ao atualizar dados', 'Tente novamente em alguns instantes'))
+      }
+      
+      // Fallback to mock data
+      setStats({
+        users: { total: 15420, active: 12340 },
+        economy: { totalXP: 156780, totalCoins: 45230, totalMessages: 2847 },
+        engagement: { badges: 234, clips: 89, presenceSessions: 1456, quizzes: 67 }
+      })
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
     }
-    
+  }
+
+  useEffect(() => {
     fetchStats()
     
     // Refresh stats every 30 seconds
-    const interval = setInterval(fetchStats, 30000)
+    const interval = setInterval(() => fetchStats(), 30000)
     return () => clearInterval(interval)
   }, [guildId])
   
@@ -145,6 +173,22 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Header with Refresh Button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground">Visão geral das estatísticas do servidor</p>
+        </div>
+        <button
+          onClick={() => fetchStats(true)}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          disabled={loading || refreshing}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+          Atualizar
+        </button>
+      </div>
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard
@@ -153,6 +197,7 @@ export default function Dashboard() {
           icon={Users}
           trend="up"
           trendValue="+12%"
+          isLoading={loading}
         />
         <StatCard
           title="Usuários Ativos"
@@ -160,6 +205,7 @@ export default function Dashboard() {
           icon={Server}
           trend="up"
           trendValue="+5%"
+          isLoading={loading}
         />
         <StatCard
           title="Mensagens Totais"
@@ -167,63 +213,75 @@ export default function Dashboard() {
           icon={Command}
           trend="up"
           trendValue="+18%"
+          isLoading={loading}
         />
         <StatCard
           title="XP Total"
           value={stats?.economy.totalXP || 0}
           icon={Activity}
+          isLoading={loading}
         />
         <StatCard
           title="Moedas Totais"
           value={stats?.economy.totalCoins || 0}
           icon={Bot}
+          isLoading={loading}
         />
         <StatCard
           title="Badges"
           value={stats?.engagement.badges || 0}
           icon={Command}
+          isLoading={loading}
         />
       </div>
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Command Usage Chart */}
-        <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-card-foreground mb-4">
-            Comandos Mais Usados
-          </h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={mockCommandUsage}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        {loading ? (
+          <ChartSkeleton />
+        ) : (
+          <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-card-foreground mb-4">
+              Comandos Mais Usados
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={mockCommandUsage}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
 
         {/* Activity Chart */}
-        <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-card-foreground mb-4">
-            Atividade nas Últimas 24h
-          </h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={mockActivityData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="time" />
-              <YAxis />
-              <Tooltip />
-              <Line
-                type="monotone"
-                dataKey="commands"
-                stroke="#10b981"
-                strokeWidth={3}
-                dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        {loading ? (
+          <ChartSkeleton />
+        ) : (
+          <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-card-foreground mb-4">
+              Atividade nas Últimas 24h
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={mockActivityData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="time" />
+                <YAxis />
+                <Tooltip />
+                <Line
+                  type="monotone"
+                  dataKey="commands"
+                  stroke="#10b981"
+                  strokeWidth={3}
+                  dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
 
       {/* Guild Types and Recent Activity */}

@@ -17,7 +17,7 @@ import {
   Area,
 } from 'recharts'
 import {
-  Calendar,
+
   TrendingUp,
   Users,
   Command,

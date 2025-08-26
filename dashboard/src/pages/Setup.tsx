@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   Bot,
-  Server,
   Users,
   Shield,
   Music,
@@ -18,7 +17,7 @@ import {
   Sparkles,
   Zap,
   Crown,
-  Play
+  Play,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -38,7 +37,7 @@ const Setup: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [botAdded, setBotAdded] = useState(false);
-  const [serverSelected, setServerSelected] = useState('');
+  // Server selection removed - not currently used;
   const [copied, setCopied] = useState(false);
 
   const copyToClipboard = (text: string) => {

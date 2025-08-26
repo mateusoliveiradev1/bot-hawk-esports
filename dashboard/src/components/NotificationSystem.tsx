@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, X, CheckCircle, AlertTriangle, Info, Users, Music, Trophy } from 'lucide-react';
+import { Bell, X, AlertTriangle, Info, Users, Music, Trophy } from 'lucide-react';
 import { useWebSocket } from '../hooks/useWebSocket';
 
 interface Notification {
@@ -16,7 +16,7 @@ interface NotificationSystemProps {
   guildId: string;
 }
 
-const NotificationSystem: React.FC<NotificationSystemProps> = ({ guildId }) => {
+const NotificationSystem: React.FC<NotificationSystemProps> = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 

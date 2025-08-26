@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, Shield, Users, Activity, ArrowRight, AlertCircle, Sparkles, Zap, Trophy, Home } from 'lucide-react';
+import { Bot, Shield, Users, Activity, ArrowRight, AlertCircle, Sparkles, Home, Zap } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
 import Navigation from '../components/Navigation';

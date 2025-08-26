@@ -18,7 +18,7 @@ interface UseWebSocketOptions {
 /**
  * Generic WebSocket hook using Socket.IO
  */
-export function useWebSocket<T = any>(
+export function useWebSocket(
   url: string,
   options: UseWebSocketOptions = {}
 ) {
@@ -130,7 +130,7 @@ export function useWebSocket<T = any>(
     return () => {
       disconnect();
     };
-  }, [url]); // Only depend on URL to prevent unnecessary reconnections
+  }, [url]);
 
   return {
     isConnected,

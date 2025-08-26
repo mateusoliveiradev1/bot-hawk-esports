@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { ToastProvider } from './components/ui/toast'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
@@ -16,7 +17,8 @@ import Settings from './pages/Settings'
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Onboarding />} />
@@ -98,7 +100,8 @@ function App() {
         {/* Catch all - redirect to dashboard */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
-      </AuthProvider>
+        </AuthProvider>
+      </ToastProvider>
     </ThemeProvider>
   )
 }

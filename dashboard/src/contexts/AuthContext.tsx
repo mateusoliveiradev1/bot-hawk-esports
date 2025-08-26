@@ -95,12 +95,59 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         try {
           // Verify token by fetching user data
           const userData = await apiService.getCurrentUser();
-          setUser(userData);
+          // Ensure userData has all required properties
+          const completeUserData: User = {
+            ...userData,
+            guildId: (userData as any).guildId || '',
+            roles: (userData as any).roles || [],
+            permissions: (userData as any).permissions || []
+          };
+          setUser(completeUserData);
         } catch (error) {
           console.error('Token validation failed:', error);
           // Try to refresh token before giving up
-          const refreshSuccess = await refreshToken();
-          if (!refreshSuccess) {
+          const storedRefreshToken = localStorage.getItem('refresh_token');
+          if (storedRefreshToken) {
+            try {
+              const response = await fetch('http://localhost:3001/api/auth/refresh', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ refreshToken: storedRefreshToken }),
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                  localStorage.setItem('auth_token', data.data.token);
+                  apiService.setToken(data.data.token);
+                  if (data.data.refreshToken) {
+                    localStorage.setItem('refresh_token', data.data.refreshToken);
+                  }
+                  const userData = await apiService.getCurrentUser();
+                  // Ensure userData has all required properties
+                  const completeUserData: User = {
+                    ...userData,
+                    guildId: (userData as any).guildId || '',
+                    roles: (userData as any).roles || [],
+                    permissions: (userData as any).permissions || []
+                  };
+                  setUser(completeUserData);
+                } else {
+                  localStorage.removeItem('auth_token');
+                  localStorage.removeItem('refresh_token');
+                }
+              } else {
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('refresh_token');
+              }
+            } catch (refreshError) {
+              console.error('Token refresh error:', refreshError);
+              localStorage.removeItem('auth_token');
+              localStorage.removeItem('refresh_token');
+            }
+          } else {
             localStorage.removeItem('auth_token');
             localStorage.removeItem('refresh_token');
           }
@@ -146,7 +193,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(data.data.user);
         } else {
           const userData = await apiService.getCurrentUser();
-          setUser(userData);
+          // Ensure userData has all required properties
+          const completeUserData: User = {
+            ...userData,
+            guildId: (userData as any).guildId || guildId,
+            roles: (userData as any).roles || [],
+            permissions: (userData as any).permissions || []
+          };
+          setUser(completeUserData);
         }
         
         return true;

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import {
   Save,
   RefreshCw,
@@ -7,9 +7,8 @@ import {
   Bot,
   Database,
   Bell,
-  Palette,
+
   Globe,
-  Key,
   AlertTriangle,
   CheckCircle,
 } from 'lucide-react'
@@ -62,10 +61,7 @@ export default function Settings() {
   const [settings, setSettings] = useState(mockSettings)
   const [hasChanges, setHasChanges] = useState(false)
 
-  const { data: currentSettings } = useQuery({
-    queryKey: ['settings'],
-    queryFn: () => Promise.resolve(mockSettings),
-  })
+  // Settings are managed locally with mockSettings
 
   const saveSettingsMutation = useMutation({
     mutationFn: (newSettings: typeof mockSettings) => {
