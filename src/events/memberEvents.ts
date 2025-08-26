@@ -94,9 +94,16 @@ export class MemberEvents {
           
           // Update verification status in database
           if (this.client.db) {
-            await this.client.db.client.user.update({
+            await this.client.db.client.user.upsert({
               where: { id: newMember.id },
-              data: { 
+              update: { 
+                isVerified: true,
+                verifiedAt: new Date(),
+              },
+              create: {
+                id: newMember.id,
+                username: newMember.user.username,
+                discriminator: newMember.user.discriminator,
                 isVerified: true,
                 verifiedAt: new Date(),
               },
@@ -110,9 +117,16 @@ export class MemberEvents {
           
           // Update verification status in database
           if (this.client.db) {
-            await this.client.db.client.user.update({
+            await this.client.db.client.user.upsert({
               where: { id: newMember.id },
-              data: { 
+              update: { 
+                isVerified: false,
+                verifiedAt: null,
+              },
+              create: {
+                id: newMember.id,
+                username: newMember.user.username,
+                discriminator: newMember.user.discriminator,
                 isVerified: false,
                 verifiedAt: null,
               },

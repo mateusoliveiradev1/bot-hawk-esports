@@ -1,4 +1,4 @@
-import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, demuxProbe, DiscordGatewayAdapterCreator, entersState, getVoiceConnection, joinVoiceChannel, VoiceConnection, VoiceConnectionStatus, StreamType } from '@discordjs/voice';
+import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, demuxProbe, DiscordGatewayAdapterCreator, entersState, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection, VoiceConnectionStatus, StreamType } from '@discordjs/voice';
 import { Guild, GuildMember, VoiceBasedChannel } from 'discord.js';
 import ytdl from 'ytdl-core';
 import { search, video_basic_info } from 'play-dl';
@@ -238,10 +238,14 @@ export class MusicService {
    */
   public async joinChannel(channel: VoiceBasedChannel): Promise<VoiceConnection | null> {
     try {
+      this.logger.debug(`🔗 Attempting to join voice channel: ${channel.name} (${channel.id})`);
+      
       const connection = joinVoiceChannel({
         channelId: channel.id,
         guildId: channel.guild.id,
         adapterCreator: channel.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator,
+        selfDeaf: false,
+        selfMute: false,
       });
 
       // Wait for connection to be ready
@@ -249,19 +253,48 @@ export class MusicService {
       
       this.connections.set(channel.guild.id, connection);
       
+      // Setup connection event listeners
+      connection.on(VoiceConnectionStatus.Disconnected, async () => {
+        this.logger.warn(`🔌 Voice connection disconnected in guild ${channel.guild.id}`);
+        try {
+          await Promise.race([
+            entersState(connection, VoiceConnectionStatus.Signalling, 5000),
+            entersState(connection, VoiceConnectionStatus.Connecting, 5000),
+          ]);
+        } catch {
+          connection.destroy();
+          this.connections.delete(channel.guild.id);
+        }
+      });
+      
+      connection.on('error', (error) => {
+        this.logger.error(`🚨 Voice connection error in guild ${channel.guild.id}:`, error);
+      });
+      
       // Create audio player if not exists
       if (!this.players.has(channel.guild.id)) {
-        const player = createAudioPlayer();
+        const player = createAudioPlayer({
+          behaviors: {
+            noSubscriber: NoSubscriberBehavior.Pause,
+          },
+        });
         this.setupPlayerEvents(player, channel.guild.id);
         this.players.set(channel.guild.id, player);
-        connection.subscribe(player);
+        
+        const subscription = connection.subscribe(player);
+        if (!subscription) {
+          this.logger.error(`❌ Failed to subscribe player to connection in guild ${channel.guild.id}`);
+          return null;
+        }
+        
+        this.logger.debug(`✅ Audio player created and subscribed for guild ${channel.guild.id}`);
       }
       
-      this.logger.music('VOICE_JOINED', channel.guild.id, `Joined channel: ${channel.name} (${channel.id})`);
+      this.logger.music('VOICE_JOINED', channel.guild.id, `🎤 Successfully joined channel: ${channel.name} (${channel.id})`);
       
       return connection;
     } catch (error) {
-      this.logger.error(`Failed to join voice channel ${channel.id}:`, error);
+      this.logger.error(`❌ Failed to join voice channel ${channel.id}:`, error);
       return null;
     }
   }
@@ -295,7 +328,7 @@ export class MusicService {
         queue.isPlaying = true;
         queue.isPaused = false;
       }
-      this.logger.music('TRACK_STARTED', guildId);
+      this.logger.music('TRACK_STARTED', guildId, '🎵 Audio player is now playing');
     });
 
     player.on(AudioPlayerStatus.Paused, () => {
@@ -304,7 +337,7 @@ export class MusicService {
         queue.isPaused = true;
         queue.isPlaying = false;
       }
-      this.logger.music('TRACK_PAUSED', guildId);
+      this.logger.music('TRACK_PAUSED', guildId, '⏸️ Audio player paused');
     });
 
     player.on(AudioPlayerStatus.Idle, () => {
@@ -312,13 +345,26 @@ export class MusicService {
       if (queue) {
         queue.isPlaying = false;
         queue.isPaused = false;
+        this.logger.music('TRACK_ENDED', guildId, '⏹️ Audio player is now idle');
         this.handleTrackEnd(guildId);
       }
     });
 
+    player.on(AudioPlayerStatus.Buffering, () => {
+      this.logger.music('TRACK_BUFFERING', guildId, '⏳ Audio player is buffering');
+    });
+
+    player.on(AudioPlayerStatus.AutoPaused, () => {
+      this.logger.warn(`🔇 Audio player auto-paused in guild ${guildId} - possible connection issue`);
+    });
+
     player.on('error', (error) => {
-      this.logger.error(`Audio player error in guild ${guildId}:`, error);
+      this.logger.error(`❌ Audio player error in guild ${guildId}:`, error);
       this.handleTrackEnd(guildId);
+    });
+
+    player.on('stateChange', (oldState, newState) => {
+      this.logger.debug(`🔄 Player state changed from ${oldState.status} to ${newState.status} in guild ${guildId}`);
     });
   }
 
@@ -586,6 +632,11 @@ export class MusicService {
           filter: 'audioonly',
           quality: 'highestaudio',
           highWaterMark: 1 << 25,
+          requestOptions: {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+          }
         });
         
         resource = createAudioResource(stream, {
@@ -608,6 +659,11 @@ export class MusicService {
           filter: 'audioonly',
           quality: 'highestaudio',
           highWaterMark: 1 << 25,
+          requestOptions: {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+          }
         });
         
         resource = createAudioResource(stream, {
@@ -624,9 +680,17 @@ export class MusicService {
 
       player.play(resource);
       
-      await this.saveQueueToDatabase(guildId);
+      // Wait a moment to ensure the player starts
+      await new Promise(resolve => setTimeout(resolve, 100));
       
-      this.logger.music('TRACK_PLAYING', guildId, `Playing: ${track.title} (${track.platform})`);
+      // Check if player is actually playing
+      if (player.state.status === AudioPlayerStatus.Playing) {
+        this.logger.music('TRACK_PLAYING', guildId, `✅ Successfully playing: ${track.title} (${track.platform})`);
+      } else {
+        this.logger.warn(`⚠️ Player status is ${player.state.status} for track: ${track.title}`);
+      }
+      
+      await this.saveQueueToDatabase(guildId);
       
       return true;
     } catch (error) {
