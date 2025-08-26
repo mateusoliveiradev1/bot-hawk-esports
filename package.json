@@ -24,7 +24,11 @@
     "setup:spotify": "node setup-spotify.js",
     "setup:spotify:ps": "powershell -ExecutionPolicy Bypass -File setup-spotify.ps1",
     "setup:complete": "node setup-complete.js",
-    "setup:complete:ps": "powershell -ExecutionPolicy Bypass -File setup-complete.ps1"
+    "setup:complete:ps": "powershell -ExecutionPolicy Bypass -File setup-complete.ps1",
+    "deploy:commands": "tsx src/deploy-commands.ts",
+    "deploy:commands:global": "tsx src/deploy-commands.ts global",
+    "deploy:commands:guild": "tsx src/deploy-commands.ts guild",
+    "deploy:commands:clear": "tsx src/deploy-commands.ts clear-guild"
   },
   "keywords": [
     "discord",

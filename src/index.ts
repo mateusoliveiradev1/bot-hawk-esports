@@ -241,13 +241,19 @@ class HawkEsportsBot {
         type: ActivityType.Watching,
       });
 
-      // Register slash commands
+      // Register slash commands with Discord API
       try {
-        // Commands are loaded in constructor
-        this.logger.info('Commands loaded');
-        this.logger.info('✅ Slash commands registered');
+        const { CommandDeployer } = await import('./deploy-commands');
+        const deployer = new CommandDeployer(process.env.DISCORD_TOKEN!, process.env.DISCORD_CLIENT_ID!);
+        
+        // Deploy commands to all guilds the bot is in
+        for (const guild of this.client.guilds.cache.values()) {
+          await deployer.deployGuild(guild.id);
+        }
+        
+        this.logger.info('✅ Slash commands registered with Discord API');
       } catch (error) {
-        this.logger.error('Failed to register slash commands:', error);
+        this.logger.error('Failed to register slash commands with Discord API:', error);
       }
 
       this.logger.info('🎉 Hawk Esports Bot is ready!');
