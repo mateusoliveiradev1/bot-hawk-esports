@@ -54,7 +54,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return false;
       }
 
-      const response = await fetch('http://localhost:3001/api/auth/refresh', {
+      const response = await fetch('http://localhost:3002/api/auth/refresh', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -109,7 +109,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const storedRefreshToken = localStorage.getItem('refresh_token');
           if (storedRefreshToken) {
             try {
-              const response = await fetch('http://localhost:3001/api/auth/refresh', {
+              const response = await fetch('http://localhost:3002/api/auth/refresh', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -164,7 +164,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       
       // Exchange code for tokens
-      const response = await fetch('http://localhost:3001/api/auth/discord', {
+      const response = await fetch('http://localhost:3002/api/auth/discord', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

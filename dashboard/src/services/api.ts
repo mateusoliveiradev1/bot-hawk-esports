@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL = 'http://localhost:3002/api';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -222,7 +222,7 @@ class ApiService {
 
   // Health check
   async healthCheck(): Promise<any> {
-    const response = await fetch('http://localhost:3001/health');
+    const response = await fetch('http://localhost:3002/health');
     return response.json();
   }
 }

@@ -148,7 +148,7 @@ export function useDashboardWebSocket(guildId: string) {
   const [activities, setActivities] = useState<any[]>([]);
 
   const { isConnected, lastMessage, sendMessage, error } = useWebSocket(
-    'http://localhost:3001',
+    'http://localhost:3002',
     {
       onOpen: () => {
         console.log('Dashboard WebSocket connected');

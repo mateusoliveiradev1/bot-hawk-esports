@@ -111,7 +111,7 @@ export default function Dashboard() {
   const guildId = '1409723307489755270' // Guild ID from .env
   
   // WebSocket connection for real-time updates
-  const { lastMessage, sendMessage } = useWebSocket('http://localhost:3001', {
+  const { lastMessage, sendMessage } = useWebSocket('http://localhost:3002', {
     onOpen: () => {
       console.log('WebSocket connected');
       // Subscribe to dashboard updates for this guild

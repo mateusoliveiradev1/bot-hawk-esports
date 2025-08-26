@@ -21,7 +21,7 @@ const NotificationSystem: React.FC<NotificationSystemProps> = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   // WebSocket connection for real-time notifications
-  const { lastMessage } = useWebSocket('http://localhost:3001', {
+  const { lastMessage } = useWebSocket('http://localhost:3002', {
     onOpen: () => {
       console.log('Notification WebSocket connected');
     },

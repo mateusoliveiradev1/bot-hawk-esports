@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -84,11 +84,11 @@ model Guild {
   musicChannelId        String?
   rankingChannelId      String?
   announcementChannelId String?
-  autoRoles             String[] // Array of role IDs
-  disabledCommands      String[] // Array of command names
-  features              Json     @default("{}")
-  permissions           Json     @default("{}")
-  limits                Json     @default("{}")
+  autoRoles             String?  // Comma-separated role IDs
+  disabledCommands      String?  // Comma-separated command names
+  features              String   @default("{}")
+  permissions           String   @default("{}")
+  limits                String   @default("{}")
   isActive              Boolean  @default(true)
   
   // Onboarding configurations
@@ -121,7 +121,7 @@ model Guild {
 model GuildConfig {
   id      String @id @default(cuid())
   guildId String @unique
-  config  Json   @default("{}")
+  config  String @default("{}")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -219,7 +219,7 @@ model Team {
   description String?
   guildId     String
   leaderId    String
-  members     String[] // Array of user IDs
+  members     String?  // Comma-separated user IDs
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -244,7 +244,7 @@ model Match {
   startedAt   DateTime?
   endedAt     DateTime?
   status      String   @default("scheduled") // scheduled, ongoing, completed, cancelled
-  results     Json?    // Match results data
+  results     String?  // Match results data
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -264,7 +264,7 @@ model RankingSnapshot {
   period    String   // daily, weekly, monthly, all_time
   rank      Int
   value     Float    // The ranking value (kills, wins, xp, etc.)
-  metadata  Json?    // Additional data
+  metadata  String?  // Additional data
   date      DateTime @default(now())
   createdAt DateTime @default(now())
 
@@ -287,7 +287,7 @@ model Presence {
   location     String?
   note         String?
   timestamp    DateTime  @default(now())
-  metadata     Json?     // Additional data like device, etc.
+  metadata     String?   // Additional data like device, etc.
   createdAt    DateTime  @default(now())
 
   // Relations
@@ -308,8 +308,8 @@ model Ticket {
   status      String   @default("open") // open, in_progress, closed
   priority    String   @default("medium") // low, medium, high, urgent
   assignedTo  String?
-  tags        String[]
-  metadata    Json?    // Additional data
+  tags        String?
+  metadata    String?  // Additional data
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -346,12 +346,12 @@ model Quiz {
   guildId     String
   title       String
   description String?
-  questions   Json     // Array of questions with options and correct answers
+  questions   String   // Array of questions with options and correct answers
   difficulty  String   @default("medium") // easy, medium, hard
   category    String   @default("general")
   timeLimit   Int?     // in seconds
   maxAttempts Int      @default(1)
-  rewards     Json?    // XP, coins, badges rewards
+  rewards     String?  // XP, coins, badges rewards
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -371,7 +371,7 @@ model QuizResult {
   score       Int      // Number of correct answers
   totalQuestions Int
   timeSpent   Int?     // in seconds
-  answers     Json     // User's answers
+  answers     String   // User's answers
   completedAt DateTime @default(now())
 
   // Relations
@@ -391,12 +391,12 @@ model Challenge {
   type        String   // daily, weekly, monthly, special
   gameType    String   // trivia, reaction, math, word, etc.
   difficulty  String   @default("medium")
-  requirements Json?   // Requirements to participate
-  rewards     Json?    // Rewards for completion
+  requirements String? // Requirements to participate
+  rewards     String?  // Rewards for completion
   startDate   DateTime
   endDate     DateTime
   isActive    Boolean  @default(true)
-  metadata    Json?    // Game-specific data
+  metadata    String?  // Game-specific data
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -414,7 +414,7 @@ model GameResult {
   challengeId String
   score       Int
   timeSpent   Int?     // in seconds
-  data        Json?    // Game-specific result data
+  data        String?  // Game-specific result data
   completedAt DateTime @default(now())
 
   // Relations
@@ -436,7 +436,7 @@ model Clip {
   duration    Int?     // in seconds
   fileSize    Int?     // in bytes
   gameType    String?  // pubg, valorant, etc.
-  tags        String[]
+  tags        String?
   views       Int      @default(0)
   likes       Int      @default(0)
   dislikes    Int      @default(0)
@@ -478,7 +478,7 @@ model Badge {
   color       String?  // Hex color
   rarity      String   @default("common") // common, uncommon, rare, epic, legendary
   category    String   @default("general")
-  requirements Json?   // Requirements to earn the badge
+  requirements String? // Requirements to earn the badge
   isActive    Boolean  @default(true)
   isSecret    Boolean  @default(false)
   createdAt   DateTime @default(now())
@@ -496,7 +496,7 @@ model UserBadge {
   userId    String
   badgeId   String
   earnedAt  DateTime @default(now())
-  metadata  Json?    // Additional data about how it was earned
+  metadata  String?  // Additional data about how it was earned
 
   // Relations
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -514,8 +514,8 @@ model Achievement {
   icon        String
   category    String   @default("general")
   points      Int      @default(0)
-  requirements Json?   // Requirements to unlock
-  rewards     Json?    // Rewards for unlocking
+  requirements String? // Requirements to unlock
+  rewards     String?  // Rewards for unlocking
   isSecret    Boolean  @default(false)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -536,7 +536,7 @@ model UserAchievement {
   maxProgress   Int      @default(100)
   isCompleted   Boolean  @default(false)
   completedAt   DateTime?
-  metadata      Json?    // Progress tracking data
+  metadata      String?  // Progress tracking data
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -556,7 +556,7 @@ model Transaction {
   amount      Int
   balance     Int      // Balance after transaction
   reason      String
-  metadata    Json?    // Additional transaction data
+  metadata    String?  // Additional transaction data
   createdAt   DateTime @default(now())
 
   // Relations
@@ -573,7 +573,7 @@ model AuditLog {
   action    String
   target    String?
   reason    String?
-  metadata  Json?    // Additional log data
+  metadata  String?  // Additional log data
   createdAt DateTime @default(now())
 
   // Relations
