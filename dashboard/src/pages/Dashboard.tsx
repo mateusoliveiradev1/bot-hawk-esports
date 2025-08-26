@@ -1,0 +1,332 @@
+import { useState, useEffect } from 'react'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts'
+import {
+  Activity,
+  Bot,
+  Command,
+  Server,
+  TrendingUp,
+  Users,
+} from 'lucide-react'
+import { Button } from '../components/ui/button'
+import { RefreshCw } from 'lucide-react'
+import { formatNumber } from '../lib/utils'
+import { apiService, type GuildStats } from '../services/api'
+import { useWebSocket } from '../hooks/useWebSocket'
+
+const mockCommandUsage = [
+  { name: 'help', count: 450 },
+  { name: 'play', count: 380 },
+  { name: 'skip', count: 320 },
+  { name: 'queue', count: 280 },
+  { name: 'stop', count: 240 },
+  { name: 'volume', count: 200 },
+  { name: 'pause', count: 180 },
+  { name: 'resume', count: 160 },
+]
+
+const mockActivityData = [
+  { time: '00:00', commands: 120 },
+  { time: '04:00', commands: 80 },
+  { time: '08:00', commands: 200 },
+  { time: '12:00', commands: 350 },
+  { time: '16:00', commands: 420 },
+  { time: '20:00', commands: 380 },
+]
+
+const mockGuildTypes = [
+  { name: 'Gaming', value: 45, color: '#3b82f6' },
+  { name: 'Music', value: 25, color: '#10b981' },
+  { name: 'Community', value: 20, color: '#f59e0b' },
+  { name: 'Other', value: 10, color: '#ef4444' },
+]
+
+function StatCard({ title, value, icon: Icon, trend, trendValue }: {
+  title: string
+  value: string | number
+  icon: any
+  trend?: 'up' | 'down'
+  trendValue?: string
+}) {
+  return (
+    <div className="card">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-secondary-600">{title}</p>
+          <p className="text-2xl font-bold text-secondary-900">
+            {typeof value === 'number' ? formatNumber(value) : value}
+          </p>
+          {trend && trendValue && (
+            <div className={`flex items-center mt-1 text-sm ${
+              trend === 'up' ? 'text-success-600' : 'text-error-600'
+            }`}>
+              <TrendingUp className={`h-4 w-4 mr-1 ${
+                trend === 'down' ? 'rotate-180' : ''
+              }`} />
+              {trendValue}
+            </div>
+          )}
+        </div>
+        <div className="p-3 bg-primary-100 rounded-lg">
+          <Icon className="h-6 w-6 text-primary-600" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function Dashboard() {
+  const [stats, setStats] = useState<GuildStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
+  
+  // Use the guild ID from environment
+  const guildId = '1409723307489755270' // Guild ID from .env
+  
+  // WebSocket connection for real-time updates
+  const { isConnected, lastMessage, sendMessage } = useWebSocket('http://localhost:3001', {
+    onOpen: () => {
+      console.log('WebSocket connected');
+      // Subscribe to dashboard updates for this guild
+      sendMessage('subscribe:dashboard', { guildId });
+    },
+    onClose: () => console.log('WebSocket disconnected'),
+    onError: (error) => console.error('WebSocket error:', error),
+  });
+  
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true)
+        const guildStats = await apiService.getGuildStats(guildId)
+        setStats(guildStats)
+        setError(null)
+      } catch (err) {
+        console.error('Failed to fetch stats:', err)
+        setError('Falha ao carregar estatísticas')
+        // Fallback to mock data
+        setStats({
+          users: { total: 15420, active: 12340 },
+          economy: { totalXP: 156780, totalCoins: 45230, totalMessages: 2847 },
+          engagement: { badges: 234, clips: 89, presenceSessions: 1456, quizzes: 67 }
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchStats()
+    
+    // Refresh stats every 30 seconds
+    const interval = setInterval(fetchStats, 30000)
+    return () => clearInterval(interval)
+  }, [guildId])
+  
+  // Handle WebSocket messages for real-time updates
+   useEffect(() => {
+     if (lastMessage && lastMessage.type === 'dashboard:update') {
+       const data = lastMessage.data;
+       if (data.guildId === guildId) {
+         setStats(data.stats);
+       }
+     }
+   }, [lastMessage, guildId])
+
+  return (
+    <div className="space-y-6">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <StatCard
+          title="Total de Usuários"
+          value={stats?.users.total || 0}
+          icon={Users}
+          trend="up"
+          trendValue="+12%"
+        />
+        <StatCard
+          title="Usuários Ativos"
+          value={stats?.users.active || 0}
+          icon={Server}
+          trend="up"
+          trendValue="+5%"
+        />
+        <StatCard
+          title="Mensagens Totais"
+          value={stats?.economy.totalMessages || 0}
+          icon={Command}
+          trend="up"
+          trendValue="+18%"
+        />
+        <StatCard
+          title="XP Total"
+          value={stats?.economy.totalXP || 0}
+          icon={Activity}
+        />
+        <StatCard
+          title="Moedas Totais"
+          value={stats?.economy.totalCoins || 0}
+          icon={Bot}
+        />
+        <StatCard
+          title="Badges"
+          value={stats?.engagement.badges || 0}
+          icon={Command}
+        />
+      </div>
+
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Command Usage Chart */}
+        <div className="card">
+          <h3 className="text-lg font-semibold text-secondary-900 mb-4">
+            Comandos Mais Usados
+          </h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={mockCommandUsage}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Activity Chart */}
+        <div className="card">
+          <h3 className="text-lg font-semibold text-secondary-900 mb-4">
+            Atividade nas Últimas 24h
+          </h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={mockActivityData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="time" />
+              <YAxis />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="commands"
+                stroke="#10b981"
+                strokeWidth={3}
+                dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Guild Types and Recent Activity */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Guild Types */}
+        <div className="card">
+          <h3 className="text-lg font-semibold text-secondary-900 mb-4">
+            Tipos de Servidores
+          </h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie
+                data={mockGuildTypes}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={100}
+                paddingAngle={5}
+                dataKey="value"
+              >
+                {mockGuildTypes.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="mt-4 space-y-2">
+            {mockGuildTypes.map((type) => (
+              <div key={type.name} className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div
+                    className="w-3 h-3 rounded-full mr-2"
+                    style={{ backgroundColor: type.color }}
+                  />
+                  <span className="text-sm text-secondary-600">{type.name}</span>
+                </div>
+                <span className="text-sm font-medium text-secondary-900">
+                  {type.value}%
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="card lg:col-span-2">
+          <h3 className="text-lg font-semibold text-secondary-900 mb-4">
+            Atividade Recente
+          </h3>
+          <div className="space-y-4">
+            {[
+              {
+                action: 'Novo servidor adicionado',
+                server: 'Gaming Community BR',
+                time: '2 minutos atrás',
+                type: 'success',
+              },
+              {
+                action: 'Comando executado',
+                server: 'Music Lovers',
+                time: '5 minutos atrás',
+                type: 'info',
+              },
+              {
+                action: 'Usuário banido',
+                server: 'Competitive Gaming',
+                time: '12 minutos atrás',
+                type: 'warning',
+              },
+              {
+                action: 'Erro de comando',
+                server: 'Casual Chat',
+                time: '18 minutos atrás',
+                type: 'error',
+              },
+            ].map((activity, index) => (
+              <div key={index} className="flex items-center space-x-3">
+                <div className={`w-2 h-2 rounded-full ${
+                  activity.type === 'success' ? 'bg-success-500' :
+                  activity.type === 'info' ? 'bg-primary-500' :
+                  activity.type === 'warning' ? 'bg-warning-500' :
+                  'bg-error-500'
+                }`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-secondary-900">
+                    {activity.action}
+                  </p>
+                  <p className="text-sm text-secondary-500">
+                    {activity.server}
+                  </p>
+                </div>
+                <div className="text-sm text-secondary-400">
+                  {activity.time}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
