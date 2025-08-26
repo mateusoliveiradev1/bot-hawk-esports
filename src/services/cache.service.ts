@@ -300,6 +300,32 @@ export class CacheService {
   }
 
   /**
+   * Cleanup expired keys and optimize memory
+   */
+  public async cleanup(): Promise<void> {
+    if (!this.isConnected) {
+      this.logger.warn('Redis not connected, cannot perform cleanup');
+      return;
+    }
+
+    try {
+      // Clear expired keys patterns
+      const patterns = ['temp:*', 'session:*', 'cooldown:*'];
+      let totalDeleted = 0;
+      
+      for (const pattern of patterns) {
+        const deleted = await this.clearPattern(pattern);
+        totalDeleted += deleted;
+      }
+      
+      this.logger.info(`Cache cleanup completed, deleted ${totalDeleted} expired keys`);
+    } catch (error) {
+      this.logger.error('Error during cache cleanup:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get cache statistics
    */
   public async getStats(): Promise<{

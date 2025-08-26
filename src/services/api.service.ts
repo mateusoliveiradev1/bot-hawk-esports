@@ -446,32 +446,27 @@ export class APIService {
     // Get current user
     router.get('/me', async (req: AuthenticatedRequest, res: Response) => {
       try {
-        // TODO: Fix user query - commenting out until User model relations are corrected
-        // const user = await this.database.client.user.findUnique({
-        //   where: { id: req.user!.id },
-        //   include: {
-        //     stats: true,
-        //     pubgStats: true,
-        //     badges: {  // Fixed: badges -> UserBadge relation
-        //       include: {
-        //         badge: true
-        //       }
-        //     }
-        //   }
-        // });
-        //
-        // res.json({
-        //   success: true,
-        //   data: user
-        // });
+        const user = await this.database.client.user.findUnique({
+          where: { id: req.user!.id }
+        });
 
-        res.status(503).json({
-          success: false,
-          error: 'User data disabled - database schema needs updates',
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            error: 'User not found'
+          });
+        }
+
+        return res.json({
+          success: true,
+          data: {
+            ...user,
+            activeGuilds: [] // TODO: Add guilds relation to User model
+          }
         });
       } catch (error) {
         this.logger.error('Get user error:', error);
-        res.status(500).json({
+        return res.status(500).json({
           success: false,
           error: 'Failed to get user data',
         });
@@ -558,10 +553,24 @@ export class APIService {
             include: {
               config: true,
               users: {
+                where: { isActive: true },
                 take: 10,
                 orderBy: {
                   joinedAt: 'desc',
                 },
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      username: true,
+                      discriminator: true,
+                      avatar: true,
+                      level: true,
+                      totalXp: true,
+                      lastSeen: true
+                    }
+                  }
+                }
               },
             },
           });
@@ -1191,35 +1200,89 @@ export class APIService {
    * Get guild statistics
    */
   private async getGuildStats(guildId: string): Promise<any> {
-    // TODO: Fix guild statistics - need to implement proper guild-user relationships
-    // For now, return basic stats without guild filtering
-    const [userCount, totalXP, totalCoins, badgeCount, clipCount] =
-      await Promise.all([
-        this.database.client.user.count(),
-        this.database.client.user.aggregate({
-          _sum: { totalXp: true },
-        }),
-        this.database.client.user.aggregate({
-          _sum: { coins: true },
-        }),
-        this.database.client.userBadge.count(),
+    try {
+      // Get guild members through UserGuild relation
+      const guildMembers = await this.database.client.userGuild.findMany({
+        where: { 
+          guildId,
+          isActive: true 
+        },
+        include: {
+          user: {
+            include: {
+              stats: true,
+              badges: true
+            }
+          }
+        }
+      });
+
+      // Calculate active users (users who have been seen in the last 7 days)
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const activeUsers = guildMembers.filter(member => 
+        member.user.lastSeen && member.user.lastSeen > sevenDaysAgo
+      ).length;
+
+      // Calculate totals for guild members
+      const totalXP = guildMembers.reduce((sum, member) => 
+        sum + (member.user.totalXp || 0), 0
+      );
+      
+      const totalCoins = guildMembers.reduce((sum, member) => 
+        sum + (member.user.coins || 0), 0
+      );
+      
+      const totalMessages = guildMembers.reduce((sum, member) => 
+        sum + 0, 0 // TODO: Add messagesCount field to User model
+      );
+
+      // Count badges for guild members
+      const badgeCount = guildMembers.reduce((sum, member) => 
+        sum + (member.user.badges?.length || 0), 0
+      );
+
+      // Get other statistics
+      const [clipCount, presenceCount, quizCount] = await Promise.all([
         this.database.client.clip.count({ where: { guildId } }),
+        this.database.client.presence.count({ 
+          where: { 
+            metadata: {
+              path: ['guildId'],
+              equals: guildId
+            }
+          }
+        }),
+        this.database.client.quizResult.count() // TODO: Add guildId field to QuizResult model
       ]);
 
-    return {
-      users: {
-        total: userCount,
-        active: 0, // TODO: Implement proper active user tracking
-      },
-      economy: {
-        totalXP: totalXP._sum.totalXp || 0,
-        totalCoins: totalCoins._sum.coins || 0,
-      },
-      engagement: {
-        badges: badgeCount,
-        clips: clipCount,
-      },
-    };
+      return {
+        users: {
+          total: guildMembers.length,
+          active: activeUsers,
+        },
+        economy: {
+          totalXP,
+          totalCoins,
+          totalMessages,
+        },
+        engagement: {
+          badges: badgeCount,
+          clips: clipCount,
+          presenceSessions: presenceCount,
+          quizzes: quizCount,
+        },
+      };
+    } catch (error) {
+      this.logger.error('Failed to get guild stats:', error);
+      // Return empty stats on error
+      return {
+        users: { total: 0, active: 0 },
+        economy: { totalXP: 0, totalCoins: 0, totalMessages: 0 },
+        engagement: { badges: 0, clips: 0, presenceSessions: 0, quizzes: 0 },
+      };
+    }
   }
 
   /**

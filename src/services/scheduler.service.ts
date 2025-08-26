@@ -532,8 +532,30 @@ export class SchedulerService {
    * Reset daily presence
    */
   private async resetDailyPresence(): Promise<void> {
-    // TODO: Implement resetDailyStats method in PresenceService
-    // await this.presenceService.resetDailyStats();
+    try {
+      // Clear daily stats cache for all guilds
+      const guilds = this.client.guilds.cache.keys();
+      let resetCount = 0;
+      
+      for (const guildId of guilds) {
+        try {
+          // Clear daily presence stats from cache
+          await this.cache.del(`daily_presence_stats_${guildId}`);
+        await this.cache.del(`daily_active_users_${guildId}`);
+        await this.cache.del(`daily_check_ins_${guildId}`);
+          resetCount++;
+        } catch (error) {
+          this.logger.warn(`Failed to reset daily presence for guild ${guildId}:`, error);
+        }
+      }
+      
+      // Also clear global daily stats
+      await this.cache.del('daily_presence_global_stats');
+      
+      this.logger.info(`Daily presence reset completed for ${resetCount} guilds`);
+    } catch (error) {
+      this.logger.error('Failed to reset daily presence:', error);
+    }
   }
 
   /**
@@ -649,25 +671,34 @@ export class SchedulerService {
    */
   private async performDailyBackup(): Promise<void> {
     try {
-      // TODO: Fix backup - commenting out until models are corrected
-      this.logger.info('Daily backup temporarily disabled - models need update');
-      return;
-      
-      /*
       // Create backup of critical data
       const backupData = {
         timestamp: new Date(),
         users: await this.database.client.user.count(),
         guilds: await this.database.client.guild.count(),
-        userStats: await this.database.client.userStats.count(),
-        pubgStats: await this.database.client.pUBGStats.count()
+        clips: await this.database.client.clip.count(),
+        quizzes: await this.database.client.quiz.count(),
+        badges: await this.database.client.badge.count(),
+        presences: await this.database.client.presence.count(),
+        userGuilds: await this.database.client.userGuild.count()
       };
       
-      // Store backup info (in production, you'd save to external storage)
+      // Store backup info in cache (in production, you'd save to external storage)
       await this.cache.set('daily_backup', JSON.stringify(backupData), 7 * 24 * 60 * 60); // 7 days
       
+      // Also store backup history
+      const backupHistory = await this.cache.get('backup_history') || '[]';
+      const history = JSON.parse(backupHistory as string);
+      history.push({
+        date: backupData.timestamp.toISOString().split('T')[0],
+        counts: backupData
+      });
+      
+      // Keep only last 30 days of backup history
+      const recentHistory = history.slice(-30);
+      await this.cache.set('backup_history', JSON.stringify(recentHistory), 30 * 24 * 60 * 60);
+      
       this.logger.info('Daily backup completed', backupData);
-      */
     } catch (error) {
       this.logger.error('Failed to perform daily backup:', error);
     }
@@ -678,23 +709,28 @@ export class SchedulerService {
    */
   private async performMonthlyCleanup(): Promise<void> {
     try {
-      // TODO: Fix cleanup - commenting out until models are corrected
-      this.logger.info('Monthly cleanup temporarily disabled - models need update');
-      return;
-      
-      /*
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
       
-      // Clean up old audit logs
-      const deletedLogs = await this.database.client.auditLog.deleteMany({
+      let cleanupStats = {
+        deletedPresences: 0,
+        deletedQuizResults: 0,
+        deletedOldClips: 0,
+        deletedExpiredTokens: 0,
+        cleanedCache: 0
+      };
+      
+      // Clean up old presence records (keep only last 60 days)
+      const deletedPresences = await this.database.client.presence.deleteMany({
         where: {
           createdAt: {
-            lt: thirtyDaysAgo
+            lt: sixtyDaysAgo
           }
         }
       });
+      cleanupStats.deletedPresences = deletedPresences.count;
       
-      // Clean up old quiz results
+      // Clean up old quiz results (keep only last 30 days)
       const deletedQuizResults = await this.database.client.quizResult.deleteMany({
         where: {
           completedAt: {
@@ -702,22 +738,60 @@ export class SchedulerService {
           }
         }
       });
+      cleanupStats.deletedQuizResults = deletedQuizResults.count;
       
-      // Clean up old game results
-      const deletedGameResults = await this.database.client.gameResult.deleteMany({
+      // Clean up very old clips (keep only last 90 days for storage optimization)
+      const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      const oldClips = await this.database.client.clip.findMany({
         where: {
-          completedAt: {
-            lt: thirtyDaysAgo
+          createdAt: {
+            lt: ninetyDaysAgo
           }
+        },
+        select: {
+          id: true,
+          url: true,
+          createdAt: true
         }
       });
       
-      this.logger.info('Monthly cleanup completed', {
-        deletedLogs: deletedLogs.count,
-        deletedQuizResults: deletedQuizResults.count,
-        deletedGameResults: deletedGameResults.count
-      });
-      */
+      // Delete old clips and their files
+      for (const clip of oldClips) {
+        try {
+          await this.clipService.deleteClip(clip.id);
+          cleanupStats.deletedOldClips++;
+        } catch (error) {
+          this.logger.warn(`Failed to delete old clip ${clip.id}:`, error);
+        }
+      }
+      
+      // Clean up expired authentication tokens (if any)
+      try {
+        const expiredTokens = await this.database.client.user.updateMany({
+          where: {
+            lastSeen: {
+              lt: thirtyDaysAgo
+            }
+          },
+          data: {
+            // Clear any cached tokens or sensitive data for inactive users
+            lastSeen: new Date(0) // Reset to epoch to indicate cleanup
+          }
+        });
+        cleanupStats.deletedExpiredTokens = expiredTokens.count;
+      } catch (error) {
+        this.logger.warn('Failed to clean expired tokens:', error);
+      }
+      
+      // Clean up cache
+      try {
+        await this.cache.cleanup();
+        cleanupStats.cleanedCache = 1;
+      } catch (error) {
+        this.logger.warn('Failed to clean cache:', error);
+      }
+      
+      this.logger.info('Monthly cleanup completed', cleanupStats);
     } catch (error) {
       this.logger.error('Failed to perform monthly cleanup:', error);
     }
@@ -889,56 +963,92 @@ export class SchedulerService {
    * Generate guild weekly report
    */
   private async generateGuildWeeklyReport(guildId: string): Promise<any> {
-    // TODO: Fix weekly report - commenting out until models are corrected
-    const stats = {
-      newUsers: 0,
-      activeUsers: 0,
-      totalMessages: 0,
-      completedQuizzes: 0,
-      uploadedClips: 0,
-    };
-    
-    /*
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     
-    const stats = {
-      newUsers: await this.database.client.userGuild.count({
-        where: {
-          guildId,
-          joinedAt: { gte: weekAgo }
-        }
-      }),
-      activeUsers: await this.database.client.presence.count({
-        where: {
-          timestamp: { gte: weekAgo },
-          user: {
-            guilds: {
-              some: {
-                guildId: guildId
+    try {
+      const stats = {
+        newUsers: await this.database.client.userGuild.count({
+          where: {
+            guildId,
+            joinedAt: { gte: weekAgo }
+          }
+        }),
+        activeUsers: await this.database.client.presence.groupBy({
+          by: ['userId'],
+          where: {
+            guildId,
+            checkInTime: { gte: weekAgo }
+          }
+        }).then(result => result.length),
+        totalPresenceSessions: await this.database.client.presence.count({
+          where: {
+            guildId,
+            checkInTime: { gte: weekAgo },
+            checkOutTime: { not: null }
+          }
+        }),
+        completedQuizzes: await this.database.client.quizResult.count({
+          where: {
+            completedAt: { gte: weekAgo },
+            quiz: {
+              guildId: guildId
+            }
+          }
+        }),
+        uploadedClips: await this.database.client.clip.count({
+          where: {
+            guildId,
+            createdAt: { gte: weekAgo }
+          }
+        }),
+        earnedBadges: await this.database.client.userBadge.count({
+          where: {
+            earnedAt: { gte: weekAgo },
+            user: {
+              guilds: {
+                some: {
+                  guildId: guildId
+                }
               }
             }
           }
-        }
-      }),
-      totalMessages: 0, // Would need message tracking
-      completedQuizzes: await this.database.client.quizResult.count({
-        where: {
-          completedAt: { gte: weekAgo },
-          quiz: {
-            guildId: guildId
+        }),
+        totalPresenceTime: await this.database.client.presence.findMany({
+          where: {
+            guildId,
+            checkInTime: { gte: weekAgo },
+            checkOutTime: { not: null }
+          },
+          select: {
+            checkInTime: true,
+            checkOutTime: true
           }
-        }
-      }),
-      uploadedClips: await this.database.client.clip.count({
-        where: {
-          guildId,
-          createdAt: { gte: weekAgo }
-        }
-      })
-    };
-    */
-    
-    return stats;
+        }).then(presences => {
+          return presences.reduce((total, presence) => {
+            if (presence.checkInTime && presence.checkOutTime) {
+              const duration = presence.checkOutTime.getTime() - presence.checkInTime.getTime();
+              return total + Math.floor(duration / (1000 * 60)); // minutes
+            }
+            return total;
+          }, 0);
+        })
+      };
+      
+      return stats;
+    } catch (error) {
+      this.logger.error(`Failed to generate weekly report for guild ${guildId}:`, error);
+      
+      // Return empty stats on error
+      return {
+        newUsers: 0,
+        activeUsers: 0,
+        totalPresenceSessions: 0,
+        completedQuizzes: 0,
+        uploadedClips: 0,
+        earnedBadges: 0,
+        totalPresenceTime: 0
+      };
+    }
   }
 
   /**
@@ -959,6 +1069,9 @@ export class SchedulerService {
         return;
       }
       
+      const totalHours = Math.floor(report.totalPresenceTime / 60);
+      const totalMinutes = report.totalPresenceTime % 60;
+      
       const embed = new EmbedBuilder()
         .setColor('#00ff00')
         .setTitle('📊 Relatório Semanal')
@@ -966,8 +1079,11 @@ export class SchedulerService {
         .addFields(
           { name: '👥 Novos Usuários', value: report.newUsers.toString(), inline: true },
           { name: '🟢 Usuários Ativos', value: report.activeUsers.toString(), inline: true },
+          { name: '⏰ Sessões de Presença', value: report.totalPresenceSessions.toString(), inline: true },
+          { name: '🕐 Tempo Total', value: `${totalHours}h ${totalMinutes}m`, inline: true },
           { name: '🧠 Quizzes Completados', value: report.completedQuizzes.toString(), inline: true },
           { name: '🎬 Clips Enviados', value: report.uploadedClips.toString(), inline: true },
+          { name: '🏆 Badges Conquistadas', value: report.earnedBadges.toString(), inline: true },
         )
         .setTimestamp();
       

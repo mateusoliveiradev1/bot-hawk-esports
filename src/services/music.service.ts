@@ -2,7 +2,7 @@ import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, creat
 import { Guild, GuildMember, VoiceBasedChannel } from 'discord.js';
 import ytdl from 'ytdl-core';
 import ytsr from 'ytsr';
-// import { SpotifyApi } from '@spotify/web-api-ts-sdk'; // Commented out - dependency not installed
+import { SpotifyApi } from '@spotify/web-api-ts-sdk';
 import { Logger } from '../utils/logger';
 import { CacheService } from './cache.service';
 import { DatabaseService } from '../database/database.service';
@@ -62,7 +62,7 @@ export class MusicService {
   private connections: Map<string, VoiceConnection> = new Map();
   private players: Map<string, AudioPlayer> = new Map();
   private queues: Map<string, Queue> = new Map();
-  // private spotify: SpotifyApi | null = null; // Commented out - dependency not installed
+  private spotify: SpotifyApi | null = null;
   
   private readonly filters: MusicFilters = {
     bassboost: 'bass=g=20,dynaudnorm=f=200',
@@ -90,16 +90,37 @@ export class MusicService {
     this.cache = new CacheService();
     this.database = new DatabaseService();
     
-    // this.initializeSpotify(); // Commented out - Spotify not available
+    this.initializeSpotify();
     this.loadQueuesFromDatabase();
   }
 
   /**
-   * Initialize Spotify API - Currently disabled
+   * Initialize Spotify API
    */
-  // private async initializeSpotify(): Promise<void> {
-  //   // Spotify integration disabled - dependency not installed
-  // }
+  private async initializeSpotify(): Promise<void> {
+    try {
+      const clientId = process.env.SPOTIFY_CLIENT_ID;
+      const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+      
+      if (!clientId || !clientSecret) {
+        this.logger.warn('Spotify credentials not found in environment variables');
+        return;
+      }
+      
+      this.spotify = SpotifyApi.withClientCredentials(
+        clientId,
+        clientSecret
+      );
+      
+      // Test the connection
+      await this.spotify.search('test', ['track'], 'US', 1);
+      
+      this.logger.info('Spotify API initialized successfully');
+    } catch (error) {
+      this.logger.error('Failed to initialize Spotify API:', error);
+      this.spotify = null;
+    }
+  }
 
   /**
    * Load persistent queues from database
@@ -379,12 +400,44 @@ export class MusicService {
   }
 
   /**
-   * Search for tracks on Spotify - Currently disabled
+   * Search for tracks on Spotify
    */
   public async searchSpotify(query: string, limit: number = 5): Promise<Track[]> {
-    // Spotify integration disabled - dependency not installed
-    this.logger.warn('Spotify API not available - feature disabled');
-    return [];
+    if (!this.spotify) {
+      this.logger.warn('Spotify API not initialized');
+      return [];
+    }
+    
+    try {
+      const cacheKey = `music:search:spotify:${query}:${limit}`;
+      const cached = await this.cache.get<Track[]>(cacheKey);
+      
+      if (cached) {
+        return cached;
+      }
+
+      const results = await this.spotify.search(query, ['track'], 'US', Math.min(limit, 50) as any);
+      
+      const tracks = results.tracks.items.map((track: any) => ({
+        id: track.id,
+        title: track.name,
+        artist: track.artists.map((artist: any) => artist.name).join(', '),
+        duration: Math.floor(track.duration_ms / 1000),
+        url: track.external_urls.spotify,
+        thumbnail: track.album.images[0]?.url || '',
+        requestedBy: '',
+        platform: 'spotify' as const,
+        addedAt: new Date()
+      })) || [];
+      
+      // Cache for 1 hour
+      await this.cache.set(cacheKey, tracks, 3600);
+      
+      return tracks;
+    } catch (error) {
+      this.logger.error(`Failed to search Spotify for "${query}":`, error);
+      return [];
+    }
   }
 
   /**
@@ -419,15 +472,26 @@ export class MusicService {
   }
 
   /**
-   * Add track by search query (for API)
+   * Add track by search query or URL (for API)
    */
   public async addTrack(guildId: string, query: string, requestedBy: string): Promise<{ success: boolean; message: string; track?: Track }> {
     try {
-      // Search for tracks
-      let tracks = await this.searchYouTube(query, 1);
+      let tracks: Track[] = [];
       
-      if (tracks.length === 0) {
+      // Check if query is a URL
+      if (this.isYouTubeUrl(query)) {
+        // Handle YouTube URL directly
+        tracks = await this.searchYouTube(query, 1);
+      } else if (this.isSpotifyUrl(query)) {
+        // Handle Spotify URL
         tracks = await this.searchSpotify(query, 1);
+      } else {
+        // Search query - try YouTube first, then Spotify
+        tracks = await this.searchYouTube(query, 1);
+        
+        if (tracks.length === 0) {
+          tracks = await this.searchSpotify(query, 1);
+        }
       }
       
       if (tracks.length === 0) {
@@ -678,17 +742,33 @@ export class MusicService {
    * Parse duration string to seconds
    */
   private parseDuration(duration: string | null): number {
-    if (!duration) {
-      return 0;
+    if (!duration) return 0;
+    
+    const parts = duration.split(':').reverse();
+    let seconds = 0;
+    
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      if (part) {
+        seconds += parseInt(part, 10) * Math.pow(60, i);
+      }
     }
     
-    const parts = duration.split(':').map(Number);
-    if (parts.length === 2 && parts[0] !== undefined && parts[1] !== undefined) {
-      return parts[0] * 60 + parts[1];
-    } else if (parts.length === 3 && parts[0] !== undefined && parts[1] !== undefined && parts[2] !== undefined) {
-      return parts[0] * 3600 + parts[1] * 60 + parts[2];
-    }
-    return 0;
+    return seconds;
+  }
+  
+  /**
+   * Check if URL is from Spotify
+   */
+  public isSpotifyUrl(url: string): boolean {
+    return url.includes('spotify.com') || url.includes('open.spotify.com');
+  }
+  
+  /**
+   * Check if URL is from YouTube
+   */
+  public isYouTubeUrl(url: string): boolean {
+    return url.includes('youtube.com') || url.includes('youtu.be');
   }
 
   /**

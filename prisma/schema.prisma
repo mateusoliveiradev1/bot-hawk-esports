@@ -31,6 +31,8 @@ model User {
   lastDaily     DateTime?
   lastWeekly    DateTime?
   lastMonthly   DateTime?
+  lastSeen      DateTime?
+  messagesCount Int      @default(0)
   language      String   @default("pt-BR")
   timezone      String   @default("America/Sao_Paulo")
   notifications Boolean  @default(true)
@@ -99,6 +101,7 @@ model Guild {
   clips         Clip[]
   tickets       Ticket[]
   auditLogs     AuditLog[]
+  presences     Presence[]
   rankingSnapshots RankingSnapshot[]
 
   @@map("guilds")
@@ -265,15 +268,21 @@ model RankingSnapshot {
 
 // Presence/Check-in system
 model Presence {
-  id        String   @id @default(cuid())
-  userId    String
-  type      String   // checkin, checkout
-  timestamp DateTime @default(now())
-  metadata  Json?    // Additional data like location, device, etc.
-  createdAt DateTime @default(now())
+  id           String    @id @default(cuid())
+  userId       String
+  guildId      String
+  type         String    // checkin, checkout
+  checkInTime  DateTime?
+  checkOutTime DateTime?
+  location     String?
+  note         String?
+  timestamp    DateTime  @default(now())
+  metadata     Json?     // Additional data like device, etc.
+  createdAt    DateTime  @default(now())
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@map("presences")
 }

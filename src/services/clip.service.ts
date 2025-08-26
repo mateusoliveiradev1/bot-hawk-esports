@@ -1475,36 +1475,60 @@ export class ClipService {
    */
   private async cleanupOldFiles(): Promise<void> {
     try {
-      // TODO: Fix cleanup - commenting out until Clip model is corrected
-      this.logger.info('Clip cleanup temporarily disabled - model needs update');
-      return;
-
-      /*
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
       
-      // Find old rejected clips
-      const oldClips = await this.database.client.clip.findMany({
+      let cleanupStats = {
+        deletedRejectedClips: 0,
+        deletedOldClips: 0,
+        deletedFiles: 0,
+        errors: 0
+      };
+      
+      // Find old rejected clips (older than 30 days)
+      const rejectedClips = await this.database.client.clip.findMany({
         where: {
-          status: 'rejected',
-          uploadedAt: {
+          isApproved: false,
+          isFeatured: false,
+          createdAt: {
             lt: thirtyDaysAgo
           }
+        },
+        select: {
+          id: true,
+          guildId: true,
+          url: true,
+          thumbnail: true,
+          title: true
         }
       });
       
-      for (const clip of oldClips) {
+      // Find very old clips (older than 90 days) regardless of status
+      const veryOldClips = await this.database.client.clip.findMany({
+        where: {
+          createdAt: {
+            lt: ninetyDaysAgo
+          }
+        },
+        select: {
+          id: true,
+          guildId: true,
+          url: true,
+          thumbnail: true,
+          title: true
+        }
+      });
+      
+      // Cleanup rejected clips
+      for (const clip of rejectedClips) {
         try {
-          // Delete file
-          if (fs.existsSync(clip.filePath)) {
-            fs.unlinkSync(clip.filePath);
-          }
-          
-          // Delete thumbnail if exists
-          if (clip.thumbnailPath && fs.existsSync(clip.thumbnailPath)) {
-            fs.unlinkSync(clip.thumbnailPath);
-          }
+          await this.deleteClipFiles(clip);
           
           // Delete from database
+          await this.database.client.clipVote.deleteMany({
+            where: { clipId: clip.id }
+          });
+          
           await this.database.client.clip.delete({
             where: { id: clip.id }
           });
@@ -1512,16 +1536,140 @@ export class ClipService {
           // Remove from memory
           this.clips.get(clip.guildId)?.delete(clip.id);
           
-          this.logger.info(`Cleaned up old rejected clip: ${clip.id}`);
+          cleanupStats.deletedRejectedClips++;
+          this.logger.info(`Cleaned up rejected clip: ${clip.title} (${clip.id})`);
         } catch (error) {
-          this.logger.error(`Failed to cleanup clip ${clip.id}:`, error);
+          cleanupStats.errors++;
+          this.logger.error(`Failed to cleanup rejected clip ${clip.id}:`, error);
         }
       }
       
-      this.logger.info(`Cleaned up ${oldClips.length} old clips`);
-      */
+      // Cleanup very old clips
+      for (const clip of veryOldClips) {
+        try {
+          await this.deleteClipFiles(clip);
+          
+          // Delete from database
+          await this.database.client.clipVote.deleteMany({
+            where: { clipId: clip.id }
+          });
+          
+          await this.database.client.clip.delete({
+            where: { id: clip.id }
+          });
+          
+          // Remove from memory
+          this.clips.get(clip.guildId)?.delete(clip.id);
+          
+          cleanupStats.deletedOldClips++;
+          this.logger.info(`Cleaned up old clip: ${clip.title} (${clip.id})`);
+        } catch (error) {
+          cleanupStats.errors++;
+          this.logger.error(`Failed to cleanup old clip ${clip.id}:`, error);
+        }
+      }
+      
+      this.logger.info('Clip cleanup completed', cleanupStats);
     } catch (error) {
       this.logger.error('Failed to cleanup old files:', error);
+    }
+  }
+  
+  /**
+   * Delete clip files from filesystem
+   */
+  private async deleteClipFiles(clip: { url: string; thumbnail?: string | null }): Promise<void> {
+    const fs = await import('fs');
+    const path = await import('path');
+    
+    try {
+      // Delete main video file
+      if (clip.url) {
+        // Handle both URL and file path formats
+        let filePath = clip.url;
+        if (clip.url.startsWith('http')) {
+          // If it's a URL, extract filename and construct local path
+          const fileName = path.basename(clip.url);
+          filePath = path.join(this.uploadDir, fileName);
+        }
+        
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          this.logger.debug(`Deleted clip file: ${filePath}`);
+        }
+      }
+      
+      // Delete thumbnail if exists
+      if (clip.thumbnail) {
+        let thumbnailPath = clip.thumbnail;
+        if (clip.thumbnail.startsWith('http')) {
+          const fileName = path.basename(clip.thumbnail);
+          thumbnailPath = path.join(this.thumbnailDir, fileName);
+        }
+        
+        if (fs.existsSync(thumbnailPath)) {
+          fs.unlinkSync(thumbnailPath);
+          this.logger.debug(`Deleted thumbnail: ${thumbnailPath}`);
+        }
+      }
+    } catch (error) {
+      this.logger.warn('Failed to delete clip files:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete clip by ID
+   */
+  public async deleteClip(clipId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      // Find the clip in database
+      const clip = await this.database.client.clip.findUnique({
+        where: { id: clipId },
+        select: {
+          id: true,
+          guildId: true,
+          url: true,
+          thumbnail: true,
+          title: true
+        }
+      });
+      
+      if (!clip) {
+        return {
+          success: false,
+          message: 'Clip não encontrado.'
+        };
+      }
+      
+      // Delete files from filesystem
+      await this.deleteClipFiles(clip);
+      
+      // Delete votes from database
+      await this.database.client.clipVote.deleteMany({
+        where: { clipId: clip.id }
+      });
+      
+      // Delete clip from database
+      await this.database.client.clip.delete({
+        where: { id: clip.id }
+      });
+      
+      // Remove from memory
+      this.clips.get(clip.guildId)?.delete(clip.id);
+      
+      this.logger.info(`Deleted clip: ${clip.title} (${clip.id})`);
+      
+      return {
+        success: true,
+        message: 'Clip deletado com sucesso.'
+      };
+    } catch (error) {
+      this.logger.error(`Failed to delete clip ${clipId}:`, error);
+      return {
+        success: false,
+        message: 'Erro ao deletar o clip.'
+      };
     }
   }
 

@@ -20,7 +20,11 @@
     "test:coverage": "jest --coverage",
     "clean": "rimraf dist",
     "typecheck": "tsc --noEmit",
-    "prepare": "husky"
+    "prepare": "husky",
+    "setup:spotify": "node setup-spotify.js",
+    "setup:spotify:ps": "powershell -ExecutionPolicy Bypass -File setup-spotify.ps1",
+    "setup:complete": "node setup-complete.js",
+    "setup:complete:ps": "powershell -ExecutionPolicy Bypass -File setup-complete.ps1"
   },
   "keywords": [
     "discord",
@@ -37,6 +41,7 @@
     "@discordjs/rest": "^2.2.0",
     "@discordjs/voice": "^0.17.0",
     "@prisma/client": "^5.7.1",
+    "@spotify/web-api-ts-sdk": "^1.2.0",
     "axios": "^1.6.2",
     "bcryptjs": "^2.4.3",
     "canvas": "^2.11.2",

@@ -109,6 +109,7 @@ export class PresenceService {
   private activeSessions: Map<string, Map<string, PresenceSession>> = new Map(); // guildId -> userId -> session
   private presenceStats: Map<string, Map<string, PresenceStats>> = new Map(); // guildId -> userId -> stats
   private guildSettings: Map<string, PresenceSettings> = new Map(); // guildId -> settings
+  private dailyStats: Map<string, any> = new Map(); // guildId -> daily stats
   
   private readonly maxSessionDuration = 24 * 60; // 24 hours in minutes
   private readonly streakGracePeriod = 48 * 60 * 60 * 1000; // 48 hours in milliseconds
@@ -132,26 +133,48 @@ export class PresenceService {
    */
   private async loadActiveSessions(): Promise<void> {
     try {
-      // TODO: Update Presence model to include required fields (checkOutTime, guildId, checkInTime, location, note)
-      // Current Presence model only has: id, userId, type, timestamp, metadata, createdAt
-      /*
       const activeSessions = await this.database.client.presence.findMany({
         where: {
-          type: 'checkin'
+          type: 'checkin',
+          checkOutTime: null // Only sessions that haven't been checked out
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true
+            }
+          },
+          guild: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
         },
         orderBy: {
-          timestamp: 'desc'
+          checkInTime: 'desc'
         }
       });
       
       for (const session of activeSessions) {
-        // TODO: Extract guildId from metadata or add to model
-        // TODO: Map timestamp to checkInTime
-        // TODO: Extract location and note from metadata
+        if (!this.activeSessions.has(session.guildId)) {
+          this.activeSessions.set(session.guildId, new Map());
+        }
+        
+        const guildSessions = this.activeSessions.get(session.guildId)!;
+        guildSessions.set(session.userId, {
+          id: session.id,
+          userId: session.userId,
+          guildId: session.guildId,
+          checkInTime: session.checkInTime || session.timestamp,
+          location: session.location || 'Unknown',
+          note: session.note || undefined,
+          status: 'active' as const
+        });
       }
-      */
       
-      this.logger.info('Active sessions loading disabled - needs Presence model update');
+      this.logger.info(`Loaded ${activeSessions.length} active presence sessions`);
     } catch (error) {
       this.logger.error('Failed to load active sessions:', error);
     }
@@ -162,12 +185,54 @@ export class PresenceService {
    */
   private async loadPresenceStats(): Promise<void> {
     try {
-      // TODO: Update to work with current Presence model structure
-      // Current model has: id, userId, type, timestamp, metadata, createdAt
-      // Need fields: guildId, checkInTime, checkOutTime, duration
-      // These should be extracted from metadata or added to model
+      // Load daily stats for all guilds
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
       
-      this.logger.info('Presence statistics loading disabled - needs model update');
+      const dailyPresences = await this.database.client.presence.findMany({
+        where: {
+          checkInTime: {
+            gte: today
+          },
+          checkOutTime: {
+            not: null
+          }
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true
+            }
+          }
+        }
+      });
+      
+      // Calculate daily statistics
+      for (const presence of dailyPresences) {
+        const guildStats = this.dailyStats.get(presence.guildId) || {
+          totalCheckIns: 0,
+          totalDuration: 0,
+          uniqueUsers: new Set(),
+          averageDuration: 0
+        };
+        
+        guildStats.totalCheckIns++;
+        guildStats.uniqueUsers.add(presence.userId);
+        
+        if (presence.checkInTime && presence.checkOutTime) {
+          const duration = presence.checkOutTime.getTime() - presence.checkInTime.getTime();
+          guildStats.totalDuration += duration;
+        }
+        
+        guildStats.averageDuration = guildStats.totalCheckIns > 0 
+          ? guildStats.totalDuration / guildStats.totalCheckIns 
+          : 0;
+        
+        this.dailyStats.set(presence.guildId, guildStats);
+      }
+      
+      this.logger.info(`Loaded presence statistics for ${this.dailyStats.size} guilds`);
     } catch (error) {
       this.logger.error('Failed to load presence stats:', error);
     }
@@ -288,12 +353,12 @@ export class PresenceService {
       const presenceRecord = await this.database.client.presence.create({
         data: {
           userId,
+          guildId,
           type: 'checkin',
-          timestamp: new Date(),
+          checkInTime: new Date(),
+          location,
+          note,
           metadata: {
-            guildId,
-            location,
-            note,
             ipAddress,
             deviceInfo,
           },
@@ -390,11 +455,11 @@ export class PresenceService {
       const presenceRecord = await this.database.client.presence.create({
         data: {
           userId,
+          guildId,
           type: 'checkout',
-          timestamp: new Date(),
+          checkOutTime: new Date(),
+          note,
           metadata: {
-            guildId,
-            note,
             checkInId: lastCheckIn.id
           },
         },
@@ -471,25 +536,133 @@ export class PresenceService {
     endDate: Date,
   ): Promise<PresenceReport> {
     try {
-      // TODO: Implement report generation with current Presence model
-      // Current model: id, userId, type, timestamp, metadata, createdAt
-      // Need to extract guildId from metadata and handle check-in/check-out pairing
+      // Get all presence records for the period
+      const presences = await this.database.client.presence.findMany({
+        where: {
+          guildId,
+          checkInTime: {
+            gte: startDate,
+            lte: endDate
+          },
+          checkOutTime: {
+            not: null
+          }
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true
+            }
+          }
+        },
+        orderBy: {
+          checkInTime: 'asc'
+        }
+      });
+
+      // Calculate basic stats
+      const totalSessions = presences.length;
+      const uniqueUsers = new Set(presences.map(p => p.userId));
+      const totalUsers = uniqueUsers.size;
       
-      this.logger.info(`Guild report generation disabled - needs model update for guild ${guildId}`);
+      let totalDuration = 0;
+      const userStatsMap = new Map<string, {
+        userId: string;
+        username: string;
+        sessions: number;
+        duration: number;
+      }>();
       
-      // Return empty report for now
+      const dailyStatsMap = new Map<string, {
+        date: string;
+        sessions: number;
+        duration: number;
+        uniqueUsers: Set<string>;
+      }>();
+
+      // Process each presence record
+      for (const presence of presences) {
+        if (!presence.checkInTime || !presence.checkOutTime) continue;
+        
+        const duration = presence.checkOutTime.getTime() - presence.checkInTime.getTime();
+        const durationMinutes = Math.floor(duration / (1000 * 60));
+        totalDuration += durationMinutes;
+        
+        // Update user stats
+        const userKey = presence.userId;
+        const userStats = userStatsMap.get(userKey) || {
+          userId: presence.userId,
+          username: 'Unknown',
+          sessions: 0,
+          duration: 0
+        };
+        userStats.sessions++;
+        userStats.duration += durationMinutes;
+        userStatsMap.set(userKey, userStats);
+        
+        // Update daily stats
+        if (presence.checkInTime) {
+          const dateKey = presence.checkInTime.toISOString().split('T')[0];
+          if (dateKey) {
+            const dailyStats = dailyStatsMap.get(dateKey) || {
+              date: dateKey,
+              sessions: 0,
+              duration: 0,
+              uniqueUsers: new Set<string>()
+            };
+            dailyStats.sessions++;
+            dailyStats.duration += durationMinutes;
+            dailyStats.uniqueUsers.add(presence.userId);
+            dailyStatsMap.set(dateKey, dailyStats);
+          }
+        }
+      }
+
+      // Find most active user
+      let mostActiveUser = null;
+      let maxDuration = 0;
+      for (const userStats of userStatsMap.values()) {
+        if (userStats.duration > maxDuration) {
+          maxDuration = userStats.duration;
+          mostActiveUser = {
+            userId: userStats.userId,
+            username: userStats.username,
+            sessions: userStats.sessions,
+            duration: userStats.duration
+          };
+        }
+      }
+
+      // Convert daily stats
+      const dailyStats = Array.from(dailyStatsMap.values()).map(stats => ({
+        date: stats.date,
+        sessions: stats.sessions,
+        duration: stats.duration,
+        uniqueUsers: stats.uniqueUsers.size
+      })).sort((a, b) => a.date.localeCompare(b.date));
+
+      // Convert user stats with average duration
+      const userStats = Array.from(userStatsMap.values())
+        .map(stats => ({
+          ...stats,
+          averageDuration: stats.sessions > 0 ? Math.floor(stats.duration / stats.sessions) : 0
+        }))
+        .sort((a, b) => b.duration - a.duration);
+
       const report: PresenceReport = {
         guildId,
         period: { start: startDate, end: endDate },
-        totalUsers: 0,
-        totalSessions: 0,
-        totalDuration: 0,
-        averageSessionDuration: 0,
-        mostActiveUser: null,
-        dailyStats: [],
-        userStats: [],
+        totalUsers,
+        totalSessions,
+        totalDuration,
+        averageSessionDuration: totalSessions > 0 ? Math.floor(totalDuration / totalSessions) : 0,
+        mostActiveUser,
+        dailyStats,
+        userStats
       };
       
+      this.logger.info(`Generated presence report for guild ${guildId}: ${totalSessions} sessions, ${totalUsers} users`);
       return report;
       
     } catch (error) {
@@ -930,14 +1103,73 @@ export class PresenceService {
     endDate: Date,
   ): Promise<string> {
     try {
-      // TODO: Implement CSV export with current Presence model
-      // Current model: id, userId, type, timestamp, metadata, createdAt
-      // Need to extract guildId, location, note from metadata and pair check-ins with check-outs
+      // Get all presence records for the period
+      const presences = await this.database.client.presence.findMany({
+        where: {
+          guildId,
+          checkInTime: {
+            gte: startDate,
+            lte: endDate
+          }
+        },
+        include: {
+          user: {
+            select: {
+              username: true
+            }
+          }
+        },
+        orderBy: {
+          checkInTime: 'asc'
+        }
+      });
+
+      // Create CSV header
+      const csvHeader = 'Usuario,Discord ID,Check-in,Check-out,Duracao (min),Local,Observacao\n';
       
-      this.logger.info(`CSV export disabled - needs model update for guild ${guildId}`);
+      // Process each presence record
+      const csvRows: string[] = [];
+      for (const presence of presences) {
+        const username = 'Unknown';
+        const discordId = presence.userId;
+        const checkIn = presence.checkInTime ? presence.checkInTime.toLocaleString('pt-BR') : 'N/A';
+        const checkOut = presence.checkOutTime ? presence.checkOutTime.toLocaleString('pt-BR') : 'Em andamento';
+        
+        let duration = 'N/A';
+        if (presence.checkInTime && presence.checkOutTime) {
+          const durationMs = presence.checkOutTime.getTime() - presence.checkInTime.getTime();
+          const durationMinutes = Math.floor(durationMs / (1000 * 60));
+          duration = durationMinutes.toString();
+        }
+        
+        const location = presence.location || 'Não informado';
+        const note = presence.note || 'Sem observação';
+        
+        // Escape CSV values (handle commas and quotes)
+        const escapeCsv = (value: string) => {
+          if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+            return `"${value.replace(/"/g, '""')}"`;
+          }
+          return value;
+        };
+        
+        const row = [
+          escapeCsv(username),
+          escapeCsv(discordId),
+          escapeCsv(checkIn),
+          escapeCsv(checkOut),
+          escapeCsv(duration),
+          escapeCsv(location),
+          escapeCsv(note)
+        ].join(',');
+        
+        csvRows.push(row);
+      }
       
-      const csvHeader = 'Usuario,Check-in,Check-out,Duracao (min),Local,Observacao\n';
-      return csvHeader + 'Exportacao desabilitada - modelo precisa ser atualizado\n';
+      const csvContent = csvHeader + csvRows.join('\n');
+      
+      this.logger.info(`Exported ${presences.length} presence records for guild ${guildId}`);
+      return csvContent;
       
     } catch (error) {
       this.logger.error(`Failed to export presence data for guild ${guildId}:`, error);
