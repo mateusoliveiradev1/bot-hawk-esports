@@ -362,7 +362,14 @@ export class MusicService {
   public async searchYouTube(query: string, limit: number = 5): Promise<Track[]> {
     try {
       const cacheKey = `music:search:youtube:${query}:${limit}`;
-      const cached = await this.cache.get<Track[]>(cacheKey);
+      
+      // Try to get from cache, but don't fail if cache is unavailable
+      let cached: Track[] | null = null;
+      try {
+        cached = await this.cache.get<Track[]>(cacheKey);
+      } catch (cacheError) {
+        this.logger.warn('Cache unavailable, proceeding without cache:', cacheError);
+      }
       
       if (cached) {
         return cached;
@@ -415,8 +422,12 @@ export class MusicService {
         }
       }
       
-      // Cache for 1 hour
-      await this.cache.set(cacheKey, tracks, 3600);
+      // Try to cache for 1 hour, but don't fail if cache is unavailable
+      try {
+        await this.cache.set(cacheKey, tracks, 3600);
+      } catch (cacheError) {
+        this.logger.warn('Failed to cache search results:', cacheError);
+      }
       
       return tracks;
     } catch (error) {
@@ -436,7 +447,14 @@ export class MusicService {
     
     try {
       const cacheKey = `music:search:spotify:${query}:${limit}`;
-      const cached = await this.cache.get<Track[]>(cacheKey);
+      
+      // Try to get from cache, but don't fail if cache is unavailable
+      let cached: Track[] | null = null;
+      try {
+        cached = await this.cache.get<Track[]>(cacheKey);
+      } catch (cacheError) {
+        this.logger.warn('Cache unavailable, proceeding without cache:', cacheError);
+      }
       
       if (cached) {
         return cached;
@@ -456,8 +474,12 @@ export class MusicService {
         addedAt: new Date()
       })) || [];
       
-      // Cache for 1 hour
-      await this.cache.set(cacheKey, tracks, 3600);
+      // Try to cache for 1 hour, but don't fail if cache is unavailable
+      try {
+        await this.cache.set(cacheKey, tracks, 3600);
+      } catch (cacheError) {
+        this.logger.warn('Failed to cache search results:', cacheError);
+      }
       
       return tracks;
     } catch (error) {
