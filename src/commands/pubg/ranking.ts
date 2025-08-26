@@ -59,6 +59,12 @@ const ranking: Command = {
       const limit = 10;
       const offset = (page - 1) * limit;
       
+      const allTimePeriod = {
+        type: 'all_time' as const,
+        startDate: new Date(0),
+        endDate: new Date(),
+      };
+      
       let rankingData: any[] = [];
       let totalCount = 0;
       let embed: EmbedBuilder;
@@ -68,31 +74,56 @@ const ranking: Command = {
       case 'pubg_weekly':
       case 'pubg_monthly':
         const period = rankingType.split('_')[1] as 'daily' | 'weekly' | 'monthly';
-        const pubgRanking = await rankingService.getPUBGRanking(interaction.guildId!, period as any, limit as any, offset as any);
+        const now = new Date();
+        let rankingPeriod;
+        switch (period) {
+        case 'daily':
+          rankingPeriod = {
+            type: 'daily' as const,
+            startDate: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+            endDate: now,
+          };
+          break;
+        case 'weekly':
+          rankingPeriod = {
+            type: 'weekly' as const,
+            startDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+            endDate: now,
+          };
+          break;
+        case 'monthly':
+          rankingPeriod = {
+            type: 'monthly' as const,
+            startDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+            endDate: now,
+          };
+          break;
+        }
+        const pubgRanking = rankingService.getPUBGRanking(interaction.guildId!, rankingPeriod!, undefined, 'rankPoints', limit);
         rankingData = pubgRanking;
         totalCount = pubgRanking.length;
         embed = await createPUBGRankingEmbed(rankingData, period, page, totalCount, interaction.user.id);
         break;
           
       case 'internal_xp':
-        const xpRanking = await rankingService.getInternalRanking(interaction.guildId!, 'xp' as any, limit as any, offset as any);
+        const xpRanking = rankingService.getInternalRanking(interaction.guildId!, allTimePeriod, 'xp', limit);
         rankingData = xpRanking;
         totalCount = xpRanking.length;
         embed = await createInternalRankingEmbed(rankingData, 'XP', page, totalCount, interaction.user.id, client);
         break;
           
       case 'internal_coins':
-        const coinsRanking = await rankingService.getInternalRanking(interaction.guildId!, 'coins' as any, limit as any, offset as any);
+        const coinsRanking = rankingService.getInternalRanking(interaction.guildId!, allTimePeriod, 'coins', limit);
         rankingData = coinsRanking;
         totalCount = coinsRanking.length;
         embed = await createInternalRankingEmbed(rankingData, 'Moedas', page, totalCount, interaction.user.id, client);
         break;
           
       case 'internal_badges':
-        const badgesRanking = await rankingService.getInternalRanking(interaction.guildId!, 'badges' as any, limit as any, offset as any);
+        const badgesRanking = rankingService.getInternalRanking(interaction.guildId!, allTimePeriod, 'badgeCount', limit);
         rankingData = badgesRanking;
         totalCount = badgesRanking.length;
-        embed = await createInternalRankingEmbed(badgesRanking, 'Badges', page, totalCount, interaction.user.id, client);
+        embed = await createInternalRankingEmbed(rankingData, 'Badges', page, totalCount, interaction.user.id, client);
         break;
           
       case 'presence':

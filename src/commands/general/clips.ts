@@ -7,7 +7,6 @@ import { ExtendedClient } from '../../types/client';
 
 const prisma = new PrismaClient();
 const database = new DatabaseService();
-const badgeService = new BadgeService(null as any); // Will be properly initialized in main bot
 
 const data = new SlashCommandBuilder()
   .setName('clips')
@@ -136,17 +135,18 @@ const data = new SlashCommandBuilder()
 
 async function execute(interaction: CommandInteraction | ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
   const subcommand = (interaction as ChatInputCommandInteraction).options.getSubcommand();
+  const badgeService = new BadgeService(client);
 
   try {
     switch (subcommand) {
     case 'upload':
-      await handleUpload(interaction as ChatInputCommandInteraction);
+      await handleUpload(interaction as ChatInputCommandInteraction, badgeService);
       break;
     case 'list':
       await handleList(interaction as ChatInputCommandInteraction);
       break;
     case 'vote':
-      await handleVote(interaction as ChatInputCommandInteraction);
+      await handleVote(interaction as ChatInputCommandInteraction, badgeService);
       break;
     case 'info':
       await handleInfo(interaction as ChatInputCommandInteraction);
@@ -172,7 +172,7 @@ async function execute(interaction: CommandInteraction | ChatInputCommandInterac
   }
 }
 
-async function handleUpload(interaction: ChatInputCommandInteraction) {
+async function handleUpload(interaction: ChatInputCommandInteraction, badgeService: BadgeService) {
   await interaction.deferReply();
 
   const attachment = interaction.options.getAttachment('video');
@@ -378,7 +378,7 @@ async function handleList(interaction: ChatInputCommandInteraction) {
   }
 }
 
-async function handleVote(interaction: ChatInputCommandInteraction) {
+async function handleVote(interaction: ChatInputCommandInteraction, badgeService: BadgeService) {
   const clipId = interaction.options.getString('clip_id', true);
   const voteType = interaction.options.getString('vote_type', true);
 
