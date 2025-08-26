@@ -705,7 +705,7 @@ export class RankingService {
             gameMode: gameMode || null,
             startDate: period.startDate.toISOString(),
             endDate: period.endDate.toISOString(),
-            data: data,
+            data: JSON.stringify(data),
           })),
         },
       });

@@ -316,10 +316,9 @@ export class PresenceService {
         where: {
           userId,
           type: 'checkin',
-          metadata: {
-            path: ['guildId'],
-            equals: guildId
-          }
+          metadata: JSON.stringify({
+            guildId: guildId
+          })
         },
         orderBy: {
           timestamp: 'desc'
@@ -335,10 +334,9 @@ export class PresenceService {
             timestamp: {
               gt: existingCheckIn.timestamp
             },
-            metadata: {
-              path: ['guildId'],
-              equals: guildId
-            }
+            metadata: JSON.stringify({
+              guildId: guildId
+            })
           }
         });
         
@@ -358,10 +356,10 @@ export class PresenceService {
           checkInTime: new Date(),
           location,
           note,
-          metadata: {
+          metadata: JSON.stringify({
             ipAddress,
             deviceInfo,
-          },
+          }),
         },
       });
       
@@ -435,10 +433,9 @@ export class PresenceService {
         where: {
           userId,
           type: 'checkin',
-          metadata: {
-            path: ['guildId'],
-            equals: guildId
-          }
+          metadata: JSON.stringify({
+            guildId: guildId
+          })
         },
         orderBy: {
           timestamp: 'desc'
@@ -459,9 +456,9 @@ export class PresenceService {
           type: 'checkout',
           checkOutTime: new Date(),
           note,
-          metadata: {
+          metadata: JSON.stringify({
             checkInId: lastCheckIn.id
-          },
+          }),
         },
       });
       
@@ -707,11 +704,11 @@ export class PresenceService {
       await this.database.client.guildConfig.upsert({
         where: { guildId },
         update: {
-          config: configData,
+          config: JSON.stringify(configData),
         },
         create: {
           guildId,
-          config: configData,
+          config: JSON.stringify(configData),
         },
       });
       
@@ -1050,7 +1047,7 @@ export class PresenceService {
                     amount: reward.coins,
                     balance: currentBalance + reward.coins,
                     reason: `${reward.days} day streak reward`,
-                    metadata: { xp: reward.xp, coins: reward.coins },
+                    metadata: JSON.stringify({ xp: reward.xp, coins: reward.coins }),
                   },
                 });
                 

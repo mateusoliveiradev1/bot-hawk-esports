@@ -657,7 +657,7 @@ export class GameService {
           challengeId: sessionId,
           userId: participant.userId,
           score: participant.score,
-          data: {}, // Store participant data if available
+          data: JSON.stringify({}), // Store participant data if available
         },
       });
     }

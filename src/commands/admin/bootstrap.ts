@@ -365,7 +365,7 @@ async function setupDatabase(guild: any, client: ExtendedClient): Promise<string
     const guildConfig = await client.database.client.guildConfig.upsert({
       where: { guildId: guild.id },
       update: {
-        config: {
+        config: JSON.stringify({
           isSetup: true,
           welcomeChannelId: guild.channels.cache.find((c: any) => c.name === '👋-boas-vindas')?.id,
           logsChannelId: guild.channels.cache.find((c: any) => c.name === '📝-logs')?.id,
@@ -376,11 +376,11 @@ async function setupDatabase(guild: any, client: ExtendedClient): Promise<string
           welcomeMessageEnabled: true,
           rankingNotificationsEnabled: true,
           badgeNotificationsEnabled: true,
-        },
+        }),
       },
       create: {
         guildId: guild.id,
-        config: {
+        config: JSON.stringify({
           isSetup: true,
           welcomeChannelId: guild.channels.cache.find((c: any) => c.name === '👋-boas-vindas')?.id,
           logsChannelId: guild.channels.cache.find((c: any) => c.name === '📝-logs')?.id,
@@ -391,7 +391,7 @@ async function setupDatabase(guild: any, client: ExtendedClient): Promise<string
           welcomeMessageEnabled: true,
           rankingNotificationsEnabled: true,
           badgeNotificationsEnabled: true,
-        },
+        }),
       },
     });
     

@@ -526,10 +526,9 @@ export class APIService {
               const commandLogs = await this.database.client.auditLog.findMany({
                 where: {
                   action: 'command_executed',
-                  metadata: {
-                    path: ['command'],
-                    equals: name
-                  }
+                  metadata: JSON.stringify({
+                    command: name
+                  })
                 },
                 orderBy: {
                   createdAt: 'desc'

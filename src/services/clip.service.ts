@@ -191,7 +191,7 @@ export class ClipService {
           duration: clip.duration || undefined,
           thumbnailPath: clip.thumbnail || undefined,
           gameMode: clip.gameType || undefined,
-          tags: clip.tags || [],
+          tags: clip.tags ? JSON.parse(clip.tags) : [],
           uploadedAt: clip.createdAt,
           status: clip.isApproved ? (clip.isFeatured ? 'featured' : 'approved') : 'pending',
           moderatorId: undefined, // Not available in current schema
@@ -415,7 +415,7 @@ export class ClipService {
           duration: null,
           fileSize: file.length,
           gameType: gameMode || null,
-          tags: tags || [],
+          tags: JSON.stringify(tags || []),
           views: 0,
           likes: 0,
           dislikes: 0,

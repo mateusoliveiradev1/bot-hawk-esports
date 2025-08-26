@@ -212,7 +212,7 @@ async function handleUpload(interaction: ChatInputCommandInteraction) {
         url: attachment.url,
         fileSize: attachment.size,
         gameType,
-        tags,
+        tags: JSON.stringify(tags),
         likes: 0,
         dislikes: 0,
         views: 0,
@@ -562,8 +562,9 @@ async function handleInfo(interaction: ChatInputCommandInteraction) {
       .setColor(clip.isFeatured ? 0xffd700 : 0x0099ff)
       .setTimestamp();
 
-    if (clip.tags && clip.tags.length > 0) {
-      embed.addFields({ name: '🏷️ Tags', value: clip.tags.map(tag => `\`${tag}\``).join(' '), inline: false });
+    const tags = clip.tags ? JSON.parse(clip.tags) : [];
+    if (tags && tags.length > 0) {
+      embed.addFields({ name: '🏷️ Tags', value: tags.map((tag: string) => `\`${tag}\``).join(' '), inline: false });
     }
 
     if (clip.isFeatured) {
