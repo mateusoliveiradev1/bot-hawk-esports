@@ -8,7 +8,7 @@ import * as dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
-const logger = new Logger('DeployCommands');
+const logger = new Logger();
 
 /**
  * Deploy commands to Discord API
