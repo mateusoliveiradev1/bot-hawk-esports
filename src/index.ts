@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Partials, ActivityType } from 'discord.js';
+import { Client, GatewayIntentBits, Partials, ActivityType, EmbedBuilder, ChannelType, TextChannel } from 'discord.js';
 import { ExtendedClient } from '@/types/client';
 import { Logger } from '@/utils/logger';
 import { DatabaseService } from '@/database/database.service';
@@ -13,6 +13,7 @@ import { ClipService } from '@/services/clip.service';
 import { SchedulerService } from '@/services/scheduler.service';
 import { APIService } from '@/services/api.service';
 import { OnboardingService } from './services/onboarding.service';
+import { PunishmentService } from './services/punishment.service';
 import { CommandManager } from './commands/index';
 import { MemberEvents } from './events/memberEvents';
 import * as dotenv from 'dotenv';
@@ -40,6 +41,7 @@ class HawkEsportsBot {
     scheduler: SchedulerService;
     api: APIService;
     onboarding: OnboardingService;
+    punishment: PunishmentService;
   };
   private commands: CommandManager;
   private isShuttingDown = false;
@@ -92,6 +94,7 @@ class HawkEsportsBot {
       scheduler: new SchedulerService(this.client),
       api: new APIService(this.client),
       onboarding: new OnboardingService(this.client),
+      punishment: new PunishmentService(this.client, this.db),
     };
     
     // Attach individual services to client for direct access
@@ -105,6 +108,7 @@ class HawkEsportsBot {
     this.client.schedulerService = this.services.scheduler;
     this.client.apiService = this.services.api;
     this.client.onboardingService = this.services.onboarding;
+    this.client.punishmentService = this.services.punishment;
     
     // Initialize command manager
     this.commands = new CommandManager(this.client);
@@ -326,11 +330,75 @@ class HawkEsportsBot {
     // Initialize member events handler
     new MemberEvents(this.client);
 
-    // Voice state updates for music
+    // Voice state updates for music and auto check-out
     this.client.on('voiceStateUpdate', async (oldState, newState) => {
       try {
-        // Voice state updates are handled internally by MusicService
-        // No external handler needed
+        // Handle auto check-out when user leaves session voice channel
+        if (oldState.channel && !newState.channel) {
+          // User left a voice channel
+          const leftChannel = oldState.channel;
+          const userId = oldState.member?.id;
+          
+          if (userId && leftChannel.name.includes('🎮')) {
+            // Check if this is a session channel created by check-in
+            const isSessionChannel = leftChannel.name.match(/🎮.*(?:MM|Scrim|Campeonato|Ranked)/i);
+            
+            if (isSessionChannel) {
+              // Auto check-out logic
+              const member = oldState.member;
+              if (member) {
+                try {
+                  // Find text channel in the same category to send notification
+                  const category = leftChannel.parent;
+                  const textChannel = category?.children.cache.find(
+                    ch => ch.type === ChannelType.GuildText && ch.name.includes('chat')
+                  ) as TextChannel;
+                  
+                  // Send auto check-out notification
+                  if (textChannel) {
+                    const autoCheckoutEmbed = new EmbedBuilder()
+                      .setTitle('🚪 Auto Check-out')
+                      .setDescription(
+                        `${member.displayName} saiu do canal de voz e foi automaticamente removido da sessão.\n\n` +
+                        `⏰ **Saída detectada em:** <t:${Math.floor(Date.now() / 1000)}:F>\n` +
+                        `🔊 **Canal:** ${leftChannel.name}\n\n` +
+                        `💡 **Dica:** Use \`/checkin\` novamente para criar uma nova sessão!`
+                      )
+                      .setColor(0xffa500)
+                      .setThumbnail(member.displayAvatarURL())
+                      .setTimestamp();
+                    
+                    await textChannel.send({ embeds: [autoCheckoutEmbed] });
+                  }
+                  
+                  // Update presence service if available
+                  if (this.services.presence) {
+                    await this.services.presence.checkOut(userId, oldState.guild.id, 'Auto check-out - left voice channel');
+                  }
+                  
+                  // Check for early leave punishment
+                  if (this.services.punishment) {
+                    // Estimate session start time (this could be improved by storing actual session data)
+                    const estimatedSessionStart = new Date(Date.now() - (30 * 60 * 1000)); // Assume session started 30 min ago as minimum
+                    await this.services.punishment.checkEarlyLeavePunishment(
+                      userId,
+                      oldState.guild.id,
+                      estimatedSessionStart,
+                      leftChannel.id
+                    );
+                  }
+                  
+                  this.logger.info(`Auto check-out performed for user ${userId} from channel ${leftChannel.name}`);
+                } catch (autoCheckoutError) {
+                  this.logger.error('Auto check-out error:', autoCheckoutError);
+                }
+              }
+            }
+          }
+        }
+        
+        // Voice state updates are also handled internally by MusicService
+        // No additional handler needed for music functionality
       } catch (error) {
         this.logger.error('Voice state update error:', error);
       }

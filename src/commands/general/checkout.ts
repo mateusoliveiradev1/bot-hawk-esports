@@ -9,6 +9,7 @@ import {
   ChannelType,
   VoiceChannel,
   TextChannel,
+  CategoryChannel,
   ComponentType
 } from 'discord.js';
 import { Command, CommandCategory } from '@/types/command';
@@ -349,10 +350,13 @@ async function cleanupSessionChannels(
       if (channel.type === ChannelType.GuildVoice || channel.type === ChannelType.GuildText) {
         const channelName = channel.name.toLowerCase();
         const sessionName = sessionLocation.toLowerCase();
+        const userName = interaction.user.displayName.toLowerCase();
         
-        // Check if channel name contains session info or user name
+        // Check if channel name contains session info, user name, or was created by this user
         return channelName.includes(sessionName) || 
-               channelName.includes(interaction.user.displayName.toLowerCase());
+               channelName.includes(userName) ||
+               (channelName.startsWith('🔊') && channelName.includes(userName)) ||
+               (channelName.startsWith('💬') && sessionName && channelName.includes(sessionName.replace(/\s+/g, '-')));
       }
       return false;
     });
@@ -368,17 +372,19 @@ async function cleanupSessionChannels(
           }
         } else if (channel.type === ChannelType.GuildText) {
           const textChannel = channel as TextChannel;
-          // For text channels, check if they were created recently and have minimal activity
-          const messages = await textChannel.messages.fetch({ limit: 10 });
-          const recentMessages = messages.filter((msg: any) => 
-            Date.now() - msg.createdTimestamp < 24 * 60 * 60 * 1000 && // Last 24 hours
-            !msg.author.bot
-          );
+          // For text channels, check if they were created recently (within last 24 hours) and have minimal activity
+          const channelAge = Date.now() - textChannel.createdTimestamp;
+          const isRecentChannel = channelAge < 24 * 60 * 60 * 1000; // 24 hours
           
-          // Remove if no recent user messages
-          if (recentMessages.size === 0) {
-            await textChannel.delete('Sessão finalizada - canal inativo');
-            channelsRemoved++;
+          if (isRecentChannel) {
+            const messages = await textChannel.messages.fetch({ limit: 10 });
+            const userMessages = messages.filter((msg: any) => !msg.author.bot);
+            
+            // Remove if no user messages or only system messages
+            if (userMessages.size <= 1) { // Allow for welcome message
+              await textChannel.delete('Sessão finalizada - canal temporário');
+              channelsRemoved++;
+            }
           }
         }
       } catch (error) {
@@ -386,24 +392,43 @@ async function cleanupSessionChannels(
       }
     }
 
-    // Clean up empty categories
-    const categories = guild.channels.cache.filter((channel: any) => 
-      channel.type === ChannelType.GuildCategory &&
-      channel.children.cache.size === 0
-    );
+    // Clean up empty categories related to the session
+    const categories = guild.channels.cache.filter((channel: any) => {
+      if (channel.type === ChannelType.GuildCategory) {
+        const categoryName = channel.name.toLowerCase();
+        const sessionName = sessionLocation.toLowerCase();
+        const userName = interaction.user.displayName.toLowerCase();
+        
+        // Check if category is related to this session or user
+        return categoryName.includes(sessionName) || 
+               categoryName.includes(userName) ||
+               categoryName.includes('sessão') ||
+               categoryName.includes('session') ||
+               categoryName.includes('🎮') ||
+               categoryName.includes('🏆');
+      }
+      return false;
+    });
 
-    for (const [, category] of categories) {
-      try {
-        const categoryName = category.name.toLowerCase();
-        if (categoryName.includes('matchmaking') || 
-            categoryName.includes('scrim') || 
-            categoryName.includes('campeonato') ||
-            categoryName.includes(sessionLocation.toLowerCase())) {
-          await category.delete('Categoria vazia após finalização de sessão');
+    for (const category of categories.values()) {
+      const categoryChannel = category as CategoryChannel;
+      
+      // Check if category is empty or only has bot-managed channels
+      const activeChannels = categoryChannel.children.cache.filter((child: any) => {
+        // Don't count channels that are about to be deleted or are system channels
+        const childName = child.name.toLowerCase();
+        return !childName.includes('logs') && 
+               !childName.includes('audit') &&
+               !childName.includes('sistema');
+      });
+      
+      if (activeChannels.size === 0) {
+        try {
+          await categoryChannel.delete('Categoria vazia após finalização da sessão');
           channelsRemoved++;
+        } catch (error) {
+          console.error(`Erro ao remover categoria ${categoryChannel.name}:`, error);
         }
-      } catch (error) {
-        console.error(`Error cleaning up category ${category.name}:`, error);
       }
     }
 

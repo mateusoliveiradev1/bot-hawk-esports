@@ -19,6 +19,7 @@ import { Logger } from '@/utils/logger';
 import { PresenceService } from '@/services/presence.service';
 import { BadgeService } from '@/services/badge.service';
 import { DatabaseService } from '@/database/database.service';
+import { getChannelConfig, formatCleanupTime } from '../../config/channels.config.js';
 
 /**
  * Check-in command - Start presence tracking session
@@ -117,11 +118,37 @@ const checkin: Command = {
       }
 
       // Create or get voice/text channels
-      const channelResult = await createSessionChannels(interaction as ChatInputCommandInteraction, tipo, nome || sessionName);
+      const channelResult = await createSessionChannels(interaction as ChatInputCommandInteraction, tipo, sessionName, nome || undefined);
       
       // Calculate XP and streak info
       const xpGained = calculateSessionXP(tipo);
       const currentStreak = 0; // TODO: Implement streak system
+      
+      // Schedule punishment checks for this session
+      const sessionStartTime = new Date();
+      const punishmentService = client.punishmentService;
+      
+      // Schedule no-show-up check (1 hour after check-in)
+      setTimeout(async () => {
+        if (channelResult.voiceChannel) {
+          await punishmentService.checkNoShowUpPunishment(
+            userId,
+            guildId,
+            sessionStartTime,
+            channelResult.voiceChannel.id
+          );
+        }
+      }, 60 * 60 * 1000); // 1 hour
+      
+      // Schedule no-checkout check (6 hours after check-in)
+      setTimeout(async () => {
+        await punishmentService.checkNoCheckoutPunishment(
+          userId,
+          guildId,
+          sessionStartTime,
+          channelResult.voiceChannel?.id
+        );
+      }, 6 * 60 * 60 * 1000); // 6 hours
       
       // Award XP for check-in
       await database.client.user.update({
@@ -216,22 +243,39 @@ const checkin: Command = {
             .setLabel('🚪 Check-out')
             .setStyle(ButtonStyle.Danger),
           new ButtonBuilder()
+            .setCustomId(`invite_players_${userId}`)
+            .setLabel('👥 Convidar Jogadores')
+            .setStyle(ButtonStyle.Success),
+          new ButtonBuilder()
+            .setCustomId(`confirm_presence_${userId}`)
+            .setLabel('✅ Confirmar Presença')
+            .setStyle(ButtonStyle.Primary)
+        );
+
+      // Create secondary action buttons
+      const secondaryButtons = new ActionRowBuilder<ButtonBuilder>()
+        .addComponents(
+          new ButtonBuilder()
             .setCustomId(`ranking_presence`)
             .setLabel('🏆 Ver Ranking')
-            .setStyle(ButtonStyle.Primary),
+            .setStyle(ButtonStyle.Secondary),
           new ButtonBuilder()
             .setCustomId(`session_info_${userId}`)
             .setLabel('📊 Info da Sessão')
+            .setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder()
+            .setCustomId(`session_participants_${userId}`)
+            .setLabel('👤 Participantes')
             .setStyle(ButtonStyle.Secondary)
         );
 
       const response = await interaction.editReply({
         embeds: [successEmbed],
-        components: [actionButtons]
+        components: [actionButtons, secondaryButtons]
       });
 
       // Setup button collector
-      setupButtonCollector(response, interaction as ChatInputCommandInteraction, presenceService, userId, guildId);
+      setupButtonCollector(response, interaction as ChatInputCommandInteraction, presenceService, userId, guildId, channelResult);
 
       logger.info(`User ${userId} checked in successfully for ${tipo} session`);
 
@@ -285,7 +329,8 @@ function calculateSessionXP(tipo: string): number {
 async function createSessionChannels(
   interaction: ChatInputCommandInteraction,
   tipo: string,
-  sessionName: string
+  sessionName: string,
+  nome?: string
 ): Promise<{ voiceChannel?: VoiceChannel; textChannel?: TextChannel }> {
   try {
     const guild = interaction.guild!;
@@ -314,16 +359,19 @@ async function createSessionChannels(
       });
     }
 
+    // Get configuration for this session type
+    const config = getChannelConfig(tipo);
+    
     // Create voice channel
-    const voiceChannelName = tipo === 'mm' 
-      ? `🔊 ${interaction.user.displayName}` 
-      : `🔊 ${sessionName}`;
+    const voiceChannelName = nome 
+      ? `🔊 ${nome}` 
+      : (tipo === 'mm' ? `🔊 ${interaction.user.displayName}` : `🔊 ${sessionName}`);
     
     const voiceChannel = await guild.channels.create({
       name: voiceChannelName,
       type: ChannelType.GuildVoice,
       parent: category,
-      userLimit: tipo === 'mm' ? 4 : 10, // MM usually 4 players, others more
+      userLimit: config.maxUsers || 10,
       permissionOverwrites: [
         {
           id: guild.roles.everyone.id,
@@ -332,10 +380,12 @@ async function createSessionChannels(
       ],
     });
 
-    // Create text channel for scrims and championships
+    // Create text channel if needed
     let textChannel: TextChannel | undefined;
-    if (tipo === 'scrim' || tipo === 'campeonato') {
-      const textChannelName = `💬 ${sessionName.toLowerCase().replace(/\s+/g, '-')}`;
+    if (config.createTextChannel) {
+      const textChannelName = nome 
+        ? `💬 ${nome.toLowerCase().replace(/\s+/g, '-')}` 
+        : `💬 ${sessionName.toLowerCase().replace(/\s+/g, '-')}`;
       
       textChannel = await guild.channels.create({
         name: textChannelName,
@@ -352,13 +402,16 @@ async function createSessionChannels(
 
       // Send welcome message in text channel
       const welcomeEmbed = new EmbedBuilder()
-        .setTitle(`🎮 ${sessionName}`)
+        .setTitle(`🎮 ${nome || sessionName}`)
         .setDescription(`Canal criado para a sessão de **${getTipoDisplayName(tipo)}**\n\nBoa sorte e divirtam-se! 🎯`)
         .setColor(0x00ff00)
         .setTimestamp();
 
       await textChannel.send({ embeds: [welcomeEmbed] });
     }
+
+    // Schedule automatic cleanup for temporary channels
+    scheduleChannelCleanup(voiceChannel, textChannel, tipo);
 
     return { voiceChannel, textChannel };
 
@@ -400,7 +453,8 @@ function setupButtonCollector(
   interaction: ChatInputCommandInteraction,
   presenceService: PresenceService,
   userId: string,
-  guildId: string
+  guildId: string,
+  channelResult: { voiceChannel?: VoiceChannel; textChannel?: TextChannel }
 ): void {
   const collector = response.createMessageComponentCollector({
     componentType: ComponentType.Button,
@@ -408,7 +462,17 @@ function setupButtonCollector(
   });
 
   collector.on('collect', async (buttonInteraction: any) => {
-    if (buttonInteraction.user.id !== userId) {
+    // Allow other users to interact with invite and presence buttons
+    const allowedForAll = [
+      `invite_players_${userId}`,
+      `confirm_presence_${userId}`,
+      `session_participants_${userId}`,
+      'ranking_presence'
+    ];
+    
+    const isOwnerOnly = !allowedForAll.some(id => buttonInteraction.customId.includes(id.replace(`_${userId}`, '')));
+    
+    if (isOwnerOnly && buttonInteraction.user.id !== userId) {
       await buttonInteraction.reply({
         content: '❌ Você não pode usar os botões de outro usuário!',
         ephemeral: true,
@@ -442,6 +506,80 @@ function setupButtonCollector(
           
           await response.edit({ components: [disabledButtons] });
         }
+      } else if (buttonInteraction.customId === `invite_players_${userId}`) {
+        // Handle player invitation
+        const inviteEmbed = new EmbedBuilder()
+          .setTitle('👥 Convidar Jogadores')
+          .setDescription(
+            `**Como convidar jogadores para a sessão:**\n\n` +
+            `🔊 **Canal de Voz:** ${channelResult.voiceChannel ? `<#${channelResult.voiceChannel.id}>` : 'Não disponível'}\n` +
+            `💬 **Canal de Texto:** ${channelResult.textChannel ? `<#${channelResult.textChannel.id}>` : 'Não disponível'}\n\n` +
+            `📋 **Instruções:**\n` +
+            `• Compartilhe os links dos canais com seus amigos\n` +
+            `• Eles podem entrar diretamente nos canais\n` +
+            `• Use o botão "✅ Confirmar Presença" quando chegarem\n` +
+            `• O criador da sessão pode fazer check-out por todos`
+          )
+          .setColor(0x00ff00)
+          .setTimestamp();
+
+        await buttonInteraction.reply({ embeds: [inviteEmbed], ephemeral: true });
+        
+      } else if (buttonInteraction.customId === `confirm_presence_${userId}`) {
+        // Handle presence confirmation
+        const confirmingUser = buttonInteraction.user;
+        const isInVoiceChannel = channelResult.voiceChannel?.members.has(confirmingUser.id);
+        
+        if (!isInVoiceChannel) {
+          await buttonInteraction.reply({
+            content: `❌ Você precisa estar no canal de voz ${channelResult.voiceChannel ? `<#${channelResult.voiceChannel.id}>` : ''} para confirmar presença!`,
+            ephemeral: true
+          });
+          return;
+        }
+
+        // Store presence confirmation (you might want to save this to database)
+        const confirmEmbed = new EmbedBuilder()
+          .setTitle('✅ Presença Confirmada!')
+          .setDescription(
+            `${confirmingUser.displayName} confirmou presença na sessão!\n\n` +
+            `⏰ **Confirmado em:** <t:${Math.floor(Date.now() / 1000)}:F>\n` +
+            `🔊 **Canal:** ${channelResult.voiceChannel ? `<#${channelResult.voiceChannel.id}>` : 'N/A'}\n\n` +
+            `💡 **Lembre-se:** Faça check-out quando sair para evitar penalidades!`
+          )
+          .setColor(0x00ff00)
+          .setThumbnail(confirmingUser.displayAvatarURL())
+          .setTimestamp();
+
+        await buttonInteraction.reply({ embeds: [confirmEmbed], ephemeral: true });
+        
+        // Notify in text channel if available
+        if (channelResult.textChannel) {
+          const notificationEmbed = new EmbedBuilder()
+            .setDescription(`✅ ${confirmingUser.displayName} confirmou presença na sessão!`)
+            .setColor(0x00ff00)
+            .setTimestamp();
+          
+          await channelResult.textChannel.send({ embeds: [notificationEmbed] });
+        }
+        
+      } else if (buttonInteraction.customId === `session_participants_${userId}`) {
+        // Show session participants
+        const voiceMembers = channelResult.voiceChannel?.members;
+        const participantsList = voiceMembers?.map(member => `• ${member.displayName}`).join('\n') || 'Nenhum participante no canal de voz';
+        
+        const participantsEmbed = new EmbedBuilder()
+          .setTitle('👤 Participantes da Sessão')
+          .setDescription(
+            `**Canal de Voz:** ${channelResult.voiceChannel ? `<#${channelResult.voiceChannel.id}>` : 'N/A'}\n\n` +
+            `**Participantes Ativos (${voiceMembers?.size || 0}):**\n${participantsList}\n\n` +
+            `💡 **Dica:** Use "✅ Confirmar Presença" para registrar sua participação!`
+          )
+          .setColor(0x3498db)
+          .setTimestamp();
+
+        await buttonInteraction.reply({ embeds: [participantsEmbed], ephemeral: true });
+        
       } else if (buttonInteraction.customId === 'ranking_presence') {
         // Show presence ranking
         await buttonInteraction.reply({
@@ -490,6 +628,65 @@ function setupButtonCollector(
       // Ignore errors when editing expired messages
     }
   });
+}
+
+/**
+ * Schedule automatic cleanup for temporary channels
+ */
+function scheduleChannelCleanup(
+  voiceChannel: VoiceChannel,
+  textChannel?: TextChannel,
+  tipo?: string
+): void {
+  // Get configuration for this session type
+  const config = getChannelConfig(tipo);
+  const cleanupTime = config.cleanupTime;
+  
+  console.log(`Canais programados para limpeza automática em ${formatCleanupTime(cleanupTime)}`);
+
+  // Schedule voice channel cleanup
+  setTimeout(async () => {
+    try {
+      // Check if channel still exists and is empty
+      try {
+        const updatedChannel = await voiceChannel.fetch().catch(() => null);
+        if (updatedChannel && updatedChannel.members.size === 0) {
+          await updatedChannel.delete('Limpeza automática - tempo limite atingido');
+          console.log(`Auto-deleted voice channel: ${voiceChannel.name}`);
+        }
+      } catch (error) {
+        // Channel might have been deleted already
+      }
+    } catch (error) {
+      console.error('Error in scheduled voice channel cleanup:', error);
+    }
+  }, cleanupTime);
+
+  // Schedule text channel cleanup (if exists)
+  if (textChannel) {
+    setTimeout(async () => {
+      try {
+        // Check if channel still exists and has minimal activity
+        try {
+          const updatedChannel = await textChannel.fetch().catch(() => null);
+          if (updatedChannel) {
+            const messages = await updatedChannel.messages.fetch({ limit: 5 });
+            const userMessages = messages.filter(msg => !msg.author.bot);
+            
+            // Remove if no recent user activity
+            if (userMessages.size <= 1) {
+              await updatedChannel.delete('Limpeza automática - tempo limite atingido');
+              console.log(`Auto-deleted text channel: ${textChannel.name}`);
+            }
+          }
+        } catch (error) {
+          // Channel might have been deleted already
+        }
+      } catch (error) {
+        console.error('Error in scheduled text channel cleanup:', error);
+      }
+    }, cleanupTime);
+  }
 }
 
 export default checkin;
