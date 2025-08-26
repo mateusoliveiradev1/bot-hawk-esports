@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { ToastProvider } from './components/ui/toast'
+import { NavigationTransition, AnimatedPage } from './components/PageTransition'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
@@ -20,18 +21,21 @@ function App() {
     <ThemeProvider>
       <ToastProvider>
         <AuthProvider>
-      <Routes>
+          <NavigationTransition>
+            <Routes>
         {/* Public routes */}
-        <Route path="/" element={<Onboarding />} />
-        <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<AnimatedPage animation="fade"><Onboarding /></AnimatedPage>} />
+        <Route path="/onboarding" element={<AnimatedPage animation="fade"><Onboarding /></AnimatedPage>} />
+        <Route path="/login" element={<AnimatedPage animation="scale"><Login /></AnimatedPage>} />
         
         {/* Setup route - protected but accessible after login */}
         <Route 
           path="/setup" 
           element={
             <ProtectedRoute>
-              <Setup />
+              <AnimatedPage animation="slide">
+                <Setup />
+              </AnimatedPage>
             </ProtectedRoute>
           } 
         />
@@ -42,7 +46,9 @@ function App() {
           element={
             <ProtectedRoute>
               <Layout>
-                <Dashboard />
+                <AnimatedPage animation="fade">
+                  <Dashboard />
+                </AnimatedPage>
               </Layout>
             </ProtectedRoute>
           } 
@@ -52,7 +58,9 @@ function App() {
           element={
             <ProtectedRoute requiredPermissions={['ManageGuild']}>
               <Layout>
-                <Users />
+                <AnimatedPage animation="slide">
+                  <Users />
+                </AnimatedPage>
               </Layout>
             </ProtectedRoute>
           } 
@@ -62,7 +70,9 @@ function App() {
           element={
             <ProtectedRoute requiredPermissions={['ManageGuild']}>
               <Layout>
-                <Guilds />
+                <AnimatedPage animation="slide">
+                  <Guilds />
+                </AnimatedPage>
               </Layout>
             </ProtectedRoute>
           } 
@@ -72,7 +82,9 @@ function App() {
           element={
             <ProtectedRoute>
               <Layout>
-                <Commands />
+                <AnimatedPage animation="fade">
+                  <Commands />
+                </AnimatedPage>
               </Layout>
             </ProtectedRoute>
           } 
@@ -82,7 +94,9 @@ function App() {
           element={
             <ProtectedRoute requiredPermissions={['ManageGuild']}>
               <Layout>
-                <Analytics />
+                <AnimatedPage animation="scale">
+                  <Analytics />
+                </AnimatedPage>
               </Layout>
             </ProtectedRoute>
           } 
@@ -92,7 +106,9 @@ function App() {
           element={
             <ProtectedRoute requiredPermissions={['Administrator']}>
               <Layout>
-                <Settings />
+                <AnimatedPage animation="slide">
+                  <Settings />
+                </AnimatedPage>
               </Layout>
             </ProtectedRoute>
           } 
@@ -102,7 +118,9 @@ function App() {
           element={
             <ProtectedRoute>
               <Layout>
-                <LoadingShowcase />
+                <AnimatedPage animation="scale">
+                  <LoadingShowcase />
+                </AnimatedPage>
               </Layout>
             </ProtectedRoute>
           } 
@@ -110,7 +128,8 @@ function App() {
         
         {/* Catch all - redirect to dashboard */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
+            </Routes>
+          </NavigationTransition>
         </AuthProvider>
       </ToastProvider>
     </ThemeProvider>
