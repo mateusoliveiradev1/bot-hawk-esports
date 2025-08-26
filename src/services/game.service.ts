@@ -652,19 +652,18 @@ export class GameService {
     
     // Save results to database
     for (const participant of results) {
-      await this.database.client.quizResult.create({
+      await this.database.client.gameResult.create({
         data: {
-          quizId: sessionId,
+          challengeId: sessionId,
           userId: participant.userId,
           score: participant.score,
-          totalQuestions: participant.totalAnswers,
-          answers: {}, // Store participant answers if available
+          data: {}, // Store participant data if available
         },
       });
     }
     
-    // Update quiz as completed
-    await this.database.client.quiz.update({
+    // Update challenge as completed
+    await this.database.client.challenge.update({
       where: { id: sessionId },
       data: { 
         isActive: false,

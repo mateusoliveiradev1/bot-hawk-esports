@@ -750,15 +750,106 @@ export class PresenceService {
   }
 
   /**
+   * Auto checkout inactive users (called by SchedulerService)
+   */
+  public async autoCheckoutInactive(): Promise<void> {
+    try {
+      this.logger.info('Starting auto checkout of inactive users');
+      await this.performAutoCheckOuts();
+      this.logger.info('Completed auto checkout of inactive users');
+    } catch (error) {
+      this.logger.error('Failed to auto checkout inactive users:', error);
+    }
+  }
+
+  /**
+   * Calculate user's current balance based on transactions
+   */
+  private async calculateUserBalance(userId: string): Promise<number> {
+    try {
+      // Get user's current coins from User model
+      const user = await this.database.client.user.findUnique({
+        where: { id: userId },
+        select: { coins: true }
+      });
+      
+      return user?.coins || 0;
+    } catch (error) {
+      this.logger.error(`Failed to calculate balance for user ${userId}:`, error);
+      return 0;
+    }
+  }
+
+  /**
    * Update user statistics
    */
   private async updateUserStats(guildId: string, userId: string): Promise<void> {
     try {
-      // TODO: Update user statistics with current Presence model
-      // Current model: id, userId, type, timestamp, metadata, createdAt
-      // Need to extract guildId from metadata and calculate sessions from check-in/check-out pairs
+      // Get all presence records for this user in this guild
+      const presences = await this.database.client.presence.findMany({
+        where: {
+          userId,
+          guildId,
+        },
+        orderBy: {
+          timestamp: 'desc',
+        },
+      });
+
+      if (presences.length === 0) {
+        return;
+      }
+
+      // Calculate statistics from presence records
+      const checkIns = presences.filter(p => p.type === 'checkin').length;
+      const checkOuts = presences.filter(p => p.type === 'checkout').length;
       
-      this.logger.info(`User stats update disabled - needs model update for user ${userId}`);
+      // Calculate total time spent (sum of completed sessions)
+      let totalTimeMinutes = 0;
+      const completedSessions = [];
+      
+      // Group check-ins and check-outs into sessions
+      for (const presence of presences) {
+        if (presence.type === 'checkin' && presence.checkInTime) {
+          // Find corresponding checkout
+          const checkout = presences.find(p => 
+            p.type === 'checkout' && 
+            p.checkOutTime && 
+            p.checkOutTime > presence.checkInTime!
+          );
+          
+          if (checkout && checkout.checkOutTime) {
+            const sessionDuration = Math.floor(
+              (checkout.checkOutTime.getTime() - presence.checkInTime.getTime()) / (1000 * 60)
+            );
+            totalTimeMinutes += sessionDuration;
+            completedSessions.push({
+              checkInTime: presence.checkInTime,
+              checkOutTime: checkout.checkOutTime,
+              duration: sessionDuration,
+            });
+          }
+        }
+      }
+
+      // Calculate streaks
+      const currentStreak = this.calculateCurrentStreak(completedSessions);
+      const longestStreak = this.calculateLongestStreak(completedSessions);
+
+      // Update UserStats
+      await this.database.client.userStats.upsert({
+        where: { userId },
+        update: {
+          checkIns,
+          updatedAt: new Date(),
+        },
+        create: {
+          userId,
+          checkIns,
+        },
+      });
+
+      this.logger.info(`Updated stats for user ${userId}: ${checkIns} check-ins, ${totalTimeMinutes} minutes, streak: ${currentStreak}`);
       
     } catch (error) {
       this.logger.error(`Failed to update user stats for ${userId}:`, error);
@@ -948,13 +1039,16 @@ export class PresenceService {
                   },
                 });
                 
+                // Calculate current balance
+                const currentBalance = await this.calculateUserBalance(userId);
+                
                 // Record transaction
                 await this.database.client.transaction.create({
                   data: {
                     userId,
                     type: 'earn',
-                    amount: reward.xp,
-                    balance: 0, // TODO: Calculate actual balance
+                    amount: reward.coins,
+                    balance: currentBalance + reward.coins,
                     reason: `${reward.days} day streak reward`,
                     metadata: { xp: reward.xp, coins: reward.coins },
                   },

@@ -33,7 +33,7 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({ guildId }) => {
       const notificationData = lastMessage.data;
       
       const newNotification: Notification = {
-        id: Date.now().toString(),
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         type: notificationData.type || 'info',
         title: notificationData.title,
         message: notificationData.message,

@@ -622,13 +622,26 @@ export class SchedulerService {
         },
       },
       take: 50, // Limit to avoid API rate limits
+      include: {
+        guilds: {
+          select: {
+            guildId: true,
+          },
+        },
+      },
     });
     
     for (const user of activeUsers) {
       try {
         if (user.pubgUsername && user.pubgPlatform) {
-          // TODO: Need to get guildId from context or pass it as parameter
-          // await this.rankingService.updateUserRanking(guildId, user.id);
+          // Update ranking for each guild the user is a member of
+          for (const userGuild of user.guilds) {
+            try {
+              await this.rankingService.updateUserRanking(userGuild.guildId, user.id);
+            } catch (error) {
+              this.logger.error(`Failed to update PUBG ranking for user ${user.id} in guild ${userGuild.guildId}:`, error);
+            }
+          }
         }
       } catch (error) {
         this.logger.error(`Failed to update PUBG data for user ${user.id}:`, error);
@@ -648,8 +661,14 @@ export class SchedulerService {
    * Auto checkout inactive users
    */
   private async autoCheckoutInactiveUsers(): Promise<void> {
-    // TODO: Implement autoCheckoutInactive method in PresenceService
-    // await this.presenceService.autoCheckoutInactive();
+    try {
+      this.logger.info('Starting scheduled auto checkout of inactive users...');
+      await this.presenceService.autoCheckoutInactive();
+      this.logger.info('Scheduled auto checkout completed successfully');
+    } catch (error) {
+      this.logger.error('Error during scheduled auto checkout:', error);
+      throw error;
+    }
   }
 
   /**
@@ -714,7 +733,7 @@ export class SchedulerService {
       
       let cleanupStats = {
         deletedPresences: 0,
-        deletedQuizResults: 0,
+        deletedGameResults: 0,
         deletedOldClips: 0,
         deletedExpiredTokens: 0,
         cleanedCache: 0
@@ -731,14 +750,14 @@ export class SchedulerService {
       cleanupStats.deletedPresences = deletedPresences.count;
       
       // Clean up old quiz results (keep only last 30 days)
-      const deletedQuizResults = await this.database.client.quizResult.deleteMany({
+      const deletedGameResults = await this.database.client.gameResult.deleteMany({
         where: {
           completedAt: {
             lt: thirtyDaysAgo
           }
         }
       });
-      cleanupStats.deletedQuizResults = deletedQuizResults.count;
+      cleanupStats.deletedGameResults = deletedGameResults.count;
       
       // Clean up very old clips (keep only last 90 days for storage optimization)
       const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
@@ -987,11 +1006,15 @@ export class SchedulerService {
             checkOutTime: { not: null }
           }
         }),
-        completedQuizzes: await this.database.client.quizResult.count({
+        completedQuizzes: await this.database.client.gameResult.count({
           where: {
             completedAt: { gte: weekAgo },
-            quiz: {
-              guildId: guildId
+            user: {
+              guilds: {
+                some: {
+                  guildId: guildId
+                }
+              }
             }
           }
         }),

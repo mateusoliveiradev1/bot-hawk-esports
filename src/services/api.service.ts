@@ -400,99 +400,72 @@ export class APIService {
       try {
         const { guildId } = req.params;
         
-        // For development, return mock data
-        const mockGuildData = {
-          id: guildId,
-          name: 'Hawk Esports',
-          icon: null,
-          memberCount: 156,
-          config: {},
-          users: [
-            {
-              user: {
-                id: '1',
-                username: 'João',
-                discriminator: '1234',
-                avatar: null,
-                level: 15,
-                totalXp: 125430,
-                coins: 2450,
-                lastSeen: new Date(Date.now() - 2 * 60 * 1000).toISOString(), // 2 minutes ago
-                joinedAt: '2024-01-15T10:30:00Z'
+        // Get real guild data from database
+        const guild = await this.database.client.guild.findUnique({
+          where: { id: guildId },
+          include: {
+            config: true,
+            users: {
+              where: { isActive: true },
+              take: 10, // Limit to first 10 users for performance
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    username: true,
+                    discriminator: true,
+                    avatar: true,
+                    level: true,
+                    totalXp: true,
+                    coins: true,
+                    lastSeen: true,
+                  }
+                }
               },
-              isActive: true,
-              joinedAt: '2024-01-15T10:30:00Z'
-            },
-            {
-              user: {
-                id: '2',
-                username: 'Maria',
-                discriminator: '5678',
-                avatar: null,
-                level: 8,
-                totalXp: 89230,
-                coins: 1890,
-                lastSeen: new Date(Date.now() - 15 * 60 * 1000).toISOString(), // 15 minutes ago
-                joinedAt: '2024-01-10T08:15:00Z'
-              },
-              isActive: true,
-              joinedAt: '2024-01-10T08:15:00Z'
-            },
-            {
-              user: {
-                id: '3',
-                username: 'Pedro',
-                discriminator: '9012',
-                avatar: null,
-                level: 22,
-                totalXp: 234560,
-                coins: 3780,
-                lastSeen: new Date(Date.now() - 60 * 60 * 1000).toISOString(), // 1 hour ago
-                joinedAt: '2024-01-05T16:20:00Z'
-              },
-              isActive: false,
-              joinedAt: '2024-01-05T16:20:00Z'
-            },
-            {
-              user: {
-                id: '4',
-                username: 'Ana',
-                discriminator: '3456',
-                avatar: null,
-                level: 12,
-                totalXp: 98760,
-                coins: 2100,
-                lastSeen: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
-                joinedAt: '2024-01-12T14:45:00Z'
-              },
-              isActive: true,
-              joinedAt: '2024-01-12T14:45:00Z'
-            },
-            {
-              user: {
-                id: '5',
-                username: 'Carlos',
-                discriminator: '7890',
-                avatar: null,
-                level: 18,
-                totalXp: 167890,
-                coins: 3200,
-                lastSeen: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
-                joinedAt: '2024-01-08T09:20:00Z'
-              },
-              isActive: true,
-              joinedAt: '2024-01-08T09:20:00Z'
+              orderBy: {
+                user: {
+                  lastSeen: 'desc'
+                }
+              }
             }
-          ]
+          }
+        });
+
+        if (!guild) {
+          return res.status(404).json({
+            success: false,
+            error: 'Guild not found'
+          });
+        }
+
+        // Get member count
+        const memberCount = await this.database.client.userGuild.count({
+          where: { guildId, isActive: true }
+        });
+
+        const guildData = {
+          id: guild.id,
+          name: guild.name,
+          icon: guild.icon,
+          memberCount,
+          config: guild.config?.config || {},
+          users: guild.users.map(userGuild => ({
+            user: {
+              ...userGuild.user,
+              joinedAt: userGuild.joinedAt.toISOString()
+            },
+            isActive: userGuild.isActive,
+            joinedAt: userGuild.joinedAt.toISOString()
+          }))
         };
 
-        res.json({
+        return res.json({
           success: true,
-          data: mockGuildData
+          data: guildData
         });
       } catch (error) {
         this.logger.error('Error fetching dev guild:', error);
-        res.status(500).json({
+        return res.status(500).json({
           success: false,
           error: 'Internal server error'
         });
@@ -502,182 +475,109 @@ export class APIService {
     // Get commands without auth for development
     router.get('/commands', async (req: Request, res: Response) => {
       try {
-        // For development, return mock data based on real commands structure
-        const mockCommandsData = [
-          {
-            id: 'bootstrap',
-            name: 'bootstrap',
-            description: 'Configura o servidor inicial',
-            category: 'ADMIN',
-            usageCount: Math.floor(Math.random() * 500) + 50,
-            successRate: 95 + Math.random() * 5,
-            avgResponseTime: Math.floor(Math.random() * 300) + 50,
-            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
-            enabled: true,
-            premium: true,
-            aliases: []
-          },
-          {
-            id: 'onboarding',
-            name: 'onboarding',
-            description: 'Sistema de boas-vindas do servidor',
-            category: 'ADMIN',
-            usageCount: Math.floor(Math.random() * 1000) + 100,
-            successRate: 95 + Math.random() * 5,
-            avgResponseTime: Math.floor(Math.random() * 300) + 50,
-            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
-            enabled: true,
-            premium: true,
-            aliases: []
-          },
-          {
-            id: 'badges',
-            name: 'badges',
-            description: 'Sistema de emblemas e conquistas',
-            category: 'GENERAL',
-            usageCount: Math.floor(Math.random() * 3000) + 500,
-            successRate: 95 + Math.random() * 5,
-            avgResponseTime: Math.floor(Math.random() * 300) + 50,
-            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
-            enabled: true,
-            premium: false,
-            aliases: ['badge', 'emblemas']
-          },
-          {
-            id: 'challenge',
-            name: 'challenge',
-            description: 'Cria desafios entre usuários',
-            category: 'GENERAL',
-            usageCount: Math.floor(Math.random() * 2000) + 300,
-            successRate: 95 + Math.random() * 5,
-            avgResponseTime: Math.floor(Math.random() * 300) + 50,
-            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
-            enabled: true,
-            premium: false,
-            aliases: ['desafio']
-          },
-          {
-            id: 'daily',
-            name: 'daily',
-            description: 'Recompensa diária',
-            category: 'GENERAL',
-            usageCount: Math.floor(Math.random() * 5000) + 1000,
-            successRate: 95 + Math.random() * 5,
-            avgResponseTime: Math.floor(Math.random() * 300) + 50,
-            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
-            enabled: true,
-            premium: false,
-            aliases: ['diario']
-          },
-          {
-            id: 'help',
-            name: 'help',
-            description: 'Mostra ajuda sobre comandos',
-            category: 'GENERAL',
-            usageCount: Math.floor(Math.random() * 8000) + 2000,
-            successRate: 95 + Math.random() * 5,
-            avgResponseTime: Math.floor(Math.random() * 300) + 50,
-            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
-            enabled: true,
-            premium: false,
-            aliases: ['ajuda', 'h']
-          },
-          {
-            id: 'minigame',
-            name: 'minigame',
-            description: 'Mini-jogos interativos',
-            category: 'GENERAL',
-            usageCount: Math.floor(Math.random() * 4000) + 800,
-            successRate: 95 + Math.random() * 5,
-            avgResponseTime: Math.floor(Math.random() * 300) + 50,
-            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
-            enabled: true,
-            premium: false,
-            aliases: ['jogo', 'game']
-          },
-          {
-            id: 'profile',
-            name: 'profile',
-            description: 'Mostra perfil do usuário',
-            category: 'GENERAL',
-            usageCount: Math.floor(Math.random() * 6000) + 1500,
-            successRate: 95 + Math.random() * 5,
-            avgResponseTime: Math.floor(Math.random() * 300) + 50,
-            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
-            enabled: true,
-            premium: false,
-            aliases: ['perfil', 'p']
-          },
-          {
-            id: 'quiz',
-            name: 'quiz',
-            description: 'Quiz interativo com perguntas',
-            category: 'GENERAL',
-            usageCount: Math.floor(Math.random() * 3000) + 600,
-            successRate: 95 + Math.random() * 5,
-            avgResponseTime: Math.floor(Math.random() * 300) + 50,
-            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
-            enabled: true,
-            premium: false,
-            aliases: ['pergunta']
-          },
-          {
-            id: 'play',
-            name: 'play',
-            description: 'Reproduz música no canal de voz',
-            category: 'MUSIC',
-            usageCount: Math.floor(Math.random() * 15000) + 5000,
-            successRate: 95 + Math.random() * 5,
-            avgResponseTime: Math.floor(Math.random() * 300) + 50,
-            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
-            enabled: true,
-            premium: true,
-            aliases: ['p', 'tocar']
-          },
-          {
-            id: 'queue',
-            name: 'queue',
-            description: 'Mostra a fila de reprodução',
-            category: 'MUSIC',
-            usageCount: Math.floor(Math.random() * 8000) + 2000,
-            successRate: 95 + Math.random() * 5,
-            avgResponseTime: Math.floor(Math.random() * 300) + 50,
-            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
-            enabled: true,
-            premium: true,
-            aliases: ['q', 'fila']
-          },
-          {
-            id: 'ranking',
-            name: 'ranking',
-            description: 'Mostra ranking de jogadores',
-            category: 'PUBG',
-            usageCount: Math.floor(Math.random() * 4000) + 1000,
-            successRate: 95 + Math.random() * 5,
-            avgResponseTime: Math.floor(Math.random() * 300) + 50,
-            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
-            enabled: true,
-            premium: false,
-            aliases: ['rank', 'top']
-          },
-          {
-            id: 'register',
-            name: 'register',
-            description: 'Registra jogador no sistema PUBG',
-            category: 'PUBG',
-            usageCount: Math.floor(Math.random() * 2000) + 400,
-            successRate: 95 + Math.random() * 5,
-            avgResponseTime: Math.floor(Math.random() * 300) + 50,
-            lastUsed: new Date(Date.now() - Math.random() * 86400000).toISOString(),
-            enabled: true,
-            premium: false,
-            aliases: ['registrar']
+        // Get real commands from the bot's command manager
+        const commandsData = [];
+        
+        // If bot client is available, get real command data
+        if (this.client?.commands) {
+          for (const [name, command] of this.client.commands) {
+            // Get command statistics from database if available
+            let usageCount = 0;
+            let lastUsed = null;
+            let successRate = 100;
+            let avgResponseTime = 150;
+            
+            try {
+              // Try to get real stats from audit logs
+              const commandLogs = await this.database.client.auditLog.findMany({
+                where: {
+                  action: 'command_executed',
+                  metadata: {
+                    path: ['command'],
+                    equals: name
+                  }
+                },
+                orderBy: {
+                  createdAt: 'desc'
+                },
+                take: 100
+              });
+              
+              usageCount = commandLogs.length;
+              if (commandLogs.length > 0 && commandLogs[0]) {
+                lastUsed = commandLogs[0].createdAt;
+                // Calculate success rate based on error logs
+                const errorLogs = commandLogs.filter(log => 
+                  log.metadata && typeof log.metadata === 'object' && 
+                  'error' in log.metadata
+                );
+                successRate = Math.max(0, ((commandLogs.length - errorLogs.length) / commandLogs.length) * 100);
+              }
+            } catch (dbError) {
+              // Use default values if database query fails
+              usageCount = 0;
+              lastUsed = new Date();
+              successRate = 100;
+            }
+            
+            commandsData.push({
+              id: name,
+              name: name,
+              description: 'description' in command.data ? command.data.description : 'No description available',
+              category: command.category?.toUpperCase() || 'GENERAL',
+              usageCount,
+              successRate: Math.round(successRate * 100) / 100,
+              avgResponseTime: avgResponseTime || 100,
+              lastUsed: lastUsed ? lastUsed.toISOString() : new Date().toISOString(),
+              enabled: !command.disabled,
+              premium: command.premium || false,
+              aliases: command.aliases || []
+            });
           }
-        ];
+        } else {
+          // Fallback to complete command list if bot is not available
+          const basicCommands = [
+            // General Commands
+            { name: 'help', description: 'Mostra ajuda sobre comandos', category: 'GENERAL' },
+            { name: 'profile', description: 'Mostra perfil do usuário', category: 'GENERAL' },
+            { name: 'badges', description: 'Sistema de emblemas', category: 'GENERAL' },
+            { name: 'daily', description: 'Recompensa diária', category: 'GENERAL' },
+            { name: 'economy', description: 'Sistema de economia', category: 'GENERAL' },
+            { name: 'clips', description: 'Sistema de clipes', category: 'GENERAL' },
+            { name: 'challenge', description: 'Desafios diários', category: 'GENERAL' },
+            { name: 'quiz', description: 'Sistema de quiz', category: 'GENERAL' },
+            { name: 'minigame', description: 'Mini jogos', category: 'GENERAL' },
+            // PUBG Commands
+            { name: 'register', description: 'Registra conta PUBG', category: 'PUBG' },
+            { name: 'ranking', description: 'Sistema de ranking PUBG', category: 'PUBG' },
+            // Music Commands
+            { name: 'play', description: 'Toca música', category: 'MUSIC' },
+            { name: 'queue', description: 'Gerencia fila de música', category: 'MUSIC' },
+            // Admin Commands
+            { name: 'onboarding', description: 'Sistema de boas-vindas', category: 'ADMIN' },
+            { name: 'bootstrap', description: 'Configuração inicial do servidor', category: 'ADMIN' }
+          ];
+          
+          for (const cmd of basicCommands) {
+            commandsData.push({
+              id: cmd.name,
+              name: cmd.name,
+              description: cmd.description,
+              category: cmd.category,
+              usageCount: 0,
+              successRate: 100,
+              avgResponseTime: 100,
+              lastUsed: new Date().toISOString(),
+              enabled: true,
+              premium: false,
+              aliases: []
+            });
+          }
+        }
 
         res.json({
           success: true,
-          data: mockCommandsData
+          data: commandsData
         });
       } catch (error) {
         this.logger.error('Error fetching dev commands:', error);
@@ -709,19 +609,150 @@ export class APIService {
           });
         }
 
-        // Exchange code for access token (simplified)
-        // In production, implement proper Discord OAuth flow
+        // For development, create a mock user
+        let userId = 'dev-user-' + Date.now();
+        let userData = {
+          id: userId,
+          username: 'DevUser',
+          discriminator: '0001',
+          avatar: null,
+          guildId: guildId
+        };
+
+        // In production, implement proper Discord OAuth flow:
+        // 1. Exchange code for access token with Discord
+        // 2. Get user info from Discord API
+        // 3. Check if user has access to the guild
+        // 4. Create or update user in database
+        
+        if (process.env.NODE_ENV === 'production') {
+          // Exchange code for access token with Discord
+          const discordResponse = await fetch('https://discord.com/api/oauth2/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              client_id: process.env.DISCORD_CLIENT_ID!,
+              client_secret: process.env.DISCORD_CLIENT_SECRET!,
+              grant_type: 'authorization_code',
+              code: code,
+              redirect_uri: process.env.DISCORD_REDIRECT_URI!,
+            })
+          });
+
+          if (!discordResponse.ok) {
+            throw new Error('Failed to exchange code for token');
+          }
+
+          const tokenData = await discordResponse.json() as any;
+
+          // Get user info from Discord API
+          const userResponse = await fetch('https://discord.com/api/users/@me', {
+            headers: {
+              'Authorization': `Bearer ${tokenData.access_token}`
+            }
+          });
+
+          if (!userResponse.ok) {
+            throw new Error('Failed to get user info from Discord');
+          }
+
+          const discordUser = await userResponse.json() as any;
+
+          // Check if user has access to the guild
+          const guildMemberResponse = await fetch(`https://discord.com/api/guilds/${guildId}/members/${discordUser.id}`, {
+            headers: {
+              'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`
+            }
+          });
+
+          if (!guildMemberResponse.ok) {
+            return res.status(403).json({
+              success: false,
+              error: 'User is not a member of this guild'
+            });
+          }
+
+          // Update userData with real Discord data
+          userData = {
+            id: discordUser.id,
+            username: discordUser.username,
+            discriminator: discordUser.discriminator || '0001',
+            avatar: discordUser.avatar,
+            guildId: guildId
+          };
+          userId = discordUser.id;
+        }
+
+        // Create or update user in database
+        try {
+          const user = await this.database.client.user.upsert({
+            where: { id: userId },
+            update: {
+              username: userData.username,
+              updatedAt: new Date()
+            },
+            create: {
+              id: userId,
+              username: userData.username,
+              discriminator: userData.discriminator,
+              createdAt: new Date(),
+              updatedAt: new Date()
+            }
+          });
+
+          // Create or update user-guild relationship
+          await this.database.client.userGuild.upsert({
+            where: {
+              userId_guildId: {
+                userId: userId,
+                guildId: guildId
+              }
+            },
+            update: {
+              isActive: true
+            },
+            create: {
+              userId: userId,
+              guildId: guildId,
+              isActive: true,
+              joinedAt: new Date()
+            }
+          });
+        } catch (dbError) {
+          this.logger.error('Database error during auth:', dbError);
+          // Continue with mock data for development
+        }
+
+        // Generate JWT token
         const token = jwt.sign(
-          { userId: 'temp-user-id', guildId },
+          { 
+            userId: userId, 
+            guildId: guildId,
+            username: userData.username,
+            discriminator: userData.discriminator
+          },
           this.config.jwtSecret,
           { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions,
+        );
+
+        // Generate refresh token
+        const refreshToken = jwt.sign(
+          { 
+            userId: userId, 
+            guildId: guildId,
+            type: 'refresh'
+          },
+          this.config.jwtSecret,
+          { expiresIn: '30d' } as jwt.SignOptions,
         );
 
         return res.json({
           success: true,
           data: {
             token,
+            refreshToken,
             expiresIn: this.config.jwtExpiresIn,
+            user: userData
           },
         });
       } catch (error) {
@@ -745,23 +776,69 @@ export class APIService {
           });
         }
 
-        // Verify and generate new token
+        // Verify refresh token
         const decoded = jwt.verify(refreshToken, this.config.jwtSecret) as any;
 
+        // Check if it's actually a refresh token
+        if (decoded.type !== 'refresh') {
+          return res.status(401).json({
+            success: false,
+            error: 'Invalid token type',
+          });
+        }
+
+        // Get user data from database
+        let userData = {
+          username: 'DevUser',
+          discriminator: '0001'
+        };
+
+        try {
+          const user = await this.database.client.user.findUnique({
+            where: { id: decoded.userId }
+          });
+          
+          if (user) {
+            userData.username = user.username;
+            userData.discriminator = user.discriminator || '0001';
+          }
+        } catch (dbError) {
+          this.logger.error('Database error during refresh:', dbError);
+        }
+
+        // Generate new access token
         const newToken = jwt.sign(
-          { userId: decoded.userId, guildId: decoded.guildId },
+          { 
+            userId: decoded.userId, 
+            guildId: decoded.guildId,
+            username: userData.username,
+            discriminator: userData.discriminator
+          },
           this.config.jwtSecret,
           { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions,
+        );
+
+        // Generate new refresh token
+        const newRefreshToken = jwt.sign(
+          { 
+            userId: decoded.userId, 
+            guildId: decoded.guildId,
+            type: 'refresh'
+          },
+          this.config.jwtSecret,
+          { expiresIn: '30d' } as jwt.SignOptions,
         );
 
         return res.json({
           success: true,
           data: {
             token: newToken,
+            refreshToken: newRefreshToken,
             expiresIn: this.config.jwtExpiresIn,
           },
         });
       } catch (error) {
+        this.logger.error('Refresh token error:', error);
         return res.status(401).json({
           success: false,
           error: 'Invalid refresh token',
@@ -792,11 +869,38 @@ export class APIService {
           });
         }
 
+        // Get user's active guilds
+        const userGuilds = await this.database.client.userGuild.findMany({
+          where: {
+            userId: user.id,
+            isActive: true
+          },
+          include: {
+            guild: {
+              select: {
+                id: true,
+                name: true,
+                icon: true
+              }
+            }
+          }
+        });
+
+        const activeGuilds = userGuilds.map(ug => ({
+          id: ug.guild.id,
+          name: ug.guild.name,
+          icon: ug.guild.icon,
+          joinedAt: ug.joinedAt.toISOString(),
+          isActive: ug.isActive
+        }));
+
         return res.json({
           success: true,
           data: {
             ...user,
-            activeGuilds: [] // TODO: Add guilds relation to User model
+            activeGuilds,
+            roles: req.user!.roles || [],
+            permissions: req.user!.permissions || []
           }
         });
       } catch (error) {
@@ -866,40 +970,136 @@ export class APIService {
         const guildId = req.user!.guildId;
         const { period = '7d' } = req.query;
 
-        // Mock activity data based on period
-        let multiplier = 1;
+        // Calculate date range based on period
+        const now = new Date();
+        let startDate: Date;
+        
         switch (period) {
-        case '1d':
-          multiplier = 0.14; // 1/7 of weekly
-          break;
-        case '7d':
-          multiplier = 1;
-          break;
-        case '30d':
-          multiplier = 4.3; // ~30/7
-          break;
+          case '1d':
+            startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            break;
+          case '7d':
+            startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+          case '30d':
+            startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            break;
+          default:
+            startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         }
+
+        // Get command usage from audit logs
+        const commandLogs = await this.database.client.auditLog.findMany({
+          where: {
+            guildId,
+            action: 'COMMAND_USED',
+            createdAt: {
+              gte: startDate
+            }
+          },
+          select: {
+            metadata: true
+          }
+        });
+
+        // Process command usage statistics
+        const commandStats = new Map<string, number>();
+        let totalCommands = 0;
+        
+        commandLogs.forEach(log => {
+          if (log.metadata && typeof log.metadata === 'object' && 'command' in log.metadata) {
+            const commandName = (log.metadata as any).command;
+            commandStats.set(commandName, (commandStats.get(commandName) || 0) + 1);
+            totalCommands++;
+          }
+        });
+
+        // Get most used commands
+        const mostUsedCommands = Array.from(commandStats.entries())
+          .sort(([,a], [,b]) => b - a)
+          .slice(0, 5)
+          .map(([name, count]) => ({ name, count }));
+
+        // Get user activity data
+        const [newUsersCount, newBadgesCount, completedQuizzesCount, presenceData] = await Promise.all([
+          // New users in period
+          this.database.client.userGuild.count({
+            where: {
+              guildId,
+              joinedAt: {
+                gte: startDate
+              }
+            }
+          }),
+          // New badges earned in period
+          this.database.client.userBadge.count({
+            where: {
+              earnedAt: {
+                gte: startDate
+              },
+              user: {
+                guilds: {
+                  some: {
+                    guildId
+                  }
+                }
+              }
+            }
+          }),
+          // Completed quizzes in period
+          this.database.client.gameResult.count({
+            where: {
+              completedAt: {
+                gte: startDate
+              },
+              user: {
+                guilds: {
+                  some: {
+                    guildId
+                  }
+                }
+              }
+            }
+          }),
+          // Voice activity data
+          this.database.client.presence.findMany({
+            where: {
+              guildId,
+              checkInTime: {
+                gte: startDate
+              },
+              type: 'VOICE'
+            },
+            select: {
+              checkInTime: true,
+              checkOutTime: true
+            }
+          })
+        ]);
+
+        // Calculate voice minutes
+        const voiceMinutes = presenceData.reduce((total, presence) => {
+          if (presence.checkOutTime && presence.checkInTime) {
+            const duration = presence.checkOutTime.getTime() - presence.checkInTime.getTime();
+            return total + Math.floor(duration / (1000 * 60));
+          }
+          return total;
+        }, 0);
 
         const activityStats = {
           commands: {
-            total: Math.floor((Math.random() * 1000 + 500) * multiplier),
-            mostUsed: [
-              { name: '/rank', count: Math.floor((Math.random() * 200 + 100) * multiplier) },
-              { name: '/profile', count: Math.floor((Math.random() * 150 + 80) * multiplier) },
-              { name: '/leaderboard', count: Math.floor((Math.random() * 120 + 60) * multiplier) },
-              { name: '/badges', count: Math.floor((Math.random() * 100 + 50) * multiplier) },
-              { name: '/clip', count: Math.floor((Math.random() * 80 + 40) * multiplier) },
-            ],
+            total: totalCommands,
+            mostUsed: mostUsedCommands,
           },
           interactions: {
-            messages: Math.floor((Math.random() * 5000 + 2000) * multiplier),
-            reactions: Math.floor((Math.random() * 1000 + 500) * multiplier),
-            voiceMinutes: Math.floor((Math.random() * 10000 + 5000) * multiplier),
+            messages: totalCommands, // Using command usage as proxy for message activity
+            reactions: Math.floor(totalCommands * 0.3), // Estimated reactions based on commands
+            voiceMinutes,
           },
           growth: {
-            newUsers: Math.floor((Math.random() * 50 + 10) * multiplier),
-            newBadges: Math.floor((Math.random() * 100 + 20) * multiplier),
-            completedQuizzes: Math.floor((Math.random() * 30 + 10) * multiplier),
+            newUsers: newUsersCount,
+            newBadges: newBadgesCount,
+            completedQuizzes: completedQuizzesCount,
           },
         };
 
@@ -920,23 +1120,55 @@ export class APIService {
     router.get('/realtime', async (req: AuthenticatedRequest, res: Response) => {
       try {
         const guildId = req.user!.guildId;
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+        // Get real-time data from database
+        const [commandsLastHour, activePresences, totalUsers] = await Promise.all([
+          // Commands used in the last hour
+          this.database.client.auditLog.count({
+            where: {
+              guildId,
+              action: 'COMMAND_USED',
+              createdAt: {
+                gte: oneHourAgo
+              }
+            }
+          }),
+          // Active voice presences
+          this.database.client.presence.count({
+            where: {
+              guildId,
+              type: 'VOICE',
+              checkOutTime: null // Still active
+            }
+          }),
+          // Total users in guild
+          this.database.client.userGuild.count({
+            where: {
+              guildId
+            }
+          })
+        ]);
+
+        // Get system stats (these would typically come from bot client)
+        const systemStats = {
+          uptime: process.uptime() * 1000, // Convert to milliseconds
+          memoryUsage: Math.round(process.memoryUsage().heapUsed / 1024 / 1024), // MB
+          responseTime: 25, // Average response time in ms
+        };
 
         const realtimeStats = {
           online: {
-            users: Math.floor(Math.random() * 100 + 50),
+            users: Math.floor(totalUsers * 0.1), // Estimate 10% online
             bots: 1,
-            total: Math.floor(Math.random() * 100 + 51),
+            total: Math.floor(totalUsers * 0.1) + 1,
           },
           activity: {
-            commandsLastHour: Math.floor(Math.random() * 50 + 10),
-            messagesLastHour: Math.floor(Math.random() * 200 + 50),
-            activeVoiceChannels: Math.floor(Math.random() * 5 + 1),
+            commandsLastHour,
+            messagesLastHour: commandsLastHour * 2, // Estimate messages based on commands
+            activeVoiceChannels: Math.max(1, Math.floor(activePresences / 5)), // Estimate channels
           },
-          system: {
-            uptime: Date.now() - (Math.random() * 86400000 + 3600000), // 1-24 hours ago
-            memoryUsage: Math.floor(Math.random() * 200 + 100), // MB
-            responseTime: Math.floor(Math.random() * 50 + 10), // ms
-          },
+          system: systemStats,
         };
 
         res.json({
@@ -958,34 +1190,199 @@ export class APIService {
         const guildId = req.user!.guildId;
         const { period = '30d' } = req.query;
 
-        let multiplier = 1;
+        // Calculate date ranges
+        const now = new Date();
+        let startDate: Date;
+        let weekStartDate: Date;
+        let dayStartDate: Date;
+        
         switch (period) {
-        case '7d':
-          multiplier = 0.25;
-          break;
-        case '30d':
-          multiplier = 1;
-          break;
-        case '90d':
-          multiplier = 3;
-          break;
+          case '7d':
+            startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+          case '30d':
+            startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            break;
+          case '90d':
+            startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+            break;
+          default:
+            startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         }
+        
+        weekStartDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        dayStartDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+        // Get engagement data from database
+        const [activeUsers, dailyActiveUsers, weeklyActiveUsers, clipsUploaded, quizzesCompleted, badgesEarned, presenceData] = await Promise.all([
+          // Active users in period (users who used commands or earned badges)
+          this.database.client.user.count({
+            where: {
+              OR: [
+                {
+                  auditLogs: {
+                    some: {
+                      guildId,
+                      createdAt: {
+                        gte: startDate
+                      }
+                    }
+                  }
+                },
+                {
+                  badges: {
+                    some: {
+                      earnedAt: {
+                        gte: startDate
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }),
+          // Daily active users
+          this.database.client.user.count({
+            where: {
+              OR: [
+                {
+                  auditLogs: {
+                    some: {
+                      guildId,
+                      createdAt: {
+                        gte: dayStartDate
+                      }
+                    }
+                  }
+                },
+                {
+                  badges: {
+                    some: {
+                      earnedAt: {
+                        gte: dayStartDate
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }),
+          // Weekly active users
+          this.database.client.user.count({
+            where: {
+              OR: [
+                {
+                  auditLogs: {
+                    some: {
+                      guildId,
+                      createdAt: {
+                        gte: weekStartDate
+                      }
+                    }
+                  }
+                },
+                {
+                  badges: {
+                    some: {
+                      earnedAt: {
+                        gte: weekStartDate
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }),
+          // Clips uploaded in period
+          this.database.client.clip.count({
+            where: {
+              guildId,
+              createdAt: {
+                gte: startDate
+              }
+            }
+          }),
+          // Quizzes completed in period
+          this.database.client.gameResult.count({
+            where: {
+              completedAt: {
+                gte: startDate
+              },
+              user: {
+                guilds: {
+                  some: {
+                    guildId
+                  }
+                }
+              }
+            }
+          }),
+          // Badges earned in period
+          this.database.client.userBadge.count({
+            where: {
+              earnedAt: {
+                gte: startDate
+              },
+              user: {
+                guilds: {
+                  some: {
+                    guildId
+                  }
+                }
+              }
+            }
+          }),
+          // Presence data for session time calculation
+          this.database.client.presence.findMany({
+            where: {
+              guildId,
+              checkInTime: {
+                gte: startDate
+              }
+            },
+            select: {
+              checkInTime: true,
+              checkOutTime: true,
+              userId: true
+            }
+          })
+        ]);
+
+        // Calculate average session time and returning users
+        const userSessions = new Map<string, number>();
+        let totalSessionTime = 0;
+        let sessionCount = 0;
+
+        presenceData.forEach(presence => {
+          if (presence.checkOutTime && presence.checkInTime) {
+            const sessionTime = presence.checkOutTime.getTime() - presence.checkInTime.getTime();
+            const sessionMinutes = Math.floor(sessionTime / (1000 * 60));
+            
+            userSessions.set(presence.userId, (userSessions.get(presence.userId) || 0) + sessionMinutes);
+            totalSessionTime += sessionMinutes;
+            sessionCount++;
+          }
+        });
+
+        const averageSessionTime = sessionCount > 0 ? Math.floor(totalSessionTime / sessionCount) : 0;
+        const returningUsers = userSessions.size;
+        const engagementRate = activeUsers > 0 ? Math.floor((returningUsers / activeUsers) * 100) : 0;
 
         const engagementStats = {
           participation: {
-            activeUsers: Math.floor((Math.random() * 300 + 200) * multiplier),
-            dailyActiveUsers: Math.floor((Math.random() * 100 + 50) * multiplier),
-            weeklyActiveUsers: Math.floor((Math.random() * 200 + 100) * multiplier),
+            activeUsers,
+            dailyActiveUsers,
+            weeklyActiveUsers,
           },
           content: {
-            clipsUploaded: Math.floor((Math.random() * 50 + 20) * multiplier),
-            quizzesCompleted: Math.floor((Math.random() * 100 + 30) * multiplier),
-            badgesEarned: Math.floor((Math.random() * 200 + 50) * multiplier),
+            clipsUploaded,
+            quizzesCompleted,
+            badgesEarned,
           },
           retention: {
-            returningUsers: Math.floor((Math.random() * 150 + 100) * multiplier),
-            averageSessionTime: Math.floor(Math.random() * 60 + 30), // minutes
-            engagementRate: Math.floor(Math.random() * 30 + 60), // percentage
+            returningUsers,
+            averageSessionTime,
+            engagementRate,
           },
         };
 
@@ -1365,9 +1762,87 @@ export class APIService {
       try {
         const guildId = req.user!.guildId;
 
-        // Get total users with rankings (using mock data for now)
-        const totalPubgUsers = Math.floor(Math.random() * 200 + 100);
-        const totalInternalUsers = Math.floor(Math.random() * 300 + 150);
+        // Get real ranking statistics from database
+        const [pubgStats, internalStats, totalPubgUsers, totalInternalUsers] = await Promise.all([
+          // PUBG average stats
+          this.database.client.pUBGStats.aggregate({
+            where: {
+              user: {
+                guilds: {
+                  some: {
+                    guildId
+                  }
+                }
+              }
+            },
+            _avg: {
+              currentRankPoint: true,
+              kills: true,
+              wins: true
+            }
+          }),
+          // Internal average stats
+          this.database.client.userStats.aggregate({
+            where: {
+              user: {
+                guilds: {
+                  some: {
+                    guildId
+                  }
+                }
+              }
+            },
+            _avg: {
+              voiceTime: true,
+              commandsUsed: true
+            }
+          }),
+          // Total PUBG users
+          this.database.client.pUBGStats.count({
+            where: {
+              user: {
+                guilds: {
+                  some: {
+                    guildId
+                  }
+                }
+              }
+            }
+          }),
+          // Total internal users
+          this.database.client.userStats.count({
+            where: {
+              user: {
+                guilds: {
+                  some: {
+                    guildId
+                  }
+                }
+              }
+            }
+          })
+        ]);
+
+        // Get average badge count
+        const avgBadgeCount = await this.database.client.userBadge.groupBy({
+          by: ['userId'],
+          where: {
+            user: {
+              guilds: {
+                some: {
+                  guildId
+                }
+              }
+            }
+          },
+          _count: {
+            badgeId: true
+          }
+        });
+
+        const averageBadges = avgBadgeCount.length > 0 
+          ? avgBadgeCount.reduce((sum: number, user: any) => sum + user._count.badgeId, 0) / avgBadgeCount.length 
+          : 0;
 
         res.json({
           success: true,
@@ -1376,14 +1851,14 @@ export class APIService {
             totalInternalUsers,
             averageStats: {
               pubg: {
-                rankPoints: Math.floor(Math.random() * 2000 + 1000),
-                kills: Math.floor(Math.random() * 100 + 50),
-                wins: Math.floor(Math.random() * 20 + 5),
+                rankPoints: Math.round(pubgStats._avg?.currentRankPoint || 0),
+                kills: Math.round(pubgStats._avg?.kills || 0),
+                wins: Math.round(pubgStats._avg?.wins || 0),
               },
               internal: {
-                level: Math.floor(Math.random() * 50 + 25),
-                experience: Math.floor(Math.random() * 10000 + 5000),
-                badges: Math.floor(Math.random() * 15 + 5),
+                level: 1, // TODO: Implement level calculation
+                experience: 0, // TODO: Implement experience calculation
+                badges: Math.round(averageBadges),
               },
             },
           },
@@ -1402,41 +1877,101 @@ export class APIService {
       try {
         const { userId } = req.params;
         const { type = 'both', limit = 30 } = req.query;
+        const guildId = req.user!.guildId;
 
-        // Generate mock historical data for the user
-        const userHistory = [];
-        const now = new Date();
-        
-        for (let i = 0; i < Number(limit); i++) {
-          const date = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000)); // Go back i days
-          
-          const entry = {
-            date,
-            period: 'daily',
-            pubgRank: type !== 'internal' ? Math.floor(Math.random() * 100 + 1) : null,
-            pubgStats: type !== 'internal' ? {
-              rankPoints: Math.floor(Math.random() * 2000 + 1000),
-              kills: Math.floor(Math.random() * 10 + 1),
-              wins: Math.floor(Math.random() * 3),
-            } : null,
-            internalRank: type !== 'pubg' ? Math.floor(Math.random() * 50 + 1) : null,
-            internalStats: type !== 'pubg' ? {
-              level: Math.floor(Math.random() * 50 + 25),
-              experience: Math.floor(Math.random() * 1000 + 500),
-              badges: Math.floor(Math.random() * 5 + 1),
-            } : null,
-          };
-          
-          userHistory.push(entry);
+        // Get historical data from RankingSnapshot table
+        const snapshots = await this.database.client.rankingSnapshot.findMany({
+          where: {
+            userId,
+            guildId,
+            ...(type === 'pubg' ? { pubgRank: { not: null } } : {}),
+            ...(type === 'internal' ? { internalRank: { not: null } } : {})
+          },
+          orderBy: {
+            createdAt: 'desc'
+          },
+          take: Number(limit),
+          include: {
+            user: {
+              select: {
+                pubgStats: true,
+                stats: true
+              }
+            }
+          }
+        });
+
+        // If no snapshots exist, get current user data as fallback
+        if (snapshots.length === 0) {
+          const currentUser = await this.database.client.user.findUnique({
+            where: { id: userId },
+            include: {
+              pubgStats: true,
+              stats: true,
+              badges: {
+                select: {
+                  badgeId: true
+                }
+              }
+            }
+          });
+
+          if (currentUser) {
+            const currentEntry = {
+              date: new Date(),
+              period: 'current',
+              pubgRank: type !== 'internal' ? 1 : null, // Default rank if no historical data
+              pubgStats: type !== 'internal' && currentUser.pubgStats && currentUser.pubgStats.length > 0 ? {
+                 rankPoints: currentUser.pubgStats[0]?.currentRankPoint || 0,
+                 kills: currentUser.pubgStats[0]?.kills || 0,
+                 wins: currentUser.pubgStats[0]?.wins || 0,
+               } : null,
+              internalRank: type !== 'pubg' ? 1 : null, // Default rank if no historical data
+              internalStats: type !== 'pubg' && currentUser.stats ? {
+                level: 1, // TODO: Implement level calculation
+                experience: 0, // TODO: Implement experience from user XP
+                badges: currentUser.badges.length,
+              } : null,
+            };
+
+            return res.json({
+              success: true,
+              data: [currentEntry],
+            });
+          }
+
+          // If no user found, return empty data
+          return res.json({
+            success: true,
+            data: [],
+          });
         }
 
-        res.json({
+        // Transform snapshots to history format
+        const userHistory = snapshots.map((snapshot: any) => ({
+          date: snapshot.createdAt,
+          period: snapshot.period,
+          pubgRank: type !== 'internal' ? snapshot.pubgRank : null,
+          pubgStats: type !== 'internal' && snapshot.user.pubgStats && snapshot.user.pubgStats.length > 0 ? {
+             rankPoints: snapshot.user.pubgStats[0]?.currentRankPoint || 0,
+             kills: snapshot.user.pubgStats[0]?.kills || 0,
+             wins: snapshot.user.pubgStats[0]?.wins || 0,
+           } : null,
+          internalRank: type !== 'pubg' ? snapshot.internalRank : null,
+          internalStats: type !== 'pubg' && snapshot.user.stats ? {
+            level: 1, // TODO: Implement level calculation
+            experience: 0, // TODO: Implement experience from user XP
+            badges: snapshot.badgeCount || 0,
+          } : null,
+        }));
+
+        return res.json({
           success: true,
           data: userHistory,
         });
       } catch (error) {
         this.logger.error('Get ranking history error:', error);
-        res.status(500).json({
+        return res.status(500).json({
           success: false,
           error: 'Failed to get ranking history',
         });
@@ -1995,46 +2530,69 @@ export class APIService {
    */
   private async getGuildStats(guildId: string): Promise<any> {
     try {
-      // For now, return realistic mock data to avoid database issues
-      // TODO: Implement proper database queries when schema is stable
-      
-      const baseStats = {
+      // Get real data from database
+      const [userGuilds, totalUsers, totalBadges, totalClips, totalQuizzes, totalPresences] = await Promise.all([
+        this.database.client.userGuild.findMany({
+          where: { guildId, isActive: true },
+          include: {
+            user: {
+              select: {
+                id: true,
+                level: true,
+                totalXp: true,
+                coins: true,
+                lastSeen: true,
+                stats: {
+                  select: {
+                    messagesCount: true,
+                  }
+                }
+              }
+            }
+          }
+        }),
+        this.database.client.user.count(),
+        this.database.client.userBadge.count(),
+        this.database.client.clip.count({ where: { guildId } }),
+        this.database.client.quiz.count({ where: { guildId } }),
+        this.database.client.presence.count({ where: { guildId } })
+      ]);
+
+      // Calculate active users (seen in last 7 days)
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const activeUsers = userGuilds.filter(ug => 
+        ug.user.lastSeen && new Date(ug.user.lastSeen) > sevenDaysAgo
+      ).length;
+
+      // Calculate totals
+      const totalXP = userGuilds.reduce((sum, ug) => sum + (ug.user.totalXp || 0), 0);
+      const totalCoins = userGuilds.reduce((sum, ug) => sum + (ug.user.coins || 0), 0);
+      const totalMessages = userGuilds.reduce((sum, ug) => sum + (ug.user.stats?.messagesCount || 0), 0);
+
+      return {
         users: {
-          total: Math.floor(Math.random() * 1000) + 500,
-          active: Math.floor(Math.random() * 300) + 200,
+          total: userGuilds.length,
+          active: activeUsers,
         },
         economy: {
-          totalXP: Math.floor(Math.random() * 100000) + 50000,
-          totalCoins: Math.floor(Math.random() * 50000) + 25000,
-          totalMessages: Math.floor(Math.random() * 10000) + 5000,
+          totalXP,
+          totalCoins,
+          totalMessages,
         },
         engagement: {
-          badges: Math.floor(Math.random() * 500) + 100,
-          clips: Math.floor(Math.random() * 200) + 50,
-          presenceSessions: Math.floor(Math.random() * 2000) + 1000,
-          quizzes: Math.floor(Math.random() * 100) + 25,
+          badges: totalBadges,
+          clips: totalClips,
+          presenceSessions: totalPresences,
+          quizzes: totalQuizzes,
         },
       };
-
-      // Try to get some real data if possible, but don't fail if it doesn't work
-      try {
-        const userCount = await this.database.client.user.count();
-        if (userCount > 0) {
-          baseStats.users.total = userCount;
-          baseStats.users.active = Math.floor(userCount * 0.7); // 70% active
-        }
-      } catch (dbError) {
-        this.logger.warn('Could not fetch real user count, using mock data');
-      }
-
-      return baseStats;
     } catch (error) {
       this.logger.error('Failed to get guild stats:', error);
       // Return fallback stats on error
       return {
-        users: { total: 1542, active: 1234 },
-        economy: { totalXP: 156780, totalCoins: 45230, totalMessages: 2847 },
-        engagement: { badges: 234, clips: 89, presenceSessions: 1456, quizzes: 67 },
+        users: { total: 0, active: 0 },
+        economy: { totalXP: 0, totalCoins: 0, totalMessages: 0 },
+        engagement: { badges: 0, clips: 0, presenceSessions: 0, quizzes: 0 },
       };
     }
   }
@@ -2183,112 +2741,40 @@ export class APIService {
   }
 
   /**
-   * Simulate real-time updates for development
+   * Start real-time updates for development
    */
   private startSimulatedUpdates(): void {
-    this.logger.info('🔄 Starting simulated updates for development');
+    this.logger.info('🔄 Starting real-time updates for development');
     
-    // Stats updates every 10 seconds
-    setInterval(() => {
+    // Stats updates every 30 seconds (reduced frequency for database queries)
+    setInterval(async () => {
       if (this.io) {
-        const mockStats = {
-          users: {
-            total: Math.floor(Math.random() * 1000) + 500,
-            active: Math.floor(Math.random() * 200) + 100,
-            new: Math.floor(Math.random() * 50) + 10
-          },
-          economy: {
-            totalXP: Math.floor(Math.random() * 100000) + 50000,
-            totalCoins: Math.floor(Math.random() * 50000) + 25000,
-            transactions: Math.floor(Math.random() * 1000) + 500
-          },
-          commands: {
-            total: Math.floor(Math.random() * 10000) + 5000,
-            today: Math.floor(Math.random() * 500) + 100
-          },
-          music: {
-            songsPlayed: Math.floor(Math.random() * 5000) + 2000,
-            queueLength: Math.floor(Math.random() * 20) + 5
-          }
-        };
+        try {
+          // Get real stats from database for the main guild
+          const guildId = '1409723307489755270'; // Main guild ID
+          const realStats = await this.getGuildStats(guildId);
 
-        this.logger.info('📊 Broadcasting simulated stats update');
-        this.broadcastUpdate('1409723307489755270', 'stats', mockStats);
+          this.logger.info('📊 Broadcasting real stats update');
+          this.broadcastUpdate(guildId, 'stats', realStats);
+        } catch (error) {
+          this.logger.error('Error getting real stats for broadcast:', error);
+          // Fallback to basic stats if database query fails
+          const fallbackStats = {
+            users: { total: 0, active: 0, new: 0 },
+            economy: { totalXP: 0, totalCoins: 0, transactions: 0 },
+            commands: { total: 0, today: 0 },
+            music: { songsPlayed: 0, queueLength: 0 }
+          };
+          this.broadcastUpdate('1409723307489755270', 'stats', fallbackStats);
+        }
       } else {
         this.logger.warn('⚠️ WebSocket not initialized, skipping update');
       }
-    }, 10000); // Update every 10 seconds
+    }, 30000); // Update every 30 seconds
 
-    // Notification updates every 20 seconds
-    setInterval(() => {
-      if (this.io) {
-        const notifications = [
-          {
-            type: 'success' as const,
-            title: 'Novo Membro',
-            message: `Usuário @${this.generateRandomUsername()} entrou no servidor!`,
-            category: 'user',
-            autoClose: true
-          },
-          {
-            type: 'info' as const,
-            title: 'Música Tocando',
-            message: `Agora tocando: "${this.generateRandomSong()}"`,
-            category: 'music',
-            autoClose: true
-          },
-          {
-            type: 'success' as const,
-            title: 'Conquista Desbloqueada',
-            message: `@${this.generateRandomUsername()} desbloqueou o badge "${this.generateRandomBadge()}"`,
-            category: 'achievement',
-            autoClose: true
-          },
-          {
-            type: 'warning' as const,
-            title: 'Moderação',
-            message: 'Mensagem removida por conteúdo inadequado',
-            category: 'moderation',
-            autoClose: true
-          },
-          {
-            type: 'info' as const,
-            title: 'Comando Executado',
-            message: `Comando /rank executado por @${this.generateRandomUsername()}`,
-            category: 'command',
-            autoClose: true
-          }
-        ];
-
-        const randomNotification = notifications[Math.floor(Math.random() * notifications.length)];
-        if (randomNotification) {
-          this.broadcastNotification('1409723307489755270', randomNotification);
-        }
-      }
-    }, 20000); // Notifications every 20 seconds
-  }
-
-  private generateRandomUsername(): string {
-    const names = ['João', 'Maria', 'Pedro', 'Ana', 'Carlos', 'Lucia', 'Rafael', 'Beatriz', 'Gabriel', 'Camila'];
-    return names[Math.floor(Math.random() * names.length)] || 'Usuário';
-  }
-
-  private generateRandomSong(): string {
-    const songs = [
-      'Imagine Dragons - Believer',
-      'The Weeknd - Blinding Lights',
-      'Dua Lipa - Levitating',
-      'Ed Sheeran - Shape of You',
-      'Billie Eilish - Bad Guy',
-      'Post Malone - Circles',
-      'Ariana Grande - positions'
-    ];
-    return songs[Math.floor(Math.random() * songs.length)] || 'Música Desconhecida';
-  }
-
-  private generateRandomBadge(): string {
-    const badges = ['Veterano', 'Músico', 'Gamer', 'Conversador', 'Ajudante', 'Explorador', 'Colecionador'];
-    return badges[Math.floor(Math.random() * badges.length)] || 'Badge';
+    // Real notifications will be sent by actual bot events
+    // No simulated notifications in production
+    this.logger.info('✅ Real-time updates configured - notifications will be sent by actual bot events');
   }
 
   /**

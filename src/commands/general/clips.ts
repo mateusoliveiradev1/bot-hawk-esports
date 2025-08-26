@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, CommandInteraction } from 'discord.js';
 import { PrismaClient } from '@prisma/client';
 import { BadgeService } from '../../services/badge.service';
 import { DatabaseService } from '../../database/database.service';
@@ -134,25 +134,25 @@ const data = new SlashCommandBuilder()
       ),
   );
 
-async function execute(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
-  const subcommand = interaction.options.getSubcommand();
+async function execute(interaction: CommandInteraction | ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+  const subcommand = (interaction as ChatInputCommandInteraction).options.getSubcommand();
 
   try {
     switch (subcommand) {
     case 'upload':
-      await handleUpload(interaction);
+      await handleUpload(interaction as ChatInputCommandInteraction);
       break;
     case 'list':
-      await handleList(interaction);
+      await handleList(interaction as ChatInputCommandInteraction);
       break;
     case 'vote':
-      await handleVote(interaction);
+      await handleVote(interaction as ChatInputCommandInteraction);
       break;
     case 'info':
-      await handleInfo(interaction);
+      await handleInfo(interaction as ChatInputCommandInteraction);
       break;
     case 'delete':
-      await handleDelete(interaction);
+      await handleDelete(interaction as ChatInputCommandInteraction);
       break;
     default:
       await interaction.reply({
@@ -325,11 +325,7 @@ async function handleList(interaction: ChatInputCommandInteraction) {
             username: true,
           },
         },
-        _count: {
-          select: {
-            votes: true,
-          },
-        },
+        votes: true,
       },
     });
 
@@ -679,6 +675,8 @@ function getFilterDescription(filter: string, gameType?: string | null): string 
     return 'Mostrando clips em destaque';
   case 'game':
     return gameType ? `Mostrando clips de: ${gameType.toUpperCase()}` : 'Mostrando todos os clips';
+  case 'recent':
+    return 'Mostrando clips mais recentes';
   default:
     return 'Mostrando clips mais recentes';
   }

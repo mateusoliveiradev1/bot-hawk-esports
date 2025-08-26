@@ -54,7 +54,21 @@ class ApiService {
   private token: string | null = null;
 
   constructor() {
-    this.initializeAuth();
+    // Initialize token from localStorage if available
+    this.token = localStorage.getItem('auth_token');
+  }
+
+  setToken(token: string | null) {
+    this.token = token;
+    if (token) {
+      localStorage.setItem('auth_token', token);
+    } else {
+      localStorage.removeItem('auth_token');
+    }
+  }
+
+  getToken(): string | null {
+    return this.token;
   }
 
   private async initializeAuth() {
@@ -74,16 +88,16 @@ class ApiService {
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          this.token = data.data.token;
+          this.setToken(data.data.token);
         }
       }
     } catch (error) {
       console.warn('Failed to get auth token, using mock token:', error);
-      this.token = 'mock-token';
+      this.setToken('mock-token');
     }
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private async request<T>(endpoint: string, options: RequestInit = {}, retryCount = 0): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     
     // Ensure we have a token
@@ -102,27 +116,12 @@ class ApiService {
 
     if (!response.ok) {
       // If unauthorized, try to refresh token once
-      if (response.status === 401 && this.token) {
-        await this.initializeAuth();
-        // Retry the request with new token
-        const retryResponse = await fetch(url, {
-          ...options,
-          headers: {
-            'Content-Type': 'application/json',
-            ...(this.token && { Authorization: `Bearer ${this.token}` }),
-            ...options.headers,
-          },
-        });
-        
-        if (!retryResponse.ok) {
-          throw new Error(`API request failed: ${retryResponse.status} ${retryResponse.statusText}`);
+      if (response.status === 401 && retryCount === 0) {
+        const refreshSuccess = await this.refreshToken();
+        if (refreshSuccess) {
+          // Retry the request with new token
+          return this.request<T>(endpoint, options, retryCount + 1);
         }
-        
-        const retryData: ApiResponse<T> = await retryResponse.json();
-        if (!retryData.success) {
-          throw new Error(retryData.error || 'API request failed');
-        }
-        return retryData.data as T;
       }
       
       throw new Error(`API request failed: ${response.status} ${response.statusText}`);
@@ -135,6 +134,39 @@ class ApiService {
     }
 
     return data.data as T;
+  }
+
+  private async refreshToken(): Promise<boolean> {
+    try {
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (!refreshToken) {
+        return false;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          this.setToken(data.data.token);
+          if (data.data.refreshToken) {
+            localStorage.setItem('refresh_token', data.data.refreshToken);
+          }
+          return true;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      return false;
+    }
   }
 
   // Stats endpoints

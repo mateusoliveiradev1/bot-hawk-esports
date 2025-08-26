@@ -10,8 +10,11 @@ import {
   Settings,
   Users,
   X,
+  LogOut,
+  User,
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { useAuth } from '../contexts/AuthContext'
 import NotificationSystem from './NotificationSystem'
 
 interface LayoutProps {
@@ -29,7 +32,9 @@ const navigation = [
 
 export default function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const location = useLocation()
+  const { user, logout } = useAuth()
 
   return (
     <div className="flex h-screen bg-secondary-50">
@@ -137,6 +142,54 @@ export default function Layout({ children }: LayoutProps) {
               <div className="flex items-center space-x-2">
                 <div className="h-2 w-2 bg-success-500 rounded-full animate-pulse"></div>
                 <span className="text-sm text-secondary-600">Bot Online</span>
+              </div>
+              
+              {/* User Menu */}
+              <div className="relative">
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-secondary-100 transition-colors"
+                >
+                  {user?.avatar ? (
+                    <img
+                      src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`}
+                      alt={user.username}
+                      className="h-8 w-8 rounded-full"
+                    />
+                  ) : (
+                    <div className="h-8 w-8 bg-primary-500 rounded-full flex items-center justify-center">
+                      <User className="h-4 w-4 text-white" />
+                    </div>
+                  )}
+                  <span className="text-sm font-medium text-secondary-700 hidden sm:block">
+                    {user?.username}#{user?.discriminator}
+                  </span>
+                </button>
+                
+                {/* User Dropdown */}
+                {userMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-secondary-200 py-1 z-50">
+                    <div className="px-4 py-2 border-b border-secondary-100">
+                      <p className="text-sm font-medium text-secondary-900">
+                        {user?.username}#{user?.discriminator}
+                      </p>
+                      <p className="text-xs text-secondary-500">
+                        ID: {user?.id}
+                      </p>
+                    </div>
+                    
+                    <button
+                      onClick={() => {
+                        logout();
+                        setUserMenuOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>Sair</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

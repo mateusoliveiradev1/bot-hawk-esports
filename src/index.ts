@@ -315,15 +315,22 @@ class HawkEsportsBot {
       }
 
       try {
-        // Update user activity - temporarily disabled
-        // TODO: Add lastSeen and messagesCount fields to User model
-        // await this.db.client.user.update({
-        //   where: { id: message.author.id },
-        //   data: {
-        //     lastSeen: new Date(),
-        //     messagesCount: { increment: 1 }
-        //   }
-        // });
+        // Update user activity
+        await this.db.client.user.upsert({
+          where: { id: message.author.id },
+          update: {
+            lastSeen: new Date(),
+            messagesCount: { increment: 1 }
+          },
+          create: {
+            id: message.author.id,
+            username: message.author.username,
+            discriminator: message.author.discriminator || '0',
+            avatar: message.author.avatar,
+            lastSeen: new Date(),
+            messagesCount: 1
+          }
+        });
 
         // Check for badge progress
         await this.services.badge.updateProgress(message.author.id, 'messages', 1);
