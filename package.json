@@ -42,6 +42,7 @@
   "license": "MIT",
   "dependencies": {
     "@discordjs/builders": "^1.7.0",
+    "@discordjs/opus": "^0.10.0",
     "@discordjs/rest": "^2.2.0",
     "@discordjs/voice": "^0.17.0",
     "@distube/ytdl-core": "^4.16.12",
