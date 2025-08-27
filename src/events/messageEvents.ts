@@ -119,16 +119,14 @@ export class MessageEvents {
    * Log message edits
    */
   private async logMessageEdit(oldMessage: Message, newMessage: Message): Promise<void> {
-    // Implementation for logging message edits
-    // This would send to a moderation log channel if configured
+    // Logging is handled automatically by LoggingService
   }
 
   /**
    * Log message deletions
    */
   private async logMessageDelete(message: Message): Promise<void> {
-    // Implementation for logging message deletions
-    // This would send to a moderation log channel if configured
+    // Logging is handled automatically by LoggingService
   }
 
   /**

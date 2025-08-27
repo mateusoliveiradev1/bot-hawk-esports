@@ -72,9 +72,9 @@ export class CommandManager {
    */
   private async loadCommand(filePath: string): Promise<Command | ContextMenuCommand | null> {
     try {
-      // Convert Windows absolute path to file:// URL for ESM loader
-      const fileUrl = `file:///${filePath.replace(/\\/g, '/')}`;
-      const commandModule = await import(fileUrl);
+      // Use require for CommonJS modules in compiled JavaScript
+      delete require.cache[require.resolve(filePath)];
+      const commandModule = require(filePath);
       const command = commandModule.default || commandModule;
 
       if (!command || typeof command !== 'object') {

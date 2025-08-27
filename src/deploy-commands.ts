@@ -56,11 +56,9 @@ export class CommandDeployer {
           
           try {
             logger.debug(`Loading command from: ${filePath}`);
-            // Convert Windows path to file:// URL for ESM import
-            const fileUrl = process.platform === 'win32' 
-              ? `file:///${filePath.replace(/\\/g, '/')}` 
-              : filePath;
-            const commandModule = await import(fileUrl);
+            // Use require for CommonJS modules in compiled JavaScript
+            delete require.cache[require.resolve(filePath)];
+            const commandModule = require(filePath);
             
             // Try different export patterns
             let command: Command | ContextMenuCommand | null = null;

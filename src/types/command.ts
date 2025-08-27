@@ -43,7 +43,7 @@ export interface Command {
   disabled?: boolean;
   premium?: boolean;
   aliases?: string[];
-  execute: (interaction: CommandInteraction | ChatInputCommandInteraction, client: ExtendedClient) => Promise<void>;
+  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) => Promise<void>;
   autocomplete?: (interaction: AutocompleteInteraction, client: ExtendedClient) => Promise<void>;
 }
 

@@ -16,6 +16,7 @@ import { OnboardingService } from './services/onboarding.service';
 import { PunishmentService } from './services/punishment.service';
 import { AutoModerationService } from './services/automod.service';
 import { TicketService } from './services/ticket.service';
+import { LoggingService } from './services/logging.service';
 import { CommandManager } from './commands/index';
 import { MemberEvents } from './events/memberEvents';
 import { MessageEvents } from './events/messageEvents';
@@ -47,6 +48,7 @@ class HawkEsportsBot {
     onboarding: OnboardingService;
     punishment: PunishmentService;
     automod: AutoModerationService;
+    logging: LoggingService;
   };
   private commands: CommandManager;
   private isShuttingDown = false;
@@ -87,33 +89,27 @@ class HawkEsportsBot {
     this.client.cache = this.cache;
     this.client.logger = this.logger;
     
-    // Initialize services first
+    // Initialize services with proper dependencies
     const ticketService = new TicketService(this.client);
+    const punishmentService = new PunishmentService(this.client, this.db);
     
     this.services = {
-      pubg: new PUBGService(this.cache),
-      music: new MusicService(this.cache, this.db),
-      game: new GameService(this.client),
-      badge: new BadgeService(this.client),
-      ranking: new RankingService(this.client),
-      presence: new PresenceService(this.client),
-      clip: new ClipService(this.client),
-      scheduler: new SchedulerService(this.client),
       api: new APIService(this.client),
+      automod: new AutoModerationService(this.client, this.db, punishmentService),
+      badge: new BadgeService(this.client),
+      logging: new LoggingService(this.client, this.db),
+      music: new MusicService(this.cache, this.db),
       onboarding: new OnboardingService(this.client),
-      punishment: new PunishmentService(this.client, this.db),
-      automod: new AutoModerationService(this.client, this.db, new PunishmentService(this.client, this.db)),
+      presence: new PresenceService(this.client),
+      punishment: punishmentService,
+      scheduler: new SchedulerService(this.client),
       ticket: ticketService
     } as any;
     
     // Attach individual services to client for direct access
-    this.client.pubgService = this.services.pubg;
     this.client.musicService = this.services.music;
-    this.client.gameService = this.services.game;
     this.client.badgeService = this.services.badge;
-    this.client.rankingService = this.services.ranking;
     this.client.presenceService = this.services.presence;
-    this.client.clipService = this.services.clip;
     this.client.schedulerService = this.services.scheduler;
     this.client.apiService = this.services.api;
     this.client.onboardingService = this.services.onboarding;
@@ -153,7 +149,7 @@ class HawkEsportsBot {
       await this.loadCommands();
 
       // Setup event listeners
-      this.setupEventListeners();
+      await this.setupEventListeners();
 
       // Login to Discord
       await this.client.login(process.env.DISCORD_TOKEN);
@@ -262,9 +258,9 @@ class HawkEsportsBot {
   /**
    * Setup Discord event listeners
    */
-  private setupEventListeners(): void {
+  private async setupEventListeners(): Promise<void> {
     // Ready event
-    this.client.once('ready', async () => {
+    this.client.once('clientReady', async () => {
       if (!this.client.user) {
         return;
       }
@@ -351,6 +347,17 @@ class HawkEsportsBot {
     // Initialize event handlers
     new MemberEvents(this.client);
     new MessageEvents(this.client);
+    
+    // Import and initialize new event handlers
+    try {
+      const { VoiceEvents } = await import('./events/voiceEvents');
+      const { GuildEvents } = await import('./events/guildEvents');
+      
+      new VoiceEvents(this.client);
+      new GuildEvents(this.client);
+    } catch (error) {
+      this.logger.error('Failed to initialize new event handlers:', error);
+    }
 
     // Voice state updates for music and auto check-out
     this.client.on('voiceStateUpdate', async (oldState, newState) => {

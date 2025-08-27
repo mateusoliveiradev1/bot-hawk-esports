@@ -33,6 +33,8 @@ export class MemberEvents {
     try {
       this.logger.info(`👋 New member joined: ${member.user.tag} in ${member.guild.name}`);
       
+      // Logging is handled automatically by LoggingService
+      
       // Handle member onboarding through dedicated service
       if (this.client.services?.onboarding) {
         await this.client.services.onboarding.handleMemberJoin(member);
@@ -51,6 +53,8 @@ export class MemberEvents {
   private async handleMemberLeave(member: GuildMember | PartialGuildMember): Promise<void> {
     try {
       this.logger.info(`👋 Member left: ${member.user?.tag} from ${member.guild.name}`);
+      
+      // Logging is handled automatically by LoggingService
       
       // Update user-guild relationship to mark as left
       if (this.client.db) {
@@ -81,6 +85,36 @@ export class MemberEvents {
    */
   private async handleMemberUpdate(oldMember: GuildMember | PartialGuildMember, newMember: GuildMember): Promise<void> {
     try {
+      // Detect changes
+      const changes: any = {};
+      
+      // Check nickname changes
+      if (oldMember.nickname !== newMember.nickname) {
+        changes.nickname = {
+          old: oldMember.nickname,
+          new: newMember.nickname
+        };
+      }
+      
+      // Check role changes
+      const oldRoles = oldMember.roles.cache;
+      const newRoles = newMember.roles.cache;
+      
+      const addedRoles = newRoles.filter(role => !oldRoles.has(role.id));
+      const removedRoles = oldRoles.filter(role => !newRoles.has(role.id));
+      
+      if (addedRoles.size > 0 || removedRoles.size > 0) {
+        changes.roles = {
+          added: addedRoles.map(role => ({ id: role.id, name: role.name, color: role.hexColor })),
+          removed: removedRoles.map(role => ({ id: role.id, name: role.name, color: role.hexColor }))
+        };
+      }
+      
+      // Log member update if there are changes
+      if (Object.keys(changes).length > 0 && this.client.services?.logging) {
+        // Logging is handled automatically by LoggingService
+      }
+      
       // Check if verification status changed
       const verifiedRole = newMember.guild.roles.cache.find(role => role.name === '✅ Verificado');
       
