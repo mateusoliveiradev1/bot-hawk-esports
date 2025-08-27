@@ -13,6 +13,7 @@ import { SchedulerService } from '../services/scheduler.service';
 import { APIService } from '../services/api.service';
 import { OnboardingService } from '../services/onboarding.service';
 import { PunishmentService } from '../services/punishment.service';
+import { AutoModerationService } from '../services/automod.service';
 import { CommandManager } from '../commands';
 import { Command } from './command';
 
@@ -36,6 +37,7 @@ export interface ExtendedClient extends Client {
   apiService: APIService;
   onboardingService: OnboardingService;
   punishmentService: PunishmentService;
+  automodService: AutoModerationService;
   // New properties for the updated architecture
   db?: DatabaseService;
   services?: {
@@ -50,6 +52,7 @@ export interface ExtendedClient extends Client {
     api: APIService;
     onboarding: OnboardingService;
     punishment: PunishmentService;
+    automod: AutoModerationService;
   };
 }
 

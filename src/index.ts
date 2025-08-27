@@ -14,8 +14,10 @@ import { SchedulerService } from '@/services/scheduler.service';
 import { APIService } from '@/services/api.service';
 import { OnboardingService } from './services/onboarding.service';
 import { PunishmentService } from './services/punishment.service';
+import { AutoModerationService } from './services/automod.service';
 import { CommandManager } from './commands/index';
 import { MemberEvents } from './events/memberEvents';
+import { MessageEvents } from './events/messageEvents';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
@@ -42,6 +44,7 @@ class HawkEsportsBot {
     api: APIService;
     onboarding: OnboardingService;
     punishment: PunishmentService;
+    automod: AutoModerationService;
   };
   private commands: CommandManager;
   private isShuttingDown = false;
@@ -95,6 +98,7 @@ class HawkEsportsBot {
       api: new APIService(this.client),
       onboarding: new OnboardingService(this.client),
       punishment: new PunishmentService(this.client, this.db),
+      automod: new AutoModerationService(this.client, this.db, new PunishmentService(this.client, this.db)),
     };
     
     // Attach individual services to client for direct access
@@ -109,6 +113,7 @@ class HawkEsportsBot {
     this.client.apiService = this.services.api;
     this.client.onboardingService = this.services.onboarding;
     this.client.punishmentService = this.services.punishment;
+    this.client.automodService = this.services.automod;
     
     // Initialize command manager
     this.commands = new CommandManager(this.client);
@@ -327,8 +332,9 @@ class HawkEsportsBot {
       this.logger.info(`📤 Left guild: ${guild.name} (${guild.id})`);
     });
 
-    // Initialize member events handler
+    // Initialize event handlers
     new MemberEvents(this.client);
+    new MessageEvents(this.client);
 
     // Voice state updates for music and auto check-out
     this.client.on('voiceStateUpdate', async (oldState, newState) => {
