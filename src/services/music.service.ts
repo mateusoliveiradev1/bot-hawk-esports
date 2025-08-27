@@ -2,6 +2,7 @@ import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, creat
 import { Guild, GuildMember, VoiceBasedChannel } from 'discord.js';
 import ytdl from '@distube/ytdl-core';
 import { search, video_basic_info, stream_from_info, setToken, getFreeClientID } from 'play-dl';
+import youtubedl from 'youtube-dl-exec';
 import { SpotifyApi } from '@spotify/web-api-ts-sdk';
 import { Logger } from '../utils/logger';
 import { CacheService } from './cache.service';
@@ -800,7 +801,57 @@ export class MusicService {
       }
     }
     
-    this.logger.error(`❌ All play-dl streaming methods failed for: ${cleanUrl}`);
+    // Method 4: Try youtube-dl-exec as final fallback
+    try {
+      this.logger.info(`🔄 Trying youtube-dl-exec method (final fallback)...`);
+      
+      const audioUrl = await youtubedl(cleanUrl, {
+        dumpSingleJson: true,
+        noCheckCertificates: true,
+        noWarnings: true,
+        preferFreeFormats: true,
+        addHeader: ['referer:youtube.com', 'user-agent:googlebot'],
+        format: 'bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio'
+      }).then((info: any) => {
+        if (info.url) {
+          return info.url;
+        }
+        if (info.formats && info.formats.length > 0) {
+          // Find best audio format
+          const audioFormats = info.formats.filter((f: any) => f.acodec && f.acodec !== 'none');
+          if (audioFormats.length > 0) {
+            return audioFormats[0].url;
+          }
+        }
+        throw new Error('No audio URL found in youtube-dl-exec response');
+      });
+      
+      if (audioUrl) {
+        this.logger.info(`✅ youtube-dl-exec found audio URL, creating stream...`);
+        
+        // Create audio resource from the extracted URL
+        const response = await fetch(audioUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch audio stream: ${response.status}`);
+        }
+        
+        const stream = response.body;
+        if (!stream) {
+          throw new Error('No stream body received');
+        }
+        
+        this.logger.info(`✅ youtube-dl-exec stream created successfully`);
+        return createAudioResource(stream as any, {
+          inputType: StreamType.Arbitrary,
+          inlineVolume: true,
+        });
+      }
+      
+    } catch (youtubeDlError: any) {
+      this.logger.error(`❌ youtube-dl-exec method failed: ${youtubeDlError.message}`);
+    }
+    
+    this.logger.error(`❌ All streaming methods failed for: ${cleanUrl}`);
     this.logger.error(`💡 Note: ytdl-core is temporarily disabled due to YouTube parsing issues`);
     return null;
   }
