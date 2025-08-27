@@ -17,6 +17,8 @@ import { PunishmentService } from './services/punishment.service';
 import { AutoModerationService } from './services/automod.service';
 import { TicketService } from './services/ticket.service';
 import { LoggingService } from './services/logging.service';
+import { WeaponMasteryService } from './services/weapon-mastery.service';
+import { RoleManagerService } from './services/role-manager.service';
 import { CommandManager } from './commands/index';
 import { MemberEvents } from './events/memberEvents';
 import { MessageEvents } from './events/messageEvents';
@@ -49,6 +51,7 @@ class HawkEsportsBot {
     punishment: PunishmentService;
     automod: AutoModerationService;
     logging: LoggingService;
+    roleManager: RoleManagerService;
   };
   private commands: CommandManager;
   private isShuttingDown = false;
@@ -92,6 +95,7 @@ class HawkEsportsBot {
     // Initialize services with proper dependencies
     const ticketService = new TicketService(this.client);
     const punishmentService = new PunishmentService(this.client, this.db);
+    const roleManagerService = new RoleManagerService();
     
     this.services = {
       api: new APIService(this.client),
@@ -102,8 +106,10 @@ class HawkEsportsBot {
       onboarding: new OnboardingService(this.client),
       presence: new PresenceService(this.client),
       punishment: punishmentService,
+      roleManager: roleManagerService,
       scheduler: new SchedulerService(this.client),
-      ticket: ticketService
+      ticket: ticketService,
+      weaponMastery: new WeaponMasteryService(this.client)
     } as any;
     
     // Attach individual services to client for direct access
@@ -116,6 +122,8 @@ class HawkEsportsBot {
     this.client.punishmentService = this.services.punishment;
     this.client.automodService = this.services.automod;
     this.client.ticketService = ticketService;
+    this.client.weaponMasteryService = this.services.weaponMastery;
+    this.client.roleManagerService = this.services.roleManager;
     
     // Initialize command manager
     this.commands = new CommandManager(this.client);
@@ -335,6 +343,13 @@ class HawkEsportsBot {
             ownerId: guild.ownerId,
           },
         });
+
+        // Initialize guild roles and permissions
+        if (this.services.roleManager) {
+          await this.services.roleManager.initializeGuildRoles(guild);
+          await this.services.roleManager.setupChannelPermissions(guild);
+          this.logger.info(`✅ Initialized roles and permissions for guild: ${guild.name}`);
+        }
       } catch (error) {
         this.logger.error('Failed to initialize new guild:', error);
       }

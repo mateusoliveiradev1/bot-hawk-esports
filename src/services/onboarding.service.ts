@@ -10,6 +10,7 @@ import {
 } from 'discord.js';
 import { ExtendedClient } from '../types/client';
 import { Logger } from '../utils/logger';
+import { RoleManagerService } from './role-manager.service';
 
 export interface OnboardingConfig {
   onboardingEnabled: boolean;
@@ -32,10 +33,12 @@ export interface WelcomeStats {
 export class OnboardingService {
   private client: ExtendedClient;
   private logger: Logger;
+  private roleManager: RoleManagerService;
 
   constructor(client: ExtendedClient) {
     this.client = client;
     this.logger = new Logger();
+    this.roleManager = new RoleManagerService();
     this.setupButtonHandlers();
   }
 
@@ -81,31 +84,26 @@ export class OnboardingService {
    */
   async handleMemberVerification(member: GuildMember): Promise<void> {
     try {
-      // Remove new member role
-      const newMemberRole = member.guild.roles.cache.find(role => role.name === '👋 Novo Membro');
-      if (newMemberRole && member.roles.cache.has(newMemberRole.id)) {
-        await member.roles.remove(newMemberRole);
-      }
+      // Use role manager to promote member
+      const success = await this.roleManager.promoteToVerified(member);
       
-      // Add verified role
-      const verifiedRole = member.guild.roles.cache.find(role => role.name === '✅ Verificado');
-      if (verifiedRole && !member.roles.cache.has(verifiedRole.id)) {
-        await member.roles.add(verifiedRole);
+      if (success) {
+        // Update database
+        if (this.client.db) {
+          await this.client.db.client.user.update({
+            where: { id: member.id },
+            data: {
+              isVerified: true,
+              verifiedAt: new Date(),
+              verificationMethod: 'auto',
+            },
+          });
+        }
+        
+        this.logger.info(`Member ${member.user.tag} verified and promoted in ${member.guild.name}`);
+      } else {
+        this.logger.warn(`Failed to promote ${member.user.tag} to verified`);
       }
-      
-      // Update database
-      if (this.client.db) {
-        await this.client.db.client.user.update({
-          where: { id: member.id },
-          data: {
-            isVerified: true,
-            verifiedAt: new Date(),
-            verificationMethod: 'auto',
-          },
-        });
-      }
-      
-      this.logger.info(`Member ${member.user.tag} verified in ${member.guild.name}`);
       
     } catch (error) {
       this.logger.error(`Failed to handle member verification for ${member.user.tag}:`, error);
@@ -161,18 +159,24 @@ export class OnboardingService {
   }
 
   /**
-   * Add new member role
+   * Add new member role and ensure basic permissions
    */
   private async addNewMemberRole(member: GuildMember): Promise<void> {
     try {
-      const newMemberRole = member.guild.roles.cache.find(role => role.name === '👋 Novo Membro');
+      // Initialize guild roles if needed
+      await this.roleManager.initializeGuildRoles(member.guild);
       
-      if (newMemberRole) {
-        await member.roles.add(newMemberRole);
-        this.logger.info(`Added new member role to ${member.user.tag}`);
+      // Add new member role using role manager
+      const success = await this.roleManager.addNewMemberRole(member);
+      
+      if (success) {
+        // Setup channel permissions for the guild
+        await this.roleManager.setupChannelPermissions(member.guild);
+        this.logger.info(`Successfully setup roles and permissions for ${member.user.tag}`);
       } else {
-        this.logger.warn(`New member role not found in guild ${member.guild.name}`);
+        this.logger.warn(`Failed to add new member role to ${member.user.tag}`);
       }
+      
     } catch (error) {
       this.logger.error(`Failed to add new member role to ${member.user.tag}:`, error);
     }

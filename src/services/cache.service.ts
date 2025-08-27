@@ -67,7 +67,7 @@ export class CacheService {
       this.logger.info('✅ Connected to Redis successfully');
       this.useMemoryFallback = false;
     } catch (error) {
-      this.logger.warn('⚠️ Redis not available, using in-memory cache fallback:', error.message);
+      this.logger.warn('⚠️ Redis not available, using in-memory cache fallback:', error instanceof Error ? error.message : String(error));
       this.useMemoryFallback = true;
       this.isConnected = false;
       // Don't throw error, continue with memory fallback

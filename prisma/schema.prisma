@@ -212,6 +212,22 @@ model PUBGStats {
   @@map("pubg_stats")
 }
 
+// Weapon Mastery
+model WeaponMastery {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  pubgName      String
+  weapons       String   // JSON string of WeaponMasteryData[]
+  totalLevel    Int      @default(0)
+  totalXP       Int      @default(0)
+  favoriteWeapon String  @default("Unknown")
+  lastSyncAt    DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("weapon_mastery")
+}
+
 // Teams
 model Team {
   id          String   @id @default(cuid())

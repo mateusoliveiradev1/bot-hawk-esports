@@ -16,6 +16,7 @@ import { PunishmentService } from '../services/punishment.service';
 import { AutoModerationService } from '../services/automod.service';
 import { TicketService } from '../services/ticket.service';
 import { LoggingService } from '../services/logging.service';
+import { WeaponMasteryService } from '../services/weapon-mastery.service';
 import { CommandManager } from '../commands';
 import { Command } from './command';
 
@@ -41,6 +42,7 @@ export interface ExtendedClient extends Client {
   punishmentService: PunishmentService;
   automodService: AutoModerationService;
   ticketService: TicketService;
+  weaponMasteryService: WeaponMasteryService;
   // New properties for the updated architecture
   db?: DatabaseService;
   services?: {
@@ -58,6 +60,7 @@ export interface ExtendedClient extends Client {
     automod: AutoModerationService;
     ticket: TicketService;
     logging: LoggingService;
+    weaponMastery: WeaponMasteryService;
   };
 }
 

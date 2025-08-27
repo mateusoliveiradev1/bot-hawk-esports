@@ -5,6 +5,7 @@ import { RankingService } from './ranking.service';
 import { BadgeService } from './badge.service';
 import { PresenceService } from './presence.service';
 import { ClipService } from './clip.service';
+import { WeaponMasteryService } from './weapon-mastery.service';
 import { ExtendedClient } from '../types/client';
 import { EmbedBuilder, TextChannel } from 'discord.js';
 import * as cron from 'node-cron';
@@ -55,6 +56,7 @@ export class SchedulerService {
   private badgeService: BadgeService;
   private presenceService: PresenceService;
   private clipService: ClipService;
+  private weaponMasteryService: WeaponMasteryService;
   private client: ExtendedClient;
   
   private tasks: Map<string, ScheduledTask> = new Map();
@@ -72,6 +74,7 @@ export class SchedulerService {
     this.badgeService = new BadgeService(client);
     this.presenceService = new PresenceService(client);
     this.clipService = new ClipService(client);
+    this.weaponMasteryService = new WeaponMasteryService(client);
     this.client = client;
     
     this.initializeTasks();
@@ -229,6 +232,19 @@ export class SchedulerService {
       errorCount: 0,
       averageExecutionTime: 0,
       handler: this.cleanupCache.bind(this),
+    });
+    
+    // Every 6 hours
+    this.addTask({
+      id: 'weapon_mastery_sync',
+      name: 'Sincronização de Maestria de Armas',
+      description: 'Sincroniza dados de maestria de armas de todos os usuários',
+      cronExpression: '0 */6 * * *', // Every 6 hours
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+      averageExecutionTime: 0,
+      handler: this.syncWeaponMastery.bind(this),
     });
     
     // Every 15 minutes
@@ -1126,6 +1142,76 @@ export class SchedulerService {
       await announcementChannel.send({ embeds: [embed] });
     } catch (error) {
       this.logger.error(`Failed to send weekly report for ${guildId}:`, error);
+    }
+  }
+
+  /**
+   * Sync weapon mastery data for all users
+   */
+  private async syncWeaponMastery(): Promise<void> {
+    try {
+      this.logger.info('Starting weapon mastery synchronization for all users');
+      
+      // Get all users with linked PUBG accounts
+      const users = await this.database.client.user.findMany({
+        where: {
+          pubgUsername: {
+            not: null
+          }
+        },
+        select: {
+          id: true,
+          pubgUsername: true
+        }
+      });
+      
+      if (users.length === 0) {
+        this.logger.info('No users with linked PUBG accounts found');
+        return;
+      }
+      
+      this.logger.info(`Found ${users.length} users with linked PUBG accounts`);
+      
+      let syncedCount = 0;
+      let errorCount = 0;
+      
+      // Process users in batches to avoid API rate limits
+      const batchSize = 5;
+      for (let i = 0; i < users.length; i += batchSize) {
+        const batch = users.slice(i, i + batchSize);
+        
+        const promises = batch.map(async (user) => {
+          try {
+            const synced = await this.weaponMasteryService.syncUserWeaponMastery(
+              user.id,
+              user.pubgUsername!
+            );
+            
+            if (synced) {
+              syncedCount++;
+              this.logger.debug(`Synced weapon mastery for user ${user.pubgUsername}`);
+            }
+          } catch (error) {
+            errorCount++;
+            this.logger.warn(`Failed to sync weapon mastery for user ${user.pubgUsername}:`, error);
+          }
+        });
+        
+        await Promise.all(promises);
+        
+        // Add delay between batches to respect API limits
+        if (i + batchSize < users.length) {
+          await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+        }
+      }
+      
+      this.logger.info(
+        `Weapon mastery synchronization completed. ` +
+        `Synced: ${syncedCount}, Errors: ${errorCount}, Total: ${users.length}`
+      );
+      
+    } catch (error) {
+      this.logger.error('Failed to sync weapon mastery data:', error);
     }
   }
 

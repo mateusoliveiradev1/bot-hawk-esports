@@ -2,6 +2,7 @@ import { Logger } from '../utils/logger';
 import { CacheService } from './cache.service';
 import { DatabaseService } from '../database/database.service';
 import { ExtendedClient } from '../types/client';
+import { XPService } from './xp.service.js';
 import { User, GuildMember, TextChannel, EmbedBuilder } from 'discord.js';
 
 export interface BadgeDefinition {
@@ -57,10 +58,14 @@ export class BadgeService {
   private cache: CacheService;
   private database: DatabaseService;
   private client: ExtendedClient;
+  private xpService: XPService;
   
   private badges: Map<string, BadgeDefinition> = new Map();
   private userBadges: Map<string, Set<string>> = new Map(); // userId -> badgeIds
   private badgeProgress: Map<string, Map<string, BadgeProgress>> = new Map(); // userId -> badgeId -> progress
+  
+  // ID do fundador (exclusivo)
+  private readonly FOUNDER_USER_ID = process.env.FOUNDER_USER_ID || 'YOUR_DISCORD_ID_HERE';
   
   private readonly rarityColors: Record<string, string> = {
     common: '#95A5A6',
@@ -80,11 +85,12 @@ export class BadgeService {
     mythic: '🔴',
   };
 
-  constructor(client: ExtendedClient) {
+  constructor(client: ExtendedClient, xpService: XPService) {
     this.logger = new Logger();
     this.cache = client.cache;
     this.database = client.database;
     this.client = client;
+    this.xpService = xpService;
     
     this.initializeBadges();
     this.loadUserBadges();
@@ -386,12 +392,12 @@ export class BadgeService {
       {
         id: 'founder',
         name: 'Fundador',
-        description: 'Um dos primeiros membros do servidor',
-        icon: '🌟',
+        description: 'Badge exclusiva do fundador do Hawk Esports',
+        icon: '👑',
         category: 'special',
         rarity: 'mythic',
-        requirements: [], // Manually awarded
-        rewards: { role: 'founder' },
+        requirements: [], // Manually awarded - exclusive to founder
+        rewards: { role: 'founder', xp: 1000, coins: 1000 },
         isSecret: false,
         isActive: true,
       },
@@ -614,6 +620,12 @@ export class BadgeService {
         return false;
       }
       
+      // Check if it's the founder badge and user is not the founder
+      if (badgeId === 'founder' && userId !== this.FOUNDER_USER_ID) {
+        this.logger.warn(`Attempted to award founder badge to non-founder user: ${userId}`);
+        return false;
+      }
+      
       // Add to database
       await this.database.client.userBadge.create({
         data: {
@@ -659,9 +671,9 @@ export class BadgeService {
    */
   private async awardBadgeRewards(userId: string, rewards: any): Promise<void> {
     try {
-      // Award XP
+      // Award XP using XPService
       if (rewards.xp) {
-        await this.database.users.updateXP(userId, rewards.xp);
+        await this.xpService.addXP(userId, 'BADGE_EARNED', undefined, rewards.xp / 25); // Normalize to base XP
         this.logger.info(`XP awarded to user ${userId}: ${rewards.xp}`);
       }
       
@@ -995,5 +1007,413 @@ export class BadgeService {
    */
   public getRarityEmoji(rarity: string): string {
     return this.rarityEmojis[rarity] || '⚪';
+  }
+
+  /**
+   * Award founder badge (only to founder)
+   */
+  public async awardFounderBadge(): Promise<boolean> {
+    return this.awardBadge(this.FOUNDER_USER_ID, 'founder', true);
+  }
+
+  /**
+   * Create weapon mastery badges dynamically
+   */
+  private async createWeaponMasteryBadges(): Promise<Omit<BadgeDefinition, 'createdAt'>[]> {
+    const badges: Omit<BadgeDefinition, 'createdAt'>[] = [];
+    
+    // Common weapon types and their display names
+    const weaponTypes = [
+      { key: 'AKM', name: 'AKM', icon: '🔫' },
+      { key: 'M416', name: 'M416', icon: '🔫' },
+      { key: 'SCAR-L', name: 'SCAR-L', icon: '🔫' },
+      { key: 'M16A4', name: 'M16A4', icon: '🔫' },
+      { key: 'Kar98k', name: 'Kar98k', icon: '🎯' },
+      { key: 'AWM', name: 'AWM', icon: '🎯' },
+      { key: 'M24', name: 'M24', icon: '🎯' },
+      { key: 'UMP45', name: 'UMP45', icon: '🔫' },
+      { key: 'Vector', name: 'Vector', icon: '🔫' },
+      { key: 'S12K', name: 'S12K', icon: '💥' },
+    ];
+
+    // Create badges for different mastery levels
+    const masteryLevels = [
+      { level: 20, tier: 'uncommon', name: 'Aprendiz', xp: 100, coins: 500 },
+      { level: 40, tier: 'rare', name: 'Especialista', xp: 250, coins: 1000 },
+      { level: 60, tier: 'epic', name: 'Veterano', xp: 500, coins: 2000 },
+      { level: 80, tier: 'legendary', name: 'Mestre', xp: 1000, coins: 5000 },
+      { level: 100, tier: 'mythic', name: 'Lenda', xp: 2000, coins: 10000 },
+    ];
+
+    for (const weapon of weaponTypes) {
+      for (const mastery of masteryLevels) {
+        badges.push({
+          id: `weapon_mastery_${weapon.key.toLowerCase()}_${mastery.level}`,
+          name: `${mastery.name} ${weapon.name}`,
+          description: `Alcançou nível ${mastery.level} de maestria com ${weapon.name}`,
+          icon: weapon.icon,
+          category: 'pubg',
+          rarity: mastery.tier as any,
+          requirements: [{ type: 'kills' as const, operator: 'gte' as const, value: mastery.level * 10 }],
+          rewards: {
+            xp: mastery.xp,
+            coins: mastery.coins,
+          },
+          isSecret: false,
+          isActive: true,
+        });
+      }
+    }
+
+    return badges;
+  }
+
+  /**
+   * Create survival mastery badges dynamically
+   */
+  private async createSurvivalMasteryBadges(): Promise<Omit<BadgeDefinition, 'createdAt'>[]> {
+    const badges: Omit<BadgeDefinition, 'createdAt'>[] = [];
+    
+    const survivalCategories = [
+      { key: 'fortitude', name: 'Resistência', icon: '🛡️' },
+      { key: 'healing', name: 'Cura', icon: '💊' },
+      { key: 'support', name: 'Suporte', icon: '🤝' },
+      { key: 'weapons', name: 'Armamento', icon: '⚔️' },
+      { key: 'driving', name: 'Condução', icon: '🚗' },
+    ];
+
+    const masteryLevels = [
+      { level: 20, tier: 'uncommon', name: 'Aprendiz', xp: 100, coins: 500 },
+      { level: 40, tier: 'rare', name: 'Especialista', xp: 250, coins: 1000 },
+      { level: 60, tier: 'epic', name: 'Veterano', xp: 500, coins: 2000 },
+      { level: 80, tier: 'legendary', name: 'Mestre', xp: 1000, coins: 5000 },
+      { level: 100, tier: 'mythic', name: 'Lenda', xp: 2000, coins: 10000 },
+    ];
+
+    for (const category of survivalCategories) {
+      for (const mastery of masteryLevels) {
+        badges.push({
+          id: `survival_mastery_${category.key}_${mastery.level}`,
+          name: `${mastery.name} de ${category.name}`,
+          description: `Alcançou nível ${mastery.level} de maestria em ${category.name}`,
+          icon: category.icon,
+          category: 'pubg',
+          rarity: mastery.tier as any,
+          requirements: [{ type: 'games' as const, operator: 'gte' as const, value: mastery.level * 5 }],
+          rewards: {
+            xp: mastery.xp,
+            coins: mastery.coins,
+          },
+          isSecret: false,
+          isActive: true,
+        });
+      }
+    }
+
+    return badges;
+  }
+
+  /**
+   * Sync badges with PUBG API medals
+   */
+  public async syncPUBGBadges(): Promise<void> {
+    try {
+      this.logger.info('Starting PUBG badges synchronization...');
+      
+      // Check if we have PUBG service available
+      if (!this.client.pubg) {
+        this.logger.warn('PUBG service not available for badge sync');
+        return;
+      }
+
+      // Get weapon mastery badges
+      const weaponMasteryBadges = await this.createWeaponMasteryBadges();
+      
+      // Get survival mastery badges
+      const survivalMasteryBadges = await this.createSurvivalMasteryBadges();
+      
+      // Static PUBG achievement badges
+      const staticPubgBadges: Omit<BadgeDefinition, 'createdAt'>[] = [
+        {
+          id: 'pubg_conqueror',
+          name: 'Conquistador PUBG',
+          description: 'Alcançou o rank Conquistador no PUBG Ranked',
+          icon: '🏆',
+          category: 'pubg',
+          rarity: 'mythic',
+          requirements: [{ type: 'rank' as const, operator: 'gte' as const, value: 2000 }],
+          rewards: { xp: 1000, coins: 500, role: 'conqueror' },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'pubg_ace',
+          name: 'Ace PUBG',
+          description: 'Eliminou 4+ inimigos em uma única partida',
+          icon: '🎯',
+          category: 'pubg',
+          rarity: 'epic',
+          requirements: [{ type: 'kills' as const, operator: 'gte' as const, value: 4, timeframe: 'daily' as const }],
+          rewards: { xp: 500, coins: 250 },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'pubg_survivor',
+          name: 'Sobrevivente PUBG',
+          description: 'Sobreviveu até o Top 10 em 100 partidas',
+          icon: '🛡️',
+          category: 'pubg',
+          rarity: 'rare',
+          requirements: [{ type: 'games' as const, operator: 'gte' as const, value: 100 }],
+          rewards: { xp: 300, coins: 150 },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'pubg_marksman',
+          name: 'Atirador de Elite PUBG',
+          description: 'Conseguiu 500+ headshots no PUBG',
+          icon: '🎯',
+          category: 'pubg',
+          rarity: 'rare',
+          requirements: [{ type: 'headshots' as const, operator: 'gte' as const, value: 500 }],
+          rewards: { xp: 400, coins: 200 },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'pubg_damage_king',
+          name: 'Rei do Dano PUBG',
+          description: 'Causou mais de 1,000,000 de dano total',
+          icon: '💥',
+          category: 'pubg',
+          rarity: 'epic',
+          requirements: [{ type: 'damage' as const, operator: 'gte' as const, value: 1000000 }],
+          rewards: { xp: 750, coins: 375 },
+          isSecret: false,
+          isActive: true,
+        },
+      ];
+
+      const allBadges = [...staticPubgBadges, ...weaponMasteryBadges, ...survivalMasteryBadges];
+      let syncedCount = 0;
+      
+      for (const badgeData of allBadges) {
+        try {
+          // Check if badge already exists
+          const existingBadge = await this.database.client.badge.findUnique({
+            where: { id: badgeData.id }
+          });
+
+          if (existingBadge) {
+            // Update existing badge
+            await this.database.client.badge.update({
+              where: { id: badgeData.id },
+              data: {
+                name: badgeData.name,
+                description: badgeData.description,
+                icon: badgeData.icon,
+                category: badgeData.category,
+                rarity: badgeData.rarity,
+                requirements: JSON.stringify(badgeData.requirements),
+                isSecret: badgeData.isSecret,
+                isActive: badgeData.isActive,
+              }
+            });
+          } else {
+            // Create new badge
+            await this.database.client.badge.create({
+              data: {
+                id: badgeData.id,
+                name: badgeData.name,
+                description: badgeData.description,
+                icon: badgeData.icon,
+                category: badgeData.category,
+                rarity: badgeData.rarity,
+                requirements: JSON.stringify(badgeData.requirements),
+                isSecret: badgeData.isSecret,
+                isActive: badgeData.isActive,
+              }
+            });
+          }
+
+          // Update in memory
+          this.badges.set(badgeData.id, {
+            ...badgeData,
+            createdAt: new Date(),
+          });
+
+          syncedCount++;
+        } catch (error) {
+          this.logger.error(`Failed to sync PUBG badge '${badgeData.name}':`, error);
+        }
+      }
+
+      // Update cache
+      await this.cache.set('pubg_badges_synced', new Date().toISOString(), 86400); // 24h
+
+      this.logger.info(`PUBG badges synchronization completed. Synced ${syncedCount}/${allBadges.length} badges (${weaponMasteryBadges.length} weapon mastery, ${survivalMasteryBadges.length} survival mastery, ${staticPubgBadges.length} static)`);
+    } catch (error) {
+      this.logger.error('Failed to sync PUBG badges:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check and award PUBG badges based on user stats
+   */
+  public async checkPUBGBadges(userId: string, pubgStats: any): Promise<string[]> {
+    try {
+      const awardedBadges: string[] = [];
+      
+      // Get PUBG badges
+      const pubgBadges = Array.from(this.badges.values())
+        .filter(badge => badge.category === 'pubg' && badge.isActive);
+
+      for (const badge of pubgBadges) {
+        // Skip if user already has this badge
+        if (this.hasBadge(userId, badge.id)) {
+          continue;
+        }
+
+        // Check requirements
+        const requirementsMet = badge.requirements.every(requirement => {
+          const statValue = this.getPUBGStatValue(pubgStats, requirement.type);
+          
+          switch (requirement.operator) {
+            case 'gte':
+              return statValue >= (requirement.value as number);
+            case 'lte':
+              return statValue <= (requirement.value as number);
+            case 'eq':
+              return statValue === (requirement.value as number);
+            case 'between':
+              const [min, max] = requirement.value as [number, number];
+              return statValue >= min && statValue <= max;
+            default:
+              return false;
+          }
+        });
+
+        if (requirementsMet) {
+          const awarded = await this.awardBadge(userId, badge.id);
+          if (awarded) {
+            awardedBadges.push(badge.name);
+          }
+        }
+      }
+
+      return awardedBadges;
+    } catch (error) {
+      this.logger.error(`Failed to check PUBG badges for user ${userId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get PUBG stat value by requirement type
+   */
+  private getPUBGStatValue(pubgStats: any, requirementType: string): number {
+    if (!pubgStats) return 0;
+
+    switch (requirementType) {
+      case 'kills':
+        return pubgStats.kills || 0;
+      case 'wins':
+        return pubgStats.wins || 0;
+      case 'games':
+        return pubgStats.roundsPlayed || 0;
+      case 'damage':
+        return pubgStats.damageDealt || 0;
+      case 'headshots':
+        return pubgStats.headshotKills || 0;
+      case 'rank':
+        return pubgStats.currentRankPoint || 0;
+      default:
+        return 0;
+    }
+  }
+
+  /**
+   * Get badges by category
+   */
+  public getBadgesByCategory(category: string): BadgeDefinition[] {
+    return Array.from(this.badges.values())
+      .filter(badge => badge.category === category && badge.isActive)
+      .sort((a, b) => {
+        const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
+        return rarityOrder.indexOf(a.rarity) - rarityOrder.indexOf(b.rarity);
+      });
+  }
+
+  /**
+   * Get user badge statistics
+   */
+  public async getUserBadgeStats(userId: string): Promise<{
+    total: number;
+    byRarity: Record<string, number>;
+    byCategory: Record<string, number>;
+    rarest: BadgeDefinition | null;
+  }> {
+    try {
+      const userBadges = this.getUserBadges(userId);
+      
+      const stats = {
+        total: userBadges.length,
+        byRarity: {
+          common: 0,
+          uncommon: 0,
+          rare: 0,
+          epic: 0,
+          legendary: 0,
+          mythic: 0
+        },
+        byCategory: {} as Record<string, number>,
+        rarest: null as BadgeDefinition | null
+      };
+
+      let rarestRarityValue = 0;
+      const rarityValues = {
+        common: 1,
+        uncommon: 2,
+        rare: 3,
+        epic: 4,
+        legendary: 5,
+        mythic: 6
+      };
+
+      for (const badge of userBadges) {
+        // Count by rarity
+        stats.byRarity[badge.rarity]++;
+        
+        // Count by category
+        stats.byCategory[badge.category] = (stats.byCategory[badge.category] || 0) + 1;
+        
+        // Find rarest
+        const rarityValue = rarityValues[badge.rarity];
+        if (rarityValue > rarestRarityValue) {
+          rarestRarityValue = rarityValue;
+          stats.rarest = badge;
+        }
+      }
+
+      return stats;
+    } catch (error) {
+      this.logger.error(`Failed to get badge stats for user ${userId}:`, error);
+      return {
+        total: 0,
+        byRarity: {
+          common: 0,
+          uncommon: 0,
+          rare: 0,
+          epic: 0,
+          legendary: 0,
+          mythic: 0
+        },
+        byCategory: {},
+        rarest: null
+      };
+    }
   }
 }
