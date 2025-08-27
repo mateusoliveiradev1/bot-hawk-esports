@@ -1,23 +1,29 @@
-const youtubedl = require('youtube-dl-exec');
+const YTDlpWrap = require('yt-dlp-wrap').default;
 
-async function testYoutubeDl() {
-  console.log('🔍 Testing youtube-dl-exec...');
+async function testYtDlp() {
+  console.log('🔍 Testing yt-dlp-wrap...');
   
   const testUrl = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
   
   try {
     console.log(`📹 Testing URL: ${testUrl}`);
     
-    const info = await youtubedl(testUrl, {
-      dumpSingleJson: true,
-      noCheckCertificates: true,
-      noWarnings: true,
-      preferFreeFormats: true,
-      addHeader: ['referer:youtube.com', 'user-agent:googlebot'],
-      format: 'bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio'
-    });
+    const ytDlp = new YTDlpWrap();
     
-    console.log('✅ youtube-dl-exec success!');
+    const stdout = await ytDlp.execPromise([
+      testUrl,
+      '--dump-single-json',
+      '--no-check-certificates',
+      '--no-warnings',
+      '--prefer-free-formats',
+      '--add-header', 'referer:youtube.com',
+      '--add-header', 'user-agent:googlebot',
+      '--format', 'bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio'
+    ]);
+    
+    const info = JSON.parse(stdout);
+    
+    console.log('✅ yt-dlp-wrap success!');
     console.log('📊 Video info:');
     console.log(`  Title: ${info.title}`);
     console.log(`  Duration: ${info.duration}`);
@@ -35,9 +41,9 @@ async function testYoutubeDl() {
     }
     
   } catch (error) {
-    console.error('❌ youtube-dl-exec failed:', error.message);
+    console.error('❌ yt-dlp-wrap failed:', error.message);
     console.error('Stack:', error.stack);
   }
 }
 
-testYoutubeDl();
+testYtDlp();
