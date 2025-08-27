@@ -661,22 +661,48 @@ export class MusicService {
       if (track.platform === 'youtube') {
         this.logger.debug(`📺 Creating YouTube stream for: ${track.url}`);
         
-        const stream = ytdl(track.url, {
-          filter: 'audioonly',
-          quality: 'highestaudio',
-          highWaterMark: 1 << 25,
-          requestOptions: {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
+        try {
+          // First, validate the URL
+          const isValid = await ytdl.validateURL(track.url);
+          if (!isValid) {
+            this.logger.error(`❌ Invalid YouTube URL: ${track.url}`);
+            return false;
           }
-        });
-        
-        this.logger.debug(`🔊 Creating audio resource from YouTube stream`);
-        resource = createAudioResource(stream, {
-          inputType: StreamType.Arbitrary,
-          inlineVolume: true,
-        });
+          
+          // Get video info to check if it's available
+          const info = await ytdl.getInfo(track.url);
+          this.logger.debug(`📋 Video info: ${info.videoDetails.title} - ${info.videoDetails.lengthSeconds}s`);
+          
+          const stream = ytdl(track.url, {
+            filter: 'audioonly',
+            quality: 'highestaudio',
+            highWaterMark: 1 << 25,
+            requestOptions: {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+              }
+            }
+          });
+          
+          // Add error handling for the stream
+          stream.on('error', (error) => {
+            this.logger.error(`❌ YouTube stream error for ${track.url}:`, error);
+          });
+          
+          stream.on('info', (info) => {
+            this.logger.debug(`📊 Stream info received: ${info.videoDetails.title}`);
+          });
+          
+          this.logger.debug(`🔊 Creating audio resource from YouTube stream`);
+          resource = createAudioResource(stream, {
+            inputType: StreamType.Arbitrary,
+            inlineVolume: true,
+          });
+          
+        } catch (ytdlError) {
+          this.logger.error(`❌ YTDL error for ${track.url}:`, ytdlError);
+          return false;
+        }
       } else {
         this.logger.debug(`🎵 Converting Spotify track to YouTube: ${track.artist} - ${track.title}`);
         
@@ -694,32 +720,71 @@ export class MusicService {
         
         this.logger.debug(`📺 Found YouTube equivalent: ${firstResult.url}`);
         
-        const stream = ytdl(firstResult.url, {
-          filter: 'audioonly',
-          quality: 'highestaudio',
-          highWaterMark: 1 << 25,
-          requestOptions: {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
+        try {
+          // Validate the YouTube URL
+          const isValid = await ytdl.validateURL(firstResult.url);
+          if (!isValid) {
+            this.logger.error(`❌ Invalid YouTube URL for Spotify conversion: ${firstResult.url}`);
+            return false;
           }
-        });
-        
-        this.logger.debug(`🔊 Creating audio resource from converted YouTube stream`);
-        resource = createAudioResource(stream, {
-          inputType: StreamType.Arbitrary,
-          inlineVolume: true,
-        });
+          
+          // Get video info
+          const info = await ytdl.getInfo(firstResult.url);
+          this.logger.debug(`📋 Converted video info: ${info.videoDetails.title} - ${info.videoDetails.lengthSeconds}s`);
+          
+          const stream = ytdl(firstResult.url, {
+            filter: 'audioonly',
+            quality: 'highestaudio',
+            highWaterMark: 1 << 25,
+            requestOptions: {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+              }
+            }
+          });
+          
+          // Add error handling for the stream
+          stream.on('error', (error) => {
+            this.logger.error(`❌ YouTube stream error for converted track ${firstResult.url}:`, error);
+          });
+          
+          this.logger.debug(`🔊 Creating audio resource from converted YouTube stream`);
+          resource = createAudioResource(stream, {
+            inputType: StreamType.Arbitrary,
+            inlineVolume: true,
+          });
+          
+        } catch (ytdlError) {
+          this.logger.error(`❌ YTDL error for converted Spotify track ${firstResult.url}:`, ytdlError);
+          return false;
+        }
       }
 
       this.logger.debug(`📦 Audio resource created successfully`);
+      
+      // Verify resource properties
+      this.logger.debug(`🔍 Resource properties - readable: ${resource.readable}, ended: ${resource.ended}`);
+      this.logger.debug(`🔍 Resource volume available: ${resource.volume ? 'Yes' : 'No'}`);
+      
+      // Add resource error handling
+      resource.playStream.on('error', (error) => {
+        this.logger.error(`❌ Audio resource stream error:`, error);
+      });
+      
+      resource.playStream.on('end', () => {
+        this.logger.debug(`🔚 Audio resource stream ended`);
+      });
 
       const queue = this.queues.get(guildId);
       if (queue) {
         queue.currentTrack = track;
         const volumeLevel = queue.volume / 100;
-        resource.volume?.setVolume(volumeLevel);
-        this.logger.debug(`🔊 Volume set to ${queue.volume}% (${volumeLevel})`);
+        if (resource.volume) {
+          resource.volume.setVolume(volumeLevel);
+          this.logger.debug(`🔊 Volume set to ${queue.volume}% (${volumeLevel})`);
+        } else {
+          this.logger.warn(`⚠️ No volume control available for resource`);
+        }
       }
 
       this.logger.debug(`▶️ Starting playback with player.play()`);

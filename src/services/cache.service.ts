@@ -94,6 +94,11 @@ export class CacheService {
    * Set a value in cache
    */
   public async set(key: string, value: any, ttl?: number): Promise<void> {
+    if (!this.isConnected) {
+      this.logger.warn(`Redis not connected, skipping cache set for key: ${key}`);
+      return;
+    }
+    
     try {
       const serializedValue = JSON.stringify(value);
       const expiration = ttl || this.defaultTTL;
@@ -106,7 +111,8 @@ export class CacheService {
       });
     } catch (error) {
       this.logger.error(`Failed to set cache key ${key}:`, error);
-      throw error;
+      this.isConnected = false;
+      // Don't throw error to prevent breaking the application
     }
   }
 
@@ -114,6 +120,11 @@ export class CacheService {
    * Get a value from cache
    */
   public async get<T>(key: string): Promise<T | null> {
+    if (!this.isConnected) {
+      this.logger.warn(`Redis not connected, skipping cache get for key: ${key}`);
+      return null;
+    }
+    
     try {
       const value = await this.client.get(key);
       
@@ -127,6 +138,7 @@ export class CacheService {
       return parsedValue;
     } catch (error) {
       this.logger.error(`Failed to get cache key ${key}:`, error);
+      this.isConnected = false;
       return null;
     }
   }
