@@ -96,6 +96,7 @@ class HawkEsportsBot {
     const ticketService = new TicketService(this.client);
     const punishmentService = new PunishmentService(this.client, this.db);
     const roleManagerService = new RoleManagerService();
+    const pubgService = new PUBGService(this.cache);
     
     this.services = {
       api: new APIService(this.client),
@@ -105,6 +106,7 @@ class HawkEsportsBot {
       music: new MusicService(this.cache, this.db),
       onboarding: new OnboardingService(this.client),
       presence: new PresenceService(this.client),
+      pubg: pubgService,
       punishment: punishmentService,
       roleManager: roleManagerService,
       scheduler: new SchedulerService(this.client),
@@ -123,6 +125,7 @@ class HawkEsportsBot {
     this.client.ticketService = ticketService;
     this.client.weaponMasteryService = this.services.weaponMastery;
     this.client.roleManagerService = this.services.roleManager;
+    this.client.pubgService = this.services.pubg;
     
     // Initialize command manager
     this.commands = new CommandManager(this.client);
@@ -309,8 +312,17 @@ class HawkEsportsBot {
         } else if (interaction.isAutocomplete()) {
           await this.commands.handleAutocomplete(interaction, this.client);
         } else if (interaction.isButton()) {
+          // Handle registration button interactions
+          if (interaction.customId === 'start_server_registration' || 
+              interaction.customId === 'registration_help' || 
+              interaction.customId === 'view_rules' ||
+              interaction.customId === 'register_pubg_prompt') {
+            if (this.services.onboarding) {
+              await this.services.onboarding.handleRegistrationButton(interaction);
+            }
+          }
           // Handle ticket-related button interactions
-          if (interaction.customId.includes('ticket') || interaction.customId.includes('priority') || interaction.customId === 'create_ticket_panel') {
+          else if (interaction.customId.includes('ticket') || interaction.customId.includes('priority') || interaction.customId === 'create_ticket_panel') {
             await handleTicketButtonInteraction(interaction, this.client);
           }
         } else if (interaction.isModalSubmit()) {

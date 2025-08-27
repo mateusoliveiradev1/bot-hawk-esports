@@ -21,6 +21,8 @@ model User {
   isVerified    Boolean  @default(false)
   verifiedAt    DateTime?
   verificationMethod String? // 'auto', 'manual', 'admin'
+  serverRegistered Boolean @default(false)
+  serverRegisteredAt DateTime?
   level         Int      @default(1)
   xp            Int      @default(0)
   totalXp       Int      @default(0)
