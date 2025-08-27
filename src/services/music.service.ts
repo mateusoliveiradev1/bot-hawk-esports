@@ -334,8 +334,10 @@ export class MusicService {
       if (queue) {
         queue.isPlaying = true;
         queue.isPaused = false;
+        this.logger.music('TRACK_STARTED', guildId, `🎵 Audio player is now playing: ${queue.currentTrack?.title || 'Unknown'}`);
+      } else {
+        this.logger.music('TRACK_STARTED', guildId, '🎵 Audio player is now playing (no queue found)');
       }
-      this.logger.music('TRACK_STARTED', guildId, '🎵 Audio player is now playing');
     });
 
     player.on(AudioPlayerStatus.Paused, () => {
@@ -343,8 +345,10 @@ export class MusicService {
       if (queue) {
         queue.isPaused = true;
         queue.isPlaying = false;
+        this.logger.music('TRACK_PAUSED', guildId, `⏸️ Audio player paused: ${queue.currentTrack?.title || 'Unknown'}`);
+      } else {
+        this.logger.music('TRACK_PAUSED', guildId, '⏸️ Audio player paused (no queue found)');
       }
-      this.logger.music('TRACK_PAUSED', guildId, '⏸️ Audio player paused');
     });
 
     player.on(AudioPlayerStatus.Idle, () => {
@@ -352,26 +356,42 @@ export class MusicService {
       if (queue) {
         queue.isPlaying = false;
         queue.isPaused = false;
-        this.logger.music('TRACK_ENDED', guildId, '⏹️ Audio player is now idle');
+        this.logger.music('TRACK_ENDED', guildId, `⏹️ Audio player is now idle, track ended: ${queue.currentTrack?.title || 'Unknown'}`);
         this.handleTrackEnd(guildId);
+      } else {
+        this.logger.music('TRACK_ENDED', guildId, '⏹️ Audio player is now idle (no queue found)');
       }
     });
 
     player.on(AudioPlayerStatus.Buffering, () => {
-      this.logger.music('TRACK_BUFFERING', guildId, '⏳ Audio player is buffering');
+      const queue = this.queues.get(guildId);
+      const trackInfo = queue?.currentTrack?.title || 'Unknown';
+      this.logger.music('TRACK_BUFFERING', guildId, `⏳ Audio player is buffering: ${trackInfo}`);
     });
 
     player.on(AudioPlayerStatus.AutoPaused, () => {
-      this.logger.warn(`🔇 Audio player auto-paused in guild ${guildId} - possible connection issue`);
+      const queue = this.queues.get(guildId);
+      const trackInfo = queue?.currentTrack?.title || 'Unknown';
+      this.logger.warn(`🔇 Audio player auto-paused in guild ${guildId} - possible connection issue. Track: ${trackInfo}`);
     });
 
     player.on('error', (error) => {
-      this.logger.error(`❌ Audio player error in guild ${guildId}:`, error);
+      const queue = this.queues.get(guildId);
+      const trackInfo = queue?.currentTrack?.title || 'Unknown';
+      this.logger.error(`❌ Audio player error in guild ${guildId} for track ${trackInfo}:`, error);
       this.handleTrackEnd(guildId);
     });
 
     player.on('stateChange', (oldState, newState) => {
-      this.logger.debug(`🔄 Player state changed from ${oldState.status} to ${newState.status} in guild ${guildId}`);
+      const queue = this.queues.get(guildId);
+      const trackInfo = queue?.currentTrack?.title || 'Unknown';
+      this.logger.debug(`🔄 Player state changed from ${oldState.status} to ${newState.status} in guild ${guildId} for track: ${trackInfo}`);
+      
+      // Additional debug info for resource
+      if (newState.status === AudioPlayerStatus.Playing && 'resource' in newState) {
+        const resource = (newState as any).resource;
+        this.logger.debug(`📊 Resource info - readable: ${resource?.readable}, ended: ${resource?.ended}`);
+      }
     });
   }
 
@@ -626,15 +646,21 @@ export class MusicService {
    */
   public async playTrack(guildId: string, track: Track): Promise<boolean> {
     try {
+      this.logger.debug(`🎵 Starting playTrack for: ${track.title} (${track.platform}) in guild ${guildId}`);
+      
       const player = this.players.get(guildId);
       if (!player) {
-        this.logger.error(`No audio player found for guild ${guildId}`);
+        this.logger.error(`❌ No audio player found for guild ${guildId}`);
         return false;
       }
+
+      this.logger.debug(`🎮 Player found, current status: ${player.state.status}`);
 
       let resource: AudioResource;
       
       if (track.platform === 'youtube') {
+        this.logger.debug(`📺 Creating YouTube stream for: ${track.url}`);
+        
         const stream = ytdl(track.url, {
           filter: 'audioonly',
           quality: 'highestaudio',
@@ -646,15 +672,18 @@ export class MusicService {
           }
         });
         
+        this.logger.debug(`🔊 Creating audio resource from YouTube stream`);
         resource = createAudioResource(stream, {
           inputType: StreamType.Arbitrary,
           inlineVolume: true,
         });
       } else {
+        this.logger.debug(`🎵 Converting Spotify track to YouTube: ${track.artist} - ${track.title}`);
+        
         // For Spotify, we need to find the YouTube equivalent
         const youtubeResults = await this.searchYouTube(`${track.artist} ${track.title}`, 1);
         if (youtubeResults.length === 0) {
-          this.logger.error(`Could not find YouTube equivalent for Spotify track: ${track.title}`);
+          this.logger.error(`❌ Could not find YouTube equivalent for Spotify track: ${track.title}`);
           return false;
         }
         
@@ -662,6 +691,9 @@ export class MusicService {
         if (!firstResult) {
           throw new Error('No YouTube results found');
         }
+        
+        this.logger.debug(`📺 Found YouTube equivalent: ${firstResult.url}`);
+        
         const stream = ytdl(firstResult.url, {
           filter: 'audioonly',
           quality: 'highestaudio',
@@ -673,35 +705,52 @@ export class MusicService {
           }
         });
         
+        this.logger.debug(`🔊 Creating audio resource from converted YouTube stream`);
         resource = createAudioResource(stream, {
           inputType: StreamType.Arbitrary,
           inlineVolume: true,
         });
       }
 
+      this.logger.debug(`📦 Audio resource created successfully`);
+
       const queue = this.queues.get(guildId);
       if (queue) {
         queue.currentTrack = track;
-        resource.volume?.setVolume(queue.volume / 100);
+        const volumeLevel = queue.volume / 100;
+        resource.volume?.setVolume(volumeLevel);
+        this.logger.debug(`🔊 Volume set to ${queue.volume}% (${volumeLevel})`);
       }
 
+      this.logger.debug(`▶️ Starting playback with player.play()`);
       player.play(resource);
       
       // Wait a moment to ensure the player starts
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Check if player is actually playing
+      this.logger.debug(`🔍 Checking player status after play command: ${player.state.status}`);
+      
       if (player.state.status === AudioPlayerStatus.Playing) {
         this.logger.music('TRACK_PLAYING', guildId, `✅ Successfully playing: ${track.title} (${track.platform})`);
+      } else if (player.state.status === AudioPlayerStatus.Buffering) {
+        this.logger.warn(`⏳ Player is buffering for track: ${track.title}`);
       } else {
         this.logger.warn(`⚠️ Player status is ${player.state.status} for track: ${track.title}`);
+      }
+      
+      // Check if resource has readable stream
+      if (resource.readable) {
+        this.logger.debug(`✅ Audio resource is readable`);
+      } else {
+        this.logger.warn(`⚠️ Audio resource is not readable`);
       }
       
       await this.saveQueueToDatabase(guildId);
       
       return true;
     } catch (error) {
-      this.logger.error(`Failed to play track ${track.title}:`, error);
+      this.logger.error(`❌ Failed to play track ${track.title}:`, error);
       return false;
     }
   }
