@@ -1,16 +1,24 @@
 import { Client } from 'discord.js';
 import { Logger } from '../utils/logger';
-import { DatabaseService } from './database.service';
+import { DatabaseService } from '../database/database.service';
 import { CacheService } from './cache.service';
 import { XPService } from './xp.service';
 import { BadgeService } from './badge.service';
-import cron from 'node-cron';
+import * as cron from 'node-cron';
 
 export interface ChallengeDefinition {
   id: string;
   name: string;
   description: string;
-  type: 'kills' | 'games' | 'damage' | 'headshots' | 'revives' | 'wins' | 'survival_time' | 'distance';
+  type:
+    | 'kills'
+    | 'games'
+    | 'damage'
+    | 'headshots'
+    | 'revives'
+    | 'wins'
+    | 'survival_time'
+    | 'distance';
   target: number;
   difficulty: 'easy' | 'medium' | 'hard' | 'extreme';
   rewards: {
@@ -57,20 +65,13 @@ export class ChallengeService {
   private challengeTemplates: Map<string, ChallengeDefinition> = new Map();
   private rotationJob?: cron.ScheduledTask;
 
-  constructor(
-    client: Client,
-    logger: Logger,
-    database: DatabaseService,
-    cache: CacheService,
-    xpService: XPService,
-    badgeService: BadgeService
-  ) {
+  constructor(client: Client) {
     this.client = client;
-    this.logger = logger;
-    this.database = database;
-    this.cache = cache;
-    this.xpService = xpService;
-    this.badgeService = badgeService;
+    this.logger = (client as any).logger;
+    this.database = (client as any).database;
+    this.cache = (client as any).cache;
+    this.xpService = (client as any).services?.xp;
+    this.badgeService = (client as any).services?.badge;
 
     this.initializeChallengeTemplates();
     this.scheduleDailyRotation();
@@ -93,7 +94,7 @@ export class ChallengeService {
         icon: '🎯',
         rarity: 'common',
         timeLimit: 24,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'daily_games_3',
@@ -106,7 +107,7 @@ export class ChallengeService {
         icon: '🎮',
         rarity: 'common',
         timeLimit: 24,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'daily_damage_1000',
@@ -119,7 +120,7 @@ export class ChallengeService {
         icon: '💥',
         rarity: 'common',
         timeLimit: 24,
-        isActive: true
+        isActive: true,
       },
 
       // Medium Challenges
@@ -134,7 +135,7 @@ export class ChallengeService {
         icon: '⚔️',
         rarity: 'uncommon',
         timeLimit: 24,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'daily_headshots_3',
@@ -147,7 +148,7 @@ export class ChallengeService {
         icon: '🎯',
         rarity: 'uncommon',
         timeLimit: 24,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'daily_revives_2',
@@ -160,7 +161,7 @@ export class ChallengeService {
         icon: '❤️‍🩹',
         rarity: 'uncommon',
         timeLimit: 24,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'daily_survival_20min',
@@ -173,7 +174,7 @@ export class ChallengeService {
         icon: '🛡️',
         rarity: 'uncommon',
         timeLimit: 24,
-        isActive: true
+        isActive: true,
       },
 
       // Hard Challenges
@@ -188,7 +189,7 @@ export class ChallengeService {
         icon: '💀',
         rarity: 'rare',
         timeLimit: 24,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'daily_wins_2',
@@ -201,7 +202,7 @@ export class ChallengeService {
         icon: '🏆',
         rarity: 'rare',
         timeLimit: 24,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'daily_damage_3000',
@@ -214,7 +215,7 @@ export class ChallengeService {
         icon: '🔥',
         rarity: 'rare',
         timeLimit: 24,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'daily_headshots_7',
@@ -227,7 +228,7 @@ export class ChallengeService {
         icon: '🎯',
         rarity: 'rare',
         timeLimit: 24,
-        isActive: true
+        isActive: true,
       },
 
       // Extreme Challenges
@@ -242,7 +243,7 @@ export class ChallengeService {
         icon: '👑',
         rarity: 'epic',
         timeLimit: 24,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'daily_wins_3',
@@ -255,7 +256,7 @@ export class ChallengeService {
         icon: '👑',
         rarity: 'legendary',
         timeLimit: 24,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'daily_damage_5000',
@@ -268,7 +269,7 @@ export class ChallengeService {
         icon: '💥',
         rarity: 'epic',
         timeLimit: 24,
-        isActive: true
+        isActive: true,
       },
       {
         id: 'daily_distance_5km',
@@ -281,8 +282,21 @@ export class ChallengeService {
         icon: '🏃‍♂️',
         rarity: 'epic',
         timeLimit: 24,
-        isActive: true
-      }
+        isActive: true,
+      },
+      {
+        id: 'daily_headshots_10',
+        name: 'Sniper Elite',
+        description: 'Consiga 10 headshots em partidas',
+        type: 'headshots',
+        target: 10,
+        difficulty: 'extreme',
+        rewards: { xp: 500, coins: 250 },
+        icon: '🎯',
+        rarity: 'epic',
+        timeLimit: 24,
+        isActive: true,
+      },
     ];
 
     templates.forEach(template => {
@@ -296,12 +310,17 @@ export class ChallengeService {
    * Schedule daily challenge rotation at 00:00 UTC
    */
   private scheduleDailyRotation(): void {
-    this.rotationJob = cron.schedule('0 0 * * *', async () => {
-      this.logger.info('Starting daily challenge rotation (00:00 UTC)');
-      await this.rotateDailyChallenges();
-    }, {
-      timezone: 'UTC'
-    });
+    this.rotationJob = cron.schedule(
+      '0 0 * * *',
+      async () => {
+        this.logger.info('Starting daily challenge rotation (00:00 UTC)');
+        await this.rotateDailyChallenges();
+      },
+      {
+        timezone: 'UTC',
+        runOnInit: true,
+      }
+    );
 
     this.logger.info('Scheduled daily challenge rotation for 00:00 UTC');
   }
@@ -313,31 +332,33 @@ export class ChallengeService {
     try {
       this.logger.info('Starting daily challenge rotation...');
 
-      const today = new Date().toISOString().split('T')[0];
-      
+      const today = new Date().toISOString().split('T')[0]!;
+
       // Check if challenges already exist for today
-      const existingChallenges = await this.cache.get(`daily_challenges_${today}`);
-      if (existingChallenges) {
+      const existingChallenges = await this.cache.get<string>(`daily_challenges_${today}`);
+      if (existingChallenges && existingChallenges.trim()) {
         this.logger.info('Daily challenges already exist for today');
         return;
       }
 
       // Generate new challenge set
       const newChallenges = this.generateDailyChallengeSet();
-      
+
       // Save to database
       await this.saveDailyChallengeSet(today, newChallenges);
-      
+
       // Cache the challenges
       await this.cache.set(`daily_challenges_${today}`, JSON.stringify(newChallenges), 86400); // 24 hours
-      
+
       // Assign challenges to all active users
       await this.assignChallengesToUsers(newChallenges);
-      
+
       // Clean up expired challenges
       await this.cleanupExpiredChallenges();
 
-      this.logger.info(`Daily challenge rotation completed. Generated ${newChallenges.length} challenges for ${today}`);
+      this.logger.info(
+        `Daily challenge rotation completed. Generated ${newChallenges.length} challenges for ${today}`
+      );
     } catch (error) {
       this.logger.error('Failed to rotate daily challenges:', error);
       throw error;
@@ -348,9 +369,10 @@ export class ChallengeService {
    * Generate daily challenge set
    */
   private generateDailyChallengeSet(): ChallengeDefinition[] {
-    const templates = Array.from(this.challengeTemplates.values())
-      .filter(template => template.isActive);
-    
+    const templates = Array.from(this.challengeTemplates.values()).filter(
+      template => template.isActive
+    );
+
     // Select challenges by difficulty
     const easyTemplates = templates.filter(t => t.difficulty === 'easy');
     const mediumTemplates = templates.filter(t => t.difficulty === 'medium');
@@ -363,7 +385,7 @@ export class ChallengeService {
     selectedChallenges.push(...this.selectRandomChallenges(easyTemplates, 2));
     selectedChallenges.push(...this.selectRandomChallenges(mediumTemplates, 2));
     selectedChallenges.push(...this.selectRandomChallenges(hardTemplates, 1));
-    
+
     // 30% chance for extreme challenge
     if (Math.random() < 0.3 && extremeTemplates.length > 0) {
       selectedChallenges.push(...this.selectRandomChallenges(extremeTemplates, 1));
@@ -375,7 +397,10 @@ export class ChallengeService {
   /**
    * Select random challenges from templates
    */
-  private selectRandomChallenges(templates: ChallengeDefinition[], count: number): ChallengeDefinition[] {
+  private selectRandomChallenges(
+    templates: ChallengeDefinition[],
+    count: number
+  ): ChallengeDefinition[] {
     const shuffled = [...templates].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, Math.min(count, shuffled.length));
   }
@@ -383,12 +408,15 @@ export class ChallengeService {
   /**
    * Save daily challenge set to database
    */
-  private async saveDailyChallengeSet(date: string, challenges: ChallengeDefinition[]): Promise<void> {
+  private async saveDailyChallengeSet(
+    date: string,
+    challenges: ChallengeDefinition[]
+  ): Promise<void> {
     try {
       for (const challenge of challenges) {
         await this.database.client.challenge.upsert({
           where: {
-            id: `${date}_${challenge.id}`
+            id: `${date}_${challenge.id}`,
           },
           update: {
             name: challenge.name,
@@ -401,7 +429,7 @@ export class ChallengeService {
             rarity: challenge.rarity,
             timeLimit: challenge.timeLimit,
             isActive: challenge.isActive,
-            date: new Date(date)
+            date: new Date(date),
           },
           create: {
             id: `${date}_${challenge.id}`,
@@ -415,8 +443,8 @@ export class ChallengeService {
             rarity: challenge.rarity,
             timeLimit: challenge.timeLimit,
             isActive: challenge.isActive,
-            date: new Date(date)
-          }
+            date: new Date(date),
+          },
         });
       }
     } catch (error) {
@@ -432,12 +460,15 @@ export class ChallengeService {
     try {
       // Get all active users
       const users = await this.database.client.user.findMany({
-        where: {
-          isActive: true
-        },
         select: {
-          discordId: true
-        }
+          id: true,
+          username: true,
+          discriminator: true,
+          avatar: true,
+          serverRegistered: true,
+          serverRegisteredAt: true,
+          userChallenges: true,
+        },
       });
 
       const today = new Date();
@@ -448,26 +479,28 @@ export class ChallengeService {
       for (const user of users) {
         for (const challenge of challenges) {
           // Check if user already has this challenge
+          const challengeDbId = `${today.toISOString().split('T')[0]}_${challenge.id || 'unknown'}`;
           const existingChallenge = await this.database.client.userChallenge.findFirst({
             where: {
-              userId: user.discordId,
-              challengeId: challenge.id,
+              userId: user.id,
+              challengeId: challengeDbId,
               createdAt: {
-                gte: today
-              }
-            }
+                gte: today,
+                lt: tomorrow,
+              },
+            },
           });
 
           if (!existingChallenge) {
             await this.database.client.userChallenge.create({
               data: {
-                userId: user.discordId,
-                challengeId: challenge.id,
+                userId: user.id,
+                challengeId: challengeDbId,
                 progress: 0,
                 target: challenge.target,
                 completed: false,
-                expiresAt: tomorrow
-              }
+                expiresAt: tomorrow,
+              },
             });
           }
         }
@@ -486,39 +519,41 @@ export class ChallengeService {
   public async updateChallengeProgress(
     userId: string,
     type: string,
-    value: number
+    value: number,
+    date: string
   ): Promise<string[]> {
     try {
       const completedChallenges: string[] = [];
-      
+
       // Get user's active challenges of this type
       const userChallenges = await this.database.client.userChallenge.findMany({
         where: {
           userId,
           completed: false,
           expiresAt: {
-            gt: new Date()
-          }
+            gt: new Date(),
+          },
+          challenge: {
+            date: new Date(date),
+            type,
+          },
         },
         include: {
-          challenge: true
-        }
+          challenge: true,
+        },
       });
 
       for (const userChallenge of userChallenges) {
         if (userChallenge.challenge.type === type) {
-          const newProgress = Math.min(
-            userChallenge.progress + value,
-            userChallenge.target
-          );
+          const newProgress = Math.min(userChallenge.progress + value, userChallenge.target);
 
           await this.database.client.userChallenge.update({
             where: { id: userChallenge.id },
             data: {
               progress: newProgress,
               completed: newProgress >= userChallenge.target,
-              completedAt: newProgress >= userChallenge.target ? new Date() : null
-            }
+              completedAt: newProgress >= userChallenge.target ? new Date() : null,
+            },
           });
 
           // If challenge completed, award rewards
@@ -531,7 +566,10 @@ export class ChallengeService {
 
       return completedChallenges;
     } catch (error) {
-      this.logger.error(`Failed to update challenge progress for user ${userId}:`, error);
+      this.logger.error(
+        `Failed to update challenge progress for user ${userId} on ${date}:`,
+        error
+      );
       return [];
     }
   }
@@ -542,30 +580,32 @@ export class ChallengeService {
   private async awardChallengeRewards(userId: string, challenge: any): Promise<void> {
     try {
       const rewards = JSON.parse(challenge.rewards);
-      
+
       // Award XP
-      if (rewards.xp) {
-        await this.xpService.addXP(userId, rewards.xp, 'challenge_completion');
+      if (rewards.xp && this.xpService) {
+        await this.xpService.addXP(userId, 'DAILY_CHALLENGE', undefined, rewards.xp / 50);
       }
 
       // Award coins
       if (rewards.coins) {
         await this.database.client.user.update({
-          where: { discordId: userId },
+          where: { id: userId },
           data: {
             coins: {
-              increment: rewards.coins
-            }
-          }
+              increment: rewards.coins,
+            },
+          },
         });
       }
 
       // Award badge
-      if (rewards.badge) {
+      if (rewards.badge && this.badgeService) {
         await this.badgeService.awardBadge(userId, rewards.badge);
       }
 
-      this.logger.info(`Awarded challenge rewards to user ${userId}: XP=${rewards.xp}, Coins=${rewards.coins}, Badge=${rewards.badge || 'none'}`);
+      this.logger.info(
+        `Awarded challenge rewards to user ${userId}: XP=${rewards.xp}, Coins=${rewards.coins}, Badge=${rewards.badge || 'none'}`
+      );
     } catch (error) {
       this.logger.error(`Failed to award challenge rewards to user ${userId}:`, error);
     }
@@ -583,18 +623,18 @@ export class ChallengeService {
         where: {
           userId,
           createdAt: {
-            gte: today
+            gte: today,
           },
           expiresAt: {
-            gt: new Date()
-          }
+            gt: new Date(),
+          },
         },
         include: {
-          challenge: true
+          challenge: true,
         },
         orderBy: {
-          createdAt: 'asc'
-        }
+          createdAt: 'asc',
+        },
       });
 
       return userChallenges.map(uc => ({
@@ -607,7 +647,8 @@ export class ChallengeService {
         completedAt: uc.completedAt || undefined,
         startedAt: uc.createdAt,
         expiresAt: uc.expiresAt,
-        rewards: uc.challenge.rewards ? JSON.parse(uc.challenge.rewards) : undefined
+        rewards: uc.challenge.rewards ? JSON.parse(uc.challenge.rewards) : undefined,
+        date: uc.challenge.date,
       }));
     } catch (error) {
       this.logger.error(`Failed to get daily challenges for user ${userId}:`, error);
@@ -618,13 +659,13 @@ export class ChallengeService {
   /**
    * Get today's challenges
    */
-  public async getTodaysChallenges(): Promise<ChallengeDefinition[]> {
+  public async getTodaysChallenges(date: string): Promise<ChallengeDefinition[]> {
     try {
-      const today = new Date().toISOString().split('T')[0];
-      
+      const today = new Date(date).toISOString().split('T')[0]!;
+
       // Try cache first
-      const cached = await this.cache.get(`daily_challenges_${today}`);
-      if (cached) {
+      const cached = await this.cache.get<string>(`daily_challenges_${today}`);
+      if (cached && cached.trim()) {
         return JSON.parse(cached);
       }
 
@@ -633,24 +674,32 @@ export class ChallengeService {
         where: {
           date: {
             gte: new Date(today),
-            lt: new Date(new Date(today).getTime() + 24 * 60 * 60 * 1000)
+            lt: new Date(new Date(today).getTime() + 24 * 60 * 60 * 1000),
           },
-          isActive: true
-        }
+          isActive: true,
+        },
       });
 
-      const challengeDefinitions = challenges.map(c => ({
+      const challengeDefinitions: ChallengeDefinition[] = challenges.map(c => ({
         id: c.id,
         name: c.name,
         description: c.description,
-        type: c.type as any,
-        target: c.target,
-        difficulty: c.difficulty as any,
-        rewards: JSON.parse(c.rewards),
-        icon: c.icon,
-        rarity: c.rarity as any,
-        timeLimit: c.timeLimit,
-        isActive: c.isActive
+        type: (c.type || 'kills') as
+          | 'kills'
+          | 'games'
+          | 'damage'
+          | 'headshots'
+          | 'revives'
+          | 'wins'
+          | 'survival_time'
+          | 'distance',
+        target: c.target || 0,
+        difficulty: (c.difficulty || 'medium') as 'easy' | 'medium' | 'hard' | 'extreme',
+        rewards: c.rewards ? JSON.parse(c.rewards) : { xp: 0, coins: 0 },
+        icon: c.icon || '🎯',
+        rarity: (c.rarity || 'common') as 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary',
+        timeLimit: c.timeLimit || 24,
+        isActive: c.isActive,
       }));
 
       // Cache for 1 hour
@@ -658,7 +707,7 @@ export class ChallengeService {
 
       return challengeDefinitions;
     } catch (error) {
-      this.logger.error('Failed to get today\'s challenges:', error);
+      this.logger.error("Failed to get today's challenges:", error);
       return [];
     }
   }
@@ -675,18 +724,18 @@ export class ChallengeService {
       await this.database.client.userChallenge.deleteMany({
         where: {
           expiresAt: {
-            lt: threeDaysAgo
-          }
-        }
+            lt: threeDaysAgo,
+          },
+        },
       });
 
       // Delete old challenges
       await this.database.client.challenge.deleteMany({
         where: {
           date: {
-            lt: threeDaysAgo
-          }
-        }
+            lt: threeDaysAgo,
+          },
+        },
       });
 
       this.logger.info('Cleaned up expired challenges');
@@ -715,28 +764,28 @@ export class ChallengeService {
           where: {
             createdAt: {
               gte: today,
-              lt: tomorrow
-            }
-          }
+              lt: tomorrow,
+            },
+          },
         }),
         this.database.client.userChallenge.count({
           where: {
             completed: true,
             completedAt: {
               gte: today,
-              lt: tomorrow
-            }
-          }
+              lt: tomorrow,
+            },
+          },
         }),
         this.database.client.userChallenge.groupBy({
           by: ['userId'],
           where: {
             createdAt: {
               gte: today,
-              lt: tomorrow
-            }
-          }
-        })
+              lt: tomorrow,
+            },
+          },
+        }),
       ]);
 
       const completionRate = totalChallenges > 0 ? (completedToday / totalChallenges) * 100 : 0;
@@ -745,7 +794,7 @@ export class ChallengeService {
         totalChallenges,
         completedToday,
         activeUsers: activeUsers.length,
-        completionRate: Math.round(completionRate * 100) / 100
+        completionRate: Math.round(completionRate * 100) / 100,
       };
     } catch (error) {
       this.logger.error('Failed to get challenge statistics:', error);
@@ -753,7 +802,7 @@ export class ChallengeService {
         totalChallenges: 0,
         completedToday: 0,
         activeUsers: 0,
-        completionRate: 0
+        completionRate: 0,
       };
     }
   }
@@ -763,17 +812,17 @@ export class ChallengeService {
    */
   public async forceGenerateTodaysChallenges(): Promise<ChallengeDefinition[]> {
     try {
-      const today = new Date().toISOString().split('T')[0];
-      
+      const today = new Date().toISOString().split('T')[0]!;
+
       // Clear existing cache
-      await this.cache.delete(`daily_challenges_${today}`);
-      
+      await this.cache.del(`daily_challenges_${today}`);
+
       // Generate new challenges
       await this.rotateDailyChallenges();
-      
-      return await this.getTodaysChallenges();
+
+      return await this.getTodaysChallenges(today);
     } catch (error) {
-      this.logger.error('Failed to force generate today\'s challenges:', error);
+      this.logger.error("Failed to force generate today's challenges:", error);
       throw error;
     }
   }
@@ -783,7 +832,7 @@ export class ChallengeService {
    */
   public stopScheduledRotation(): void {
     if (this.rotationJob) {
-      this.rotationJob.destroy();
+      this.rotationJob.stop();
       this.logger.info('Stopped scheduled challenge rotation');
     }
   }
