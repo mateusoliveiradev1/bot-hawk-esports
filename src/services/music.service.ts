@@ -702,117 +702,110 @@ export class MusicService {
   }
 
   /**
-   * Create YouTube stream with fallback methods
+   * Create YouTube stream with robust fallback methods
    */
   private async createYouTubeStream(url: string): Promise<AudioResource | null> {
     this.logger.debug(`🎵 Creating YouTube stream for: ${url}`);
     
-    // Method 1: Try ytdl-core first
+    // Clean URL to ensure compatibility
+    const cleanUrl = url.includes('youtube.com/watch?v=') ? 
+      `https://www.youtube.com/watch?v=${url.split('v=')[1]?.split('&')[0]}` : url;
+    
+    // Method 1: Try play-dl first (more reliable for current YouTube changes)
     try {
-      this.logger.debug(`🔄 Trying ytdl-core method...`);
+      this.logger.debug(`🔄 Trying play-dl method (primary)...`);
       
-      const isValid = await ytdl.validateURL(url);
-      if (!isValid) {
-        throw new Error('Invalid YouTube URL');
+      const info = await video_basic_info(cleanUrl);
+      if (!info || !info.video_details) {
+        throw new Error('Could not get video info from play-dl');
       }
       
-      const info = await ytdl.getInfo(url);
-      this.logger.debug(`📋 Video info: ${info.videoDetails.title} - ${info.videoDetails.lengthSeconds}s`);
+      this.logger.debug(`📋 Play-dl video info: ${info.video_details.title}`);
       
-      const stream = ytdl(url, {
-        filter: 'audioonly',
-        quality: 'highestaudio',
-        highWaterMark: 1 << 25,
-        requestOptions: {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'DNT': '1',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1'
-          }
-        },
-        begin: Date.now()
-      });
+      // Try to get high quality audio stream from play-dl
+      const stream = await stream_from_info(info, { quality: 2 }) as any;
+      if (!stream || !stream.stream) {
+        throw new Error('Could not get audio stream from play-dl');
+      }
       
-      stream.on('error', (error) => {
-        this.logger.error(`❌ YouTube stream error for ${url}:`, error);
-      });
-      
-      stream.on('info', (info) => {
-        this.logger.debug(`📊 Stream info received: ${info.videoDetails.title}`);
-      });
-      
-      this.logger.debug(`✅ ytdl-core stream created successfully`);
-      return createAudioResource(stream, {
+      this.logger.debug(`✅ play-dl stream created successfully`);
+      return createAudioResource(stream.stream, {
         inputType: StreamType.Arbitrary,
         inlineVolume: true,
       });
       
-    } catch (ytdlError: any) {
-      this.logger.warn(`⚠️ ytdl-core failed: ${ytdlError.message}`);
+    } catch (playDlError: any) {
+      this.logger.warn(`⚠️ play-dl failed: ${playDlError.message}`);
       
-      // Check for various YouTube access/parsing issues
-      const isYouTubeIssue = ytdlError.statusCode === 403 || 
-                             ytdlError.message?.includes('403') || 
-                             ytdlError.message?.includes('Status code: 403') ||
-                             ytdlError.message?.includes('parsing watch.html') ||
-                             ytdlError.message?.includes('YouTube made a change') ||
-                             ytdlError.message?.includes('Could not extract functions');
-      
-      if (isYouTubeIssue) {
-        this.logger.debug(`🔄 Trying play-dl fallback method due to YouTube issue...`);
+      // Method 2: Try ytdl-core as fallback
+      try {
+        this.logger.debug(`🔄 Trying ytdl-core fallback method...`);
         
-        try {
-          // Method 2: Try play-dl as fallback
-          const info = await video_basic_info(url);
-          if (!info || !info.video_details) {
-            throw new Error('Could not get video info from play-dl');
-          }
-          
-          this.logger.debug(`📋 Play-dl video info: ${info.video_details.title}`);
-          
-          // Try to get audio stream from play-dl
-          const stream = await stream_from_info(info, { quality: 2 }) as any;
-          if (!stream || !stream.stream) {
-            throw new Error('Could not get audio stream from play-dl');
-          }
-          
-          this.logger.debug(`✅ play-dl fallback stream created successfully`);
-          return createAudioResource(stream.stream, {
-            inputType: StreamType.Arbitrary,
-            inlineVolume: true,
-          });
-          
-        } catch (playDlError: any) {
-          this.logger.error(`❌ play-dl fallback also failed: ${playDlError.message}`);
-          
-          // Try one more fallback with different play-dl approach
-          try {
-            this.logger.debug(`🔄 Trying alternative play-dl method...`);
-            const streamUrl = `https://www.youtube.com/watch?v=${url.split('v=')[1]?.split('&')[0]}`;
-            const altInfo = await video_basic_info(streamUrl);
-            
-            if (altInfo && altInfo.video_details) {
-              const altStream = await stream_from_info(altInfo, { quality: 0 }) as any;
-              if (altStream && altStream.stream) {
-                this.logger.debug(`✅ Alternative play-dl method succeeded`);
-                return createAudioResource(altStream.stream, {
-                  inputType: StreamType.Arbitrary,
-                  inlineVolume: true,
-                });
-              }
+        const isValid = await ytdl.validateURL(cleanUrl);
+        if (!isValid) {
+          throw new Error('Invalid YouTube URL');
+        }
+        
+        const info = await ytdl.getInfo(cleanUrl);
+        this.logger.debug(`📋 Video info: ${info.videoDetails.title} - ${info.videoDetails.lengthSeconds}s`);
+        
+        const stream = ytdl(cleanUrl, {
+          filter: 'audioonly',
+          quality: 'highestaudio',
+          highWaterMark: 1 << 25,
+          requestOptions: {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+              'Accept-Language': 'en-US,en;q=0.9',
+              'Accept-Encoding': 'gzip, deflate, br',
+              'DNT': '1',
+              'Connection': 'keep-alive',
+              'Upgrade-Insecure-Requests': '1'
             }
-          } catch (altError: any) {
-            this.logger.error(`❌ Alternative play-dl method failed: ${altError.message}`);
+          },
+          begin: Date.now()
+        });
+        
+        stream.on('error', (error) => {
+          this.logger.error(`❌ YouTube stream error for ${cleanUrl}:`, error);
+        });
+        
+        stream.on('info', (info) => {
+          this.logger.debug(`📊 Stream info received: ${info.videoDetails.title}`);
+        });
+        
+        this.logger.debug(`✅ ytdl-core fallback stream created successfully`);
+        return createAudioResource(stream, {
+          inputType: StreamType.Arbitrary,
+          inlineVolume: true,
+        });
+        
+      } catch (ytdlError: any) {
+        this.logger.warn(`⚠️ ytdl-core fallback also failed: ${ytdlError.message}`);
+        
+        // Method 3: Try play-dl with lower quality as last resort
+        try {
+          this.logger.debug(`🔄 Trying play-dl low quality method (last resort)...`);
+          
+          const info = await video_basic_info(cleanUrl);
+          if (info && info.video_details) {
+            const stream = await stream_from_info(info, { quality: 0 }) as any;
+            if (stream && stream.stream) {
+              this.logger.debug(`✅ play-dl low quality method succeeded`);
+              return createAudioResource(stream.stream, {
+                inputType: StreamType.Arbitrary,
+                inlineVolume: true,
+              });
+            }
           }
+        } catch (lowQualityError: any) {
+          this.logger.error(`❌ play-dl low quality method failed: ${lowQualityError.message}`);
         }
       }
     }
     
-    this.logger.error(`❌ All streaming methods failed for: ${url}`);
+    this.logger.error(`❌ All streaming methods failed for: ${cleanUrl}`);
     return null;
   }
 
