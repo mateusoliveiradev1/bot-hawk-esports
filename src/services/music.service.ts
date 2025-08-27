@@ -1,7 +1,7 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, demuxProbe, DiscordGatewayAdapterCreator, entersState, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection, VoiceConnectionStatus, StreamType } from '@discordjs/voice';
 import { Guild, GuildMember, VoiceBasedChannel } from 'discord.js';
 import ytdl from '@distube/ytdl-core';
-import { search, video_basic_info, setToken, getFreeClientID } from 'play-dl';
+import { search, video_basic_info, stream_from_info, setToken, getFreeClientID } from 'play-dl';
 import { SpotifyApi } from '@spotify/web-api-ts-sdk';
 import { Logger } from '../utils/logger';
 import { CacheService } from './cache.service';
@@ -754,9 +754,16 @@ export class MusicService {
     } catch (ytdlError: any) {
       this.logger.warn(`⚠️ ytdl-core failed: ${ytdlError.message}`);
       
-      // Check if it's a 403 error or similar access issue
-      if (ytdlError.statusCode === 403 || ytdlError.message?.includes('403') || ytdlError.message?.includes('Status code: 403')) {
-        this.logger.debug(`🔄 Trying play-dl fallback method due to 403 error...`);
+      // Check for various YouTube access/parsing issues
+      const isYouTubeIssue = ytdlError.statusCode === 403 || 
+                             ytdlError.message?.includes('403') || 
+                             ytdlError.message?.includes('Status code: 403') ||
+                             ytdlError.message?.includes('parsing watch.html') ||
+                             ytdlError.message?.includes('YouTube made a change') ||
+                             ytdlError.message?.includes('Could not extract functions');
+      
+      if (isYouTubeIssue) {
+        this.logger.debug(`🔄 Trying play-dl fallback method due to YouTube issue...`);
         
         try {
           // Method 2: Try play-dl as fallback
@@ -767,36 +774,40 @@ export class MusicService {
           
           this.logger.debug(`📋 Play-dl video info: ${info.video_details.title}`);
           
-          // Get stream URL from play-dl
-          const streamUrl = info.video_details.url;
-          if (!streamUrl) {
-            throw new Error('No stream URL available from play-dl');
+          // Try to get audio stream from play-dl
+          const stream = await stream_from_info(info, { quality: 'high' });
+          if (!stream || !stream.stream) {
+            throw new Error('Could not get audio stream from play-dl');
           }
           
-          // Create a simple HTTP stream
-          const https = require('https');
-          const { PassThrough } = require('stream');
-          
-          const stream = new PassThrough();
-          
-          https.get(streamUrl, (response: any) => {
-            if (response.statusCode !== 200) {
-              stream.destroy(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
-              return;
-            }
-            response.pipe(stream);
-          }).on('error', (error: any) => {
-            stream.destroy(error);
-          });
-          
           this.logger.debug(`✅ play-dl fallback stream created successfully`);
-          return createAudioResource(stream, {
+          return createAudioResource(stream.stream, {
             inputType: StreamType.Arbitrary,
             inlineVolume: true,
           });
           
         } catch (playDlError: any) {
           this.logger.error(`❌ play-dl fallback also failed: ${playDlError.message}`);
+          
+          // Try one more fallback with different play-dl approach
+          try {
+            this.logger.debug(`🔄 Trying alternative play-dl method...`);
+            const streamUrl = `https://www.youtube.com/watch?v=${url.split('v=')[1]?.split('&')[0]}`;
+            const altInfo = await video_basic_info(streamUrl);
+            
+            if (altInfo && altInfo.video_details) {
+              const altStream = await stream_from_info(altInfo, { quality: 'low' });
+              if (altStream && altStream.stream) {
+                this.logger.debug(`✅ Alternative play-dl method succeeded`);
+                return createAudioResource(altStream.stream, {
+                  inputType: StreamType.Arbitrary,
+                  inlineVolume: true,
+                });
+              }
+            }
+          } catch (altError: any) {
+            this.logger.error(`❌ Alternative play-dl method failed: ${altError.message}`);
+          }
         }
       }
     }
