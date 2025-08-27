@@ -67,10 +67,15 @@ const play: Command = {
       
       await interaction.deferReply();
       
-      // Search for tracks
-      const tracks = await musicService.searchYouTube(query, 1);
+      // Search for tracks using the proper method
+      logger.debug(`🔍 Searching for: "${query}"`);
       
-      if (!tracks || tracks.length === 0) {
+      let tracks: any[] = [];
+      
+      // Use the addTrack method which handles both YouTube and Spotify
+      const result = await musicService.addTrack(interaction.guildId!, query, interaction.user.id);
+      
+      if (!result.success || !result.track) {
         const notFoundEmbed = new EmbedBuilder()
           .setTitle('❌ Nenhuma música encontrada')
           .setDescription(`Não foi possível encontrar resultados para: **${query}**\n\nTente:\n• Verificar a ortografia\n• Usar termos mais específicos\n• Usar um link direto do YouTube/Spotify`)
@@ -80,9 +85,13 @@ const play: Command = {
         return;
       }
       
+      tracks = [result.track];
+      logger.debug(`✅ Found track: ${result.track.title} by ${result.track.artist}`);
+      
       const isPlaylist = tracks.length > 1;
       
-      // Join voice channel and add tracks to queue
+      // Join voice channel
+      logger.debug(`🔗 Joining voice channel: ${voiceChannel.name}`);
       const connection = await musicService.joinChannel(voiceChannel);
       if (!connection) {
         const errorEmbed = new EmbedBuilder()
@@ -92,65 +101,24 @@ const play: Command = {
         await interaction.editReply({ embeds: [errorEmbed] });
         return;
       }
+      
+      // Get current queue state
       const queue = await musicService.getQueue(interaction.guildId!);
+      const wasEmpty = !queue || (!queue.currentTrack && queue.tracks.length <= 1);
       
-      if (shuffle && isPlaylist) {
-        // Shuffle tracks except the first one
-        const firstTrack = tracks[0];
-        const remainingTracks = tracks.slice(1);
-        for (let i = remainingTracks.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          const temp = remainingTracks[i];
-          if (temp && remainingTracks[j]) {
-            remainingTracks[i] = remainingTracks[j];
-            remainingTracks[j] = temp;
-          }
-        }
-        tracks.splice(1, tracks.length - 1, ...remainingTracks);
-      }
+      logger.debug(`📊 Queue state: wasEmpty=${wasEmpty}, currentTrack=${queue?.currentTrack?.title || 'none'}, queueLength=${queue?.tracks.length || 0}`);
       
-      // Add tracks to queue
-      const addedTracks = [];
-      for (const track of tracks) {
-        const queue = musicService.getQueue(interaction.guildId!) || {
-          guildId: interaction.guildId!,
-          tracks: [],
-          currentTrack: null,
-          volume: 100,
-          loop: 'none' as const,
-          shuffle: false,
-          filters: [],
-          isPaused: false,
-          isPlaying: false,
-        };
-        
-        if (playNext) {
-          queue.tracks.unshift(track);
+      // The track was already added to queue by addTrack method
+      const addedTracks = tracks;
+      
+      // Start playing if queue was empty or not currently playing
+      if (wasEmpty || !queue?.isPlaying) {
+        logger.debug(`▶️ Starting playback...`);
+        const playResult = await musicService.playNext(interaction.guildId!);
+        if (!playResult) {
+          logger.error(`❌ Failed to start playback`);
         } else {
-          queue.tracks.push(track);
-        }
-        
-        const success = true;
-        if (success) {
-          addedTracks.push(track);
-        }
-      }
-      
-      if (addedTracks.length === 0) {
-        const errorEmbed = new EmbedBuilder()
-          .setTitle('❌ Erro')
-          .setDescription('Não foi possível adicionar as músicas à fila.')
-          .setColor('#FF0000');
-        
-        await interaction.editReply({ embeds: [errorEmbed] });
-        return;
-      }
-      
-      // Start playing if queue was empty
-      const wasEmpty = !queue || queue.tracks.length === addedTracks.length;
-      if (wasEmpty) {
-        if (queue && !queue.currentTrack) {
-          await musicService.playNext(interaction.guildId!);
+          logger.debug(`✅ Playback started successfully`);
         }
       }
       
@@ -171,10 +139,12 @@ const play: Command = {
           .setTimestamp();
       } else {
         const track = addedTracks[0];
+        const isNowPlaying = wasEmpty || !queue?.isPlaying;
+        
         embed = new EmbedBuilder()
-          .setTitle(wasEmpty ? '🎵 Tocando Agora' : '📋 Adicionado à Fila')
+          .setTitle(isNowPlaying ? '🎵 Tocando Agora' : '📋 Adicionado à Fila')
           .setDescription(track ? `**${track.title}**\n${track.artist}` : 'Música não encontrada')
-          .setColor(wasEmpty ? '#00FF00' : '#0099FF')
+          .setColor(isNowPlaying ? '#00FF00' : '#0099FF')
           .setTimestamp();
         
         if (track) {
@@ -185,8 +155,8 @@ const play: Command = {
           )
             .setThumbnail(track.thumbnail || '');
           
-          if (!wasEmpty && queue) {
-            const queuePosition = queue.tracks.length - addedTracks.length + 1;
+          if (!isNowPlaying && queue) {
+            const queuePosition = queue.tracks.length;
             embed.addFields(
               { name: '📍 Posição na Fila', value: `#${queuePosition}`, inline: true },
             );
@@ -287,7 +257,7 @@ const play: Command = {
       });
       
       // Log music activity
-      logger.music('MUSIC_PLAYED', interaction.guildId!, `Music played by ${interaction.user.tag} in ${interaction.guild?.name} - Query: ${query}, Tracks: ${addedTracks.length}, Playlist: ${isPlaylist}`);
+      logger.info(`🎵 Music command executed by ${interaction.user.tag} in ${interaction.guild?.name} - Query: ${query}, Track: ${addedTracks[0]?.title || 'Unknown'}`);
       
     } catch (error) {
       logger.error('Play command error:', error);
@@ -357,14 +327,16 @@ async function createQueueEmbed(guildId: string, musicService: MusicService): Pr
  * Format duration from milliseconds to readable format
  */
 function formatDuration(ms: number): string {
-  const seconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(seconds / 60);
+  // Handle both seconds and milliseconds input
+  const totalSeconds = ms > 1000000 ? Math.floor(ms / 1000) : ms;
+  const minutes = Math.floor(totalSeconds / 60);
   const hours = Math.floor(minutes / 60);
+  const seconds = totalSeconds % 60;
   
   if (hours > 0) {
-    return `${hours}:${(minutes % 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
+    return `${hours}:${(minutes % 60).toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   } else {
-    return `${minutes}:${(seconds % 60).toString().padStart(2, '0')}`;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
 }
 

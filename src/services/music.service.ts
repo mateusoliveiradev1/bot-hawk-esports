@@ -434,77 +434,104 @@ export class MusicService {
    */
   public async searchYouTube(query: string, limit: number = 5): Promise<Track[]> {
     try {
+      this.logger.debug(`🔍 Searching YouTube for: "${query}" (limit: ${limit})`);
+      
       const cacheKey = `music:search:youtube:${query}:${limit}`;
       
       // Try to get from cache, but don't fail if cache is unavailable
       let cached: Track[] | null = null;
       try {
         cached = await this.cache.get<Track[]>(cacheKey);
+        if (cached) {
+          this.logger.debug(`📦 Found cached results for: "${query}" (${cached.length} tracks)`);
+          return cached;
+        }
       } catch (cacheError) {
         this.logger.warn('Cache unavailable, proceeding without cache:', cacheError);
-      }
-      
-      if (cached) {
-        return cached;
       }
 
       let tracks: Track[] = [];
 
       // Check if query is a YouTube URL
       if (this.isYouTubeUrl(query)) {
+        this.logger.debug(`🔗 Processing YouTube URL: ${query}`);
         try {
           // Get video info directly from URL
           const videoInfo = await video_basic_info(query);
           
-          tracks.push({
-            id: videoInfo.video_details.id || '',
+          this.logger.debug(`📋 Video info retrieved:`, {
+            id: videoInfo.video_details.id,
+            title: videoInfo.video_details.title,
+            channel: videoInfo.video_details.channel?.name,
+            duration: videoInfo.video_details.durationInSec
+          });
+          
+          const track: Track = {
+            id: videoInfo.video_details.id || `yt_${Date.now()}`,
             title: videoInfo.video_details.title || 'Unknown Title',
             artist: videoInfo.video_details.channel?.name || 'Unknown Artist',
-            duration: videoInfo.video_details.durationInSec || 0,
-            url: videoInfo.video_details.url,
+            duration: (videoInfo.video_details.durationInSec || 0) * 1000, // Convert to milliseconds
+            url: videoInfo.video_details.url || query,
             thumbnail: videoInfo.video_details.thumbnails?.[0]?.url || '',
             requestedBy: '',
             platform: 'youtube',
             addedAt: new Date(),
-          });
+          };
+          
+          tracks.push(track);
+          this.logger.debug(`✅ Successfully processed YouTube URL: ${track.title}`);
         } catch (urlError) {
-          this.logger.error(`Failed to get video info from URL "${query}":`, urlError);
+          this.logger.error(`❌ Failed to get video info from URL "${query}":`, urlError);
           return [];
         }
       } else {
-        // Search by text query
-        const searchResults = await search(query, {
-          limit,
-          source: { youtube: 'video' }
-        });
-        
-        for (const video of searchResults) {
-          if (video.type === 'video') {
-            tracks.push({
-              id: video.id || '',
-              title: video.title || 'Unknown Title',
-              artist: video.channel?.name || 'Unknown Artist',
-              duration: video.durationInSec || 0,
-              url: video.url,
-              thumbnail: video.thumbnails?.[0]?.url || '',
-              requestedBy: '',
-              platform: 'youtube',
-              addedAt: new Date(),
-            });
+        this.logger.debug(`🔍 Searching YouTube by text query: "${query}"`);
+        try {
+          // Search by text query
+          const searchResults = await search(query, {
+            limit,
+            source: { youtube: 'video' }
+          });
+          
+          this.logger.debug(`📊 Search results found: ${searchResults.length} videos`);
+          
+          for (const video of searchResults) {
+            if (video.type === 'video') {
+              const track: Track = {
+                id: video.id || `yt_search_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                title: video.title || 'Unknown Title',
+                artist: video.channel?.name || 'Unknown Artist',
+                duration: (video.durationInSec || 0) * 1000, // Convert to milliseconds
+                url: video.url || `https://www.youtube.com/watch?v=${video.id}`,
+                thumbnail: video.thumbnails?.[0]?.url || '',
+                requestedBy: '',
+                platform: 'youtube',
+                addedAt: new Date(),
+              };
+              
+              tracks.push(track);
+              this.logger.debug(`📝 Added track: ${track.title} by ${track.artist} (${track.duration}ms)`);
+            }
           }
+        } catch (searchError) {
+          this.logger.error(`❌ Failed to search YouTube for "${query}":`, searchError);
+          return [];
         }
       }
+      
+      this.logger.debug(`✅ YouTube search completed: ${tracks.length} tracks found`);
       
       // Try to cache for 1 hour, but don't fail if cache is unavailable
       try {
         await this.cache.set(cacheKey, tracks, 3600);
+        this.logger.debug(`💾 Cached search results for: "${query}"`);
       } catch (cacheError) {
         this.logger.warn('Failed to cache search results:', cacheError);
       }
       
       return tracks;
     } catch (error) {
-      this.logger.error(`Failed to search YouTube for "${query}":`, error);
+      this.logger.error(`❌ Failed to search YouTube for "${query}":`, error);
       return [];
     }
   }
@@ -599,23 +626,30 @@ export class MusicService {
     try {
       let tracks: Track[] = [];
       
+      this.logger.debug(`🎵 Adding track for query: "${query}" in guild ${guildId}`);
+      
       // Check if query is a URL
       if (this.isYouTubeUrl(query)) {
+        this.logger.debug(`🔗 Detected YouTube URL`);
         // Handle YouTube URL directly
         tracks = await this.searchYouTube(query, 1);
       } else if (this.isSpotifyUrl(query)) {
+        this.logger.debug(`🎵 Detected Spotify URL`);
         // Handle Spotify URL
         tracks = await this.searchSpotify(query, 1);
       } else {
+        this.logger.debug(`🔍 Searching for text query`);
         // Search query - try YouTube first, then Spotify
         tracks = await this.searchYouTube(query, 1);
         
         if (tracks.length === 0) {
+          this.logger.debug(`🎵 No YouTube results, trying Spotify`);
           tracks = await this.searchSpotify(query, 1);
         }
       }
       
       if (tracks.length === 0) {
+        this.logger.warn(`❌ No tracks found for query: "${query}"`);
         return {
           success: false,
           message: 'No tracks found for the given query',
@@ -624,6 +658,7 @@ export class MusicService {
       
       const track = tracks[0];
       if (track) {
+        this.logger.debug(`✅ Found track: ${track.title} by ${track.artist}`);
         await this.addToQueue(guildId, track, requestedBy);
       }
       
@@ -633,7 +668,7 @@ export class MusicService {
         track,
       };
     } catch (error) {
-      this.logger.error(`Failed to add track for query "${query}":`, error);
+      this.logger.error(`❌ Failed to add track for query "${query}":`, error);
       return {
         success: false,
         message: 'Failed to add track to queue',
@@ -798,10 +833,47 @@ export class MusicService {
       
       if (player.state.status === AudioPlayerStatus.Playing) {
         this.logger.music('TRACK_PLAYING', guildId, `✅ Successfully playing: ${track.title} (${track.platform})`);
+        
+        // Update queue status
+        if (queue) {
+          queue.isPlaying = true;
+          queue.isPaused = false;
+          await this.saveQueueToDatabase(guildId);
+        }
+        
+        return true;
       } else if (player.state.status === AudioPlayerStatus.Buffering) {
-        this.logger.warn(`⏳ Player is buffering for track: ${track.title}`);
+        this.logger.debug(`⏳ Player is buffering, waiting for playback to start...`);
+        
+        // Wait up to 15 seconds for buffering to complete
+        try {
+          await entersState(player, AudioPlayerStatus.Playing, 15000);
+          this.logger.music('TRACK_PLAYING', guildId, `✅ Successfully playing after buffering: ${track.title} (${track.platform})`);
+          
+          // Update queue status
+          if (queue) {
+            queue.isPlaying = true;
+            queue.isPaused = false;
+            await this.saveQueueToDatabase(guildId);
+          }
+          
+          return true;
+        } catch (bufferError) {
+          this.logger.error(`❌ Buffering timeout for track: ${track.title}`, bufferError);
+          return false;
+        }
       } else {
-        this.logger.warn(`⚠️ Player status is ${player.state.status} for track: ${track.title}`);
+        this.logger.error(`❌ Player failed to start playing. Status: ${player.state.status}`);
+        
+        // Log additional debug info
+        this.logger.debug(`🔍 Player state details:`, {
+          status: player.state.status,
+          resource: resource ? 'exists' : 'null',
+          readable: resource?.readable,
+          ended: resource?.ended
+        });
+        
+        return false;
       }
       
       // Check if resource has readable stream
