@@ -775,7 +775,7 @@ export class MusicService {
           this.logger.debug(`📋 Play-dl video info: ${info.video_details.title}`);
           
           // Try to get audio stream from play-dl
-          const stream = await stream_from_info(info, { quality: 'high' });
+          const stream = await stream_from_info(info, { quality: 2 }) as any;
           if (!stream || !stream.stream) {
             throw new Error('Could not get audio stream from play-dl');
           }
@@ -796,7 +796,7 @@ export class MusicService {
             const altInfo = await video_basic_info(streamUrl);
             
             if (altInfo && altInfo.video_details) {
-              const altStream = await stream_from_info(altInfo, { quality: 'low' });
+              const altStream = await stream_from_info(altInfo, { quality: 0 }) as any;
               if (altStream && altStream.stream) {
                 this.logger.debug(`✅ Alternative play-dl method succeeded`);
                 return createAudioResource(altStream.stream, {
