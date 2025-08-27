@@ -260,3 +260,5 @@ async function handleTest(interaction: ChatInputCommandInteraction, client: Exte
     ephemeral: true,
   });
 }
+
+export default onboarding;
