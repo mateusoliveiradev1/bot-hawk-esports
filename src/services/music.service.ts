@@ -1,6 +1,5 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, demuxProbe, DiscordGatewayAdapterCreator, entersState, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection, VoiceConnectionStatus, StreamType } from '@discordjs/voice';
 import { Guild, GuildMember, VoiceBasedChannel } from 'discord.js';
-import ytdl from '@distube/ytdl-core';
 import { search, video_basic_info, stream_from_info, setToken, getFreeClientID } from 'play-dl';
 import { SpotifyApi } from '@spotify/web-api-ts-sdk';
 import { Logger } from '../utils/logger';
@@ -800,37 +799,42 @@ export class MusicService {
       }
     }
     
-    // Method 4: Try ytdl-core with robust configuration as final fallback
+    // Method 4: Try play-dl with different user agents as final fallback
     try {
-      this.logger.info(`🔄 Trying ytdl-core method with robust config (final fallback)...`);
+      this.logger.info(`🔄 Trying play-dl with alternative user agent (final fallback)...`);
       
-      const ytdlOptions = {
-         filter: 'audioonly' as any,
-         quality: 'highestaudio' as any,
-         highWaterMark: 1 << 25,
-         requestOptions: {
-           headers: {
-             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-             'Accept-Language': 'en-US,en;q=0.5',
-             'Accept-Encoding': 'gzip, deflate',
-             'DNT': '1',
-             'Connection': 'keep-alive',
-             'Upgrade-Insecure-Requests': '1',
-           },
-         },
-       };
+      // Set alternative user agent for play-dl
+      const originalUserAgent = process.env.USER_AGENT;
+      process.env.USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0';
       
-      this.logger.info(`✅ ytdl-core robust config created, creating stream...`);
-      const stream = ytdl(cleanUrl, ytdlOptions);
+      const stream = await play.stream(cleanUrl, {
+        quality: 0, // Lowest quality for maximum compatibility
+        discordPlayerCompatibility: true,
+      });
       
-      return createAudioResource(stream, {
-        inputType: StreamType.Arbitrary,
+      // Restore original user agent
+      if (originalUserAgent) {
+        process.env.USER_AGENT = originalUserAgent;
+      } else {
+        delete process.env.USER_AGENT;
+      }
+      
+      this.logger.info(`✅ play-dl alternative user agent method succeeded`);
+      return createAudioResource(stream.stream, {
+        inputType: stream.type,
         inlineVolume: true,
       });
       
-    } catch (ytdlRobustError: any) {
-      this.logger.error(`❌ ytdl-core robust method failed: ${ytdlRobustError.message}`);
+    } catch (playDlAltError: any) {
+      this.logger.error(`❌ play-dl alternative user agent method failed: ${playDlAltError.message}`);
+      
+      // Restore original user agent in case of error
+      const originalUserAgent = process.env.USER_AGENT;
+      if (originalUserAgent) {
+        process.env.USER_AGENT = originalUserAgent;
+      } else {
+        delete process.env.USER_AGENT;
+      }
     }
     
     this.logger.error(`❌ All streaming methods failed for: ${cleanUrl}`);
