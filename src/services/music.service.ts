@@ -308,7 +308,9 @@ export class MusicService {
         const player = createAudioPlayer({
           behaviors: {
             noSubscriber: NoSubscriberBehavior.Pause,
+            maxMissedFrames: Math.round(5000 / 20), // 5 seconds worth of frames
           },
+          debug: false,
         });
         this.setupPlayerEvents(player, channel.guild.id);
         this.players.set(channel.guild.id, player);
@@ -784,6 +786,9 @@ export class MusicService {
            const resource = createAudioResource(response, {
              inputType: StreamType.Arbitrary,
              inlineVolume: true,
+             metadata: {
+               title: 'Audio Stream'
+             }
            });
            resolve(resource);
          });
@@ -830,6 +835,9 @@ export class MusicService {
       return createAudioResource(stream.stream, {
         inputType: StreamType.Arbitrary,
         inlineVolume: true,
+        metadata: {
+          title: 'Audio Stream'
+        }
       });
       
     } catch (playDlHighError: any) {
@@ -854,6 +862,9 @@ export class MusicService {
         return createAudioResource(stream.stream, {
           inputType: StreamType.Arbitrary,
           inlineVolume: true,
+          metadata: {
+            title: 'Audio Stream'
+          }
         });
         
       } catch (playDlMediumError: any) {
@@ -877,6 +888,9 @@ export class MusicService {
           return createAudioResource(stream.stream, {
             inputType: StreamType.Arbitrary,
             inlineVolume: true,
+            metadata: {
+              title: 'Audio Stream'
+            }
           });
           
         } catch (playDlLowError: any) {
@@ -909,6 +923,9 @@ export class MusicService {
       return createAudioResource(stream.stream, {
         inputType: stream.type,
         inlineVolume: true,
+        metadata: {
+          title: 'Audio Stream'
+        }
       });
       
     } catch (playDlAltError: any) {
