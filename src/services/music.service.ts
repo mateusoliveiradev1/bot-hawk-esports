@@ -774,23 +774,23 @@ export class MusicService {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
           }
-        }, (response) => {
-          if (response.statusCode !== 200) {
-            reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
-            return;
-          }
-          
-          this.logger.info(`✅ yt-dlp method succeeded - creating audio resource`);
-          const resource = createAudioResource(response, {
-            inputType: StreamType.Arbitrary,
-            inlineVolume: true,
-          });
-          resolve(resource);
-        });
-        
-        request.on('error', (error) => {
-          reject(error);
-        });
+        }, (response: any) => {
+           if (response.statusCode !== 200) {
+             reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
+             return;
+           }
+           
+           this.logger.info(`✅ yt-dlp method succeeded - creating audio resource`);
+           const resource = createAudioResource(response, {
+             inputType: StreamType.Arbitrary,
+             inlineVolume: true,
+           });
+           resolve(resource);
+         });
+         
+         request.on('error', (error: any) => {
+           reject(error);
+         });
         
         request.setTimeout(10000, () => {
           request.destroy();
