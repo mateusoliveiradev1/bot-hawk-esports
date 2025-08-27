@@ -664,25 +664,30 @@ async function setupDatabase(guild: any, client: ExtendedClient): Promise<string
     if (logsChannel && client.services?.logging) {
       try {
         await client.services.logging.updateGuildConfig(guild.id, {
-          moderacao: logsChannel.id,
-          eventos: [
-            'TICKET_CREATE',
-            'TICKET_CLOSE',
-            'MEMBER_JOIN',
-            'MEMBER_LEAVE',
-            'MESSAGE_DELETE',
-            'MESSAGE_EDIT',
-            'MEMBER_BAN',
-            'MEMBER_UNBAN',
-            'MEMBER_KICK',
-            'MEMBER_TIMEOUT',
-            'ROLE_CREATE',
-            'ROLE_DELETE',
-            'ROLE_UPDATE',
-            'CHANNEL_CREATE',
-            'CHANNEL_DELETE',
-            'CHANNEL_UPDATE'
-          ]
+          channels: {
+            moderation: logsChannel.id
+          },
+          events: {
+            messageDelete: true,
+            messageEdit: true,
+            memberJoin: true,
+            memberLeave: true,
+            memberUpdate: true,
+            memberBan: true,
+            memberUnban: true,
+            roleCreate: true,
+            roleDelete: true,
+            roleUpdate: true,
+            channelCreate: true,
+            channelDelete: true,
+            channelUpdate: true,
+            voiceJoin: true,
+            voiceLeave: true,
+            voiceMove: true,
+            inviteCreate: true,
+            inviteDelete: true,
+            moderationActions: true
+          }
         });
         
         // Send confirmation message to logs channel
