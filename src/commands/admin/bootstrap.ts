@@ -16,6 +16,7 @@ const bootstrap: Command = {
         .setRequired(false)
         .addChoices(
           { name: '🔧 Completo (Recomendado)', value: 'full' },
+          { name: '🏗️ Configuração Inicial', value: 'initial' },
           { name: '📝 Apenas Canais', value: 'channels' },
           { name: '👥 Apenas Cargos', value: 'roles' },
           { name: '⚙️ Apenas Configurações', value: 'config' },
@@ -125,7 +126,9 @@ const bootstrap: Command = {
         
         // 2. Criar/Atualizar canais
         if (mode === 'full' || mode === 'channels') {
-          setupResults.push(await setupChannels(guild));
+          setupResults.push(await setupChannels(guild, 'full'));
+        } else if (mode === 'initial') {
+          setupResults.push(await setupChannels(guild, 'initial'));
         }
         
         // 3. Configurar banco de dados
@@ -246,12 +249,29 @@ async function setupRoles(guild: any): Promise<string> {
 /**
  * Setup server channels
  */
-async function setupChannels(guild: any): Promise<string> {
+async function setupChannels(guild: any, mode: string = 'full'): Promise<string> {
   const logger = new Logger();
   let created = 0;
   let updated = 0;
   
-  const channels = [
+  // Define canais essenciais para configuração inicial
+  const essentialChannels = [
+    // Categories
+    { name: '📋 INFORMAÇÕES', type: ChannelType.GuildCategory, position: 0 },
+    { name: '💬 CHAT GERAL', type: ChannelType.GuildCategory, position: 1 },
+    
+    // Essential information channels
+    { name: '📜-regras', type: ChannelType.GuildText, category: '📋 INFORMAÇÕES', topic: '📋 Leia as regras do servidor antes de participar das atividades' },
+    { name: '📢-anúncios', type: ChannelType.GuildText, category: '📋 INFORMAÇÕES', topic: '📢 Anúncios importantes e atualizações do servidor' },
+    { name: '👋-boas-vindas', type: ChannelType.GuildText, category: '💬 CHAT GERAL', topic: '👋 Canal de boas-vindas para novos membros' },
+    
+    // Essential general chat
+    { name: '💬-geral', type: ChannelType.GuildText, category: '💬 CHAT GERAL', topic: '💬 Conversa geral da comunidade' },
+    { name: '🤖-comandos', type: ChannelType.GuildText, category: '💬 CHAT GERAL', topic: '🤖 Use os comandos do bot aqui para não poluir outros canais' },
+  ];
+  
+  // Define todos os canais para configuração completa
+  const allChannels = [
     // Categories
     { name: '📋 INFORMAÇÕES', type: ChannelType.GuildCategory, position: 0 },
     { name: '💬 CHAT GERAL', type: ChannelType.GuildCategory, position: 1 },
@@ -262,50 +282,54 @@ async function setupChannels(guild: any): Promise<string> {
     { name: '🔧 ADMINISTRAÇÃO', type: ChannelType.GuildCategory, position: 6 },
     
     // Information channels
-    { name: '📜-regras', type: ChannelType.GuildText, category: '📋 INFORMAÇÕES' },
-    { name: '📢-anúncios', type: ChannelType.GuildText, category: '📋 INFORMAÇÕES' },
-    { name: '🎉-eventos', type: ChannelType.GuildText, category: '📋 INFORMAÇÕES' },
-    { name: '📊-rankings', type: ChannelType.GuildText, category: '📋 INFORMAÇÕES' },
+    { name: '📜-regras', type: ChannelType.GuildText, category: '📋 INFORMAÇÕES', topic: '📋 Leia as regras do servidor antes de participar das atividades' },
+    { name: '📢-anúncios', type: ChannelType.GuildText, category: '📋 INFORMAÇÕES', topic: '📢 Anúncios importantes e atualizações do servidor' },
+    { name: '🎉-eventos', type: ChannelType.GuildText, category: '📋 INFORMAÇÕES', topic: '🎉 Eventos especiais e competições da comunidade' },
+    { name: '📊-rankings', type: ChannelType.GuildText, category: '📋 INFORMAÇÕES', topic: '📊 Rankings e estatísticas dos jogadores' },
     
     // General chat
-    { name: '💬-geral', type: ChannelType.GuildText, category: '💬 CHAT GERAL' },
-    { name: '🤖-comandos', type: ChannelType.GuildText, category: '💬 CHAT GERAL' },
-    { name: '👋-boas-vindas', type: ChannelType.GuildText, category: '💬 CHAT GERAL' },
+    { name: '💬-geral', type: ChannelType.GuildText, category: '💬 CHAT GERAL', topic: '💬 Conversa geral da comunidade' },
+    { name: '🤖-comandos', type: ChannelType.GuildText, category: '💬 CHAT GERAL', topic: '🤖 Use os comandos do bot aqui para não poluir outros canais' },
+    { name: '👋-boas-vindas', type: ChannelType.GuildText, category: '💬 CHAT GERAL', topic: '👋 Canal de boas-vindas para novos membros' },
     
     // PUBG channels
-    { name: '🎮-pubg-geral', type: ChannelType.GuildText, category: '🎮 PUBG' },
-    { name: '📈-stats-pubg', type: ChannelType.GuildText, category: '🎮 PUBG' },
-    { name: '🏆-ranking-pubg', type: ChannelType.GuildText, category: '🎮 PUBG' },
-    { name: '👥-procurar-squad', type: ChannelType.GuildText, category: '🎮 PUBG' },
-    { name: '🎯-scrims', type: ChannelType.GuildText, category: '🎮 PUBG' },
+    { name: '🎮-pubg-geral', type: ChannelType.GuildText, category: '🎮 PUBG', topic: '🎮 Discussões gerais sobre PUBG, dicas, estratégias e novidades do jogo' },
+    { name: '📈-stats-pubg', type: ChannelType.GuildText, category: '🎮 PUBG', topic: '📈 Compartilhe suas estatísticas, progresso e conquistas no PUBG' },
+    { name: '🏆-ranking-pubg', type: ChannelType.GuildText, category: '🎮 PUBG', topic: '🏆 Rankings oficiais, temporadas e competições do servidor' },
+    { name: '👥-procurar-squad', type: ChannelType.GuildText, category: '🎮 PUBG', topic: '👥 Encontre parceiros para jogar, forme squads e organize partidas' },
+    { name: '🎯-scrims', type: ChannelType.GuildText, category: '🎮 PUBG', topic: '🎯 Organize e participe de scrimmages e treinos competitivos' },
     
     // Music channels
-    { name: '🎵-música', type: ChannelType.GuildText, category: '🎵 MÚSICA' },
-    { name: '🎧-queue', type: ChannelType.GuildText, category: '🎵 MÚSICA' },
+    { name: '🎵-música', type: ChannelType.GuildText, category: '🎵 MÚSICA', topic: '🎵 Comandos de música, pedidos de músicas e controle do bot de música' },
+    { name: '🎧-queue', type: ChannelType.GuildText, category: '🎵 MÚSICA', topic: '🎧 Visualize a fila de reprodução atual e próximas músicas' },
     { name: '🔊-música-voice', type: ChannelType.GuildVoice, category: '🎵 MÚSICA' },
     
     // Games & Quizzes
-    { name: '🎯-mini-games', type: ChannelType.GuildText, category: '🎯 JOGOS & QUIZZES' },
-    { name: '🧠-quizzes', type: ChannelType.GuildText, category: '🎯 JOGOS & QUIZZES' },
-    { name: '🏅-desafios', type: ChannelType.GuildText, category: '🎯 JOGOS & QUIZZES' },
-    { name: '🎖️-badges', type: ChannelType.GuildText, category: '🎯 JOGOS & QUIZZES' },
+    { name: '🎯-mini-games', type: ChannelType.GuildText, category: '🎯 JOGOS & QUIZZES', topic: '🎯 Mini-games divertidos, desafios rápidos e competições casuais da comunidade' },
+    { name: '🧠-quizzes', type: ChannelType.GuildText, category: '🎯 JOGOS & QUIZZES', topic: '🧠 Quizzes sobre PUBG, jogos em geral e conhecimentos diversos' },
+    { name: '🏅-desafios', type: ChannelType.GuildText, category: '🎯 JOGOS & QUIZZES', topic: '🏅 Desafios especiais, missões da comunidade e competições temáticas' },
+    { name: '🎖️-badges', type: ChannelType.GuildText, category: '🎯 JOGOS & QUIZZES', topic: '🎖️ Sistema de conquistas, badges especiais e recompensas da comunidade' }
     
     // Clips & Highlights
-    { name: '🎬-clips', type: ChannelType.GuildText, category: '🎬 CLIPS & HIGHLIGHTS' },
-    { name: '⭐-highlights', type: ChannelType.GuildText, category: '🎬 CLIPS & HIGHLIGHTS' },
-    { name: '📊-clip-rankings', type: ChannelType.GuildText, category: '🎬 CLIPS & HIGHLIGHTS' },
+    { name: '🎬-clips', type: ChannelType.GuildText, category: '🎬 CLIPS & HIGHLIGHTS', topic: '🎬 Compartilhe seus melhores clips, jogadas épicas e momentos engraçados' },
+    { name: '⭐-highlights', type: ChannelType.GuildText, category: '🎬 CLIPS & HIGHLIGHTS', topic: '⭐ Os melhores highlights da comunidade, jogadas profissionais e momentos históricos' },
+    { name: '📊-clip-rankings', type: ChannelType.GuildText, category: '🎬 CLIPS & HIGHLIGHTS', topic: '📊 Rankings dos melhores clips, votações da comunidade e competições de conteúdo' }
     
     // Administration
-    { name: '🔧-admin', type: ChannelType.GuildText, category: '🔧 ADMINISTRAÇÃO' },
-    { name: '📝-logs', type: ChannelType.GuildText, category: '🔧 ADMINISTRAÇÃO' },
-    { name: '🎫-tickets', type: ChannelType.GuildText, category: '🔧 ADMINISTRAÇÃO' },
+    { name: '🔧-admin', type: ChannelType.GuildText, category: '🔧 ADMINISTRAÇÃO', topic: '🔧 Canal geral da administração para discussões internas e coordenação da equipe' },
+    { name: '📝-logs', type: ChannelType.GuildText, category: '🔧 ADMINISTRAÇÃO', topic: '📝 Logs automáticos do servidor: entradas, saídas, moderação e atividades importantes' },
+    { name: '🎫-tickets', type: ChannelType.GuildText, category: '🔧 ADMINISTRAÇÃO', topic: '🎫 Sistema de tickets para suporte, dúvidas e solicitações dos membros' },
     
     // Voice channels
-    { name: '🎮 Squad 1', type: ChannelType.GuildVoice, category: '🎮 PUBG' },
-    { name: '🎮 Squad 2', type: ChannelType.GuildVoice, category: '🎮 PUBG' },
-    { name: '🎮 Squad 3', type: ChannelType.GuildVoice, category: '🎮 PUBG' },
-    { name: '💬 Chat Geral', type: ChannelType.GuildVoice, category: '💬 CHAT GERAL' },
-    { name: '🎯 Scrims', type: ChannelType.GuildVoice, category: '🎮 PUBG' },
+    { name: '🎮 Squad 1', type: ChannelType.GuildVoice, category: '🎮 PUBG', userLimit: 4 },
+    { name: '🎮 Squad 2', type: ChannelType.GuildVoice, category: '🎮 PUBG', userLimit: 4 },
+    { name: '🎮 Squad 3', type: ChannelType.GuildVoice, category: '🎮 PUBG', userLimit: 4 },
+    { name: '🎮 Squad 4', type: ChannelType.GuildVoice, category: '🎮 PUBG', userLimit: 4 },
+    { name: '🎯 Scrims & Treinos', type: ChannelType.GuildVoice, category: '🎮 PUBG', userLimit: 10 },
+    { name: '🏆 Competitivo', type: ChannelType.GuildVoice, category: '🎮 PUBG', userLimit: 8 },
+    { name: '💬 Chat Geral', type: ChannelType.GuildVoice, category: '💬 CHAT GERAL', userLimit: 15 },
+    { name: '🎵 Música & Chill', type: ChannelType.GuildVoice, category: '🎵 MÚSICA', userLimit: 20 },
+    { name: '🎮 Outros Jogos', type: ChannelType.GuildVoice, category: '🎮 JOGOS', userLimit: 8 },
   ];
   
   const categories = new Map<string, any>();
@@ -340,11 +364,23 @@ async function setupChannels(guild: any): Promise<string> {
       if (!existingChannel) {
         const parent = channelData.category ? categories.get(channelData.category) : null;
         
-        await guild.channels.create({
+        const channelOptions: any = {
           name: channelData.name,
           type: channelData.type,
           parent: parent?.id,
-        });
+        };
+        
+        // Add topic for text channels
+        if (channelData.topic) {
+          channelOptions.topic = channelData.topic;
+        }
+        
+        // Add user limit for voice channels
+        if (channelData.userLimit && channelData.type === ChannelType.GuildVoice) {
+          channelOptions.userLimit = channelData.userLimit;
+        }
+        
+        await guild.channels.create(channelOptions);
         created++;
       } else {
         updated++;
@@ -470,15 +506,18 @@ async function setupWelcomeMessages(guild: any): Promise<string> {
     
     if (welcomeChannel) {
       const welcomeEmbed = new EmbedBuilder()
-        .setTitle('🎉 Bem-vindo ao Hawk Esports!')
-        .setDescription('Seja bem-vindo ao nosso servidor de PUBG! Aqui você encontrará tudo sobre rankings, estatísticas, clips e muito mais.')
-        .setColor('#00FF00')
+        .setTitle('🦅 Bem-vindo ao Hawk Esports!')
+        .setDescription('🎉 **Seja bem-vindo à maior comunidade de PUBG do Discord!**\n\n🏆 Aqui você encontrará:\n• Rankings competitivos e estatísticas detalhadas\n• Scrimmages e treinos organizados\n• Sistema de badges e conquistas\n• Comunidade ativa e acolhedora\n• Suporte completo para melhorar seu gameplay')
+        .setColor('#FFD700')
         .addFields(
-          { name: '📋 Primeiro passo', value: `Leia as regras em ${rulesChannel || '#📜-regras'}`, inline: true },
-          { name: '🎮 Segundo passo', value: 'Use `/register` para cadastrar seu nick PUBG', inline: true },
-          { name: '🤖 Comandos', value: `Veja todos os comandos em ${commandsChannel || '#🤖-comandos'}`, inline: true },
+          { name: '📋 1º Passo - Leia as Regras', value: `${rulesChannel || '#📜-regras'}\nConheça nossas diretrizes para uma convivência harmoniosa`, inline: true },
+          { name: '🎮 2º Passo - Registre-se', value: '`/register`\nCadastre seu nick do PUBG e desbloqueie todos os recursos', inline: true },
+          { name: '🤖 3º Passo - Explore', value: `${commandsChannel || '#🤖-comandos'}\nDescubra todos os comandos disponíveis`, inline: true },
+          { name: '🎯 Recursos Principais', value: '• `/stats` - Suas estatísticas\n• `/ranking` - Rankings do servidor\n• `/play` - Música no chat de voz\n• `/scrim` - Organize treinos', inline: true },
+          { name: '🏅 Sistema de Badges', value: 'Ganhe badges especiais por:\n• Participação ativa\n• Conquistas no PUBG\n• Contribuições à comunidade', inline: true },
+          { name: '💬 Canais Importantes', value: '• 🎮-pubg-geral - Chat principal\n• 👥-procurar-squad - Encontre parceiros\n• 🎬-clips - Compartilhe jogadas', inline: true }
         )
-        .setFooter({ text: 'Hawk Esports - PUBG Community' })
+        .setFooter({ text: 'Hawk Esports - Elevando seu nível no PUBG desde 2024' })
         .setTimestamp();
       
       await welcomeChannel.send({ embeds: [welcomeEmbed] });
@@ -486,17 +525,19 @@ async function setupWelcomeMessages(guild: any): Promise<string> {
     
     if (rulesChannel) {
       const rulesEmbed = new EmbedBuilder()
-        .setTitle('📜 Regras do Servidor')
-        .setDescription('Para manter um ambiente saudável e divertido para todos, siga estas regras:')
-        .setColor('#FFD700')
+        .setTitle('📜 Regras do Hawk Esports')
+        .setDescription('🛡️ **Para manter nossa comunidade saudável, divertida e competitiva, todos devem seguir estas diretrizes:**\n\n*O não cumprimento pode resultar em advertências, mute temporário ou banimento.*')
+        .setColor('#FF6B6B')
         .addFields(
-          { name: '1️⃣ Respeito', value: 'Trate todos com respeito e cordialidade', inline: false },
-          { name: '2️⃣ Spam', value: 'Não faça spam em canais de texto ou voz', inline: false },
-          { name: '3️⃣ Conteúdo', value: 'Mantenha o conteúdo apropriado e relacionado ao canal', inline: false },
-          { name: '4️⃣ Trapaça', value: 'Não toleramos trapaças ou hacks no PUBG', inline: false },
-          { name: '5️⃣ Verificação', value: 'Use `/register` para se verificar e acessar todos os canais', inline: false },
+          { name: '1️⃣ Respeito e Cordialidade', value: '• Trate todos os membros com respeito\n• Não use linguagem ofensiva, discriminatória ou tóxica\n• Evite discussões desnecessárias e conflitos\n• Seja acolhedor com novos membros', inline: false },
+          { name: '2️⃣ Comunicação Adequada', value: '• Não faça spam em canais de texto ou voz\n• Use os canais apropriados para cada tipo de conteúdo\n• Evite CAPS LOCK excessivo\n• Não mencione membros desnecessariamente', inline: false },
+          { name: '3️⃣ Conteúdo Apropriado', value: '• Mantenha o conteúdo relacionado ao propósito do canal\n• Não compartilhe conteúdo NSFW ou inadequado\n• Evite temas polêmicos como política e religião\n• Respeite os direitos autorais ao compartilhar conteúdo', inline: false },
+          { name: '4️⃣ Fair Play no PUBG', value: '• **ZERO TOLERÂNCIA** para cheats, hacks ou exploits\n• Não promova ou discuta métodos de trapaça\n• Jogue limpo em scrims e competições\n• Reporte comportamentos suspeitos à administração', inline: false },
+          { name: '5️⃣ Sistema de Verificação', value: '• Use `/register` para cadastrar seu nick do PUBG\n• Mantenha suas informações atualizadas\n• Não crie contas falsas ou múltiplas\n• A verificação é obrigatória para acesso completo', inline: false },
+          { name: '6️⃣ Comportamento em Voz', value: '• Mantenha um volume adequado no microfone\n• Não reproduza música ou sons irritantes\n• Respeite quando outros estiverem falando\n• Use push-to-talk se houver ruído de fundo', inline: false },
+          { name: '⚖️ Sistema de Punições', value: '🟡 **Advertência** - Primeira infração leve\n🟠 **Mute Temporário** - Reincidência ou infração média\n🔴 **Banimento** - Infrações graves ou múltiplas reincidências\n\n*Todas as punições são registradas e podem ser contestadas via ticket.*', inline: false }
         )
-        .setFooter({ text: 'O não cumprimento das regras pode resultar em punições' });
+        .setFooter({ text: 'Hawk Esports - Regras atualizadas em ' + new Date().toLocaleDateString('pt-BR') });
       
       await rulesChannel.send({ embeds: [rulesEmbed] });
     }
