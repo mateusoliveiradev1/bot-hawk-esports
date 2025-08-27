@@ -480,9 +480,16 @@ export class MusicService {
       // Check if query is a YouTube URL
       if (this.isYouTubeUrl(query)) {
         this.logger.debug(`🔗 Processing YouTube URL: ${query}`);
+        
+        // Clean URL to ensure compatibility (same logic as createYouTubeStream)
+        const cleanUrl = query.includes('youtube.com/watch?v=') ? 
+          `https://www.youtube.com/watch?v=${query.split('v=')[1]?.split('&')[0]}` : query;
+        
+        this.logger.info(`🧹 Cleaned URL for search: ${cleanUrl}`);
+        
         try {
-          // Get video info directly from URL
-          const videoInfo = await video_basic_info(query);
+          // Get video info directly from cleaned URL
+          const videoInfo = await video_basic_info(cleanUrl);
           
           this.logger.debug(`📋 Video info retrieved:`, {
             id: videoInfo.video_details.id,
@@ -496,7 +503,7 @@ export class MusicService {
             title: videoInfo.video_details.title || 'Unknown Title',
             artist: videoInfo.video_details.channel?.name || 'Unknown Artist',
             duration: (videoInfo.video_details.durationInSec || 0) * 1000, // Convert to milliseconds
-            url: videoInfo.video_details.url || query,
+            url: videoInfo.video_details.url || cleanUrl, // Use cleaned URL
             thumbnail: videoInfo.video_details.thumbnails?.[0]?.url || '',
             requestedBy: '',
             platform: 'youtube',
