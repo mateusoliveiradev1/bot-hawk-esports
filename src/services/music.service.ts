@@ -712,17 +712,47 @@ export class MusicService {
    * Create YouTube stream using play-dl only (ytdl-core temporarily disabled due to parsing issues)
    */
   private async createYouTubeStream(url: string): Promise<AudioResource | null> {
-    this.logger.info(`🎵 Creating YouTube stream for: ${url}`);
+    this.logger.info(`🎵 Creating YouTube stream for: \`${url}\``);
     
-    // Clean URL to ensure compatibility
-    const cleanUrl = url.includes('youtube.com/watch?v=') ? 
-      `https://www.youtube.com/watch?v=${url.split('v=')[1]?.split('&')[0]}` : url;
+    // More robust URL cleaning
+    let cleanUrl = url.trim();
     
-    this.logger.info(`🧹 Cleaned URL: ${cleanUrl}`);
+    // Extract video ID from various YouTube URL formats
+    let videoId = '';
+    
+    if (cleanUrl.includes('youtube.com/watch?v=')) {
+      videoId = cleanUrl.split('v=')[1]?.split('&')[0]?.split('#')[0] || '';
+    } else if (cleanUrl.includes('youtu.be/')) {
+      videoId = cleanUrl.split('youtu.be/')[1]?.split('?')[0]?.split('&')[0]?.split('#')[0] || '';
+    } else if (cleanUrl.includes('youtube.com/embed/')) {
+      videoId = cleanUrl.split('embed/')[1]?.split('?')[0]?.split('&')[0]?.split('#')[0] || '';
+    }
+    
+    if (!videoId || videoId.length !== 11) {
+      this.logger.error(`❌ Invalid YouTube video ID extracted: '${videoId}' from URL: ${url}`);
+      return null;
+    }
+    
+    // Reconstruct clean URL
+    cleanUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    
+    this.logger.info(`🧹 Cleaned URL: \`${cleanUrl}\` (Video ID: ${videoId})`);
+    
+    // Validate URL before attempting to use it
+    try {
+      const testUrl = new URL(cleanUrl);
+      if (!testUrl.hostname.includes('youtube.com')) {
+        throw new Error(`Invalid YouTube hostname: ${testUrl.hostname}`);
+      }
+    } catch (urlError: any) {
+      this.logger.error(`❌ Invalid URL format: ${cleanUrl} - ${urlError.message}`);
+      return null;
+    }
     
     // Method 1: Try play-dl with high quality
     try {
       this.logger.info(`🔄 STARTING play-dl method (high quality)...`);
+      this.logger.info(`🔍 Attempting to get video info for: \`${cleanUrl}\``);
       
       const info = await video_basic_info(cleanUrl);
       this.logger.info(`📋 Play-dl info received: ${info ? 'SUCCESS' : 'FAILED'}`);
@@ -732,6 +762,7 @@ export class MusicService {
       }
       
       this.logger.info(`📋 Play-dl video info: ${info.video_details.title}`);
+      this.logger.info(`📋 Video duration: ${info.video_details.durationInSec}s`);
       
       // Try to get high quality audio stream from play-dl
       this.logger.info(`🎧 Getting high quality audio stream from play-dl...`);
@@ -750,6 +781,7 @@ export class MusicService {
       
     } catch (playDlHighError: any) {
       this.logger.warn(`⚠️ play-dl high quality failed: ${playDlHighError.message}`);
+      this.logger.warn(`⚠️ Error stack: ${playDlHighError.stack}`);
       
       // Method 2: Try play-dl with medium quality as fallback
       try {
