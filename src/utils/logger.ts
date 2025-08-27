@@ -66,6 +66,22 @@ export class Logger {
   }
 
   /**
+   * Get circular replacer function for JSON.stringify
+   */
+  private getCircularReplacer() {
+    const seen = new WeakSet();
+    return (key: string, value: any) => {
+      if (typeof value === 'object' && value !== null) {
+        if (seen.has(value)) {
+          return '[Circular]';
+        }
+        seen.add(value);
+      }
+      return value;
+    };
+  }
+
+  /**
    * Create Winston logger instance
    */
   private createLogger(): void {
@@ -84,7 +100,12 @@ export class Logger {
             let log = `${timestamp} [${level}]: ${message}`;
             
             if (Object.keys(meta).length > 0) {
-              log += ` ${JSON.stringify(meta, null, 2)}`;
+              try {
+                // Safe JSON stringify to handle circular references
+                log += ` ${JSON.stringify(meta, this.getCircularReplacer(), 2)}`;
+              } catch (error) {
+                log += ` [Object with circular reference]`;
+              }
             }
             
             return log;

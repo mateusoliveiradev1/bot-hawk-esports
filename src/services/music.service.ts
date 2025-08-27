@@ -702,6 +702,110 @@ export class MusicService {
   }
 
   /**
+   * Create YouTube stream with fallback methods
+   */
+  private async createYouTubeStream(url: string): Promise<AudioResource | null> {
+    this.logger.debug(`🎵 Creating YouTube stream for: ${url}`);
+    
+    // Method 1: Try ytdl-core first
+    try {
+      this.logger.debug(`🔄 Trying ytdl-core method...`);
+      
+      const isValid = await ytdl.validateURL(url);
+      if (!isValid) {
+        throw new Error('Invalid YouTube URL');
+      }
+      
+      const info = await ytdl.getInfo(url);
+      this.logger.debug(`📋 Video info: ${info.videoDetails.title} - ${info.videoDetails.lengthSeconds}s`);
+      
+      const stream = ytdl(url, {
+        filter: 'audioonly',
+        quality: 'highestaudio',
+        highWaterMark: 1 << 25,
+        requestOptions: {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
+          }
+        },
+        begin: Date.now()
+      });
+      
+      stream.on('error', (error) => {
+        this.logger.error(`❌ YouTube stream error for ${url}:`, error);
+      });
+      
+      stream.on('info', (info) => {
+        this.logger.debug(`📊 Stream info received: ${info.videoDetails.title}`);
+      });
+      
+      this.logger.debug(`✅ ytdl-core stream created successfully`);
+      return createAudioResource(stream, {
+        inputType: StreamType.Arbitrary,
+        inlineVolume: true,
+      });
+      
+    } catch (ytdlError: any) {
+      this.logger.warn(`⚠️ ytdl-core failed: ${ytdlError.message}`);
+      
+      // Check if it's a 403 error or similar access issue
+      if (ytdlError.statusCode === 403 || ytdlError.message?.includes('403') || ytdlError.message?.includes('Status code: 403')) {
+        this.logger.debug(`🔄 Trying play-dl fallback method due to 403 error...`);
+        
+        try {
+          // Method 2: Try play-dl as fallback
+          const info = await video_basic_info(url);
+          if (!info || !info.video_details) {
+            throw new Error('Could not get video info from play-dl');
+          }
+          
+          this.logger.debug(`📋 Play-dl video info: ${info.video_details.title}`);
+          
+          // Get stream URL from play-dl
+          const streamUrl = info.video_details.url;
+          if (!streamUrl) {
+            throw new Error('No stream URL available from play-dl');
+          }
+          
+          // Create a simple HTTP stream
+          const https = require('https');
+          const { PassThrough } = require('stream');
+          
+          const stream = new PassThrough();
+          
+          https.get(streamUrl, (response: any) => {
+            if (response.statusCode !== 200) {
+              stream.destroy(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
+              return;
+            }
+            response.pipe(stream);
+          }).on('error', (error: any) => {
+            stream.destroy(error);
+          });
+          
+          this.logger.debug(`✅ play-dl fallback stream created successfully`);
+          return createAudioResource(stream, {
+            inputType: StreamType.Arbitrary,
+            inlineVolume: true,
+          });
+          
+        } catch (playDlError: any) {
+          this.logger.error(`❌ play-dl fallback also failed: ${playDlError.message}`);
+        }
+      }
+    }
+    
+    this.logger.error(`❌ All streaming methods failed for: ${url}`);
+    return null;
+  }
+
+  /**
    * Play a track
    */
   public async playTrack(guildId: string, track: Track): Promise<boolean> {
@@ -722,45 +826,13 @@ export class MusicService {
         this.logger.debug(`📺 Creating YouTube stream for: ${track.url}`);
         
         try {
-          // First, validate the URL
-          const isValid = await ytdl.validateURL(track.url);
-          if (!isValid) {
-            this.logger.error(`❌ Invalid YouTube URL: ${track.url}`);
+          resource = await this.createYouTubeStream(track.url);
+          if (!resource) {
+            this.logger.error(`❌ Failed to create stream for ${track.url}`);
             return false;
           }
-          
-          // Get video info to check if it's available
-          const info = await ytdl.getInfo(track.url);
-          this.logger.debug(`📋 Video info: ${info.videoDetails.title} - ${info.videoDetails.lengthSeconds}s`);
-          
-          const stream = ytdl(track.url, {
-            filter: 'audioonly',
-            quality: 'highestaudio',
-            highWaterMark: 1 << 25,
-            requestOptions: {
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-              }
-            }
-          });
-          
-          // Add error handling for the stream
-          stream.on('error', (error) => {
-            this.logger.error(`❌ YouTube stream error for ${track.url}:`, error);
-          });
-          
-          stream.on('info', (info) => {
-            this.logger.debug(`📊 Stream info received: ${info.videoDetails.title}`);
-          });
-          
-          this.logger.debug(`🔊 Creating audio resource from YouTube stream`);
-          resource = createAudioResource(stream, {
-            inputType: StreamType.Arbitrary,
-            inlineVolume: true,
-          });
-          
-        } catch (ytdlError) {
-          this.logger.error(`❌ YTDL error for ${track.url}:`, ytdlError);
+        } catch (streamError) {
+          this.logger.error(`❌ Stream creation error for ${track.url}:`, streamError);
           return false;
         }
       } else {
@@ -781,41 +853,13 @@ export class MusicService {
         this.logger.debug(`📺 Found YouTube equivalent: ${firstResult.url}`);
         
         try {
-          // Validate the YouTube URL
-          const isValid = await ytdl.validateURL(firstResult.url);
-          if (!isValid) {
-            this.logger.error(`❌ Invalid YouTube URL for Spotify conversion: ${firstResult.url}`);
+          resource = await this.createYouTubeStream(firstResult.url);
+          if (!resource) {
+            this.logger.error(`❌ Failed to create stream for converted Spotify track: ${firstResult.url}`);
             return false;
           }
-          
-          // Get video info
-          const info = await ytdl.getInfo(firstResult.url);
-          this.logger.debug(`📋 Converted video info: ${info.videoDetails.title} - ${info.videoDetails.lengthSeconds}s`);
-          
-          const stream = ytdl(firstResult.url, {
-            filter: 'audioonly',
-            quality: 'highestaudio',
-            highWaterMark: 1 << 25,
-            requestOptions: {
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-              }
-            }
-          });
-          
-          // Add error handling for the stream
-          stream.on('error', (error) => {
-            this.logger.error(`❌ YouTube stream error for converted track ${firstResult.url}:`, error);
-          });
-          
-          this.logger.debug(`🔊 Creating audio resource from converted YouTube stream`);
-          resource = createAudioResource(stream, {
-            inputType: StreamType.Arbitrary,
-            inlineVolume: true,
-          });
-          
-        } catch (ytdlError) {
-          this.logger.error(`❌ YTDL error for converted Spotify track ${firstResult.url}:`, ytdlError);
+        } catch (streamError) {
+          this.logger.error(`❌ Stream creation error for converted Spotify track ${firstResult.url}:`, streamError);
           return false;
         }
       }
