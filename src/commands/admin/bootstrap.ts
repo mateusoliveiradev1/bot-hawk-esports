@@ -246,6 +246,16 @@ async function setupRoles(guild: any): Promise<string> {
   return `🎭 **Cargos**: ${created} criados, ${updated} atualizados`;
 }
 
+// Interface for channel configuration
+interface ChannelConfig {
+  name: string;
+  type: ChannelType;
+  category?: string;
+  topic?: string;
+  position?: number;
+  userLimit?: number;
+}
+
 /**
  * Setup server channels
  */
@@ -255,7 +265,7 @@ async function setupChannels(guild: any, mode: string = 'full'): Promise<string>
   let updated = 0;
   
   // Define canais essenciais para configuração inicial
-  const essentialChannels = [
+  const essentialChannels: ChannelConfig[] = [
     // Categories
     { name: '📋 INFORMAÇÕES', type: ChannelType.GuildCategory, position: 0 },
     { name: '💬 CHAT GERAL', type: ChannelType.GuildCategory, position: 1 },
@@ -271,7 +281,7 @@ async function setupChannels(guild: any, mode: string = 'full'): Promise<string>
   ];
   
   // Define todos os canais para configuração completa
-  const allChannels = [
+  const allChannels: ChannelConfig[] = [
     // Categories
     { name: '📋 INFORMAÇÕES', type: ChannelType.GuildCategory, position: 0 },
     { name: '💬 CHAT GERAL', type: ChannelType.GuildCategory, position: 1 },
@@ -308,12 +318,12 @@ async function setupChannels(guild: any, mode: string = 'full'): Promise<string>
     { name: '🎯-mini-games', type: ChannelType.GuildText, category: '🎯 JOGOS & QUIZZES', topic: '🎯 Mini-games divertidos, desafios rápidos e competições casuais da comunidade' },
     { name: '🧠-quizzes', type: ChannelType.GuildText, category: '🎯 JOGOS & QUIZZES', topic: '🧠 Quizzes sobre PUBG, jogos em geral e conhecimentos diversos' },
     { name: '🏅-desafios', type: ChannelType.GuildText, category: '🎯 JOGOS & QUIZZES', topic: '🏅 Desafios especiais, missões da comunidade e competições temáticas' },
-    { name: '🎖️-badges', type: ChannelType.GuildText, category: '🎯 JOGOS & QUIZZES', topic: '🎖️ Sistema de conquistas, badges especiais e recompensas da comunidade' }
+    { name: '🎖️-badges', type: ChannelType.GuildText, category: '🎯 JOGOS & QUIZZES', topic: '🎖️ Sistema de conquistas, badges especiais e recompensas da comunidade' },
     
     // Clips & Highlights
     { name: '🎬-clips', type: ChannelType.GuildText, category: '🎬 CLIPS & HIGHLIGHTS', topic: '🎬 Compartilhe seus melhores clips, jogadas épicas e momentos engraçados' },
     { name: '⭐-highlights', type: ChannelType.GuildText, category: '🎬 CLIPS & HIGHLIGHTS', topic: '⭐ Os melhores highlights da comunidade, jogadas profissionais e momentos históricos' },
-    { name: '📊-clip-rankings', type: ChannelType.GuildText, category: '🎬 CLIPS & HIGHLIGHTS', topic: '📊 Rankings dos melhores clips, votações da comunidade e competições de conteúdo' }
+    { name: '📊-clip-rankings', type: ChannelType.GuildText, category: '🎬 CLIPS & HIGHLIGHTS', topic: '📊 Rankings dos melhores clips, votações da comunidade e competições de conteúdo' },
     
     // Administration
     { name: '🔧-admin', type: ChannelType.GuildText, category: '🔧 ADMINISTRAÇÃO', topic: '🔧 Canal geral da administração para discussões internas e coordenação da equipe' },
@@ -332,6 +342,8 @@ async function setupChannels(guild: any, mode: string = 'full'): Promise<string>
     { name: '🎮 Outros Jogos', type: ChannelType.GuildVoice, category: '🎮 JOGOS', userLimit: 8 },
   ];
   
+  // Choose which channels to create based on mode
+  const channels = mode === 'essential' ? essentialChannels : allChannels;
   const categories = new Map<string, any>();
   
   // Create categories first
