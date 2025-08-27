@@ -15,9 +15,11 @@ import { APIService } from '@/services/api.service';
 import { OnboardingService } from './services/onboarding.service';
 import { PunishmentService } from './services/punishment.service';
 import { AutoModerationService } from './services/automod.service';
+import { TicketService } from './services/ticket.service';
 import { CommandManager } from './commands/index';
 import { MemberEvents } from './events/memberEvents';
 import { MessageEvents } from './events/messageEvents';
+import { handleTicketButtonInteraction, handleTicketModalSubmission } from './events/ticketEvents';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
@@ -86,6 +88,8 @@ class HawkEsportsBot {
     this.client.logger = this.logger;
     
     // Initialize services first
+    const ticketService = new TicketService(this.client);
+    
     this.services = {
       pubg: new PUBGService(this.cache),
       music: new MusicService(this.cache, this.db),
@@ -99,7 +103,8 @@ class HawkEsportsBot {
       onboarding: new OnboardingService(this.client),
       punishment: new PunishmentService(this.client, this.db),
       automod: new AutoModerationService(this.client, this.db, new PunishmentService(this.client, this.db)),
-    };
+      ticket: ticketService
+    } as any;
     
     // Attach individual services to client for direct access
     this.client.pubgService = this.services.pubg;
@@ -114,12 +119,13 @@ class HawkEsportsBot {
     this.client.onboardingService = this.services.onboarding;
     this.client.punishmentService = this.services.punishment;
     this.client.automodService = this.services.automod;
+    this.client.ticketService = ticketService;
     
     // Initialize command manager
     this.commands = new CommandManager(this.client);
     
     // Attach services to client
-    this.client.services = this.services;
+    this.client.services = this.services as any;
 
     // Services are available through this.services, this.db, this.cache, and this.commands
   }
@@ -299,6 +305,16 @@ class HawkEsportsBot {
           await this.commands.handleContextCommand(interaction, this.client);
         } else if (interaction.isAutocomplete()) {
           await this.commands.handleAutocomplete(interaction, this.client);
+        } else if (interaction.isButton()) {
+          // Handle ticket-related button interactions
+          if (interaction.customId.includes('ticket') || interaction.customId.includes('priority') || interaction.customId === 'create_ticket_panel') {
+            await handleTicketButtonInteraction(interaction, this.client);
+          }
+        } else if (interaction.isModalSubmit()) {
+          // Handle ticket-related modal submissions
+          if (interaction.customId.includes('ticket')) {
+            await handleTicketModalSubmission(interaction, this.client);
+          }
         }
       } catch (error) {
         this.logger.error('Interaction handling error:', error);
