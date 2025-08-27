@@ -327,8 +327,10 @@ async function createQueueEmbed(guildId: string, musicService: MusicService): Pr
  * Format duration from milliseconds to readable format
  */
 function formatDuration(ms: number): string {
-  // Handle both seconds and milliseconds input
-  const totalSeconds = ms > 1000000 ? Math.floor(ms / 1000) : ms;
+  if (!ms || ms <= 0) return '0:00';
+  
+  // Convert milliseconds to seconds
+  const totalSeconds = Math.floor(ms / 1000);
   const minutes = Math.floor(totalSeconds / 60);
   const hours = Math.floor(minutes / 60);
   const seconds = totalSeconds % 60;

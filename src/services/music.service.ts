@@ -1,7 +1,7 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, demuxProbe, DiscordGatewayAdapterCreator, entersState, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection, VoiceConnectionStatus, StreamType } from '@discordjs/voice';
 import { Guild, GuildMember, VoiceBasedChannel } from 'discord.js';
 import ytdl from 'ytdl-core';
-import { search, video_basic_info } from 'play-dl';
+import { search, video_basic_info, setToken, getFreeClientID } from 'play-dl';
 import { SpotifyApi } from '@spotify/web-api-ts-sdk';
 import { Logger } from '../utils/logger';
 import { CacheService } from './cache.service';
@@ -90,8 +90,33 @@ export class MusicService {
     this.cache = cache || new CacheService();
     this.database = database || new DatabaseService();
     
+    this.initializePlayDl();
     this.initializeSpotify();
     this.loadQueuesFromDatabase();
+  }
+
+  /**
+   * Initialize play-dl
+   */
+  private async initializePlayDl(): Promise<void> {
+    try {
+      this.logger.debug('🎵 Initializing play-dl...');
+      
+      // Try to get a free client ID for YouTube access
+      const clientID = await getFreeClientID();
+      if (clientID) {
+        await setToken({
+          youtube: {
+            client_id: clientID
+          }
+        });
+        this.logger.info('✅ Play-dl initialized with free client ID');
+      } else {
+        this.logger.warn('⚠️ Could not get free client ID for play-dl, some features may be limited');
+      }
+    } catch (error) {
+      this.logger.warn('⚠️ Play-dl initialization failed, continuing without token:', (error as Error).message || 'Unknown error');
+    }
   }
 
   /**
@@ -566,7 +591,7 @@ export class MusicService {
         id: track.id,
         title: track.name,
         artist: track.artists.map((artist: any) => artist.name).join(', '),
-        duration: Math.floor(track.duration_ms / 1000),
+        duration: track.duration_ms, // Keep in milliseconds
         url: track.external_urls.spotify,
         thumbnail: track.album.images[0]?.url || '',
         requestedBy: '',
