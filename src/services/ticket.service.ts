@@ -63,9 +63,30 @@ export class TicketService {
    */
   private async loadTicketSettings(): Promise<void> {
     try {
-      // Load from database when implemented
-      // For now, use default settings
-      this.logger.info('Ticket settings loaded');
+      const settings = await this.database.client.ticketSettings.findMany();
+      
+      for (const setting of settings) {
+        this.ticketSettings.set(setting.guildId, {
+          guildId: setting.guildId,
+          enabled: setting.enabled,
+          categoryId: setting.categoryId || undefined,
+          logChannelId: setting.logChannelId || undefined,
+          supportRoleId: setting.supportRoleId || undefined,
+          maxTicketsPerUser: setting.maxTicketsPerUser,
+          autoAssign: setting.autoAssign,
+          requireReason: setting.requireReason,
+          allowAnonymous: setting.allowAnonymous,
+          closeAfterInactivity: setting.closeAfterInactivity,
+          notificationSettings: setting.notificationSettings ? JSON.parse(setting.notificationSettings) : {
+            onCreate: true,
+            onAssign: true,
+            onClose: true,
+            onReopen: true
+          }
+        });
+      }
+      
+      this.logger.info(`Loaded ${settings.length} ticket settings`);
     } catch (error) {
       this.logger.error('Failed to load ticket settings:', error);
     }
@@ -127,18 +148,42 @@ export class TicketService {
   private async checkInactiveTickets(): Promise<void> {
     try {
       let closedCount = 0;
+      let warningsSent = 0;
       
       for (const [guildId, guildTickets] of this.activeTickets) {
         const settings = this.getTicketSettings(guildId);
         if (!settings.enabled || settings.closeAfterInactivity <= 0) continue;
 
         const inactivityThreshold = new Date(Date.now() - settings.closeAfterInactivity * 60 * 60 * 1000);
+        const warningThreshold = new Date(Date.now() - (settings.closeAfterInactivity - 2) * 60 * 60 * 1000); // 2 hours before closing
         const ticketsToClose: TicketData[] = [];
+        const ticketsToWarn: TicketData[] = [];
 
-        // Collect tickets that need to be closed
+        // Collect tickets that need action
         for (const [userId, ticket] of guildTickets) {
           if (ticket.updatedAt < inactivityThreshold) {
             ticketsToClose.push(ticket);
+          } else if (settings.closeAfterInactivity > 2 && ticket.updatedAt < warningThreshold && !ticket.metadata?.warningsent) {
+            ticketsToWarn.push(ticket);
+          }
+        }
+
+        // Send warnings first
+        for (const ticket of ticketsToWarn) {
+          try {
+            await this.sendInactivityWarning(guildId, ticket);
+            
+            // Mark warning as sent
+            ticket.metadata = { ...ticket.metadata, warningSent: true };
+            await this.database.client.ticket.update({
+              where: { id: ticket.id },
+              data: { metadata: ticket.metadata }
+            });
+            
+            warningsSent++;
+            this.logger.info(`Sent inactivity warning for ticket: ${ticket.id} in guild ${guildId}`);
+          } catch (error) {
+            this.logger.error(`Error sending warning for ticket ${ticket.id}:`, error);
           }
         }
 
@@ -164,8 +209,8 @@ export class TicketService {
         }
       }
       
-      if (closedCount > 0) {
-        this.logger.info(`Inactivity check completed: ${closedCount} tickets closed`);
+      if (closedCount > 0 || warningsSent > 0) {
+        this.logger.info(`Inactivity check completed: ${closedCount} tickets closed, ${warningsSent} warnings sent`);
       }
     } catch (error) {
       this.logger.error('Error checking inactive tickets:', error);
@@ -189,12 +234,79 @@ export class TicketService {
         for (const [userId, ticket] of guildTickets) {
           if (ticket.id === ticketId) {
             ticket.updatedAt = new Date();
+            // Reset warning flag when there's activity
+            if (ticket.metadata?.warningSent) {
+              ticket.metadata = { ...ticket.metadata, warningSent: false };
+              await this.database.client.ticket.update({
+                where: { id: ticketId },
+                data: { metadata: ticket.metadata }
+              });
+            }
             break;
           }
         }
       }
     } catch (error) {
       this.logger.error('Error updating ticket activity:', error);
+    }
+  }
+
+  /**
+   * Send inactivity warning to ticket channel
+   */
+  private async sendInactivityWarning(guildId: string, ticket: TicketData): Promise<void> {
+    try {
+      if (!ticket.channelId) return;
+
+      const guild = this.client.guilds.cache.get(guildId);
+      if (!guild) return;
+
+      const channel = guild.channels.cache.get(ticket.channelId) as TextChannel;
+      if (!channel) return;
+
+      const settings = this.getTicketSettings(guildId);
+      const hoursRemaining = 2; // Warning is sent 2 hours before closure
+
+      const warningEmbed = new EmbedBuilder()
+        .setTitle('⚠️ Aviso de Inatividade')
+        .setDescription(
+          `Este ticket será fechado automaticamente em **${hoursRemaining} horas** devido à inatividade.\n\n` +
+          `Para manter o ticket aberto, envie uma mensagem neste canal.\n\n` +
+          `**Configuração atual:** Fechamento após ${settings.closeAfterInactivity} horas de inatividade.`
+        )
+        .setColor('#FFA500')
+        .addFields(
+          { name: '🆔 Ticket ID', value: `#${ticket.id.slice(-8)}`, inline: true },
+          { name: '📅 Criado em', value: `<t:${Math.floor(ticket.createdAt.getTime() / 1000)}:R>`, inline: true },
+          { name: '📝 Última atividade', value: `<t:${Math.floor(ticket.updatedAt.getTime() / 1000)}:R>`, inline: true }
+        )
+        .setTimestamp()
+        .setFooter({ text: 'Sistema de Tickets Automático' });
+
+      const actionRow = new ActionRowBuilder<ButtonBuilder>()
+        .addComponents(
+          new ButtonBuilder()
+            .setCustomId(`ticket_keep_open_${ticket.id}`)
+            .setLabel('Manter Aberto')
+            .setStyle(ButtonStyle.Success)
+            .setEmoji('✅'),
+          new ButtonBuilder()
+            .setCustomId(`ticket_close_${ticket.id}`)
+            .setLabel('Fechar Agora')
+            .setStyle(ButtonStyle.Danger)
+            .setEmoji('🔒')
+        );
+
+      await channel.send({ 
+        content: `<@${ticket.userId}>`, 
+        embeds: [warningEmbed], 
+        components: [actionRow] 
+      });
+
+      this.logger.info(`Inactivity warning sent for ticket ${ticket.id} in guild ${guildId}`);
+    } catch (error) {
+      this.logger.error('Error sending inactivity warning:', error);
+      throw error;
     }
   }
 
@@ -1003,13 +1115,47 @@ export class TicketService {
   /**
    * Update ticket settings
    */
-  public updateTicketSettings(guildId: string, settings: Partial<TicketSettings>): void {
-    const currentSettings = this.getTicketSettings(guildId);
-    const newSettings = { ...currentSettings, ...settings };
-    this.ticketSettings.set(guildId, newSettings);
-    
-    // TODO: Save to database
-    this.logger.info(`Ticket settings updated for guild ${guildId}`);
+  public async updateTicketSettings(guildId: string, settings: Partial<TicketSettings>): Promise<void> {
+    try {
+      const currentSettings = this.getTicketSettings(guildId);
+      const newSettings = { ...currentSettings, ...settings };
+      this.ticketSettings.set(guildId, newSettings);
+      
+      // Save to database
+      await this.database.client.ticketSettings.upsert({
+        where: { guildId },
+        update: {
+          enabled: newSettings.enabled,
+          categoryId: newSettings.categoryId,
+          logChannelId: newSettings.logChannelId,
+          supportRoleId: newSettings.supportRoleId,
+          maxTicketsPerUser: newSettings.maxTicketsPerUser,
+          autoAssign: newSettings.autoAssign,
+          requireReason: newSettings.requireReason,
+          allowAnonymous: newSettings.allowAnonymous,
+          closeAfterInactivity: newSettings.closeAfterInactivity,
+          notificationSettings: JSON.stringify(newSettings.notificationSettings)
+        },
+        create: {
+          guildId,
+          enabled: newSettings.enabled,
+          categoryId: newSettings.categoryId,
+          logChannelId: newSettings.logChannelId,
+          supportRoleId: newSettings.supportRoleId,
+          maxTicketsPerUser: newSettings.maxTicketsPerUser,
+          autoAssign: newSettings.autoAssign,
+          requireReason: newSettings.requireReason,
+          allowAnonymous: newSettings.allowAnonymous,
+          closeAfterInactivity: newSettings.closeAfterInactivity,
+          notificationSettings: JSON.stringify(newSettings.notificationSettings)
+        }
+      });
+      
+      this.logger.info(`Ticket settings updated for guild ${guildId}`);
+    } catch (error) {
+      this.logger.error('Error updating ticket settings:', error);
+      throw error;
+    }
   }
 
   /**

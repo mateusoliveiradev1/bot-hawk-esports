@@ -320,6 +320,26 @@ model Ticket {
   @@map("tickets")
 }
 
+// Ticket settings per guild
+model TicketSettings {
+  id                    String   @id @default(cuid())
+  guildId               String   @unique
+  enabled               Boolean  @default(true)
+  categoryId            String?
+  logChannelId          String?
+  supportRoleId         String?
+  maxTicketsPerUser     Int      @default(3)
+  autoAssign            Boolean  @default(false)
+  requireReason         Boolean  @default(true)
+  allowAnonymous        Boolean  @default(false)
+  closeAfterInactivity  Int      @default(72) // hours
+  notificationSettings  String   @default("{\"onCreate\":true,\"onAssign\":true,\"onClose\":true,\"onReopen\":true}")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("ticket_settings")
+}
+
 // Music queue
 model MusicQueue {
   id          String   @id @default(cuid())
