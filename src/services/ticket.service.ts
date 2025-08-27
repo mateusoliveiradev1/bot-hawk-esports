@@ -1,6 +1,7 @@
 import { Client, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, PermissionFlagsBits, TextChannel, CategoryChannel, User, GuildMember } from 'discord.js';
 import { Logger } from '../utils/logger';
 import { DatabaseService } from '../database/database.service';
+import { LoggingService } from './logging.service';
 import { ExtendedClient } from '../types/client';
 
 export interface TicketData {
@@ -42,6 +43,7 @@ export class TicketService {
   private logger: Logger;
   private database: DatabaseService;
   private client: ExtendedClient;
+  private loggingService: LoggingService;
   private ticketSettings: Map<string, TicketSettings> = new Map();
   private activeTickets: Map<string, Map<string, TicketData>> = new Map(); // guildId -> userId -> ticket
 
@@ -49,6 +51,7 @@ export class TicketService {
     this.logger = new Logger();
     this.database = client.database;
     this.client = client;
+    this.loggingService = new LoggingService(client, client.database);
     
     this.loadTicketSettings();
     this.loadActiveTickets();
@@ -253,6 +256,17 @@ export class TicketService {
       if (settings.notificationSettings.onCreate) {
         await this.sendTicketNotification(guildId, 'create', ticket);
       }
+
+      // Log ticket creation
+      await this.loggingService.logTicketCreate(guild.id, {
+        ticketId: ticket.id,
+        userId: ticket.userId,
+        channelId: ticket.channelId,
+        title: ticket.title,
+        description: ticket.description,
+        priority: ticket.priority,
+        createdAt: ticket.createdAt
+      });
 
       this.logger.info(`Ticket created: ${ticket.id} by ${userId} in ${guildId}`);
       return { success: true, message: 'Ticket criado com sucesso!', ticket, channel };
@@ -582,6 +596,17 @@ export class TicketService {
       if (settings.notificationSettings.onClose) {
         await this.sendTicketNotification(guildId, 'close', ticket, closedBy);
       }
+
+      // Log ticket closure
+      await this.loggingService.logTicketClose(guildId, {
+        ticketId: ticket.id,
+        userId: ticket.userId,
+        channelId: ticket.channelId!,
+        title: ticket.title,
+        closedBy,
+        reason: reason || 'Não especificado',
+        createdAt: ticket.createdAt
+      });
 
       this.logger.info(`Ticket ${ticketId} closed by ${closedBy}`);
       return { success: true, message: 'Ticket fechado com sucesso!' };

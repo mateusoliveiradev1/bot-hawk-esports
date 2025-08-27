@@ -328,6 +328,10 @@ export class LoggingService {
       case LogType.AUTOMOD_ACTION:
         return config.channels.moderation;
       
+      case LogType.TICKET_CREATE:
+      case LogType.TICKET_CLOSE:
+        return config.channels.moderation;
+      
       case LogType.CHANGELOG:
         return config.channels.changelog;
       
@@ -400,6 +404,32 @@ export class LoggingService {
             { name: '👤 Usuário', value: entry.metadata?.target || 'Desconhecido', inline: true },
             { name: '👮 Moderador', value: entry.metadata?.moderator || 'Desconhecido', inline: true },
             { name: '📝 Motivo', value: entry.metadata?.reason || 'Não especificado', inline: false }
+          );
+      
+      case LogType.TICKET_CREATE:
+        return embed
+          .setTitle('🎫 Ticket Criado')
+          .setColor(0x2ed573)
+          .setDescription(entry.content)
+          .addFields(
+            { name: '👤 Usuário', value: entry.metadata?.user || 'Desconhecido', inline: true },
+            { name: '📍 Canal', value: entry.metadata?.channel || 'Desconhecido', inline: true },
+            { name: '🏷️ Título', value: entry.metadata?.title || 'Sem título', inline: false },
+            { name: '📝 Descrição', value: entry.metadata?.description?.substring(0, 1024) || 'Sem descrição', inline: false },
+            { name: '⚡ Prioridade', value: entry.metadata?.priority || 'Baixa', inline: true }
+          );
+      
+      case LogType.TICKET_CLOSE:
+        return embed
+          .setTitle('🎫 Ticket Fechado')
+          .setColor(0xff4757)
+          .setDescription(entry.content)
+          .addFields(
+            { name: '👤 Usuário', value: entry.metadata?.user || 'Desconhecido', inline: true },
+            { name: '👮 Fechado por', value: entry.metadata?.closedBy || 'Sistema', inline: true },
+            { name: '📍 Canal', value: entry.metadata?.channel || 'Desconhecido', inline: true },
+            { name: '📝 Motivo', value: entry.metadata?.reason || 'Não especificado', inline: false },
+            { name: '⏱️ Duração', value: entry.metadata?.duration || 'Desconhecido', inline: true }
           );
       
       case LogType.CHANGELOG:
@@ -872,6 +902,52 @@ export class LoggingService {
   }
 
   /**
+   * Log ticket creation
+   */
+  public async logTicketCreate(guildId: string, ticketData: any): Promise<void> {
+    await this.queueLog({
+      guildId,
+      type: LogType.TICKET_CREATE,
+      userId: ticketData.userId,
+      channelId: ticketData.channelId,
+      content: `Ticket criado: ${ticketData.title}`,
+      metadata: {
+        user: `<@${ticketData.userId}>`,
+        channel: ticketData.channelId ? `<#${ticketData.channelId}>` : 'Canal não definido',
+        title: ticketData.title,
+        description: ticketData.description,
+        priority: ticketData.priority,
+        ticketId: ticketData.ticketId
+      }
+    });
+  }
+
+  /**
+   * Log ticket closure
+   */
+  public async logTicketClose(guildId: string, ticketData: any): Promise<void> {
+    const duration = ticketData.createdAt ? 
+      Math.floor((Date.now() - new Date(ticketData.createdAt).getTime()) / 1000) : 0;
+    
+    await this.queueLog({
+      guildId,
+      type: LogType.TICKET_CLOSE,
+      userId: ticketData.userId,
+      channelId: ticketData.channelId,
+      content: `Ticket fechado: ${ticketData.title}`,
+      metadata: {
+        user: `<@${ticketData.userId}>`,
+        channel: ticketData.channelId ? `<#${ticketData.channelId}>` : 'Canal não definido',
+        title: ticketData.title,
+        closedBy: ticketData.closedBy ? `<@${ticketData.closedBy}>` : 'Sistema',
+        reason: ticketData.reason || 'Não especificado',
+        duration: `${Math.floor(duration / 3600)}h ${Math.floor((duration % 3600) / 60)}m`,
+        ticketId: ticketData.ticketId
+      }
+    });
+  }
+
+  /**
    * Update guild configuration
    */
   public updateGuildConfig(guildId: string, config: Partial<LogConfig>): void {
@@ -905,5 +981,26 @@ export class LoggingService {
   public clearQueue(): void {
     this.logQueue = [];
     this.logger.info('Log queue cleared');
+  }
+
+  /**
+   * Send test log message
+   */
+  public async sendTestLog(guildId: string): Promise<void> {
+    await this.queueLog({
+      guildId,
+      type: LogType.TICKET_CREATE,
+      userId: '123456789',
+      channelId: '987654321',
+      content: 'Teste do sistema de logs - Ticket criado',
+      metadata: {
+        user: '<@123456789>',
+        channel: '<#987654321>',
+        title: 'Ticket de Teste',
+        description: 'Este é um ticket de teste para verificar o sistema de logs',
+        priority: 'Alta',
+        ticketId: 'test-123'
+      }
+    });
   }
 }

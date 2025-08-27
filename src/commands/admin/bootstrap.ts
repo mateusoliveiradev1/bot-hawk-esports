@@ -618,13 +618,15 @@ async function setupChannels(guild: any, mode: string = 'full'): Promise<string>
  */
 async function setupDatabase(guild: any, client: ExtendedClient): Promise<string> {
   try {
+    const logsChannel = guild.channels.cache.find((c: any) => c.name === '📝-logs');
+    
     const guildConfig = await client.database.client.guildConfig.upsert({
       where: { guildId: guild.id },
       update: {
         config: JSON.stringify({
           isSetup: true,
           welcomeChannelId: guild.channels.cache.find((c: any) => c.name === '👋-boas-vindas')?.id,
-          logsChannelId: guild.channels.cache.find((c: any) => c.name === '📝-logs')?.id,
+          logsChannelId: logsChannel?.id,
           musicChannelId: guild.channels.cache.find((c: any) => c.name === '🎵-música')?.id,
           rankingChannelId: guild.channels.cache.find((c: any) => c.name === '📊-rankings')?.id,
           clipsChannelId: guild.channels.cache.find((c: any) => c.name === '🎬-clips')?.id,
@@ -639,7 +641,7 @@ async function setupDatabase(guild: any, client: ExtendedClient): Promise<string
         config: JSON.stringify({
           isSetup: true,
           welcomeChannelId: guild.channels.cache.find((c: any) => c.name === '👋-boas-vindas')?.id,
-          logsChannelId: guild.channels.cache.find((c: any) => c.name === '📝-logs')?.id,
+          logsChannelId: logsChannel?.id,
           musicChannelId: guild.channels.cache.find((c: any) => c.name === '🎵-música')?.id,
           rankingChannelId: guild.channels.cache.find((c: any) => c.name === '📊-rankings')?.id,
           clipsChannelId: guild.channels.cache.find((c: any) => c.name === '🎬-clips')?.id,
@@ -658,7 +660,54 @@ async function setupDatabase(guild: any, client: ExtendedClient): Promise<string
       ownerId: guild.ownerId,
     });
     
-    return '💾 **Banco de dados**: Configurado com sucesso';
+    // Configure logging service automatically
+    if (logsChannel && client.services?.logging) {
+      try {
+        await client.services.logging.updateGuildConfig(guild.id, {
+          moderacao: logsChannel.id,
+          eventos: [
+            'TICKET_CREATE',
+            'TICKET_CLOSE',
+            'MEMBER_JOIN',
+            'MEMBER_LEAVE',
+            'MESSAGE_DELETE',
+            'MESSAGE_EDIT',
+            'MEMBER_BAN',
+            'MEMBER_UNBAN',
+            'MEMBER_KICK',
+            'MEMBER_TIMEOUT',
+            'ROLE_CREATE',
+            'ROLE_DELETE',
+            'ROLE_UPDATE',
+            'CHANNEL_CREATE',
+            'CHANNEL_DELETE',
+            'CHANNEL_UPDATE'
+          ]
+        });
+        
+        // Send confirmation message to logs channel
+        const confirmEmbed = new EmbedBuilder()
+          .setTitle('✅ Sistema de Logs Configurado')
+          .setDescription('O sistema de logs foi configurado automaticamente durante o bootstrap do servidor.')
+          .addFields(
+            { name: '📝 Canal de Logs', value: `<#${logsChannel.id}>`, inline: true },
+            { name: '🎫 Logs de Tickets', value: 'Ativados', inline: true },
+            { name: '👥 Logs de Membros', value: 'Ativados', inline: true },
+            { name: '💬 Logs de Mensagens', value: 'Ativados', inline: true },
+            { name: '🔧 Logs de Moderação', value: 'Ativados', inline: true },
+            { name: '⚙️ Logs de Servidor', value: 'Ativados', inline: true }
+          )
+          .setColor('#00FF00')
+          .setFooter({ text: 'Use /logs status para verificar a configuração' })
+          .setTimestamp();
+        
+        await logsChannel.send({ embeds: [confirmEmbed] });
+      } catch (logError) {
+        console.error('Error configuring logging service:', logError);
+      }
+    }
+    
+    return '💾 **Banco de dados**: Configurado com sucesso (+ Sistema de Logs)';
   } catch (error) {
     return '💾 **Banco de dados**: Erro na configuração';
   }
