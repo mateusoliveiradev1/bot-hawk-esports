@@ -712,7 +712,53 @@ async function setupDatabase(guild: any, client: ExtendedClient): Promise<string
       }
     }
     
-    return '💾 **Banco de dados**: Configurado com sucesso (+ Sistema de Logs)';
+    // Configure ticket system automatically
+    const ticketsChannel = guild.channels.cache.find((c: any) => c.name === '🎫-tickets');
+    const supportRole = guild.roles.cache.find((r: any) => r.name.includes('Moderador') || r.name.includes('Staff') || r.name.includes('Admin'));
+    
+    if (ticketsChannel && client.services?.ticket) {
+      try {
+        // Configure ticket system to use tickets channel for logs
+        client.services.ticket.updateTicketSettings(guild.id, {
+          enabled: true,
+          logChannelId: ticketsChannel.id, // Logs dos tickets vão para o canal de tickets na administração
+          supportRoleId: supportRole?.id,
+          maxTicketsPerUser: 3,
+          autoAssign: false,
+          requireReason: true,
+          allowAnonymous: false,
+          closeAfterInactivity: 48, // 48 horas
+          notificationSettings: {
+            onCreate: true,
+            onAssign: true,
+            onClose: true,
+            onReopen: true
+          }
+        });
+        
+        // Send confirmation message to tickets channel
+        const ticketConfirmEmbed = new EmbedBuilder()
+          .setTitle('🎫 Sistema de Tickets Configurado')
+          .setDescription('O sistema de tickets foi configurado automaticamente durante o bootstrap do servidor.')
+          .addFields(
+            { name: '📋 Canal de Logs', value: `<#${ticketsChannel.id}>`, inline: true },
+            { name: '👥 Cargo de Suporte', value: supportRole ? `<@&${supportRole.id}>` : 'Não configurado', inline: true },
+            { name: '📊 Max Tickets/Usuário', value: '3', inline: true },
+            { name: '⏰ Fechamento Automático', value: '48 horas de inatividade', inline: true },
+            { name: '🔔 Notificações', value: 'Ativadas', inline: true },
+            { name: '📝 Motivo Obrigatório', value: 'Sim', inline: true }
+          )
+          .setColor('#0099FF')
+          .setFooter({ text: 'Os tickets individuais serão criados na categoria "🎫 TICKETS"' })
+          .setTimestamp();
+        
+        await ticketsChannel.send({ embeds: [ticketConfirmEmbed] });
+      } catch (ticketError) {
+        console.error('Error configuring ticket service:', ticketError);
+      }
+    }
+    
+    return '💾 **Banco de dados**: Configurado com sucesso (+ Logs + Tickets)';
   } catch (error) {
     return '💾 **Banco de dados**: Erro na configuração';
   }
