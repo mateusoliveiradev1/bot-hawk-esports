@@ -747,7 +747,7 @@ export class MusicService {
       const execAsync = promisify(exec);
       
       // Use yt-dlp to get the best audio URL
-      const ytDlpCommand = `yt-dlp -f "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio" --get-url "${cleanUrl}"`;
+      const ytDlpCommand = `python -m yt_dlp -f "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio" --get-url "${cleanUrl}"`;
       this.logger.info(`🔧 Running: ${ytDlpCommand}`);
       
       const { stdout, stderr } = await execAsync(ytDlpCommand, { timeout: 30000 });
