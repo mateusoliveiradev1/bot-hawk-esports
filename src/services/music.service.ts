@@ -826,11 +826,12 @@ export class MusicService {
         this.logger.debug(`📺 Creating YouTube stream for: ${track.url}`);
         
         try {
-          resource = await this.createYouTubeStream(track.url);
-          if (!resource) {
+          const streamResource = await this.createYouTubeStream(track.url);
+          if (!streamResource) {
             this.logger.error(`❌ Failed to create stream for ${track.url}`);
             return false;
           }
+          resource = streamResource;
         } catch (streamError) {
           this.logger.error(`❌ Stream creation error for ${track.url}:`, streamError);
           return false;
@@ -853,11 +854,12 @@ export class MusicService {
         this.logger.debug(`📺 Found YouTube equivalent: ${firstResult.url}`);
         
         try {
-          resource = await this.createYouTubeStream(firstResult.url);
-          if (!resource) {
+          const streamResource = await this.createYouTubeStream(firstResult.url);
+          if (!streamResource) {
             this.logger.error(`❌ Failed to create stream for converted Spotify track: ${firstResult.url}`);
             return false;
           }
+          resource = streamResource;
         } catch (streamError) {
           this.logger.error(`❌ Stream creation error for converted Spotify track ${firstResult.url}:`, streamError);
           return false;
