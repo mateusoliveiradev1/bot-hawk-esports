@@ -709,7 +709,7 @@ export class MusicService {
   }
 
   /**
-   * Create YouTube stream using play-dl only (ytdl-core temporarily disabled due to parsing issues)
+   * Create YouTube stream using yt-dlp + play-dl hybrid approach
    */
   private async createYouTubeStream(url: string): Promise<AudioResource | null> {
     this.logger.info(`🎵 Creating YouTube stream for: \`${url}\``);
@@ -738,15 +738,68 @@ export class MusicService {
     
     this.logger.info(`🧹 Cleaned URL: \`${cleanUrl}\` (Video ID: ${videoId})`);
     
-    // Validate URL before attempting to use it
+    // Method 1: Try yt-dlp to get direct audio URL
     try {
-      const testUrl = new URL(cleanUrl);
-      if (!testUrl.hostname.includes('youtube.com')) {
-        throw new Error(`Invalid YouTube hostname: ${testUrl.hostname}`);
+      this.logger.info(`🔄 STARTING yt-dlp method to extract audio URL...`);
+      
+      const { exec } = require('child_process');
+      const { promisify } = require('util');
+      const execAsync = promisify(exec);
+      
+      // Use yt-dlp to get the best audio URL
+      const ytDlpCommand = `yt-dlp -f "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio" --get-url "${cleanUrl}"`;
+      this.logger.info(`🔧 Running: ${ytDlpCommand}`);
+      
+      const { stdout, stderr } = await execAsync(ytDlpCommand, { timeout: 30000 });
+      
+      if (stderr && !stderr.includes('WARNING')) {
+        throw new Error(`yt-dlp stderr: ${stderr}`);
       }
-    } catch (urlError: any) {
-      this.logger.error(`❌ Invalid URL format: ${cleanUrl} - ${urlError.message}`);
-      return null;
+      
+      const audioUrl = stdout.trim();
+      if (!audioUrl || !audioUrl.startsWith('http')) {
+        throw new Error(`Invalid audio URL from yt-dlp: ${audioUrl}`);
+      }
+      
+      this.logger.info(`✅ yt-dlp extracted audio URL: ${audioUrl.substring(0, 100)}...`);
+      
+      // Create audio resource directly from the extracted URL
+      const https = require('https');
+      const http = require('http');
+      
+      const protocol = audioUrl.startsWith('https:') ? https : http;
+      
+      return new Promise((resolve, reject) => {
+        const request = protocol.get(audioUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          }
+        }, (response) => {
+          if (response.statusCode !== 200) {
+            reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
+            return;
+          }
+          
+          this.logger.info(`✅ yt-dlp method succeeded - creating audio resource`);
+          const resource = createAudioResource(response, {
+            inputType: StreamType.Arbitrary,
+            inlineVolume: true,
+          });
+          resolve(resource);
+        });
+        
+        request.on('error', (error) => {
+          reject(error);
+        });
+        
+        request.setTimeout(10000, () => {
+          request.destroy();
+          reject(new Error('Request timeout'));
+        });
+      });
+      
+    } catch (ytDlpError: any) {
+      this.logger.warn(`⚠️ yt-dlp method failed: ${ytDlpError.message}`);
     }
     
     // Method 1: Try play-dl with high quality
