@@ -1,6 +1,6 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, demuxProbe, DiscordGatewayAdapterCreator, entersState, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection, VoiceConnectionStatus, StreamType } from '@discordjs/voice';
 import { Guild, GuildMember, VoiceBasedChannel } from 'discord.js';
-import ytdl from 'ytdl-core';
+import ytdl from '@distube/ytdl-core';
 import { search, video_basic_info, setToken, getFreeClientID } from 'play-dl';
 import { SpotifyApi } from '@spotify/web-api-ts-sdk';
 import { Logger } from '../utils/logger';
