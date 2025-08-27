@@ -2,13 +2,15 @@ import { createClient, RedisClientType } from 'redis';
 import { Logger } from '../utils/logger';
 
 /**
- * Cache service using Redis for high-performance data caching
+ * Cache service using Redis for high-performance data caching with in-memory fallback
  */
 export class CacheService {
   private client: RedisClientType;
   private logger: Logger;
   private isConnected: boolean = false;
   private defaultTTL: number = 3600; // 1 hour in seconds
+  private memoryCache: Map<string, { value: any; expires: number }> = new Map();
+  private useMemoryFallback: boolean = false;
 
   constructor() {
     this.logger = new Logger();
@@ -63,9 +65,12 @@ export class CacheService {
     try {
       await this.client.connect();
       this.logger.info('✅ Connected to Redis successfully');
+      this.useMemoryFallback = false;
     } catch (error) {
-      this.logger.error('❌ Failed to connect to Redis:', error);
-      throw error;
+      this.logger.warn('⚠️ Redis not available, using in-memory cache fallback:', error.message);
+      this.useMemoryFallback = true;
+      this.isConnected = false;
+      // Don't throw error, continue with memory fallback
     }
   }
 
