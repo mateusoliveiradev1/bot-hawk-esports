@@ -108,7 +108,6 @@ class HawkEsportsBot {
       punishment: punishmentService,
       roleManager: roleManagerService,
       scheduler: new SchedulerService(this.client),
-      ticket: ticketService,
       weaponMastery: new WeaponMasteryService(this.client)
     } as any;
     

@@ -1,5 +1,5 @@
-import { Guild, Role, GuildMember, PermissionFlagsBits } from 'discord.js';
-import { Logger } from './logger.service';
+import { Guild, Role, GuildMember, PermissionFlagsBits, ColorResolvable } from 'discord.js';
+import { Logger } from '../utils/logger';
 import { DEFAULT_ROLES, RoleConfig, CHANNEL_PERMISSIONS } from '../config/roles.config';
 
 /**
@@ -42,11 +42,10 @@ export class RoleManagerService {
         // Create the role
         role = await guild.roles.create({
           name: roleConfig.name,
-          color: roleConfig.color as any,
+          color: roleConfig.color as ColorResolvable,
           permissions: roleConfig.permissions,
           hoist: roleConfig.hoist || false,
-          mentionable: roleConfig.mentionable || false,
-          position: roleConfig.position || 0
+          mentionable: roleConfig.mentionable || false
         });
 
         this.logger.info(`Created role: ${roleConfig.name}`);
@@ -59,7 +58,7 @@ export class RoleManagerService {
 
         if (needsUpdate) {
           await role.edit({
-            color: roleConfig.color as any,
+            color: roleConfig.color as ColorResolvable,
             hoist: roleConfig.hoist || false,
             mentionable: roleConfig.mentionable || false
           });
