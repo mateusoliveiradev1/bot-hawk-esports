@@ -257,6 +257,19 @@ export class SchedulerService {
       handler: this.checkBadgeProgress.bind(this),
     });
     
+    // Every 10 minutes
+    this.addTask({
+      id: 'ticket_cleanup_processor',
+      name: 'Processador de Limpeza de Tickets',
+      description: 'Processa tarefas pendentes de limpeza de canais de ticket',
+      cronExpression: '*/10 * * * *', // Every 10 minutes
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+      averageExecutionTime: 0,
+      handler: this.processTicketCleanupTasks.bind(this),
+    });
+    
     this.logger.info(`Initialized ${this.tasks.size} scheduled tasks`);
   }
 
@@ -1113,6 +1126,111 @@ export class SchedulerService {
       await announcementChannel.send({ embeds: [embed] });
     } catch (error) {
       this.logger.error(`Failed to send weekly report for ${guildId}:`, error);
+    }
+  }
+
+  /**
+   * Process pending ticket cleanup tasks
+   */
+  private async processTicketCleanupTasks(): Promise<void> {
+    try {
+      const ticketService = this.client.services?.ticket;
+      if (!ticketService) {
+        this.logger.warn('Ticket service not available for cleanup processing');
+        return;
+      }
+
+      // Get pending cleanup tasks
+      const pendingTasks = await this.database.client.ticketCleanup.findMany({
+        where: {
+          status: 'scheduled',
+          scheduledFor: {
+            lte: new Date()
+          }
+        },
+        orderBy: {
+          scheduledFor: 'asc'
+        },
+        take: 10 // Process up to 10 tasks per run
+      });
+
+      if (pendingTasks.length === 0) {
+        return;
+      }
+
+      this.logger.info(`Processing ${pendingTasks.length} pending ticket cleanup tasks`);
+
+      for (const task of pendingTasks) {
+        try {
+          // Mark as processing
+          await this.database.client.ticketCleanup.update({
+            where: { id: task.id },
+            data: { status: 'processing' }
+          });
+
+          // Attempt to delete the channel
+          const channel = this.client.channels.cache.get(task.channelId);
+          if (channel && channel.isTextBased()) {
+            await channel.delete('Scheduled ticket cleanup');
+            this.logger.info(`Successfully deleted ticket channel: ${task.channelId}`);
+          }
+
+          // Mark as completed
+          await this.database.client.ticketCleanup.update({
+            where: { id: task.id },
+            data: {
+              status: 'completed',
+              completedAt: new Date()
+            }
+          });
+
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const retryCount = task.retryCount + 1;
+          const maxRetries = 3;
+
+          if (retryCount >= maxRetries) {
+            // Mark as failed after max retries
+            await this.database.client.ticketCleanup.update({
+              where: { id: task.id },
+              data: {
+                status: 'failed',
+                errorMessage,
+                retryCount,
+                completedAt: new Date()
+              }
+            });
+            this.logger.error(`Ticket cleanup failed permanently for channel ${task.channelId}:`, error);
+          } else {
+            // Schedule retry
+            const nextRetry = new Date(Date.now() + (retryCount * 30 * 60 * 1000)); // Exponential backoff: 30min, 1h, 1.5h
+            await this.database.client.ticketCleanup.update({
+              where: { id: task.id },
+              data: {
+                status: 'scheduled',
+                errorMessage,
+                retryCount,
+                scheduledFor: nextRetry
+              }
+            });
+            this.logger.warn(`Ticket cleanup retry ${retryCount}/${maxRetries} scheduled for channel ${task.channelId}`);
+          }
+        }
+      }
+
+      // Clean up old completed/failed tasks (older than 30 days)
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      await this.database.client.ticketCleanup.deleteMany({
+        where: {
+          status: { in: ['completed', 'failed'] },
+          completedAt: {
+            lt: thirtyDaysAgo
+          }
+        }
+      });
+
+    } catch (error) {
+      this.logger.error('Failed to process ticket cleanup tasks:', error);
     }
   }
 

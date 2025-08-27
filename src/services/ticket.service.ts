@@ -834,118 +834,366 @@ export class TicketService {
   }
 
   /**
-   * Perform channel archival with proper error handling
+   * Perform channel archival with enhanced error handling and retry logic
    */
   private async performChannelArchival(
     channel: TextChannel,
     guild: any,
     ticket: TicketData
   ): Promise<void> {
-    try {
-      // Wait 10 seconds before archiving
-      await new Promise(resolve => setTimeout(resolve, 10000));
+    const maxRetries = 3;
+    let retryCount = 0;
 
-      // Check if channel still exists
-      const currentChannel = this.client.channels.cache.get(channel.id) as TextChannel;
-      if (!currentChannel) {
-        this.logger.info(`Channel ${channel.id} already deleted`);
-        return;
-      }
+    while (retryCount < maxRetries) {
+      try {
+        // Wait before archiving (progressive delay on retries)
+        const delay = 10000 + (retryCount * 5000); // 10s, 15s, 20s
+        await new Promise(resolve => setTimeout(resolve, delay));
 
-      // Try to find or create archive category
-      let archiveCategory = guild.channels.cache.find((c: any) => 
-        c.type === ChannelType.GuildCategory && 
-        (c.name.toLowerCase().includes('arquivo') || c.name.toLowerCase().includes('closed'))
-      ) as CategoryChannel;
-
-      if (!archiveCategory) {
-        try {
-          archiveCategory = await guild.channels.create({
-            name: '📁 TICKETS ARQUIVADOS',
-            type: ChannelType.GuildCategory,
-            permissionOverwrites: [
-              {
-                id: guild.roles.everyone.id,
-                deny: [PermissionFlagsBits.ViewChannel]
-              }
-            ]
-          });
-          this.logger.info(`Created archive category: ${archiveCategory.name}`);
-        } catch (error) {
-          this.logger.error('Failed to create archive category:', error);
-          // If we can't create archive category, just delete the channel
-          await this.deleteChannelSafely(currentChannel, 'Failed to archive - deleting directly');
+        // Validate channel still exists and is accessible
+        const currentChannel = await this.validateChannelAccess(channel.id);
+        if (!currentChannel) {
+          this.logger.info(`Channel ${channel.id} no longer accessible or deleted`);
           return;
         }
-      }
 
-      try {
-        // Move channel to archive category
-        await currentChannel.setParent(archiveCategory.id);
-        
-        // Rename channel with closed prefix
-        const newName = `closed-${currentChannel.name.replace(/^ticket-/, '')}`;
-        await currentChannel.setName(newName);
-        
-        // Remove user permissions
-        if (ticket.userId) {
-          await currentChannel.permissionOverwrites.edit(ticket.userId, {
-            ViewChannel: false,
-            SendMessages: false
-          });
+        // Validate bot permissions before proceeding
+        if (!await this.validateArchivePermissions(currentChannel, guild)) {
+          this.logger.warn(`Insufficient permissions to archive channel ${channel.id}`);
+          await this.deleteChannelSafely(currentChannel, 'Insufficient permissions for archival');
+          return;
         }
 
-        this.logger.info(`Archived ticket channel: ${currentChannel.name}`);
+        // Get or create archive category with enhanced error handling
+        const archiveCategory = await this.getOrCreateArchiveCategory(guild);
+        if (!archiveCategory) {
+          this.logger.error('Failed to get or create archive category after all attempts');
+          await this.deleteChannelSafely(currentChannel, 'Archive category unavailable');
+          return;
+        }
 
-        // Schedule deletion after 7 days
-        setTimeout(async () => {
-          await this.deleteChannelSafely(currentChannel, 'Ticket archive cleanup after 7 days');
-        }, 7 * 24 * 60 * 60 * 1000); // 7 days
+        // Perform archival operations with individual error handling
+        await this.performArchivalOperations(currentChannel, archiveCategory, ticket);
+        
+        // Schedule cleanup with persistent storage
+        await this.scheduleChannelCleanup(currentChannel.id, ticket.id);
+        
+        this.logger.info(`Successfully archived ticket channel: ${currentChannel.name}`);
+        return; // Success - exit retry loop
 
-      } catch (archiveError) {
-        this.logger.error('Error during channel archival:', archiveError);
-        // If archiving fails, delete the channel directly
-        await this.deleteChannelSafely(currentChannel, 'Archival failed - deleting directly');
-      }
-
-    } catch (error) {
-      this.logger.error('Error in performChannelArchival:', error);
-      // Last resort: try to delete the channel
-      try {
-        await channel.delete('Emergency cleanup');
-      } catch (deleteError) {
-        this.logger.error('Failed to delete channel in emergency cleanup:', deleteError);
+      } catch (error) {
+        retryCount++;
+        this.logger.error(`Archival attempt ${retryCount} failed for channel ${channel.id}:`, error);
+        
+        if (retryCount >= maxRetries) {
+          this.logger.error(`All archival attempts failed for channel ${channel.id}`);
+          // Final fallback - try to delete the channel
+          await this.deleteChannelSafely(channel, 'All archival attempts failed');
+          return;
+        }
+        
+        // Wait before retry (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
       }
     }
   }
 
   /**
-   * Safely delete a channel with proper error handling
+   * Safely delete a channel with enhanced error handling and fallback strategies
    */
   private async deleteChannelSafely(channel: TextChannel, reason: string): Promise<void> {
+    const maxRetries = 3;
+    let retryCount = 0;
+
+    while (retryCount < maxRetries) {
+      try {
+        // Validate channel access
+        const currentChannel = await this.validateChannelAccess(channel.id);
+        if (!currentChannel) {
+          this.logger.info(`Channel ${channel.id} already deleted or inaccessible`);
+          return;
+        }
+
+        // Check deletion permissions
+        const botMember = currentChannel.guild.members.cache.get(this.client.user!.id);
+        if (!botMember?.permissions.has(PermissionFlagsBits.ManageChannels)) {
+          this.logger.warn(`No permission to delete channel ${channel.id}`);
+          await this.hideChannelAsFallback(currentChannel);
+          return;
+        }
+
+        await currentChannel.delete(reason);
+        this.logger.info(`Successfully deleted ticket channel: ${currentChannel.name}`);
+        return; // Success - exit retry loop
+
+      } catch (error) {
+        retryCount++;
+        this.logger.error(`Deletion attempt ${retryCount} failed for channel ${channel.id}:`, error);
+        
+        if (retryCount >= maxRetries) {
+          this.logger.error(`All deletion attempts failed for channel ${channel.id}`);
+          // Final fallback - try to hide the channel
+          await this.hideChannelAsFallback(channel);
+          return;
+        }
+        
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 2000 * retryCount));
+      }
+    }
+  }
+
+  /**
+   * Validate channel access and return the channel if accessible
+   */
+  private async validateChannelAccess(channelId: string): Promise<TextChannel | null> {
     try {
-      // Check if channel still exists
-      const currentChannel = this.client.channels.cache.get(channel.id);
-      if (!currentChannel) {
-        this.logger.info(`Channel ${channel.id} already deleted`);
-        return;
+      // Try to fetch from cache first
+      let channel = this.client.channels.cache.get(channelId) as TextChannel;
+      
+      // If not in cache, try to fetch from API
+      if (!channel) {
+        channel = await this.client.channels.fetch(channelId) as TextChannel;
+      }
+      
+      // Validate it's a text channel and accessible
+      if (!channel || !channel.isTextBased()) {
+        return null;
+      }
+      
+      return channel;
+    } catch (error) {
+      this.logger.debug(`Channel ${channelId} not accessible:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Validate bot permissions for archival operations
+   */
+  private async validateArchivePermissions(channel: TextChannel, guild: any): Promise<boolean> {
+    try {
+      const botMember = guild.members.cache.get(this.client.user!.id);
+      if (!botMember) return false;
+
+      const requiredPermissions = [
+        PermissionFlagsBits.ManageChannels,
+        PermissionFlagsBits.ViewChannel,
+        PermissionFlagsBits.ManageRoles
+      ];
+
+      return requiredPermissions.every(permission => 
+        botMember.permissions.has(permission) || 
+        channel.permissionsFor(botMember)?.has(permission)
+      );
+    } catch (error) {
+      this.logger.error('Error validating archive permissions:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get or create archive category with enhanced error handling
+   */
+  private async getOrCreateArchiveCategory(guild: any): Promise<CategoryChannel | null> {
+    try {
+      // Try to find existing archive category
+      let archiveCategory = guild.channels.cache.find((c: any) => 
+        c.type === ChannelType.GuildCategory && 
+        (c.name.toLowerCase().includes('arquivo') || 
+         c.name.toLowerCase().includes('closed') ||
+         c.name.toLowerCase().includes('ticket') && c.name.toLowerCase().includes('arquiv'))
+      ) as CategoryChannel;
+
+      if (archiveCategory) {
+        // Validate category is not full (Discord limit: 50 channels per category)
+        const channelsInCategory = guild.channels.cache.filter((c: any) => c.parentId === archiveCategory.id).size;
+        if (channelsInCategory >= 49) { // Leave room for one more
+          // Create a new archive category
+          const newCategory = await this.createNewArchiveCategory(guild, channelsInCategory);
+          if (!newCategory) {
+            throw new Error('Failed to create archive category');
+          }
+          archiveCategory = newCategory;
+        }
+        return archiveCategory;
       }
 
-      await channel.delete(reason);
-      this.logger.info(`Successfully deleted ticket channel: ${channel.name}`);
+      // Create new archive category
+      return await this.createNewArchiveCategory(guild, 0);
     } catch (error) {
-      this.logger.error(`Failed to delete channel ${channel.id}:`, error);
+      this.logger.error('Error getting or creating archive category:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Create a new archive category
+   */
+  private async createNewArchiveCategory(guild: any, existingCount: number): Promise<CategoryChannel | null> {
+    try {
+      const categoryName = existingCount > 0 
+        ? `📁 TICKETS ARQUIVADOS ${Math.floor(existingCount / 49) + 1}`
+        : '📁 TICKETS ARQUIVADOS';
+
+      const archiveCategory = await guild.channels.create({
+        name: categoryName,
+        type: ChannelType.GuildCategory,
+        permissionOverwrites: [
+          {
+            id: guild.roles.everyone.id,
+            deny: [PermissionFlagsBits.ViewChannel]
+          },
+          {
+            id: this.client.user!.id,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.ManageChannels,
+              PermissionFlagsBits.ManageRoles
+            ]
+          }
+        ]
+      });
       
-      // If deletion fails due to permissions, try to at least hide it
-      try {
-        await channel.permissionOverwrites.edit(channel.guild.roles.everyone.id, {
+      this.logger.info(`Created archive category: ${archiveCategory.name}`);
+      return archiveCategory;
+    } catch (error) {
+      this.logger.error('Failed to create archive category:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Perform individual archival operations
+   */
+  private async performArchivalOperations(
+    channel: TextChannel,
+    archiveCategory: CategoryChannel,
+    ticket: TicketData
+  ): Promise<void> {
+    // Move channel to archive category
+    try {
+      await channel.setParent(archiveCategory.id);
+    } catch (error) {
+      this.logger.error('Failed to move channel to archive category:', error);
+      throw error;
+    }
+
+    // Rename channel with closed prefix
+    try {
+      const newName = `closed-${channel.name.replace(/^ticket-/, '').substring(0, 90)}`; // Discord limit
+      await channel.setName(newName);
+    } catch (error) {
+      this.logger.warn('Failed to rename archived channel:', error);
+      // Non-critical error, continue
+    }
+
+    // Update channel permissions
+    try {
+      // Remove user permissions
+      if (ticket.userId) {
+        await channel.permissionOverwrites.edit(ticket.userId, {
           ViewChannel: false,
           SendMessages: false
         });
-        this.logger.info(`Hidden channel ${channel.name} due to deletion failure`);
-      } catch (hideError) {
-        this.logger.error(`Failed to hide channel ${channel.id}:`, hideError);
       }
+
+      // Ensure bot can still manage the channel
+      await channel.permissionOverwrites.edit(this.client.user!.id, {
+        ViewChannel: true,
+        ManageChannels: true,
+        ManageRoles: true
+      });
+    } catch (error) {
+      this.logger.warn('Failed to update archived channel permissions:', error);
+      // Non-critical error, continue
+    }
+  }
+
+  /**
+   * Schedule channel cleanup with persistent tracking
+   */
+  private async scheduleChannelCleanup(channelId: string, ticketId: string, delayHours: number = 168): Promise<void> {
+    try {
+      const scheduledFor = new Date(Date.now() + delayHours * 60 * 60 * 1000);
+      
+      // Store cleanup task in database for persistence
+      await this.database.client.ticketCleanup.upsert({
+        where: {
+          channelId_ticketId: {
+            channelId,
+            ticketId
+          }
+        },
+        create: {
+          channelId,
+          ticketId,
+          scheduledFor,
+          status: 'scheduled'
+        },
+        update: {
+          scheduledFor,
+          status: 'scheduled',
+          retryCount: 0,
+          errorMessage: null
+        }
+      });
+      
+      this.logger.info(`Scheduled cleanup for ticket channel ${channelId} at ${scheduledFor.toISOString()}`);
+      
+    } catch (error) {
+      this.logger.error(`Failed to schedule cleanup for channel ${channelId}:`, error);
+      
+      // Fallback to in-memory scheduling only
+      setTimeout(async () => {
+        await this.performScheduledCleanup(channelId, ticketId);
+      }, delayHours * 60 * 60 * 1000);
+    }
+  }
+
+  /**
+   * Perform scheduled cleanup of archived channels
+   */
+  private async performScheduledCleanup(channelId: string, ticketId: string): Promise<void> {
+    try {
+      const channel = await this.validateChannelAccess(channelId);
+      if (channel) {
+        await this.deleteChannelSafely(channel, 'Scheduled cleanup after 7 days');
+      }
+
+      // Update cleanup status in database
+      await this.database.client.ticketCleanup.updateMany({
+        where: { channelId, ticketId },
+        data: { status: 'completed', completedAt: new Date() }
+      }).catch(error => {
+        this.logger.warn('Failed to update cleanup status:', error);
+      });
+    } catch (error) {
+      this.logger.error('Error in scheduled cleanup:', error);
+    }
+  }
+
+  /**
+   * Hide channel as fallback when deletion fails
+   */
+  private async hideChannelAsFallback(channel: TextChannel): Promise<void> {
+    try {
+      await channel.permissionOverwrites.edit(channel.guild.roles.everyone.id, {
+        ViewChannel: false,
+        SendMessages: false
+      });
+      
+      // Try to rename to indicate it's hidden
+      try {
+        const hiddenName = `hidden-${channel.name.substring(0, 90)}`;
+        await channel.setName(hiddenName);
+      } catch (renameError) {
+        this.logger.warn('Failed to rename hidden channel:', renameError);
+      }
+      
+      this.logger.info(`Hidden channel ${channel.name} due to deletion failure`);
+    } catch (hideError) {
+      this.logger.error(`Failed to hide channel ${channel.id}:`, hideError);
     }
   }
 

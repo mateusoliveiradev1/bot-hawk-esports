@@ -340,6 +340,23 @@ model TicketSettings {
   @@map("ticket_settings")
 }
 
+// Ticket cleanup tasks for persistent archival management
+model TicketCleanup {
+  id          String   @id @default(cuid())
+  channelId   String
+  ticketId    String
+  scheduledFor DateTime
+  status      String   @default("scheduled") // scheduled, completed, failed
+  completedAt DateTime?
+  errorMessage String?
+  retryCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([channelId, ticketId])
+  @@map("ticket_cleanup")
+}
+
 // Music queue
 model MusicQueue {
   id          String   @id @default(cuid())
