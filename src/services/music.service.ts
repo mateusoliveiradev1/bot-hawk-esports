@@ -705,37 +705,45 @@ export class MusicService {
    * Create YouTube stream with robust fallback methods
    */
   private async createYouTubeStream(url: string): Promise<AudioResource | null> {
-    this.logger.debug(`🎵 Creating YouTube stream for: ${url}`);
+    this.logger.info(`🎵 Creating YouTube stream for: ${url}`);
     
     // Clean URL to ensure compatibility
     const cleanUrl = url.includes('youtube.com/watch?v=') ? 
       `https://www.youtube.com/watch?v=${url.split('v=')[1]?.split('&')[0]}` : url;
     
+    this.logger.info(`🧹 Cleaned URL: ${cleanUrl}`);
+    
     // Method 1: Try play-dl first (more reliable for current YouTube changes)
     try {
-      this.logger.debug(`🔄 Trying play-dl method (primary)...`);
+      this.logger.info(`🔄 STARTING play-dl method (primary)...`);
       
       const info = await video_basic_info(cleanUrl);
+      this.logger.info(`📋 Play-dl info received: ${info ? 'SUCCESS' : 'FAILED'}`);
+      
       if (!info || !info.video_details) {
         throw new Error('Could not get video info from play-dl');
       }
       
-      this.logger.debug(`📋 Play-dl video info: ${info.video_details.title}`);
+      this.logger.info(`📋 Play-dl video info: ${info.video_details.title}`);
       
       // Try to get high quality audio stream from play-dl
+      this.logger.info(`🎧 Getting audio stream from play-dl...`);
       const stream = await stream_from_info(info, { quality: 2 }) as any;
+      this.logger.info(`🎧 Stream received: ${stream ? 'SUCCESS' : 'FAILED'}`);
+      
       if (!stream || !stream.stream) {
         throw new Error('Could not get audio stream from play-dl');
       }
       
-      this.logger.debug(`✅ play-dl stream created successfully`);
+      this.logger.info(`✅ play-dl stream created successfully - RETURNING RESOURCE`);
       return createAudioResource(stream.stream, {
         inputType: StreamType.Arbitrary,
         inlineVolume: true,
       });
       
     } catch (playDlError: any) {
-      this.logger.warn(`⚠️ play-dl failed: ${playDlError.message}`);
+      this.logger.error(`❌ play-dl COMPLETELY FAILED: ${playDlError.message}`);
+      this.logger.error(`❌ play-dl error stack:`, playDlError.stack);
       
       // Method 2: Try ytdl-core as fallback
       try {
