@@ -107,10 +107,10 @@ export class MusicService {
       if (clientID) {
         await setToken({
           youtube: {
-            client_id: clientID
+            cookie: ''
           }
         });
-        this.logger.info('✅ Play-dl initialized with free client ID');
+        this.logger.info('✅ Play-dl initialized with cookie configuration');
       } else {
         this.logger.warn('⚠️ Could not get free client ID for play-dl, some features may be limited');
       }
