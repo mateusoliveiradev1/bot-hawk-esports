@@ -159,7 +159,7 @@ const register: Command = {
         
         try {
           // Tentar buscar o jogador na API do PUBG
-          const playerData = await client.pubgService.getPlayerByName(nick, platform);
+          const playerData = await client.services?.pubg.getPlayerByName(nick, platform);
           
           if (!playerData) {
             const notFoundEmbed = new EmbedBuilder()
@@ -356,7 +356,9 @@ const register: Command = {
           logger.info(`User ${interaction.user.tag} registered as ${nick} on ${platform} in guild ${guild.name}`);
           
           // Atualizar progresso de badges
-          await client.badgeService.updateProgress(interaction.user.id, 'registration', 1);
+          if (client.services?.badge) {
+            await client.services.badge.updateProgress(interaction.user.id, 'registration', 1);
+          }
           
         } catch (error) {
           logger.error('PUBG API error during registration:', error);

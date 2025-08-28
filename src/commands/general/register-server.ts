@@ -63,9 +63,9 @@ const registerServer: Command = {
       });
 
       // Give basic member role if configured
-      if ((client as any).roleManagerService) {
+      if (client.services?.roleManager) {
         try {
-          await (client as any).roleManagerService.assignMemberRole(member as any, interaction.guild);
+          await client.services.roleManager.addNewMemberRole(member as any);
         } catch (error) {
           logger.warn('Failed to assign member role:', error);
         }

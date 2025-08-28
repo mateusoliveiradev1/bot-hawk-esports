@@ -17,6 +17,7 @@ import { AutoModerationService } from '../services/automod.service';
 import { TicketService } from '../services/ticket.service';
 import { LoggingService } from '../services/logging.service';
 import { WeaponMasteryService } from '../services/weapon-mastery.service';
+import { RoleManagerService } from '../services/role-manager.service';
 import { CommandManager } from '../commands';
 import { Command } from './command';
 
@@ -61,6 +62,7 @@ export interface ExtendedClient extends Client {
     ticket: TicketService;
     logging: LoggingService;
     weaponMastery: WeaponMasteryService;
+    roleManager: RoleManagerService;
   };
 }
 

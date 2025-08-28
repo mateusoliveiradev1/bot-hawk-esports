@@ -57,7 +57,17 @@ const punishment: Command = {
   
   async execute(interaction: CommandInteraction | ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
     const logger = new Logger();
-    const punishmentService = client.punishmentService;
+    const punishmentService = client.services?.punishment;
+    
+    if (!punishmentService) {
+      const errorEmbed = new EmbedBuilder()
+        .setTitle('❌ Serviço Indisponível')
+        .setDescription('O serviço de punições não está disponível no momento.')
+        .setColor(0xff0000);
+      
+      await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+      return;
+    }
 
     try {
       await interaction.deferReply();

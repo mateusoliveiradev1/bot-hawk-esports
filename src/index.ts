@@ -236,18 +236,22 @@ class HawkEsportsBot {
     try {
       await this.cache.connect();
       
-      // Test cache connection
-      await this.cache.set('bot:startup', Date.now().toString(), 60);
-      const testValue = await this.cache.get('bot:startup');
-      
-      if (!testValue) {
-        throw new Error('Cache test failed');
+      // Test cache connection if Redis is available
+      if (this.cache.isRedisConnected()) {
+        await this.cache.set('bot:startup', Date.now().toString(), 60);
+        const testValue = await this.cache.get('bot:startup');
+        
+        if (!testValue) {
+          this.logger.warn('⚠️ Cache test failed, but continuing with fallback');
+        } else {
+          this.logger.info('✅ Cache service connected and tested');
+        }
+      } else {
+        this.logger.info('✅ Cache service initialized with memory fallback');
       }
-
-      this.logger.info('✅ Cache service connected and tested');
     } catch (error) {
-      this.logger.error('Cache initialization failed:', error);
-      throw error;
+      this.logger.warn('⚠️ Cache initialization failed, continuing with fallback:', error);
+      // Don't throw error, allow bot to continue without Redis
     }
   }
 

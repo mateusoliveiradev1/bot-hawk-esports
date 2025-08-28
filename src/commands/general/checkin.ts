@@ -127,11 +127,15 @@ const checkin: Command = {
       
       // Schedule punishment checks for this session
       const sessionStartTime = new Date();
-      const punishmentService = client.punishmentService;
+      const punishmentService = client.services?.punishment;
+      
+      if (!punishmentService) {
+        logger.warn('PunishmentService not available for checkin');
+      }
       
       // Schedule no-show-up check (1 hour after check-in)
       setTimeout(async () => {
-        if (channelResult.voiceChannel) {
+        if (channelResult.voiceChannel && punishmentService) {
           await punishmentService.checkNoShowUpPunishment(
             userId,
             guildId,
@@ -143,12 +147,14 @@ const checkin: Command = {
       
       // Schedule no-checkout check (6 hours after check-in)
       setTimeout(async () => {
-        await punishmentService.checkNoCheckoutPunishment(
-          userId,
-          guildId,
-          sessionStartTime,
-          channelResult.voiceChannel?.id
-        );
+        if (punishmentService) {
+          await punishmentService.checkNoCheckoutPunishment(
+            userId,
+            guildId,
+            sessionStartTime,
+            channelResult.voiceChannel?.id
+          );
+        }
       }, 6 * 60 * 60 * 1000); // 6 hours
       
       // Award XP for check-in
