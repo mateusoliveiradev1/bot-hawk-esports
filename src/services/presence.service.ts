@@ -118,7 +118,7 @@ export class PresenceService {
     this.logger = new Logger();
     this.cache = client.cache;
     this.database = client.database;
-    this.badgeService = new BadgeService(client);
+    this.badgeService = (client as any).services?.badge || new BadgeService(client, (client as any).services?.xp);
     this.client = client;
     
     this.loadActiveSessions();

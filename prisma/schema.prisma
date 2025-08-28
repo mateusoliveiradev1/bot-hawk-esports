@@ -67,6 +67,7 @@ model User {
   auditLogs     AuditLog[]
   pubgStats     PUBGStats[]
   rankingSnapshots RankingSnapshot[]
+  userChallenges UserChallenge[]
 
   @@map("users")
 }
@@ -440,26 +441,52 @@ model QuizResult {
 // Challenges/Mini-games
 model Challenge {
   id          String   @id @default(cuid())
-  guildId     String
+  guildId     String?
   name        String
   description String
-  type        String   // daily, weekly, monthly, special
-  gameType    String   // trivia, reaction, math, word, etc.
-  difficulty  String   @default("medium")
+  type        String   // kills, games, damage, headshots, revives, wins, survival_time, distance
+  target      Int?     // Target value for completion
+  difficulty  String   @default("medium") // easy, medium, hard, extreme
   requirements String? // Requirements to participate
-  rewards     String?  // Rewards for completion
-  startDate   DateTime
-  endDate     DateTime
+  rewards     String?  // Rewards for completion (JSON)
+  icon        String?
+  rarity      String?  // common, uncommon, rare, epic, legendary
+  timeLimit   Int?     // Time limit in hours
+  startDate   DateTime?
+  endDate     DateTime?
+  date        DateTime? // For daily challenges
   isActive    Boolean  @default(true)
   metadata    String?  // Game-specific data
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Relations
-  guild   Guild        @relation(fields: [guildId], references: [id], onDelete: Cascade)
-  results GameResult[]
+  guild         Guild?         @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  results       GameResult[]
+  userChallenges UserChallenge[]
 
   @@map("challenges")
+}
+
+// User challenges (daily challenges progress)
+model UserChallenge {
+  id          String   @id @default(cuid())
+  userId      String
+  challengeId String
+  progress    Int      @default(0)
+  target      Int
+  completed   Boolean  @default(false)
+  completedAt DateTime?
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, challengeId])
+  @@map("user_challenges")
 }
 
 // Game results

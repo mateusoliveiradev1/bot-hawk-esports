@@ -10,7 +10,7 @@ export class RoleManagerService {
   private logger: Logger;
 
   constructor() {
-    this.logger = new Logger('RoleManager');
+    this.logger = new Logger();
   }
 
   /**
@@ -80,19 +80,21 @@ export class RoleManagerService {
   async addNewMemberRole(member: GuildMember): Promise<boolean> {
     try {
       const newMemberRole = member.guild.roles.cache.find(
-        role => role.name === DEFAULT_ROLES.NEW_MEMBER.name
+        role => role.name === DEFAULT_ROLES.NEW_MEMBER?.name
       );
 
       if (!newMemberRole) {
-        // Try to create the role if it doesn't exist
-        const createdRole = await this.ensureRoleExists(member.guild, DEFAULT_ROLES.NEW_MEMBER);
-        if (createdRole) {
-          await member.roles.add(createdRole);
-          this.logger.info(`Added new member role to ${member.user.tag}`);
-          return true;
+          // Try to create the role if it doesn't exist
+          if (DEFAULT_ROLES.NEW_MEMBER) {
+            const createdRole = await this.ensureRoleExists(member.guild, DEFAULT_ROLES.NEW_MEMBER);
+            if (createdRole) {
+              await member.roles.add(createdRole);
+              this.logger.info(`Added new member role to ${member.user.tag}`);
+              return true;
+            }
+          }
+          return false;
         }
-        return false;
-      }
 
       await member.roles.add(newMemberRole);
       this.logger.info(`Added new member role to ${member.user.tag}`);
@@ -109,16 +111,20 @@ export class RoleManagerService {
   async promoteToVerified(member: GuildMember): Promise<boolean> {
     try {
       const newMemberRole = member.guild.roles.cache.find(
-        role => role.name === DEFAULT_ROLES.NEW_MEMBER.name
+        role => role.name === DEFAULT_ROLES.NEW_MEMBER?.name
       );
       const verifiedRole = member.guild.roles.cache.find(
-        role => role.name === DEFAULT_ROLES.VERIFIED_MEMBER.name
+        role => role.name === DEFAULT_ROLES.VERIFIED_MEMBER?.name
       );
 
       if (!verifiedRole) {
-        const createdRole = await this.ensureRoleExists(member.guild, DEFAULT_ROLES.VERIFIED_MEMBER);
-        if (!createdRole) return false;
-      }
+          if (DEFAULT_ROLES.VERIFIED_MEMBER) {
+            const createdRole = await this.ensureRoleExists(member.guild, DEFAULT_ROLES.VERIFIED_MEMBER);
+            if (!createdRole) return false;
+          } else {
+            return false;
+          }
+        }
 
       // Remove new member role and add verified role
       const rolesToAdd = [verifiedRole!];
@@ -143,7 +149,7 @@ export class RoleManagerService {
   async setupChannelPermissions(guild: Guild): Promise<void> {
     try {
       const newMemberRole = guild.roles.cache.find(
-        role => role.name === DEFAULT_ROLES.NEW_MEMBER.name
+        role => role.name === DEFAULT_ROLES.NEW_MEMBER?.name
       );
 
       if (!newMemberRole) {
@@ -158,7 +164,7 @@ export class RoleManagerService {
         channel.name.toLowerCase().includes('chat')
       );
 
-      if (generalChannel && generalChannel.isTextBased()) {
+      if (generalChannel && generalChannel.isTextBased() && 'permissionOverwrites' in generalChannel) {
         await generalChannel.permissionOverwrites.edit(newMemberRole, CHANNEL_PERMISSIONS.GENERAL);
         this.logger.info(`Setup general channel permissions for new members`);
       }
@@ -169,7 +175,7 @@ export class RoleManagerService {
         channel.name.toLowerCase().includes('bem-vindo')
       );
 
-      if (welcomeChannel && welcomeChannel.isTextBased()) {
+      if (welcomeChannel && welcomeChannel.isTextBased() && 'permissionOverwrites' in welcomeChannel) {
         await welcomeChannel.permissionOverwrites.edit(newMemberRole, CHANNEL_PERMISSIONS.WELCOME);
         this.logger.info(`Setup welcome channel permissions for new members`);
       }
@@ -180,7 +186,7 @@ export class RoleManagerService {
         channel.name.toLowerCase().includes('regras')
       );
 
-      if (rulesChannel && rulesChannel.isTextBased()) {
+      if (rulesChannel && rulesChannel.isTextBased() && 'permissionOverwrites' in rulesChannel) {
         await rulesChannel.permissionOverwrites.edit(newMemberRole, CHANNEL_PERMISSIONS.RULES);
         this.logger.info(`Setup rules channel permissions for new members`);
       }
@@ -195,10 +201,10 @@ export class RoleManagerService {
    */
   getMemberRoleLevel(member: GuildMember): number {
     const roleHierarchy = [
-      DEFAULT_ROLES.NEW_MEMBER.name,
-      DEFAULT_ROLES.VERIFIED_MEMBER.name,
-      DEFAULT_ROLES.BASIC_MEMBER.name
-    ];
+      DEFAULT_ROLES.NEW_MEMBER?.name,
+      DEFAULT_ROLES.VERIFIED_MEMBER?.name,
+      DEFAULT_ROLES.BASIC_MEMBER?.name
+    ].filter(Boolean);
 
     for (let i = roleHierarchy.length - 1; i >= 0; i--) {
       if (member.roles.cache.some(role => role.name === roleHierarchy[i])) {

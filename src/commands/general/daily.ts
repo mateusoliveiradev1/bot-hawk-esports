@@ -29,8 +29,9 @@ const daily: Command = {
   
   async execute(interaction: any, client: ExtendedClient) {
     const logger = new Logger();
-    const database = new DatabaseService();
-    const badgeService = new BadgeService(client);
+    const database = client.database;
+    const xpService = (client as any).xpService;
+    const badgeService = (client as any).badgeService;
 
     try {
       // Check if user is registered

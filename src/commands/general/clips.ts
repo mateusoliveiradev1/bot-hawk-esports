@@ -135,7 +135,8 @@ const data = new SlashCommandBuilder()
 
 async function execute(interaction: CommandInteraction | ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
   const subcommand = (interaction as ChatInputCommandInteraction).options.getSubcommand();
-  const badgeService = new BadgeService(client);
+  const xpService = (client as any).xpService;
+    const badgeService = (client as any).badgeService;
 
   try {
     switch (subcommand) {

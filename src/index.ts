@@ -12,6 +12,8 @@ import { PresenceService } from '@/services/presence.service';
 import { ClipService } from '@/services/clip.service';
 import { SchedulerService } from '@/services/scheduler.service';
 import { APIService } from '@/services/api.service';
+import { ChallengeService } from '@/services/challenge.service';
+import { RankService } from '@/services/rank.service';
 import { OnboardingService } from './services/onboarding.service';
 import { PunishmentService } from './services/punishment.service';
 import { AutoModerationService } from './services/automod.service';
@@ -19,6 +21,7 @@ import { TicketService } from './services/ticket.service';
 import { LoggingService } from './services/logging.service';
 import { WeaponMasteryService } from './services/weapon-mastery.service';
 import { RoleManagerService } from './services/role-manager.service';
+import { XPService } from './services/xp.service';
 import { CommandManager } from './commands/index';
 import { MemberEvents } from './events/memberEvents';
 import { MessageEvents } from './events/messageEvents';
@@ -38,20 +41,22 @@ class HawkEsportsBot {
   private db: DatabaseService;
   private cache: CacheService;
   private services: {
-    pubg: PUBGService;
-    music: MusicService;
-    game: GameService;
-    badge: BadgeService;
-    ranking: RankingService;
-    presence: PresenceService;
-    clip: ClipService;
-    scheduler: SchedulerService;
     api: APIService;
-    onboarding: OnboardingService;
-    punishment: PunishmentService;
     automod: AutoModerationService;
+    xp: XPService;
+    badge: BadgeService;
+    challenge: ChallengeService;
     logging: LoggingService;
+    music: MusicService;
+    onboarding: OnboardingService;
+    presence: PresenceService;
+    pubg: PUBGService;
+    punishment: PunishmentService;
+    rank: RankService;
     roleManager: RoleManagerService;
+    scheduler: SchedulerService;
+    weaponMastery: WeaponMasteryService;
+    clip: ClipService;
   };
   private commands: CommandManager;
   private isShuttingDown = false;
@@ -98,19 +103,26 @@ class HawkEsportsBot {
     const roleManagerService = new RoleManagerService();
     const pubgService = new PUBGService(this.cache);
     
+    // Initialize XPService first as it's needed by other services
+    const xpService = new XPService(this.client);
+    
     this.services = {
       api: new APIService(this.client),
       automod: new AutoModerationService(this.client, this.db, punishmentService),
-      badge: new BadgeService(this.client),
+      xp: xpService,
+      badge: new BadgeService(this.client, xpService),
+      challenge: new ChallengeService(this.client),
       logging: new LoggingService(this.client, this.db),
       music: new MusicService(this.cache, this.db),
       onboarding: new OnboardingService(this.client),
       presence: new PresenceService(this.client),
       pubg: pubgService,
       punishment: punishmentService,
+      rank: new RankService(this.client),
       roleManager: roleManagerService,
       scheduler: new SchedulerService(this.client),
-      weaponMastery: new WeaponMasteryService(this.client)
+      weaponMastery: new WeaponMasteryService(this.client),
+      clip: new ClipService(this.client)
     } as any;
     
     // Attach individual services to client for direct access
@@ -119,13 +131,20 @@ class HawkEsportsBot {
     this.client.presenceService = this.services.presence;
     this.client.schedulerService = this.services.scheduler;
     this.client.apiService = this.services.api;
-    this.client.onboardingService = this.services.onboarding;
-    this.client.punishmentService = this.services.punishment;
-    this.client.automodService = this.services.automod;
-    this.client.ticketService = ticketService;
-    this.client.weaponMasteryService = this.services.weaponMastery;
-    this.client.roleManagerService = this.services.roleManager;
-    this.client.pubgService = this.services.pubg;
+    (this.client as any).onboardingService = this.services.onboarding;
+    (this.client as any).punishmentService = this.services.punishment;
+    // Attach services to client as any to avoid type issues
+    (this.client as any).automodService = this.services.automod;
+    (this.client as any).ticketService = ticketService;
+    (this.client as any).weaponMasteryService = this.services.weaponMastery;
+    (this.client as any).roleManagerService = this.services.roleManager;
+    (this.client as any).pubgService = this.services.pubg;
+    (this.client as any).challengeService = this.services.challenge;
+    (this.client as any).rankService = this.services.rank;
+    (this.client as any).xpService = this.services.xp;
+    (this.client as any).badgeService = this.services.badge;
+    // rankingService is not implemented yet
+    (this.client as any).presenceService = this.services.presence;
     
     // Initialize command manager
     this.commands = new CommandManager(this.client);

@@ -1121,7 +1121,7 @@ export class BadgeService {
       this.logger.info('Starting PUBG badges synchronization...');
       
       // Check if we have PUBG service available
-      if (!this.client.pubg) {
+      if (!(this.client as any).pubgService) {
         this.logger.warn('PUBG service not available for badge sync');
         return;
       }

@@ -51,8 +51,7 @@ export default {
         .setDescription('Ver estatísticas gerais de maestria de armas')
     ),
 
-  async execute(interaction: ChatInputCommandInteraction) {
-    const client = interaction.client as ExtendedClient;
+  async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
     const subcommand = interaction.options.getSubcommand();
 
     try {
@@ -123,7 +122,7 @@ async function handleViewCommand(
     }
 
     // Get weapon mastery data
-    const masteryData = await client.weaponMasteryService.getUserWeaponMastery(userId);
+    const masteryData = await (client as any).weaponMasteryService.getUserWeaponMastery(userId);
 
     if (!masteryData) {
       const embed = new EmbedBuilder()
@@ -182,7 +181,7 @@ async function handleSyncCommand(
     }
 
     // Force sync weapon mastery
-    const synced = await client.weaponMasteryService.forceSyncUserWeaponMastery(
+    const synced = await (client as any).weaponMasteryService.forceSyncUserWeaponMastery(
       userId,
       user.pubgUsername
     );
@@ -238,7 +237,7 @@ async function handleLeaderboardCommand(
   await interaction.deferReply();
 
   try {
-    const leaderboard = await client.weaponMasteryService.getWeaponMasteryLeaderboard(limit);
+    const leaderboard = await (client as any).weaponMasteryService.getWeaponMasteryLeaderboard(limit);
 
     if (leaderboard.length === 0) {
       const embed = new EmbedBuilder()
@@ -297,7 +296,7 @@ async function handleStatsCommand(
   await interaction.deferReply();
 
   try {
-    const stats = await client.weaponMasteryService.getWeaponMasteryStats();
+    const stats = await (client as any).weaponMasteryService.getWeaponMasteryStats();
 
     const embed = new EmbedBuilder()
       .setColor('#2196f3')
@@ -315,7 +314,7 @@ async function handleStatsCommand(
         },
         {
           name: '🔫 Armas Populares',
-          value: stats.topWeapons.slice(0, 5).map((weapon, index) => 
+          value: stats.topWeapons.slice(0, 5).map((weapon: any, index: number) => 
             `**${index + 1}.** ${weapon.name} (${weapon.users} usuários)`
           ).join('\n') || 'Nenhuma arma registrada',
           inline: false,
@@ -510,7 +509,7 @@ async function handleSyncFromButton(
     });
 
     // Force sync weapon mastery
-    const synced = await client.weaponMasteryService.forceSyncUserWeaponMastery(
+    const synced = await (client as any).weaponMasteryService.forceSyncUserWeaponMastery(
       userId,
       user.pubgUsername
     );

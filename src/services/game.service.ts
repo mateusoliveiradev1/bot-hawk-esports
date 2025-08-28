@@ -250,11 +250,11 @@ export class GameService {
           name: challenge.name,
           description: challenge.description,
           type: challenge.type as 'daily' | 'weekly' | 'monthly' | 'special',
-          category: challenge.gameType as 'pubg' | 'social' | 'gaming' | 'participation',
+          category: ((challenge as any).category || 'pubg') as 'pubg' | 'social' | 'gaming' | 'participation',
           requirements: challenge.requirements ? JSON.parse(challenge.requirements as string) : [],
           rewards: challenge.rewards ? JSON.parse(challenge.rewards as string) : { xp: 0, coins: 0 },
-          startDate: challenge.startDate,
-          endDate: challenge.endDate,
+          startDate: challenge.startDate || new Date(),
+          endDate: challenge.endDate || new Date(),
           isActive: challenge.isActive,
         };
         
@@ -437,7 +437,6 @@ export class GameService {
           name: challengeData.name,
           description: challengeData.description,
           type: challengeData.type,
-          gameType: challengeData.category,
           requirements: JSON.stringify(challengeData.requirements),
           rewards: JSON.stringify(challengeData.rewards),
           startDate: challengeData.startDate,
@@ -451,11 +450,11 @@ export class GameService {
         name: challenge.name,
         description: challenge.description,
         type: challenge.type as 'daily' | 'weekly' | 'monthly' | 'special',
-        category: challenge.gameType as 'pubg' | 'social' | 'gaming' | 'participation',
+        category: ((challenge as any).category || 'pubg') as 'pubg' | 'social' | 'gaming' | 'participation',
         requirements: challenge.requirements ? JSON.parse(challenge.requirements as string) : [],
         rewards: challenge.rewards ? JSON.parse(challenge.rewards as string) : { xp: 0, coins: 0 },
-        startDate: challenge.startDate,
-        endDate: challenge.endDate,
+        startDate: challenge.startDate || new Date(),
+        endDate: challenge.endDate || new Date(),
         isActive: challenge.isActive,
       };
       

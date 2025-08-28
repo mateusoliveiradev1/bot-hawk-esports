@@ -53,9 +53,10 @@ const checkin: Command = {
   
   async execute(interaction: CommandInteraction | ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
     const logger = new Logger();
-    const database = new DatabaseService();
-    const presenceService = new PresenceService(client);
-    const badgeService = new BadgeService(client);
+    const database = client.database;
+    const presenceService = (client as any).presenceService;
+    const xpService = (client as any).xpService;
+    const badgeService = (client as any).badgeService;
 
     try {
       await interaction.deferReply();

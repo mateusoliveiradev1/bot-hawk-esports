@@ -490,23 +490,18 @@ export class PUBGService {
    */
   private createMockPlayer(playerName: string, platform: PUBGPlatform): PUBGPlayer {
     return {
-      type: 'player',
       id: `mock_${playerName}_${Date.now()}`,
-      attributes: {
-        name: playerName,
-        shardId: platform,
-        stats: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        patchVersion: '',
-        titleId: 'pubg',
-      },
-      relationships: {
-        matches: {
-          data: []
-        }
-      }
-    } as PUBGPlayer;
+      name: playerName,
+      platform: platform,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      patchVersion: '',
+      titleId: 'pubg',
+      shardId: platform,
+      stats: undefined,
+      seasonStats: [],
+      recentMatches: []
+    };
   }
 
   /**

@@ -1,8 +1,9 @@
 import { Client, Guild, GuildMember, Role } from 'discord.js';
 import { Logger } from '../utils/logger';
-import { DatabaseService } from './database.service';
+import { DatabaseService } from '../database/database.service';
 import { CacheService } from './cache.service';
 import { PUBGService } from './pubg.service';
+import { PUBGPlatform } from '../types/pubg';
 import cron from 'node-cron';
 
 export interface RankMapping {
@@ -33,18 +34,12 @@ export class RankService {
   private rankMappings: Map<string, RankMapping> = new Map();
   private updateJob?: cron.ScheduledTask;
 
-  constructor(
-    client: Client,
-    logger: Logger,
-    database: DatabaseService,
-    cache: CacheService,
-    pubg: PUBGService
-  ) {
+  constructor(client: Client) {
     this.client = client;
-    this.logger = logger;
-    this.database = database;
-    this.cache = cache;
-    this.pubg = pubg;
+    this.logger = (client as any).logger;
+    this.database = (client as any).database;
+    this.cache = (client as any).cache;
+    this.pubg = (client as any).pubg;
 
     this.initializeRankMappings();
     this.scheduleUpdates();
@@ -138,14 +133,13 @@ export class RankService {
       // Get all users with PUBG names
       const users = await this.database.client.user.findMany({
         where: {
-          pubgName: {
+          pubgUsername: {
             not: null
           }
         },
         select: {
           id: true,
-          pubgName: true,
-          discordId: true
+          pubgUsername: true
         }
       });
 
@@ -154,8 +148,8 @@ export class RankService {
 
       for (const user of users) {
         try {
-          if (user.pubgName) {
-            const updated = await this.updateUserRank(user.discordId, user.pubgName);
+          if (user.pubgUsername) {
+            const updated = await this.updateUserRank(user.id, user.pubgUsername);
             if (updated) {
               updatedCount++;
             }
@@ -164,7 +158,7 @@ export class RankService {
           // Rate limiting: wait 100ms between requests
           await new Promise(resolve => setTimeout(resolve, 100));
         } catch (error) {
-          this.logger.error(`Failed to update rank for user ${user.discordId}:`, error);
+          this.logger.error(`Failed to update rank for user ${user.id}:`, error);
           errorCount++;
         }
       }
@@ -186,10 +180,11 @@ export class RankService {
     try {
       // Check cache first (avoid too frequent updates)
       const cacheKey = `user_rank_${discordId}`;
-      const cachedData = await this.cache.get(cacheKey);
+      const cachedData = await this.cache.get<string>(cacheKey);
       
       if (cachedData) {
-        const lastUpdate = new Date(JSON.parse(cachedData).lastUpdated);
+        const parsedData = JSON.parse(cachedData);
+        const lastUpdate = new Date(parsedData.lastUpdated);
         const timeDiff = Date.now() - lastUpdate.getTime();
         
         // Skip if updated less than 1 hour ago
@@ -199,15 +194,22 @@ export class RankService {
       }
 
       // Get PUBG stats
-      const pubgStats = await this.pubg.getPlayerStats(pubgName);
-      if (!pubgStats || !pubgStats.rankedStats) {
-        this.logger.warn(`No ranked stats found for player: ${pubgName}`);
+      const pubgStats = await this.pubg.getPlayerStats(pubgName, PUBGPlatform.STEAM);
+      if (!pubgStats || !pubgStats.gameModeStats) {
+        this.logger.warn(`No stats found for player: ${pubgName}`);
         return false;
       }
 
-      const currentRP = pubgStats.rankedStats.currentRankPoint || 0;
-      const currentTier = pubgStats.rankedStats.currentTier?.tier || 'Unranked';
-      const currentSubTier = pubgStats.rankedStats.currentTier?.subTier || '';
+      // Get ranked stats from squad mode (most common for ranked)
+      const rankedStats = pubgStats.gameModeStats['squad'] || pubgStats.gameModeStats['solo'] || Object.values(pubgStats.gameModeStats)[0];
+      if (!rankedStats) {
+        this.logger.warn(`No game mode stats found for player: ${pubgName}`);
+        return false;
+      }
+
+      const currentRP = rankedStats.rankPoints || 0;
+      const currentTier = rankedStats.rankPointsTitle?.split(' ')[0] || 'Unranked';
+      const currentSubTier = rankedStats.rankPointsTitle?.split(' ')[1] || '';
 
       // Find matching rank mapping
       const rankMapping = this.getRankMappingByRP(currentRP);
@@ -216,13 +218,31 @@ export class RankService {
         return false;
       }
 
-      // Update user in database
-      await this.database.client.user.update({
-        where: { discordId },
-        data: {
-          pubgRank: `${rankMapping.tier} ${rankMapping.subTier}`.trim(),
-          pubgRP: currentRP,
-          lastRankUpdate: new Date()
+      // Save to database - update or create PUBG stats
+      await this.database.client.pUBGStats.upsert({
+        where: {
+          userId_seasonId_gameMode: {
+            userId: discordId,
+            seasonId: 'current',
+            gameMode: 'squad'
+          }
+        },
+        update: {
+          currentTier: currentTier,
+          currentSubTier: currentSubTier,
+          currentRankPoint: currentRP,
+          updatedAt: new Date()
+        },
+        create: {
+          userId: discordId,
+          playerId: pubgName,
+          playerName: pubgName,
+          platform: 'steam',
+          seasonId: 'current',
+          gameMode: 'squad',
+          currentTier: currentTier,
+          currentSubTier: currentSubTier,
+          currentRankPoint: currentRP
         }
       });
 
@@ -333,7 +353,7 @@ export class RankService {
   public async getUserRankData(discordId: string): Promise<UserRankData | null> {
     try {
       const cacheKey = `user_rank_${discordId}`;
-      const cachedData = await this.cache.get(cacheKey);
+      const cachedData = await this.cache.get<string>(cacheKey);
       
       if (cachedData) {
         return JSON.parse(cachedData);
@@ -341,26 +361,29 @@ export class RankService {
 
       // Get from database
       const user = await this.database.client.user.findUnique({
-        where: { discordId },
+        where: { id: discordId },
         select: {
-          pubgName: true,
-          pubgRank: true,
-          pubgRP: true,
-          lastRankUpdate: true
+          pubgUsername: true,
+          pubgStats: {
+            where: { seasonId: 'current' },
+            orderBy: { updatedAt: 'desc' },
+            take: 1
+          }
         }
       });
 
-      if (!user || !user.pubgName) {
+      if (!user || !user.pubgUsername) {
         return null;
       }
 
+      const pubgStats = user.pubgStats[0];
       const rankData: UserRankData = {
         userId: discordId,
-        pubgName: user.pubgName,
-        currentTier: user.pubgRank?.split(' ')[0] || 'Unranked',
-        currentSubTier: user.pubgRank?.split(' ')[1] || '',
-        currentRP: user.pubgRP || 0,
-        lastUpdated: user.lastRankUpdate || new Date()
+        pubgName: user.pubgUsername,
+        currentTier: pubgStats?.currentTier || 'Unranked',
+        currentSubTier: pubgStats?.currentSubTier || '',
+        currentRP: pubgStats?.currentRankPoint || 0,
+        lastUpdated: pubgStats?.updatedAt || new Date()
       };
 
       return rankData;
@@ -377,31 +400,43 @@ export class RankService {
     try {
       const users = await this.database.client.user.findMany({
         where: {
-          pubgRP: {
-            gt: 0
+          pubgStats: {
+            some: {
+              currentRankPoint: {
+                gt: 0
+              },
+              seasonId: 'current'
+            }
           }
         },
         select: {
-          discordId: true,
-          pubgName: true,
-          pubgRank: true,
-          pubgRP: true,
-          lastRankUpdate: true
+          id: true,
+          pubgUsername: true,
+          pubgStats: {
+            where: { seasonId: 'current' },
+            orderBy: { updatedAt: 'desc' },
+            take: 1
+          }
         },
         orderBy: {
-          pubgRP: 'desc'
+          pubgStats: {
+            _count: 'desc'
+          }
         },
         take: limit
       });
 
-      return users.map(user => ({
-        userId: user.discordId,
-        pubgName: user.pubgName || 'Unknown',
-        currentTier: user.pubgRank?.split(' ')[0] || 'Unranked',
-        currentSubTier: user.pubgRank?.split(' ')[1] || '',
-        currentRP: user.pubgRP || 0,
-        lastUpdated: user.lastRankUpdate || new Date()
-      }));
+      return users
+        .filter(user => user.pubgStats.length > 0)
+        .sort((a, b) => (b.pubgStats[0]?.currentRankPoint || 0) - (a.pubgStats[0]?.currentRankPoint || 0))
+        .map((user: any) => ({
+          userId: user.id,
+          pubgName: user.pubgUsername || 'Unknown',
+          currentTier: user.pubgStats[0]?.currentTier || 'Unranked',
+          currentSubTier: user.pubgStats[0]?.currentSubTier || '',
+          currentRP: user.pubgStats[0]?.currentRankPoint || 0,
+          lastUpdated: user.pubgStats[0]?.updatedAt || new Date()
+        }));
     } catch (error) {
       this.logger.error('Failed to get rank leaderboard:', error);
       return [];
@@ -415,7 +450,7 @@ export class RankService {
     try {
       // Clear cache first
       const cacheKey = `user_rank_${discordId}`;
-      await this.cache.delete(cacheKey);
+      await this.cache.del(cacheKey);
       
       // Update rank
       return await this.updateUserRank(discordId, pubgName);
@@ -438,7 +473,7 @@ export class RankService {
    */
   public stopScheduledUpdates(): void {
     if (this.updateJob) {
-      this.updateJob.destroy();
+      this.updateJob.stop();
       this.logger.info('Stopped scheduled rank updates');
     }
   }

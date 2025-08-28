@@ -21,24 +21,28 @@ const registerServer: Command = {
     try {
       const member = interaction.member;
       if (!member || !interaction.guild) {
-        return interaction.reply({
+        await interaction.reply({
           content: '❌ Este comando só pode ser usado em um servidor.',
           ephemeral: true
         });
+        return;
       }
 
       // Check if user is already registered in the database
-      const existingUser = await client.database.users.findById(interaction.user.id);
+      const existingUser = await client.database.client.user.findUnique({
+        where: { id: interaction.user.id }
+      });
       
       if (existingUser && existingUser.serverRegistered) {
-        return interaction.reply({
+        await interaction.reply({
           content: '✅ Você já está registrado no servidor! Use `/register` para registrar seu PUBG.',
           ephemeral: true
         });
+        return;
       }
 
       // Update user registration status
-      await client.database.getClient().user.upsert({
+      await client.database.client.user.upsert({
         where: { id: interaction.user.id },
         update: {
           username: interaction.user.username,
@@ -59,9 +63,9 @@ const registerServer: Command = {
       });
 
       // Give basic member role if configured
-      if (client.roleManagerService) {
+      if ((client as any).roleManagerService) {
         try {
-          await client.roleManagerService.assignMemberRole(member as any, interaction.guild);
+          await (client as any).roleManagerService.assignMemberRole(member as any, interaction.guild);
         } catch (error) {
           logger.warn('Failed to assign member role:', error);
         }

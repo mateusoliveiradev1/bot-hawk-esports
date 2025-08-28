@@ -31,11 +31,12 @@ const profile: Command = {
   
   async execute(interaction: any, client: ExtendedClient) {
     const logger = new Logger();
-    const db = new DatabaseService();
-    const pubgService = new PUBGService();
-    const badgeService = new BadgeService(client);
-    const rankingService = new RankingService(client);
-    const presenceService = new PresenceService(client);
+    const db = client.database;
+    const pubgService = (client as any).pubgService;
+    const xpService = (client as any).xpService;
+    const badgeService = (client as any).badgeService;
+    const rankingService = (client as any).rankingService;
+    const presenceService = (client as any).presenceService;
     
     const targetUser = interaction.options.getUser('user') || interaction.user;
     const isPublic = interaction.options.getBoolean('public') || false;

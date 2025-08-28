@@ -55,10 +55,10 @@ export class XPService {
   private readonly XP_PER_LEVEL = 100;
   private readonly XP_MULTIPLIER = 1.2;
 
-  constructor(prisma: PrismaClient, logger: Logger, cache: CacheService) {
-    this.prisma = prisma;
-    this.logger = logger;
-    this.cache = cache;
+  constructor(client: any) {
+    this.prisma = client.database.client;
+    this.logger = new Logger();
+    this.cache = client.cache;
   }
 
   /**
@@ -116,11 +116,11 @@ export class XPService {
       let bonusXP = 0;
       if (timeSpent) {
         if (timeSpent >= 3) {
-          bonusXP = this.TIME_BONUS_XP['3h+'];
+          bonusXP = this.TIME_BONUS_XP['3h+'] || 0;
         } else if (timeSpent >= 2) {
-          bonusXP = this.TIME_BONUS_XP['2h'];
+          bonusXP = this.TIME_BONUS_XP['2h'] || 0;
         } else if (timeSpent >= 1) {
-          bonusXP = this.TIME_BONUS_XP['1h'];
+          bonusXP = this.TIME_BONUS_XP['1h'] || 0;
         }
       }
 
@@ -284,7 +284,7 @@ export class XPService {
     try {
       const cacheKey = `user:${userId}:xp_info`;
       const cached = await this.cache.get(cacheKey);
-      if (cached) return cached;
+      if (cached && typeof cached === 'string') return JSON.parse(cached);
 
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
@@ -331,7 +331,7 @@ export class XPService {
     try {
       const cacheKey = `xp_leaderboard:${guildId || 'global'}:${limit}`;
       const cached = await this.cache.get(cacheKey);
-      if (cached) return cached;
+      if (cached && typeof cached === 'string') return JSON.parse(cached);
 
       // Query base
       let whereClause = {};

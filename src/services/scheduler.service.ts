@@ -71,7 +71,7 @@ export class SchedulerService {
     this.cache = client.cache;
     this.database = client.database;
     this.rankingService = new RankingService(client);
-    this.badgeService = new BadgeService(client);
+    this.badgeService = new BadgeService(client, (client as any).xpService);
     this.presenceService = new PresenceService(client);
     this.clipService = new ClipService(client);
     this.weaponMasteryService = new WeaponMasteryService(client);

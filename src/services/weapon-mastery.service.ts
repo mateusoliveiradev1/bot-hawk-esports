@@ -6,7 +6,7 @@ import { BadgeService } from './badge.service';
 import { XPService } from './xp.service';
 import { ExtendedClient } from '../types/client';
 import { PUBGPlatform } from '../types/pubg';
-import cron from 'node-cron';
+import * as cron from 'node-cron';
 
 export interface WeaponMasteryData {
   weaponName: string;
@@ -78,9 +78,9 @@ export class WeaponMasteryService {
     this.logger = new Logger();
     this.database = client.database;
     this.cache = client.cache;
-    this.pubg = client.pubg!;
-    this.badge = client.badge!;
-    this.xp = client.xp!;
+    this.pubg = (client as any).pubgService;
+    this.badge = (client as any).badgeService;
+    this.xp = (client as any).xpService;
     
     this.startSyncScheduler();
   }
@@ -109,14 +109,13 @@ export class WeaponMasteryService {
       // Get all users with PUBG names
       const users = await this.database.client.user.findMany({
         where: {
-          pubgName: {
+          pubgUsername: {
             not: null
           }
         },
         select: {
           id: true,
-          discordId: true,
-          pubgName: true
+          pubgUsername: true
         }
       });
 
@@ -125,8 +124,8 @@ export class WeaponMasteryService {
 
       for (const user of users) {
         try {
-          if (user.pubgName) {
-            const synced = await this.syncUserWeaponMastery(user.discordId, user.pubgName);
+          if (user.pubgUsername) {
+            const synced = await this.syncUserWeaponMastery(user.id, user.pubgUsername);
             if (synced) {
               syncedCount++;
             }
@@ -135,7 +134,7 @@ export class WeaponMasteryService {
           // Rate limiting: wait 200ms between requests
           await new Promise(resolve => setTimeout(resolve, 200));
         } catch (error) {
-          this.logger.error(`Failed to sync weapon mastery for user ${user.discordId}:`, error);
+          this.logger.error(`Failed to sync weapon mastery for user ${user.id}:`, error);
           errorCount++;
         }
       }
@@ -160,13 +159,16 @@ export class WeaponMasteryService {
       const cachedData = await this.cache.get(cacheKey);
       
       if (cachedData) {
-        const lastSync = new Date(JSON.parse(cachedData).lastSyncAt);
-        const timeDiff = Date.now() - lastSync.getTime();
-        
-        // Skip if synced less than 1 hour ago
-        if (timeDiff < 3600000) {
-          return false;
-        }
+        const parsedData = typeof cachedData === 'string' ? JSON.parse(cachedData) : cachedData;
+         if (parsedData && parsedData.lastSyncAt) {
+           const lastSync = new Date(parsedData.lastSyncAt);
+           const timeDiff = Date.now() - lastSync.getTime();
+           
+           // Skip if synced less than 1 hour ago
+           if (timeDiff < 3600000) {
+             return false;
+           }
+         }
       }
 
       // Get PUBG player data
@@ -336,7 +338,7 @@ export class WeaponMasteryService {
         for (const milestone of levelMilestones) {
           if (weapon.level >= milestone) {
             const xpAmount = milestone * 5; // 5 XP per milestone level
-            await this.xp.addXP(userId, xpAmount, `Maestria ${weapon.weaponName} Nível ${milestone}`);
+            await this.xp.addXP(userId, 'WEAPON_MASTERY', undefined, xpAmount / 100);
             totalXPAwarded += xpAmount;
           }
         }
@@ -374,7 +376,7 @@ export class WeaponMasteryService {
       const cacheKey = `weapon_mastery_${userId}`;
       const cachedData = await this.cache.get(cacheKey);
       
-      if (cachedData) {
+      if (cachedData && typeof cachedData === 'string') {
         return JSON.parse(cachedData);
       }
 
@@ -461,8 +463,8 @@ export class WeaponMasteryService {
           if (!weaponStats[weapon.weaponName]) {
             weaponStats[weapon.weaponName] = { users: 0, totalLevel: 0 };
           }
-          weaponStats[weapon.weaponName].users++;
-          weaponStats[weapon.weaponName].totalLevel += weapon.level;
+          weaponStats[weapon.weaponName]!.users++;
+          weaponStats[weapon.weaponName]!.totalLevel += weapon.level;
         }
       }
 
@@ -511,7 +513,7 @@ export class WeaponMasteryService {
     try {
       // Clear cache first
       const cacheKey = `weapon_mastery_${userId}`;
-      await this.cache.delete(cacheKey);
+      await this.cache.del(cacheKey);
       
       // Sync weapon mastery
       return await this.syncUserWeaponMastery(userId, pubgName);
@@ -526,7 +528,7 @@ export class WeaponMasteryService {
    */
   public stopScheduledSync(): void {
     if (this.syncJob) {
-      this.syncJob.destroy();
+      this.syncJob.stop();
       this.logger.info('Stopped scheduled weapon mastery sync');
     }
   }
