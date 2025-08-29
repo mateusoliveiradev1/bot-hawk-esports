@@ -196,7 +196,6 @@ class HawkEsportsBot {
     const required = [
       'DISCORD_TOKEN',
       'DATABASE_URL',
-      'REDIS_URL',
       'PUBG_API_KEY',
     ];
 
@@ -204,6 +203,11 @@ class HawkEsportsBot {
     
     if (missing.length > 0) {
       throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+    }
+
+    // Log optional services status
+    if (!process.env.REDIS_URL) {
+      this.logger.info('⚠️ Redis URL not provided - cache will use memory fallback');
     }
 
     this.logger.info('✅ Environment variables validated');

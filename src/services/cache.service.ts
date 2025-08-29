@@ -5,7 +5,7 @@ import { Logger } from '../utils/logger';
  * Cache service using Redis for high-performance data caching with in-memory fallback
  */
 export class CacheService {
-  private client: RedisClientType;
+  private client: RedisClientType | undefined;
   private logger: Logger;
   private isConnected: boolean = false;
   private defaultTTL: number = 3600; // 1 hour in seconds
@@ -14,26 +14,37 @@ export class CacheService {
 
   constructor() {
     this.logger = new Logger();
-    this.client = createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379',
-      socket: {
-        reconnectStrategy: (retries) => {
-          if (retries > 10) {
-            this.logger.error('Redis reconnection failed after 10 attempts');
-            return new Error('Redis reconnection failed');
-          }
-          return Math.min(retries * 50, 1000);
+    
+    // Only initialize Redis client if REDIS_URL is provided
+    if (process.env.REDIS_URL) {
+      this.client = createClient({
+        url: process.env.REDIS_URL,
+        socket: {
+          reconnectStrategy: (retries) => {
+            if (retries > 10) {
+              this.logger.error('Redis reconnection failed after 10 attempts');
+              return new Error('Redis reconnection failed');
+            }
+            return Math.min(retries * 50, 1000);
+          },
         },
-      },
-    });
-
-    this.setupEventListeners();
+      });
+      this.setupEventListeners();
+    } else {
+      this.logger.info('Redis URL not provided, using memory fallback only');
+      this.useMemoryFallback = true;
+      this.isConnected = false;
+    }
   }
 
   /**
    * Setup Redis event listeners
    */
   private setupEventListeners(): void {
+    if (!this.client) {
+      return;
+    }
+    
     this.client.on('connect', () => {
       this.logger.info('Redis client connected');
     });
@@ -62,6 +73,12 @@ export class CacheService {
    * Connect to Redis
    */
   public async connect(): Promise<void> {
+    // If Redis client wasn't initialized, skip connection
+    if (!this.client) {
+      this.logger.info('✅ Cache service initialized with memory fallback only');
+      return;
+    }
+    
     try {
       await this.client.connect();
       this.logger.info('✅ Connected to Redis successfully');
@@ -78,6 +95,10 @@ export class CacheService {
    * Disconnect from Redis
    */
   public async disconnect(): Promise<void> {
+    if (!this.client) {
+      return;
+    }
+    
     try {
       await this.client.disconnect();
       this.isConnected = false;
@@ -99,7 +120,7 @@ export class CacheService {
    * Set a value in cache
    */
   public async set(key: string, value: any, ttl?: number): Promise<void> {
-    if (!this.isConnected) {
+    if (!this.client || !this.isConnected) {
       this.logger.warn(`Redis not connected, skipping cache set for key: ${key}`);
       return;
     }
@@ -125,7 +146,7 @@ export class CacheService {
    * Get a value from cache
    */
   public async get<T>(key: string): Promise<T | null> {
-    if (!this.isConnected) {
+    if (!this.client || !this.isConnected) {
       this.logger.warn(`Redis not connected, skipping cache get for key: ${key}`);
       return null;
     }
@@ -152,6 +173,10 @@ export class CacheService {
    * Delete a key from cache
    */
   public async del(key: string): Promise<boolean> {
+    if (!this.client || !this.isConnected) {
+      return false;
+    }
+    
     try {
       const result = await this.client.del(key);
       this.logger.cache('del', key, result > 0);
@@ -166,6 +191,10 @@ export class CacheService {
    * Check if a key exists in cache
    */
   public async exists(key: string): Promise<boolean> {
+    if (!this.client || !this.isConnected) {
+      return false;
+    }
+    
     try {
       const result = await this.client.exists(key);
       return result === 1;
@@ -179,6 +208,10 @@ export class CacheService {
    * Set expiration time for a key
    */
   public async expire(key: string, ttl: number): Promise<boolean> {
+    if (!this.client || !this.isConnected) {
+      return false;
+    }
+    
     try {
       const result = await this.client.expire(key, ttl);
       return result;
@@ -192,6 +225,10 @@ export class CacheService {
    * Get time to live for a key
    */
   public async ttl(key: string): Promise<number> {
+    if (!this.client || !this.isConnected) {
+      return -1;
+    }
+    
     try {
       return await this.client.ttl(key);
     } catch (error) {
@@ -204,6 +241,10 @@ export class CacheService {
    * Increment a numeric value
    */
   public async incr(key: string): Promise<number> {
+    if (!this.client || !this.isConnected) {
+      throw new Error('Redis not available');
+    }
+    
     try {
       return await this.client.incr(key);
     } catch (error) {
@@ -216,6 +257,10 @@ export class CacheService {
    * Decrement a numeric value
    */
   public async decr(key: string): Promise<number> {
+    if (!this.client || !this.isConnected) {
+      throw new Error('Redis not available');
+    }
+    
     try {
       return await this.client.decr(key);
     } catch (error) {
@@ -228,6 +273,10 @@ export class CacheService {
    * Get multiple keys at once
    */
   public async mget<T>(keys: string[]): Promise<(T | null)[]> {
+    if (!this.client || !this.isConnected) {
+      return keys.map(() => null);
+    }
+    
     try {
       const values = await this.client.mGet(keys);
       return values.map(value => {
@@ -250,6 +299,10 @@ export class CacheService {
    * Set multiple keys at once
    */
   public async mset(keyValuePairs: Record<string, any>, ttl?: number): Promise<void> {
+    if (!this.client || !this.isConnected) {
+      return;
+    }
+    
     try {
       const serializedPairs: string[] = [];
       
@@ -262,7 +315,7 @@ export class CacheService {
       // Set TTL for all keys if specified
       if (ttl) {
         const promises = Object.keys(keyValuePairs).map(key => 
-          this.client.expire(key, ttl),
+          this.client!.expire(key, ttl),
         );
         await Promise.all(promises);
       }
@@ -276,6 +329,10 @@ export class CacheService {
    * Get all keys matching a pattern
    */
   public async keys(pattern: string): Promise<string[]> {
+    if (!this.client || !this.isConnected) {
+      return [];
+    }
+    
     try {
       return await this.client.keys(pattern);
     } catch (error) {
@@ -288,6 +345,10 @@ export class CacheService {
    * Clear all keys matching a pattern
    */
   public async clearPattern(pattern: string): Promise<number> {
+    if (!this.client || !this.isConnected) {
+      return 0;
+    }
+    
     try {
       const keys = await this.keys(pattern);
       if (keys.length === 0) {
@@ -307,6 +368,10 @@ export class CacheService {
    * Flush all cache data
    */
   public async flushAll(): Promise<void> {
+    if (!this.client || !this.isConnected) {
+      return;
+    }
+    
     try {
       await this.client.flushAll();
       this.logger.warn('All cache data has been flushed');
@@ -352,6 +417,16 @@ export class CacheService {
     misses: string;
     hitRate: string;
   }> {
+    if (!this.client || !this.isConnected) {
+      return {
+        keys: 0,
+        memory: '0',
+        hits: '0',
+        misses: '0',
+        hitRate: '0%',
+      };
+    }
+    
     try {
       const info = await this.client.info('stats');
       const keyspace = await this.client.info('keyspace');
