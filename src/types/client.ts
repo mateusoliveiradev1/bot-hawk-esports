@@ -18,6 +18,7 @@ import { TicketService } from '../services/ticket.service';
 import { LoggingService } from '../services/logging.service';
 import { WeaponMasteryService } from '../services/weapon-mastery.service';
 import { RoleManagerService } from '../services/role-manager.service';
+import { PersistentTicketService } from '../services/persistent-ticket.service';
 import { CommandManager } from '../commands';
 import { Command } from './command';
 
@@ -44,6 +45,7 @@ export interface ExtendedClient extends Client {
   automodService: AutoModerationService;
   ticketService: TicketService;
   weaponMasteryService: WeaponMasteryService;
+  persistentTicketService?: PersistentTicketService;
   // New properties for the updated architecture
   db?: DatabaseService;
   services?: {

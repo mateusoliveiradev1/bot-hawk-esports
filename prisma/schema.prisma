@@ -664,3 +664,32 @@ model AuditLog {
 
   @@map("audit_logs")
 }
+
+// Persistent ticket configuration
+model PersistentTicketConfig {
+  id               String  @id @default(cuid())
+  guildId          String  @unique
+  channelId        String
+  categoryId       String?
+  supportRoleId    String?
+  logChannelId     String?
+  maxTicketsPerUser Int    @default(3)
+  autoClose        Boolean @default(false)
+  autoCloseHours   Int     @default(24)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("persistent_ticket_configs")
+}
+
+// Persistent ticket embed messages
+model PersistentTicketMessage {
+  id        String   @id @default(cuid())
+  guildId   String   @unique
+  channelId String
+  messageId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("persistent_ticket_messages")
+}
