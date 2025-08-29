@@ -3,13 +3,14 @@ import { CacheService } from './cache.service';
 import { DatabaseService } from '../database/database.service';
 import { BadgeService } from './badge.service';
 import { ExtendedClient } from '../types/client';
+import { PUBGService } from './pubg.service';
 import { EmbedBuilder, GuildMember, TextChannel } from 'discord.js';
 
 export interface PresenceRecord {
   id: string;
   userId: string;
   guildId: string;
-  type: 'check_in' | 'check_out';
+  type: 'checkin' | 'checkout'; // Fixed: standardized types
   timestamp: Date;
   location?: string;
   note?: string;
@@ -104,13 +105,14 @@ export class PresenceService {
   private cache: CacheService;
   private database: DatabaseService;
   private badgeService: BadgeService;
+  private pubgService: PUBGService;
   private client: ExtendedClient;
-  
+
   private activeSessions: Map<string, Map<string, PresenceSession>> = new Map(); // guildId -> userId -> session
   private presenceStats: Map<string, Map<string, PresenceStats>> = new Map(); // guildId -> userId -> stats
   private guildSettings: Map<string, PresenceSettings> = new Map(); // guildId -> settings
   private dailyStats: Map<string, any> = new Map(); // guildId -> daily stats
-  
+
   private readonly maxSessionDuration = 24 * 60; // 24 hours in minutes
   private readonly streakGracePeriod = 48 * 60 * 60 * 1000; // 48 hours in milliseconds
 
@@ -119,6 +121,7 @@ export class PresenceService {
     this.cache = client.cache;
     this.database = client.database;
     this.badgeService = (client as any).services?.badge || new BadgeService(client, (client as any).services?.xp);
+    this.pubgService = client.pubgService; // Added PUBG service integration
     this.client = client;
     
     this.loadActiveSessions();

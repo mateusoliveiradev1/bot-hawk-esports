@@ -23,6 +23,7 @@ import { WeaponMasteryService } from './services/weapon-mastery.service';
 import { RoleManagerService } from './services/role-manager.service';
 import { XPService } from './services/xp.service';
 import { PersistentTicketService } from './services/persistent-ticket.service';
+import { PresenceFixesService } from './services/presence-fixes.service';
 import { CommandManager } from './commands/index';
 import { MemberEvents } from './events/memberEvents';
 import { MessageEvents } from './events/messageEvents';
@@ -141,6 +142,10 @@ class HawkEsportsBot {
     
     // Initialize PersistentTicketService
     (this.client as any).persistentTicketService = new PersistentTicketService(this.client);
+    
+    // Initialize PresenceFixesService
+    (this.client as any).presenceFixesService = new PresenceFixesService(this.client);
+    
     (this.client as any).roleManagerService = this.services.roleManager;
     (this.client as any).pubgService = this.services.pubg;
     (this.client as any).challengeService = this.services.challenge;
