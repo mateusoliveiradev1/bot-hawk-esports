@@ -6,7 +6,7 @@ import { PunishmentService } from './punishment.service';
 import { PresenceService } from './presence.service';
 import { BadgeService } from './badge.service';
 import { EmbedBuilder, TextChannel, GuildMember } from 'discord.js';
-import { PUBGPlatform } from '../types/pubg';
+import { PUBGPlatform, PUBGGameMode } from '../types/pubg';
 
 export interface PresenceEnhancement {
   id: string;
@@ -202,15 +202,15 @@ export class PresenceEnhancementsService {
           lastValidated: new Date(),
           validationErrors: [],
           stats: stats ? {
-            matches: stats.attributes?.gameModeStats?.squad?.roundsPlayed || 0,
-            kills: stats.attributes?.gameModeStats?.squad?.kills || 0,
-            wins: stats.attributes?.gameModeStats?.squad?.wins || 0,
+            matches: stats.gameModeStats?.squad?.roundsPlayed || 0,
+            kills: stats.gameModeStats?.squad?.kills || 0,
+            wins: stats.gameModeStats?.squad?.wins || 0,
             kda: this.pubgService.calculateKDA(
-              stats.attributes?.gameModeStats?.squad?.kills || 0,
-              stats.attributes?.gameModeStats?.squad?.losses || 1,
-              stats.attributes?.gameModeStats?.squad?.assists || 0
+              stats.gameModeStats?.squad?.kills || 0,
+              stats.gameModeStats?.squad?.losses || 1,
+              stats.gameModeStats?.squad?.assists || 0
             ),
-            rank: stats.attributes?.gameModeStats?.squad?.currentTier?.tier || 'Unranked'
+            rank: stats.rankPointTitle || 'Unranked'
           } : undefined
         };
       }

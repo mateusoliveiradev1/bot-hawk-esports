@@ -125,6 +125,7 @@ export default {
             content: '❌ Subcomando não reconhecido.',
             ephemeral: true
           });
+          break;
       }
       
     } catch (error) {
@@ -144,6 +145,7 @@ export default {
         });
       }
     }
+    return;
   }
 };
 
@@ -248,7 +250,7 @@ async function handleValidatePubg(
       },
       {
         name: '🕐 Última Validação',
-        value: `<t:${Math.floor(validation.lastValidated.getTime() / 1000)}:R>`,
+        value: validation.lastValidated ? `<t:${Math.floor(validation.lastValidated.getTime() / 1000)}:R>` : 'Nunca validado',
         inline: true
       }
     );
@@ -274,11 +276,11 @@ async function handleValidatePubg(
       {
         name: '📊 Estatísticas PUBG',
         value: [
-          `**Partidas:** ${validation.stats.matches}`,
-          `**Kills:** ${validation.stats.kills}`,
-          `**Vitórias:** ${validation.stats.wins}`,
-          `**KDA:** ${validation.stats.kda.toFixed(2)}`,
-          `**Rank:** ${validation.stats.rank}`
+          `**Partidas:** ${validation.stats.matches || 0}`,
+          `**Kills:** ${validation.stats.kills || 0}`,
+          `**Vitórias:** ${validation.stats.wins || 0}`,
+          `**KDA:** ${validation.stats.kda ? validation.stats.kda.toFixed(2) : '0.00'}`,
+          `**Rank:** ${validation.stats.rank || 'N/A'}`
         ].join('\n'),
         inline: false
       }
