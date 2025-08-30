@@ -104,23 +104,23 @@ export class RankService {
    * Schedule automatic rank updates (08:00 and 20:00 UTC)
    */
   private scheduleUpdates(): void {
-    // Update at 08:00 UTC
-    this.updateJob = cron.schedule('0 8 * * *', async () => {
-      this.logger.info('Starting scheduled rank update (08:00 UTC)');
+    // Update at 04:00 UTC
+    this.updateJob = cron.schedule('0 4 * * *', async () => {
+      this.logger.info('Starting scheduled rank update (04:00 UTC)');
       await this.updateAllUserRanks();
     }, {
       timezone: 'UTC'
     });
 
-    // Update at 20:00 UTC
-    cron.schedule('0 20 * * *', async () => {
-      this.logger.info('Starting scheduled rank update (20:00 UTC)');
+    // Update at 16:00 UTC
+    cron.schedule('0 16 * * *', async () => {
+      this.logger.info('Starting scheduled rank update (16:00 UTC)');
       await this.updateAllUserRanks();
     }, {
       timezone: 'UTC'
     });
 
-    this.logger.info('Scheduled rank updates for 08:00 and 20:00 UTC');
+    this.logger.info('Scheduled rank updates for 04:00 and 16:00 UTC');
   }
 
   /**
@@ -483,21 +483,21 @@ export class RankService {
    */
   public getNextUpdateTime(): Date {
     const now = new Date();
-    const today8AM = new Date(now);
-    today8AM.setUTCHours(8, 0, 0, 0);
+    const today4AM = new Date(now);
+    today4AM.setUTCHours(4, 0, 0, 0);
     
-    const today8PM = new Date(now);
-    today8PM.setUTCHours(20, 0, 0, 0);
+    const today4PM = new Date(now);
+    today4PM.setUTCHours(16, 0, 0, 0);
     
-    const tomorrow8AM = new Date(today8AM);
-    tomorrow8AM.setDate(tomorrow8AM.getDate() + 1);
+    const tomorrow4AM = new Date(today4AM);
+    tomorrow4AM.setDate(tomorrow4AM.getDate() + 1);
 
-    if (now < today8AM) {
-      return today8AM;
-    } else if (now < today8PM) {
-      return today8PM;
+    if (now < today4AM) {
+      return today4AM;
+    } else if (now < today4PM) {
+      return today4PM;
     } else {
-      return tomorrow8AM;
+      return tomorrow4AM;
     }
   }
 }
