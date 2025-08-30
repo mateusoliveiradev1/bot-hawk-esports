@@ -69,7 +69,7 @@ export const exclusiveBadges: Command = {
     if (!badgeOptimizationService || !badgeService) {
        await interaction.reply({
          content: '❌ Serviços não disponíveis no momento.',
-         ephemeral: true,
+         ephemeral: true
        });
        return;
      }

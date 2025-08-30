@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, ComponentType } from 'discord.js';
-import { Command, CommandCategory } from '@/types/command';
-import { ExtendedClient } from '@/types/client';
-import { Logger } from '@/utils/logger';
+import { Command, CommandCategory } from '../../types/command';
+import { ExtendedClient } from '../../types/client';
+import { Logger } from '../../utils/logger';
 
 /**
  * Help command - Shows all available commands organized by category

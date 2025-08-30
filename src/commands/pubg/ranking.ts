@@ -1,9 +1,9 @@
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
-import { Command, CommandCategory } from '@/types/command';
-import { ExtendedClient } from '@/types/client';
-import { Logger } from '@/utils/logger';
-import { RankingService } from '@/services/ranking.service';
-import { DatabaseService } from '@/database/database.service';
+import { Command, CommandCategory } from '../../types/command';
+import { ExtendedClient } from '../../types/client';
+import { Logger } from '../../utils/logger';
+import { RankingService } from '../../services/ranking.service';
+import { DatabaseService } from '../../database/database.service';
 
 /**
  * Ranking command - Shows PUBG and internal rankings

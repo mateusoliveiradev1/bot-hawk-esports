@@ -1,9 +1,9 @@
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, ChatInputCommandInteraction } from 'discord.js';
-import { Command, CommandCategory } from '@/types/command';
-import { ExtendedClient } from '@/types/client';
-import { Logger } from '@/utils/logger';
-import { GameService, QuizSettings } from '@/services/game.service';
-import { DatabaseService } from '@/database/database.service';
+import { Command, CommandCategory } from '../../types/command';
+import { ExtendedClient } from '../../types/client';
+import { Logger } from '../../utils/logger';
+import { GameService, QuizSettings } from '../../services/game.service';
+import { DatabaseService } from '../../database/database.service';
 
 /**
  * Quiz command - Interactive PUBG and gaming quizzes

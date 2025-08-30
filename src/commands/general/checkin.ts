@@ -13,13 +13,13 @@ import {
   PermissionFlagsBits,
   ComponentType
 } from 'discord.js';
-import { Command, CommandCategory } from '@/types/command';
-import { ExtendedClient } from '@/types/client';
-import { Logger } from '@/utils/logger';
-import { PresenceService } from '@/services/presence.service';
-import { BadgeService } from '@/services/badge.service';
-import { DatabaseService } from '@/database/database.service';
-import { PresenceEnhancementsService } from '@/services/presence-enhancements.service';
+import { Command, CommandCategory } from '../../types/command';
+import { ExtendedClient } from '../../types/client';
+import { Logger } from '../../utils/logger';
+import { PresenceService } from '../../services/presence.service';
+import { BadgeService } from '../../services/badge.service';
+import { DatabaseService } from '../../database/database.service';
+import { PresenceEnhancementsService } from '../../services/presence-enhancements.service';
 import { getChannelConfig, formatCleanupTime } from '../../config/channels.config.js';
 
 /**

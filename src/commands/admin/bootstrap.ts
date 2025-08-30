@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, TextChannel, Collection } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, TextChannel, Collection, Guild, Role, GuildChannel, CategoryChannel, ChatInputCommandInteraction, ColorResolvable } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
 import { Logger } from '../../utils/logger';
@@ -6,18 +6,20 @@ import { Logger } from '../../utils/logger';
 /**
  * Clean old messages from channels
  */
-async function cleanOldMessages(guild: any): Promise<string> {
+async function cleanOldMessages(guild: Guild): Promise<string> {
   const logger = new Logger();
   let cleaned = 0;
   
   try {
-    const channels = guild.channels.cache.filter((c: any) => c.type === ChannelType.GuildText);
+    const channels = guild.channels.cache.filter(c => c.type === ChannelType.GuildText);
     
-    for (const channel of channels.values()) {
+    for (const channel of Array.from(channels.values())) {
+      if (!channel.isTextBased()) continue;
+      
       try {
         const messages = await channel.messages.fetch({ limit: 100 });
-        const oldMessages = messages.filter((msg: any) => 
-          Date.now() - msg.createdTimestamp > 14 * 24 * 60 * 60 * 1000 // 14 dias
+        const oldMessages = messages.filter(msg => 
+          !msg.pinned && (Date.now() - msg.createdTimestamp > 14 * 24 * 60 * 60 * 1000) // 14 dias
         );
         
         if (oldMessages.size > 0) {
@@ -25,7 +27,7 @@ async function cleanOldMessages(guild: any): Promise<string> {
           cleaned += oldMessages.size;
         }
       } catch (error) {
-        // Ignorar erros de canais específicos
+        // Ignorar erros de canais específicos (permissões, mensagens muito antigas, etc.)
         logger.warn(`Could not clean messages in ${channel.name}:`, error);
       }
     }
@@ -47,7 +49,7 @@ function createProgressEmbed(step: number, total: number, currentTask: string): 
   return new EmbedBuilder()
     .setTitle('🚀 Configurando Servidor Perfeito')
     .setDescription(`**${currentTask}**\n\n🔄 Progresso: ${percentage}%\n\`${progressBar}\` ${step}/${total}`)
-    .setColor('#00D4AA')
+    .setColor(0x00D4AA as ColorResolvable)
     .setFooter({ text: 'Criando a experiência Discord perfeita...' })
     .setTimestamp();
 }
@@ -78,27 +80,107 @@ const bootstrap: Command = {
   cooldown: 60,
   permissions: ['Administrator'],
   
-  async execute(interaction, client: ExtendedClient) {
+  async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
     const logger = new Logger();
-    const mode = (interaction as any).options?.getString('mode') || 'full';
+    const mode = interaction.options?.get('mode')?.value as string || 'full';
+    
+    if (!interaction.guild) {
+      await interaction.reply({ content: '❌ Este comando só pode ser usado em servidores!', ephemeral: true });
+      return;
+    }
     
     try {
       await interaction.deferReply({ ephemeral: true });
       
-      const guild = interaction.guild!;
+      const guild = interaction.guild;
       const setupResults: string[] = [];
       
+      // Função para executar o bootstrap
+      const performBootstrap = async () => {
+        const totalSteps = mode === 'full' ? 7 : mode === 'initial' ? 4 : 3;
+        let currentStep = 0;
+
+        const updateProgress = async (task: string) => {
+          currentStep++;
+          const progressEmbed = createProgressEmbed(currentStep, totalSteps, task);
+          await interaction.editReply({ embeds: [progressEmbed] });
+        };
+
+        try {
+          if (mode === 'full' || mode === 'initial') {
+            await updateProgress('🧹 Limpando mensagens antigas...');
+            setupResults.push(await cleanOldMessages(guild));
+          }
+
+          if (mode === 'full' || mode === 'roles') {
+            await updateProgress('👥 Configurando cargos...');
+            setupResults.push(await setupRoles(guild));
+          }
+
+          if (mode === 'full' || mode === 'channels') {
+            await updateProgress('📁 Criando canais...');
+            setupResults.push(await setupChannels(guild, mode));
+          }
+
+          if (mode === 'full') {
+            await updateProgress('🗄️ Configurando banco de dados...');
+            setupResults.push(await setupDatabase(guild, client));
+
+            await updateProgress('🔐 Configurando permissões...');
+            setupResults.push(await setupPermissions(guild));
+
+            await updateProgress('🎯 Configurando elementos interativos...');
+            await setupInteractiveElements(guild);
+            await setupAutomaticReactions(guild);
+
+            await updateProgress('✨ Finalizando configuração...');
+            setupResults.push(await setupWelcomeMessages(guild));
+            setupResults.push(await setupFinalTouches(guild));
+          }
+
+          // Embed de sucesso
+          const successEmbed = new EmbedBuilder()
+            .setTitle('✅ Configuração Concluída!')
+            .setDescription('O servidor foi configurado com sucesso!')
+            .setColor(0x00FF00)
+            .addFields(
+              { name: '📊 Resumo', value: setupResults.join('\n'), inline: false },
+              { name: '⏰ Tempo', value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true },
+              { name: '🔧 Modo', value: mode, inline: true }
+            )
+            .setFooter({ text: 'Hawk Esports Bot - Sistema de Configuração' })
+            .setTimestamp();
+
+          await interaction.editReply({ embeds: [successEmbed] });
+
+        } catch (error) {
+          logger.error('Bootstrap error:', error);
+          const errorEmbed = new EmbedBuilder()
+            .setTitle('❌ Erro na Configuração')
+            .setDescription(`Ocorreu um erro durante a configuração: ${error}`)
+            .setColor(0xFF0000)
+            .setTimestamp();
+
+          await interaction.editReply({ embeds: [errorEmbed] });
+        }
+      };
+      
       // Verificar se já foi configurado
-      const existingConfig = await client.database.client.guildConfig.findUnique({
-        where: { guildId: guild.id },
-      });
+      let existingConfig;
+      try {
+        existingConfig = await client.database.client.guildConfig.findUnique({
+          where: { guildId: guild.id },
+        });
+      } catch (error) {
+        logger.warn('Could not check existing config:', error);
+      }
       
       const configData = existingConfig?.config as any;
       if (configData?.isSetup && mode === 'full') {
         const confirmEmbed = new EmbedBuilder()
           .setTitle('⚠️ Servidor já configurado')
           .setDescription('Este servidor já foi configurado anteriormente. Deseja reconfigurar?')
-          .setColor('#FFA500')
+          .setColor(0xFFA500)
           .addFields(
             { name: '📅 Configurado em', value: existingConfig ? `<t:${Math.floor(existingConfig.createdAt.getTime() / 1000)}:F>` : 'Não disponível', inline: true },
             { name: '🔧 Última atualização', value: existingConfig ? `<t:${Math.floor(existingConfig.updatedAt.getTime() / 1000)}:R>` : 'Não disponível', inline: true },
@@ -118,124 +200,45 @@ const bootstrap: Command = {
               .setEmoji('❌'),
           );
         
-        await interaction.editReply({
+        const response = await interaction.editReply({
           embeds: [confirmEmbed],
           components: [confirmRow],
         });
         
-        // Aguardar confirmação
-        const filter = (i: any) => i.user.id === interaction.user.id;
-        const collector = interaction.channel?.createMessageComponentCollector({ filter, time: 30000 });
-        
-        collector?.on('collect', async (i) => {
-          if (i.customId === 'bootstrap_cancel') {
-            await i.update({
-              embeds: [new EmbedBuilder().setTitle('❌ Configuração cancelada').setColor('#FF0000')],
+        try {
+          const confirmation = await response.awaitMessageComponent({
+            filter: i => i.user.id === interaction.user.id,
+            time: 30000
+          });
+          
+          if (confirmation.customId === 'bootstrap_cancel') {
+            await confirmation.update({
+              embeds: [new EmbedBuilder().setTitle('❌ Configuração cancelada').setColor(0xFF0000)],
               components: [],
             });
             return;
           }
           
-          if (i.customId === 'bootstrap_confirm') {
-            await i.update({
-              embeds: [new EmbedBuilder().setTitle('🔄 Reconfigurando servidor...').setColor('#0099FF')],
+          if (confirmation.customId === 'bootstrap_confirm') {
+            await confirmation.update({
+              embeds: [new EmbedBuilder().setTitle('🔄 Reconfigurando servidor...').setColor(0x0099FF)],
               components: [],
             });
             
             // Continuar com a configuração
             await performBootstrap();
           }
-        });
-        
-        collector?.on('end', (collected) => {
-          if (collected.size === 0) {
-            interaction.editReply({
-              embeds: [new EmbedBuilder().setTitle('⏰ Tempo esgotado').setColor('#FF0000')],
-              components: [],
-            });
-          }
-        });
+        } catch (error) {
+          logger.warn('Confirmation timeout or error:', error);
+          await interaction.editReply({
+            embeds: [new EmbedBuilder().setTitle('⏰ Tempo esgotado').setColor(0xFF0000)],
+            components: [],
+          });
+          return;
+        }
         
         return;
       }
-      
-      const performBootstrap = async () => {
-        const totalSteps = mode === 'full' ? 7 : mode === 'initial' ? 4 : 3;
-        let currentStep = 0;
-        
-        // Passo 0: Limpeza inicial
-        if (mode === 'full') {
-          currentStep++;
-          await interaction.editReply({ embeds: [createProgressEmbed(currentStep, totalSteps, '🧹 Limpando mensagens antigas...')], components: [] });
-          setupResults.push(await cleanOldMessages(guild));
-        }
-        
-        // Passo 1: Criar/Atualizar cargos
-        if (mode === 'full' || mode === 'roles') {
-          currentStep++;
-          await interaction.editReply({ embeds: [createProgressEmbed(currentStep, totalSteps, '👥 Configurando sistema de cargos...')], components: [] });
-          setupResults.push(await setupRoles(guild));
-        }
-        
-        // Passo 2: Criar/Atualizar canais
-        if (mode === 'full' || mode === 'channels') {
-          currentStep++;
-          await interaction.editReply({ embeds: [createProgressEmbed(currentStep, totalSteps, '📺 Criando canais especializados...')], components: [] });
-          setupResults.push(await setupChannels(guild, 'full'));
-        } else if (mode === 'initial') {
-          currentStep++;
-          await interaction.editReply({ embeds: [createProgressEmbed(currentStep, totalSteps, '📺 Criando canais essenciais...')], components: [] });
-          setupResults.push(await setupChannels(guild, 'initial'));
-        }
-        
-        // Passo 3: Configurar banco de dados
-        if (mode === 'full' || mode === 'config') {
-          currentStep++;
-          await interaction.editReply({ embeds: [createProgressEmbed(currentStep, totalSteps, '💾 Configurando banco de dados...')], components: [] });
-          setupResults.push(await setupDatabase(guild, client));
-        }
-        
-        // Passo 4: Configurar permissões
-        if (mode === 'full') {
-          currentStep++;
-          await interaction.editReply({ embeds: [createProgressEmbed(currentStep, totalSteps, '🔒 Aplicando permissões de segurança...')], components: [] });
-          setupResults.push(await setupPermissions(guild));
-        }
-        
-        // Passo 5: Enviar mensagens de boas-vindas
-        if (mode === 'full') {
-          currentStep++;
-          await interaction.editReply({ embeds: [createProgressEmbed(currentStep, totalSteps, '💬 Criando mensagens de boas-vindas...')], components: [] });
-          setupResults.push(await setupWelcomeMessages(guild));
-        }
-        
-        // Passo 6: Configurações finais e reações automáticas
-        if (mode === 'full') {
-          currentStep++;
-          await interaction.editReply({ embeds: [createProgressEmbed(currentStep, totalSteps, '⚡ Aplicando toques finais...')], components: [] });
-          setupResults.push(await setupFinalTouches(guild));
-          
-          // Add automatic reactions and interactive elements
-          await setupAutomaticReactions(guild);
-          await setupInteractiveElements(guild);
-        }
-        
-        // Resultado final
-        const successEmbed = new EmbedBuilder()
-          .setTitle('✅ Servidor configurado com sucesso!')
-          .setDescription('Todas as configurações foram aplicadas. Seu servidor está pronto para uso!')
-          .setColor('#00FF00')
-          .addFields(
-            { name: '📊 Resultados', value: setupResults.join('\n'), inline: false },
-            { name: '🎯 Próximos passos', value: '• Use `/help` para ver todos os comandos\n• Configure as notificações com `/config`\n• Adicione usuários PUBG com `/register`', inline: false },
-          )
-          .setFooter({ text: `Configurado por ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
-          .setTimestamp();
-        
-        await interaction.editReply({ embeds: [successEmbed] });
-        
-        logger.info(`Server ${guild.name} (${guild.id}) bootstrapped by ${interaction.user.tag}`);
-      };
       
       await performBootstrap();
       
@@ -245,12 +248,16 @@ const bootstrap: Command = {
       const errorEmbed = new EmbedBuilder()
         .setTitle('❌ Erro na configuração')
         .setDescription('Ocorreu um erro durante a configuração do servidor. Verifique as permissões do bot.')
-        .setColor('#FF0000')
+        .setColor(0xFF0000)
         .addFields(
-          { name: '🔍 Detalhes', value: error instanceof Error ? error.message : 'Erro desconhecido' },
+          { name: '🔍 Detalhes', value: error instanceof Error ? error.message.slice(0, 1000) : 'Erro desconhecido' },
         );
       
-      await interaction.editReply({ embeds: [errorEmbed] });
+      if (interaction.deferred || interaction.replied) {
+        await interaction.editReply({ embeds: [errorEmbed] });
+      } else {
+        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+      }
     }
   },
 };
@@ -258,94 +265,94 @@ const bootstrap: Command = {
 /**
  * Setup server roles
  */
-async function setupRoles(guild: any): Promise<string> {
+async function setupRoles(guild: Guild): Promise<string> {
   const logger = new Logger();
   let created = 0;
   let updated = 0;
   
   // Staff Roles (Highest Priority)
   const staffRoles = [
-    { name: '👑 Fundador', color: '#FFD700', position: 50, permissions: ['ADMINISTRATOR'] },
-    { name: '🛡️ Admin', color: '#E74C3C', position: 49, permissions: ['MANAGE_GUILD', 'MANAGE_CHANNELS', 'MANAGE_ROLES'] },
-    { name: '⚔️ Moderador', color: '#3498DB', position: 48, permissions: ['MANAGE_MESSAGES', 'KICK_MEMBERS', 'MUTE_MEMBERS'] },
-    { name: '🎯 Helper', color: '#2ECC71', position: 47, permissions: ['MANAGE_MESSAGES'] },
-    { name: '🤖 Bot Manager', color: '#7289DA', position: 46, permissions: ['MANAGE_WEBHOOKS'] },
+    { name: '👑 Fundador', color: 0xFFD700, position: 50, permissions: ['ADMINISTRATOR'] },
+    { name: '🛡️ Admin', color: 0xE74C3C, position: 49, permissions: ['MANAGE_GUILD', 'MANAGE_CHANNELS', 'MANAGE_ROLES'] },
+    { name: '⚔️ Moderador', color: 0x3498DB, position: 48, permissions: ['MANAGE_MESSAGES', 'KICK_MEMBERS', 'MUTE_MEMBERS'] },
+    { name: '🎯 Helper', color: 0x2ECC71, position: 47, permissions: ['MANAGE_MESSAGES'] },
+    { name: '🤖 Bot Manager', color: 0x7289DA, position: 46, permissions: ['MANAGE_WEBHOOKS'] },
   ];
 
   // VIP & Special Roles
   const vipRoles = [
-    { name: '💎 VIP Diamond', color: '#B9F2FF', position: 45 },
-    { name: '🌟 VIP Gold', color: '#FFD700', position: 44 },
-    { name: '⭐ VIP Silver', color: '#C0C0C0', position: 43 },
-    { name: '🎵 DJ Oficial', color: '#1ABC9C', position: 42 },
-    { name: '🎨 Designer', color: '#E67E22', position: 41 },
-    { name: '📹 Streamer', color: '#9146FF', position: 40 },
-    { name: '🎬 Content Creator', color: '#FF69B4', position: 39 },
+    { name: '💎 VIP Diamond', color: 0xB9F2FF, position: 45 },
+    { name: '🌟 VIP Gold', color: 0xFFD700, position: 44 },
+    { name: '⭐ VIP Silver', color: 0xC0C0C0, position: 43 },
+    { name: '🎵 DJ Oficial', color: 0x1ABC9C, position: 42 },
+    { name: '🎨 Designer', color: 0xE67E22, position: 41 },
+    { name: '📹 Streamer', color: 0x9146FF, position: 40 },
+    { name: '🎬 Content Creator', color: 0xFF69B4, position: 39 },
   ];
 
   // Achievement Roles
   const achievementRoles = [
-    { name: '🏆 Campeão', color: '#FFD700', position: 38 },
-    { name: '🥇 MVP da Temporada', color: '#F39C12', position: 37 },
-    { name: '🎯 Sniper Elite', color: '#FF6B6B', position: 36 },
-    { name: '🔥 Clutch Master', color: '#FF4500', position: 35 },
-    { name: '👑 Chicken Dinner King', color: '#FFA500', position: 34 },
-    { name: '🎖️ Veterano', color: '#8B4513', position: 33 },
+    { name: '🏆 Campeão', color: 0xFFD700, position: 38 },
+    { name: '🥇 MVP da Temporada', color: 0xF39C12, position: 37 },
+    { name: '🎯 Sniper Elite', color: 0xFF6B6B, position: 36 },
+    { name: '🔥 Clutch Master', color: 0xFF4500, position: 35 },
+    { name: '👑 Chicken Dinner King', color: 0xFFA500, position: 34 },
+    { name: '🎖️ Veterano', color: 0x8B4513, position: 33 },
   ];
 
   // PUBG Competitive Ranks
   const pubgCompetitiveRanks = [
-    { name: '🏆 Conqueror', color: '#9C27B0', position: 32 },
-    { name: '💎 Grandmaster', color: '#FF1744', position: 31 },
-    { name: '🔥 Master', color: '#FF6B6B', position: 30 },
-    { name: '💠 Diamond', color: '#B9F2FF', position: 29 },
-    { name: '🥈 Platinum', color: '#E5E4E2', position: 28 },
-    { name: '🥇 Gold', color: '#FFD700', position: 27 },
-    { name: '🥉 Silver', color: '#C0C0C0', position: 26 },
-    { name: '🟤 Bronze', color: '#CD7F32', position: 25 },
+    { name: '🏆 Conqueror', color: 0x9C27B0, position: 32 },
+    { name: '💎 Grandmaster', color: 0xFF1744, position: 31 },
+    { name: '🔥 Master', color: 0xFF6B6B, position: 30 },
+    { name: '💠 Diamond', color: 0xB9F2FF, position: 29 },
+    { name: '🥈 Platinum', color: 0xE5E4E2, position: 28 },
+    { name: '🥇 Gold', color: 0xFFD700, position: 27 },
+    { name: '🥉 Silver', color: 0xC0C0C0, position: 26 },
+    { name: '🟤 Bronze', color: 0xCD7F32, position: 25 },
   ];
 
   // Activity & Engagement Roles
   const activityRoles = [
-    { name: '🔥 Ativo', color: '#FF4500', position: 24 },
-    { name: '💬 Conversador', color: '#00CED1', position: 23 },
-    { name: '🎮 Gamer Dedicado', color: '#32CD32', position: 22 },
-    { name: '🎉 Animador', color: '#FF69B4', position: 21 },
-    { name: '🤝 Colaborativo', color: '#20B2AA', position: 20 },
+    { name: '🔥 Ativo', color: 0xFF4500, position: 24 },
+    { name: '💬 Conversador', color: 0x00CED1, position: 23 },
+    { name: '🎮 Gamer Dedicado', color: 0x32CD32, position: 22 },
+    { name: '🎉 Animador', color: 0xFF69B4, position: 21 },
+    { name: '🤝 Colaborativo', color: 0x20B2AA, position: 20 },
   ];
 
   // Squad & Team Roles
   const squadRoles = [
-    { name: '🎯 IGL (In-Game Leader)', color: '#FF6347', position: 19 },
-    { name: '🔫 Fragger', color: '#DC143C', position: 18 },
-    { name: '🛡️ Support', color: '#4169E1', position: 17 },
-    { name: '🎯 Sniper', color: '#8B008B', position: 16 },
-    { name: '🏃 Entry Fragger', color: '#FF8C00', position: 15 },
+    { name: '🎯 IGL (In-Game Leader)', color: 0xFF6347, position: 19 },
+    { name: '🔫 Fragger', color: 0xDC143C, position: 18 },
+    { name: '🛡️ Support', color: 0x4169E1, position: 17 },
+    { name: '🎯 Sniper', color: 0x8B008B, position: 16 },
+    { name: '🏃 Entry Fragger', color: 0xFF8C00, position: 15 },
   ];
 
   // Game Mode Preferences
   const gameModeRoles = [
-    { name: '👤 Solo Player', color: '#708090', position: 14 },
-    { name: '👥 Duo Player', color: '#4682B4', position: 13 },
-    { name: '🎮 Squad Player', color: '#228B22', position: 12 },
-    { name: '📱 Mobile Player', color: '#FF1493', position: 11 },
-    { name: '💻 PC Player', color: '#6495ED', position: 10 },
+    { name: '👤 Solo Player', color: 0x708090, position: 14 },
+    { name: '👥 Duo Player', color: 0x4682B4, position: 13 },
+    { name: '🎮 Squad Player', color: 0x228B22, position: 12 },
+    { name: '📱 Mobile Player', color: 0xFF1493, position: 11 },
+    { name: '💻 PC Player', color: 0x6495ED, position: 10 },
   ];
 
   // Notification Roles
   const notificationRoles = [
-    { name: '🔔 Eventos', color: '#FFA500', position: 9 },
-    { name: '🏆 Torneios', color: '#FFD700', position: 8 },
-    { name: '🎉 Anúncios', color: '#FF69B4', position: 7 },
-    { name: '🎵 Música', color: '#9370DB', position: 6 },
-    { name: '🎬 Streams', color: '#9146FF', position: 5 },
+    { name: '🔔 Eventos', color: 0xFFA500, position: 9 },
+    { name: '🏆 Torneios', color: 0xFFD700, position: 8 },
+    { name: '🎉 Anúncios', color: 0xFF69B4, position: 7 },
+    { name: '🎵 Música', color: 0x9370DB, position: 6 },
+    { name: '🎬 Streams', color: 0x9146FF, position: 5 },
   ];
 
   // Basic Member Roles
   const basicRoles = [
-    { name: '✅ Verificado', color: '#2ECC71', position: 4 },
-    { name: '🌱 Iniciante', color: '#95A5A6', position: 3 },
-    { name: '👋 Novo Membro', color: '#BDC3C7', position: 2 },
+    { name: '✅ Verificado', color: 0x2ECC71, position: 4 },
+    { name: '🌱 Iniciante', color: 0x95A5A6, position: 3 },
+    { name: '👋 Novo Membro', color: 0xBDC3C7, position: 2 },
   ];
 
   // Combine all roles
@@ -401,7 +408,7 @@ interface ChannelConfig {
 /**
  * Setup server channels
  */
-async function setupChannels(guild: any, mode: string = 'full'): Promise<string> {
+async function setupChannels(guild: Guild, mode: string = 'full'): Promise<string> {
   const logger = new Logger();
   let created = 0;
   let updated = 0;
@@ -577,8 +584,7 @@ async function setupChannels(guild: any, mode: string = 'full'): Promise<string>
       if (!existingCategory) {
         const category = await guild.channels.create({
           name: channelData.name,
-          type: channelData.type,
-          position: channelData.position,
+          type: ChannelType.GuildCategory,
         });
         categories.set(channelData.name, category);
         created++;
@@ -631,7 +637,7 @@ async function setupChannels(guild: any, mode: string = 'full'): Promise<string>
 /**
  * Setup database configuration
  */
-async function setupDatabase(guild: any, client: ExtendedClient): Promise<string> {
+async function setupDatabase(guild: Guild, client: ExtendedClient): Promise<string> {
   try {
     const logsChannel = guild.channels.cache.find((c: any) => c.name === '📝-logs');
     
@@ -717,11 +723,13 @@ async function setupDatabase(guild: any, client: ExtendedClient): Promise<string
             { name: '🔧 Logs de Moderação', value: 'Ativados', inline: true },
             { name: '⚙️ Logs de Servidor', value: 'Ativados', inline: true }
           )
-          .setColor('#00FF00')
+          .setColor(0x00FF00 as ColorResolvable)
           .setFooter({ text: 'Use /logs status para verificar a configuração' })
           .setTimestamp();
         
-        await logsChannel.send({ embeds: [confirmEmbed] });
+        if (logsChannel instanceof TextChannel) {
+          await logsChannel.send({ embeds: [confirmEmbed] });
+        }
       } catch (logError) {
         console.error('Error configuring logging service:', logError);
       }
@@ -758,11 +766,13 @@ async function setupDatabase(guild: any, client: ExtendedClient): Promise<string
               { name: '📊 Max Tickets/Usuário', value: '3', inline: true },
               { name: '⏰ Fechamento Automático', value: '48 horas de inatividade', inline: true }
             )
-            .setColor('#0099FF')
+            .setColor(0x0099FF as ColorResolvable)
             .setFooter({ text: 'Embed fixo criado no canal público para abertura de tickets' })
             .setTimestamp();
           
-          await logsTicketChannel.send({ embeds: [ticketConfirmEmbed] });
+          if (logsTicketChannel instanceof TextChannel) {
+            await logsTicketChannel.send({ embeds: [ticketConfirmEmbed] });
+          }
         }
       } catch (ticketError) {
         console.error('Error configuring persistent ticket service:', ticketError);
@@ -778,44 +788,48 @@ async function setupDatabase(guild: any, client: ExtendedClient): Promise<string
 /**
  * Setup channel permissions
  */
-async function setupPermissions(guild: any): Promise<string> {
+async function setupPermissions(guild: Guild): Promise<string> {
   const logger = new Logger();
   let configured = 0;
   
   try {
     const everyoneRole = guild.roles.everyone;
-    const verificadoRole = guild.roles.cache.find((r: any) => r.name === '✅ Verificado');
+    const verificadoRole = guild.roles.cache.find(r => r.name === '✅ Verificado');
     
     // Configure admin channels permissions
-    const adminChannels = guild.channels.cache.filter((c: any) => 
+    const adminChannels = guild.channels.cache.filter(c => 
       c.name.includes('admin') || c.name.includes('logs') || c.name.includes('tickets'),
     );
     
-    for (const channel of adminChannels.values()) {
-      await channel.permissionOverwrites.edit(everyoneRole, {
-        ViewChannel: false,
-      });
-      configured++;
+    for (const channel of Array.from(adminChannels.values())) {
+      if ('permissionOverwrites' in channel) {
+        await channel.permissionOverwrites.edit(everyoneRole, {
+          ViewChannel: false,
+        });
+        configured++;
+      }
     }
     
     // Configure verification requirement for main channels
     if (verificadoRole) {
-      const mainChannels = guild.channels.cache.filter((c: any) => 
+      const mainChannels = guild.channels.cache.filter(c => 
         !c.name.includes('admin') && !c.name.includes('logs') && 
         !c.name.includes('boas-vindas') && c.type !== ChannelType.GuildCategory,
       );
       
-      for (const channel of mainChannels.values()) {
-        await channel.permissionOverwrites.edit(everyoneRole, {
-          SendMessages: false,
-          Connect: false,
-        });
-        
-        await channel.permissionOverwrites.edit(verificadoRole, {
-          SendMessages: true,
-          Connect: true,
-        });
-        configured++;
+      for (const channel of Array.from(mainChannels.values())) {
+        if ('permissionOverwrites' in channel) {
+          await channel.permissionOverwrites.edit(everyoneRole, {
+            SendMessages: false,
+            Connect: false,
+          });
+          
+          await channel.permissionOverwrites.edit(verificadoRole, {
+            SendMessages: true,
+            Connect: true,
+          });
+          configured++;
+        }
       }
     }
     
@@ -829,10 +843,10 @@ async function setupPermissions(guild: any): Promise<string> {
 /**
  * Setup automatic reactions
  */
-async function setupAutomaticReactions(guild: any) {
+async function setupAutomaticReactions(guild: Guild): Promise<void> {
   // Add automatic reactions to welcome and rules messages
-  const welcomeChannel = guild.channels.cache.find((c: any) => c.name === '👋-boas-vindas');
-  const rulesChannel = guild.channels.cache.find((c: any) => c.name === '📜-regras');
+  const welcomeChannel = guild.channels.cache.find(c => c.name === '👋-boas-vindas') as TextChannel;
+  const rulesChannel = guild.channels.cache.find(c => c.name === '📜-regras') as TextChannel;
   
   if (welcomeChannel) {
     const messages = await welcomeChannel.messages.fetch({ limit: 10 });
@@ -852,7 +866,7 @@ async function setupAutomaticReactions(guild: any) {
     const messages = await rulesChannel.messages.fetch({ limit: 10 });
     const ruleMessages = messages.filter((m: any) => m.author.bot && m.embeds.length > 0);
     
-    for (const message of ruleMessages.values()) {
+    for (const message of Array.from(ruleMessages.values())) {
       await message.react('✅'); // Accept rules
       await message.react('📋'); // Read rules
     }
@@ -862,8 +876,8 @@ async function setupAutomaticReactions(guild: any) {
 /**
  * Setup interactive elements
  */
-async function setupInteractiveElements(guild: any) {
-  const commandsChannel = guild.channels.cache.find((c: any) => c.name === '🤖-comandos');
+async function setupInteractiveElements(guild: Guild): Promise<void> {
+  const commandsChannel = guild.channels.cache.find(c => c.name === '🤖-comandos') as TextChannel;
   
   if (commandsChannel) {
     // Create interactive command guide
@@ -898,7 +912,7 @@ async function setupInteractiveElements(guild: any) {
   }
   
   // Setup role selection in appropriate channel
-  const communityChannel = guild.channels.cache.find((c: any) => c.name === '💬-geral');
+  const communityChannel = guild.channels.cache.find(c => c.name === '💬-geral') as TextChannel;
   
   if (communityChannel) {
     const roleSelectionEmbed = new EmbedBuilder()
@@ -931,10 +945,10 @@ async function setupInteractiveElements(guild: any) {
   }
   
   // Setup persistent ticket system
-  const ticketChannel = guild.channels.cache.find((c: any) => c.name === '🎟️-abrir-ticket');
-  const ticketCategory = guild.channels.cache.find((c: any) => c.name === '🎫 TICKETS');
-  const supportRole = guild.roles.cache.find((r: any) => r.name === '🎯 Helper' || r.name === '⚔️ Moderador' || r.name === '🛡️ Admin');
-  const logChannel = guild.channels.cache.find((c: any) => c.name === '🎫-logs-ticket');
+  const ticketChannel = guild.channels.cache.find(c => c.name === '🎟️-abrir-ticket') as TextChannel;
+  const ticketCategory = guild.channels.cache.find(c => c.name === '🎫 TICKETS') as CategoryChannel;
+  const supportRole = guild.roles.cache.find(r => r.name === '🎯 Helper' || r.name === '⚔️ Moderador' || r.name === '🛡️ Admin');
+  const logChannel = guild.channels.cache.find(c => c.name === '🎫-logs-ticket') as TextChannel;
   
   if (ticketChannel && ticketCategory) {
     try {
@@ -965,11 +979,11 @@ async function setupInteractiveElements(guild: any) {
 /**
  * Setup welcome messages
  */
-async function setupWelcomeMessages(guild: any): Promise<string> {
+async function setupWelcomeMessages(guild: Guild): Promise<string> {
   try {
-    const welcomeChannel = guild.channels.cache.find((c: any) => c.name === '👋-boas-vindas');
-    const rulesChannel = guild.channels.cache.find((c: any) => c.name === '📜-regras');
-    const commandsChannel = guild.channels.cache.find((c: any) => c.name === '🤖-comandos');
+    const welcomeChannel = guild.channels.cache.find(c => c.name === '👋-boas-vindas') as TextChannel;
+    const rulesChannel = guild.channels.cache.find(c => c.name === '📜-regras') as TextChannel;
+    const commandsChannel = guild.channels.cache.find(c => c.name === '🤖-comandos') as TextChannel;
     
     if (welcomeChannel) {
       // Main Welcome Embed
@@ -983,7 +997,7 @@ async function setupWelcomeMessages(guild: any): Promise<string> {
         `)
         .setColor(0x00D4AA)
         .setThumbnail(guild.iconURL({ size: 256 }))
-        .setFooter({ text: '🦅 Hawk Esports - Dominando os Battlegrounds desde 2024', iconURL: guild.iconURL() })
+        .setFooter({ text: '🦅 Hawk Esports - Dominando os Battlegrounds desde 2024', iconURL: guild.iconURL() || undefined })
         .setTimestamp();
       
       // Features Embed
@@ -1009,7 +1023,7 @@ async function setupWelcomeMessages(guild: any): Promise<string> {
           **1.** 📜 Leia as regras em <#${rulesChannel?.id}>
           **2.** 🤖 Teste comandos em <#${commandsChannel?.id}>
           **3.** 🎮 Escolha seus cargos de notificação
-          **4.** 👥 Encontre uma squad em <#${guild.channels.cache.find((c: any) => c.name === '👥-procurar-squad')?.id}>
+          **4.** 👥 Encontre uma squad em <#${guild.channels.cache.find(c => c.name === '👥-procurar-squad')?.id}>
           **5.** 🎉 Participe dos eventos e se divirta!
           
           ### 🎁 **Bônus de Boas-vindas:**
@@ -1072,7 +1086,7 @@ async function setupWelcomeMessages(guild: any): Promise<string> {
         .addFields(
           { name: '✅ Compartilhe', value: '• Clips épicos de PUBG\n• Arte da comunidade\n• Memes apropriados\n• Conteúdo educativo', inline: true },
           { name: '❌ Não compartilhe', value: '• Conteúdo NSFW\n• Material com direitos autorais\n• Links suspeitos\n• Conteúdo ofensivo', inline: true },
-          { name: '📱 Redes Sociais', value: `Divulgação permitida em:\n<#${guild.channels.cache.find((c: any) => c.name === '📢-divulgação')?.id}>`, inline: true }
+          { name: '📱 Redes Sociais', value: `Divulgação permitida em:\n<#${guild.channels.cache.find(c => c.name === '📢-divulgação')?.id}>`, inline: true }
         )
         .setColor(0xF39C12);
       
@@ -1119,13 +1133,13 @@ async function setupWelcomeMessages(guild: any): Promise<string> {
 /**
  * Setup final touches and interactive features
  */
-async function setupFinalTouches(guild: any): Promise<string> {
+async function setupFinalTouches(guild: Guild): Promise<string> {
   const logger = new Logger();
   let features = 0;
   
   try {
     // Setup server boost tracking
-    const boostChannel = guild.channels.cache.find((c: any) => c.name === '📢-anúncios');
+    const boostChannel = guild.channels.cache.find(c => c.name === '📢-anúncios') as TextChannel;
     if (boostChannel) {
       const boostEmbed = new EmbedBuilder()
         .setTitle('💎 Sistema de Boost Ativo!')
@@ -1142,7 +1156,7 @@ async function setupFinalTouches(guild: any): Promise<string> {
     }
     
     // Setup activity tracking
-    const activityChannel = guild.channels.cache.find((c: any) => c.name === '📊-rankings-geral');
+    const activityChannel = guild.channels.cache.find(c => c.name === '📊-rankings-geral') as TextChannel;
     if (activityChannel) {
       const activityEmbed = new EmbedBuilder()
         .setTitle('📊 Sistema de Atividade')

@@ -12,13 +12,13 @@ import {
   CategoryChannel,
   ComponentType
 } from 'discord.js';
-import { Command, CommandCategory } from '@/types/command';
-import { ExtendedClient } from '@/types/client';
-import { Logger } from '@/utils/logger';
-import { PresenceService } from '@/services/presence.service';
-import { BadgeService } from '@/services/badge.service';
-import { DatabaseService } from '@/database/database.service';
-import { PresenceEnhancementsService } from '@/services/presence-enhancements.service';
+import { Command, CommandCategory } from '../../types/command';
+import { ExtendedClient } from '../../types/client';
+import { Logger } from '../../utils/logger';
+import { PresenceService } from '../../services/presence.service';
+import { BadgeService } from '../../services/badge.service';
+import { DatabaseService } from '../../database/database.service';
+import { PresenceEnhancementsService } from '../../services/presence-enhancements.service';
 
 /**
  * Check-out command - End presence tracking session
@@ -382,7 +382,7 @@ async function cleanupSessionChannels(
       return false;
     });
 
-    for (const [, channel] of channels) {
+    for (const [, channel] of Array.from(channels)) {
       try {
         if (channel.type === ChannelType.GuildVoice) {
           const voiceChannel = channel as VoiceChannel;
@@ -431,7 +431,7 @@ async function cleanupSessionChannels(
       return false;
     });
 
-    for (const category of categories.values()) {
+    for (const category of Array.from(categories.values())) {
       const categoryChannel = category as CategoryChannel;
       
       // Check if category is empty or only has bot-managed channels

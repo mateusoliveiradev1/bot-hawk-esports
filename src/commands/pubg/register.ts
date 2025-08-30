@@ -1,8 +1,8 @@
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, ComponentType, ChatInputCommandInteraction, CommandInteraction } from 'discord.js';
-import { Command, CommandCategory } from '@/types/command';
-import { ExtendedClient } from '@/types/client';
-import { PUBGPlatform, PUBGGameMode } from '@/types/pubg';
-import { Logger } from '@/utils/logger';
+import { Command, CommandCategory } from '../../types/command';
+import { ExtendedClient } from '../../types/client';
+import { PUBGPlatform, PUBGGameMode } from '../../types/pubg';
+import { Logger } from '../../utils/logger';
 
 /**
  * Register command - Secure PUBG onboarding with nick and platform validation
@@ -108,9 +108,7 @@ const register: Command = {
         return;
       }
       
-      await performRegistration(false);
-      
-      async function performRegistration(isUpdate: boolean) {
+      const performRegistration = async (isUpdate: boolean) => {
         // Validar nick PUBG
         const nickValidation = validatePUBGNick(nick);
         if (!nickValidation.valid) {
@@ -392,7 +390,7 @@ const register: Command = {
         }
       }
       
-      async function requestManualVerification() {
+      const requestManualVerification = async () => {
         // Criar ticket para verificação manual
         const ticketEmbed = new EmbedBuilder()
           .setTitle('🎫 Verificação Manual Solicitada')
@@ -459,7 +457,10 @@ const register: Command = {
             isVerified: false,
           },
         });
-      }
+      };
+      
+      // Chamar a função de registro
+      await performRegistration(false);
       
     } catch (error) {
       logger.error('Register command error:', error);

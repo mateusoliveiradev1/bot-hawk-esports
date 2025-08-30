@@ -8,10 +8,10 @@ import {
   CommandInteraction,
   ComponentType
 } from 'discord.js';
-import { Command, CommandCategory } from '@/types/command';
-import { ExtendedClient } from '@/types/client';
-import { Logger } from '@/utils/logger';
-import { DatabaseService } from '@/database/database.service';
+import { Command, CommandCategory } from '../../types/command';
+import { ExtendedClient } from '../../types/client';
+import { Logger } from '../../utils/logger';
+import { DatabaseService } from '../../database/database.service';
 
 interface SessionRankingData {
   userId: string;
@@ -305,7 +305,7 @@ async function getSessionRankingData(
     // Calculate derived stats and points
     const rankingData: SessionRankingData[] = [];
     
-    for (const userStats of userStatsMap.values()) {
+    for (const userStats of Array.from(userStatsMap.values())) {
       userStats.averageDuration = userStats.totalSessions > 0 
         ? Math.round(userStats.totalDuration / userStats.totalSessions) 
         : 0;

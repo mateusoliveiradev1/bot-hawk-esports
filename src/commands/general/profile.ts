@@ -1,12 +1,12 @@
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder } from 'discord.js';
-import { Command, CommandCategory } from '@/types/command';
-import { ExtendedClient } from '@/types/client';
-import { Logger } from '@/utils/logger';
-import { DatabaseService } from '@/database/database.service';
-import { PUBGService } from '@/services/pubg.service';
-import { BadgeService } from '@/services/badge.service';
-import { RankingService } from '@/services/ranking.service';
-import { PresenceService } from '@/services/presence.service';
+import { Command, CommandCategory } from '../../types/command';
+import { ExtendedClient } from '../../types/client';
+import { Logger } from '../../utils/logger';
+import { DatabaseService } from '../../database/database.service';
+import { PUBGService } from '../../services/pubg.service';
+import { BadgeService } from '../../services/badge.service';
+import { RankingService } from '../../services/ranking.service';
+import { PresenceService } from '../../services/presence.service';
 
 /**
  * Profile command - Shows user profile with PUBG stats, badges, and progress

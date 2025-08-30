@@ -1,9 +1,9 @@
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, ChatInputCommandInteraction } from 'discord.js';
-import { Command, CommandCategory } from '@/types/command';
-import { ExtendedClient } from '@/types/client';
-import { Logger } from '@/utils/logger';
-import { DatabaseService } from '@/database/database.service';
-import { BadgeService } from '@/services/badge.service';
+import { Command, CommandCategory } from '../../types/command';
+import { ExtendedClient } from '../../types/client';
+import { Logger } from '../../utils/logger';
+import { DatabaseService } from '../../database/database.service';
+import { BadgeService } from '../../services/badge.service';
 
 /**
  * Daily rewards command - Daily login rewards with streak system
