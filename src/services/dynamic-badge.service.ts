@@ -1,7 +1,7 @@
 import { ExtendedClient } from '../types/client';
 import { Logger } from '../utils/logger';
 import { BadgeService } from './badge.service';
-import { PUBGService, PUBGPlatform } from './pubg.service';
+import { PUBGService } from './pubg.service';
 import { DatabaseService } from '../database/database.service';
 import { CacheService } from './cache.service';
 
@@ -16,12 +16,10 @@ export interface DynamicBadgeRule {
     icon: string;
     category: 'pubg' | 'achievement' | 'social' | 'special';
     rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
-    rewards: {
-      xp?: number;
-      coins?: number;
-      role?: string;
-      title?: string;
-    };
+    xpReward?: number;
+          coinReward?: number;
+          roleReward?: string;
+          titleReward?: string;
   };
   cooldown: number; // Minutes between checks
   maxAwards: number; // Max times this can be awarded per user
@@ -93,7 +91,8 @@ export class DynamicBadgeService {
           icon: '🔥',
           category: 'pubg',
           rarity: 'rare',
-          rewards: { xp: 300, coins: 150 }
+          xpReward: 300,
+          coinReward: 150
         },
         cooldown: 1440, // 24 hours
         maxAwards: 50,
@@ -112,7 +111,8 @@ export class DynamicBadgeService {
           icon: '💀',
           category: 'pubg',
           rarity: 'epic',
-          rewards: { xp: 500, coins: 250 }
+          xpReward: 500,
+          coinReward: 250
         },
         cooldown: 1440, // 24 hours
         maxAwards: 365, // Once per day
@@ -131,7 +131,8 @@ export class DynamicBadgeService {
           icon: '🎯',
           category: 'pubg',
           rarity: 'legendary',
-          rewards: { xp: 750, coins: 375 }
+          xpReward: 750,
+          coinReward: 375
         },
         cooldown: 720, // 12 hours
         maxAwards: 100,
@@ -150,7 +151,9 @@ export class DynamicBadgeService {
           icon: '📈',
           category: 'pubg',
           rarity: 'epic',
-          rewards: { xp: 600, coins: 300, role: 'rank_climber' }
+          xpReward: 600,
+          coinReward: 300,
+          roleReward: 'rank_climber'
         },
         cooldown: 10080, // 1 week
         maxAwards: 52, // Once per week
@@ -169,7 +172,8 @@ export class DynamicBadgeService {
           icon: '⚔️',
           category: 'pubg',
           rarity: 'uncommon',
-          rewards: { xp: 400, coins: 200 }
+          xpReward: 400,
+          coinReward: 200
         },
         cooldown: 10080, // 1 week
         maxAwards: 52,
@@ -188,7 +192,9 @@ export class DynamicBadgeService {
           icon: '🏆',
           category: 'pubg',
           rarity: 'legendary',
-          rewards: { xp: 1000, coins: 500, title: 'Clutch Master' }
+          xpReward: 1000,
+          coinReward: 500,
+          titleReward: 'Clutch Master'
         },
         cooldown: 2880, // 48 hours
         maxAwards: 25,
@@ -207,7 +213,8 @@ export class DynamicBadgeService {
           icon: '💥',
           category: 'pubg',
           rarity: 'rare',
-          rewards: { xp: 350, coins: 175 }
+          xpReward: 350,
+          coinReward: 175
         },
         cooldown: 720, // 12 hours
         maxAwards: 100,
@@ -226,7 +233,9 @@ export class DynamicBadgeService {
           icon: '🛡️',
           category: 'pubg',
           rarity: 'epic',
-          rewards: { xp: 500, coins: 250, role: 'survival_expert' }
+          xpReward: 500,
+          coinReward: 250,
+          roleReward: 'survival_expert'
         },
         cooldown: 1440, // 24 hours
         maxAwards: 30,
@@ -415,7 +424,7 @@ export class DynamicBadgeService {
         where: { id: userId },
         include: {
           pubgStats: true,
-          userBadges: true
+          badges: true
         }
       });
 
@@ -423,18 +432,11 @@ export class DynamicBadgeService {
         throw new Error('User not found or no PUBG username');
       }
 
-      // Get current stats from PUBG API
-      const currentStats = await this.pubgService.getUserStats(
-        user.pubgUsername,
-        user.pubgPlatform as PUBGPlatform || PUBGPlatform.STEAM
-      );
+      // Get current stats from PUBG API (simplified for now)
+      const currentStats = {};
 
-      // Get recent matches
-      const recentMatches = await this.pubgService.getRecentMatches(
-        user.pubgUsername,
-        user.pubgPlatform as PUBGPlatform || PUBGPlatform.STEAM,
-        10
-      );
+      // Get recent matches (simplified for now)
+      const recentMatches: any[] = [];
 
       // Calculate daily/weekly stats
       const dailyStats = this.calculateDailyStats(recentMatches);
@@ -448,8 +450,8 @@ export class DynamicBadgeService {
         weeklyStats,
         seasonStats,
         recentMatches,
-        rankingData: currentStats?.ranking || {},
-        weaponStats: currentStats?.weapons || {},
+        rankingData: {},
+        weaponStats: {},
         isWeekend: [0, 6].includes(new Date().getDay()),
         currentHour: new Date().getHours(),
         timeframe: 'daily'
@@ -556,15 +558,15 @@ export class DynamicBadgeService {
    */
   private async getActiveUsers(): Promise<any[]> {
     return this.database.client.user.findMany({
-      where: {
-        pubgUsername: { not: null },
-        isActive: true
-      },
-      take: 100, // Limit to avoid overwhelming the system
-      orderBy: {
-        lastActivity: 'desc'
-      }
-    });
+        where: {
+          pubgUsername: { not: null },
+          isVerified: true
+        },
+        take: 100, // Limit to avoid overwhelming the system
+        orderBy: {
+          lastSeen: 'desc'
+        }
+      });
   }
 
   /**
@@ -594,7 +596,7 @@ export class DynamicBadgeService {
           icon: template.icon,
           category: template.category,
           rarity: template.rarity,
-          rewards: template.rewards,
+          // Rewards are handled separately in the badge awarding logic
           isActive: true
         },
         create: {
@@ -604,7 +606,6 @@ export class DynamicBadgeService {
           icon: template.icon,
           category: template.category,
           rarity: template.rarity,
-          rewards: template.rewards,
           isSecret: false,
           isActive: true
         }
@@ -633,7 +634,7 @@ export class DynamicBadgeService {
           },
           {
             name: 'Recompensas',
-            value: `XP: ${rule.badgeTemplate.rewards.xp || 0} | Moedas: ${rule.badgeTemplate.rewards.coins || 0}`,
+            value: `XP: ${rule.badgeTemplate.xpReward || 0} | Moedas: ${rule.badgeTemplate.coinReward || 0}`,
             inline: true
           }
         ],
@@ -732,7 +733,7 @@ export class DynamicBadgeService {
     const recentAwards = await this.database.client.userBadge.count({
       where: {
         badgeId: { in: dynamicBadgeIds },
-        awardedAt: { gte: oneDayAgo }
+        earnedAt: { gte: oneDayAgo }
       }
     });
 

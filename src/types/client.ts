@@ -23,6 +23,8 @@ import { PresenceFixesService } from '../services/presence-fixes.service';
 import { BadgeAuditService } from '../services/badge-audit.service';
 import { PresenceEnhancementsService } from '../services/presence-enhancements.service';
 import { BadgeOptimizationService } from '../services/badge-optimization.service';
+import { ExclusiveBadgeService } from '../services/exclusive-badge.service';
+import { DynamicBadgeService } from '../services/dynamic-badge.service';
 import { CommandManager } from '../commands';
 import { Command } from './command';
 
@@ -54,6 +56,8 @@ export interface ExtendedClient extends Client {
   badgeAuditService?: BadgeAuditService;
   presenceEnhancementsService?: PresenceEnhancementsService;
   badgeOptimizationService?: BadgeOptimizationService;
+  exclusiveBadgeService?: ExclusiveBadgeService;
+  dynamicBadgeService?: DynamicBadgeService;
   // New properties for the updated architecture
   db?: DatabaseService;
   services?: {
@@ -75,6 +79,8 @@ export interface ExtendedClient extends Client {
     roleManager: RoleManagerService;
     presenceEnhancements: PresenceEnhancementsService;
     badgeOptimization: BadgeOptimizationService;
+    exclusiveBadge: ExclusiveBadgeService;
+    dynamicBadge: DynamicBadgeService;
   };
 }
 

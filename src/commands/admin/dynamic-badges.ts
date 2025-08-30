@@ -1,10 +1,10 @@
-import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { Command } from '../../types/command';
+import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction } from 'discord.js';
+import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
-import { CommandInteraction } from 'discord.js';
 import { DynamicBadgeService, DynamicBadgeRule } from '../../services/dynamic-badge.service';
 
 export default class DynamicBadgesCommand implements Command {
+  public category = CommandCategory.ADMIN;
   public data = new SlashCommandBuilder()
     .setName('dynamic-badges')
     .setDescription('Gerenciar sistema de badges dinâmicas baseadas em estatísticas PUBG')
@@ -58,16 +58,15 @@ export default class DynamicBadgesCommand implements Command {
     )
     .setDefaultMemberPermissions('0');
 
-  public async execute(interaction: CommandInteraction, client: ExtendedClient): Promise<void> {
-    if (!client.services?.dynamicBadge) {
+  public async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+    const dynamicBadgeService = client.services?.dynamicBadge as DynamicBadgeService;
+    if (!dynamicBadgeService) {
       await interaction.reply({
         content: '❌ Serviço de badges dinâmicas não está disponível.',
         ephemeral: true
       });
       return;
     }
-
-    const dynamicBadgeService = client.services.dynamicBadge;
     const subcommand = interaction.options.getSubcommand();
 
     switch (subcommand) {
@@ -104,7 +103,7 @@ export default class DynamicBadgesCommand implements Command {
     }
   }
 
-  private async handleListRules(interaction: CommandInteraction, service: DynamicBadgeService): Promise<void> {
+  private async handleListRules(interaction: ChatInputCommandInteraction, service: DynamicBadgeService): Promise<void> {
     const rules = service.getDynamicRules();
     
     if (rules.length === 0) {
@@ -170,7 +169,7 @@ export default class DynamicBadgesCommand implements Command {
     });
   }
 
-  private async handleToggleRule(interaction: CommandInteraction, service: DynamicBadgeService): Promise<void> {
+  private async handleToggleRule(interaction: ChatInputCommandInteraction, service: DynamicBadgeService): Promise<void> {
     const ruleId = interaction.options.getString('rule-id', true);
     const rules = service.getDynamicRules();
     const rule = rules.find(r => r.id === ruleId);
@@ -224,7 +223,7 @@ export default class DynamicBadgesCommand implements Command {
     }
   }
 
-  private async handleProcessUser(interaction: CommandInteraction, service: DynamicBadgeService): Promise<void> {
+  private async handleProcessUser(interaction: ChatInputCommandInteraction, service: DynamicBadgeService): Promise<void> {
     const user = interaction.options.getUser('user', true);
     
     await interaction.deferReply({ ephemeral: true });
@@ -256,7 +255,7 @@ export default class DynamicBadgesCommand implements Command {
     }
   }
 
-  private async handleProcessAll(interaction: CommandInteraction, service: DynamicBadgeService): Promise<void> {
+  private async handleProcessAll(interaction: ChatInputCommandInteraction, service: DynamicBadgeService): Promise<void> {
     await interaction.deferReply({ ephemeral: true });
 
     try {
@@ -292,7 +291,7 @@ export default class DynamicBadgesCommand implements Command {
     }
   }
 
-  private async handleStats(interaction: CommandInteraction, service: DynamicBadgeService): Promise<void> {
+  private async handleStats(interaction: ChatInputCommandInteraction, service: DynamicBadgeService): Promise<void> {
     await interaction.deferReply({ ephemeral: true });
 
     try {
@@ -355,7 +354,7 @@ export default class DynamicBadgesCommand implements Command {
     }
   }
 
-  private async handleRuleDetails(interaction: CommandInteraction, service: DynamicBadgeService): Promise<void> {
+  private async handleRuleDetails(interaction: ChatInputCommandInteraction, service: DynamicBadgeService): Promise<void> {
     const ruleId = interaction.options.getString('rule-id', true);
     const rules = service.getDynamicRules();
     const rule = rules.find(r => r.id === ruleId);
@@ -389,7 +388,7 @@ export default class DynamicBadgesCommand implements Command {
         },
         {
           name: '🎁 Recompensas',
-          value: `**XP:** ${rule.badgeTemplate.rewards.xp || 0}\n**Moedas:** ${rule.badgeTemplate.rewards.coins || 0}\n**Role:** ${rule.badgeTemplate.rewards.role || 'Nenhuma'}`,
+          value: `**XP:** ${rule.badgeTemplate.xpReward || 0}\n**Moedas:** ${rule.badgeTemplate.coinReward || 0}\n**Role:** ${rule.badgeTemplate.roleReward || 'Nenhuma'}`,
           inline: true
         },
         {
