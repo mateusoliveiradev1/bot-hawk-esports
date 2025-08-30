@@ -83,7 +83,28 @@ export class RankingService {
     daily: 24 * 60 * 60 * 1000, // 24 hours
     weekly: 7 * 24 * 60 * 60 * 1000, // 7 days
     monthly: 30 * 24 * 60 * 60 * 1000, // 30 days
-    realtime: 5 * 60 * 1000, // 5 minutes for real-time updates
+    realtime: 3 * 60 * 1000, // 3 minutes for real-time updates (MELHORADO)
+    hourly: 60 * 60 * 1000, // 1 hour for competitive seasons (NOVO)
+  };
+
+  // Pesos para cálculo de ranking composto (NOVO SISTEMA)
+  private readonly rankingWeights = {
+    pubg: {
+      rankPoints: 0.4,    // 40% - Pontos de rank PUBG
+      kda: 0.25,          // 25% - KDA
+      winRate: 0.2,       // 20% - Taxa de vitória
+      averageDamage: 0.15 // 15% - Dano médio
+    },
+    internal: {
+      level: 0.3,         // 30% - Nível do usuário
+      xp: 0.2,            // 20% - XP total
+      activity: 0.25,     // 25% - Atividade (mensagens + voz)
+      achievements: 0.25  // 25% - Conquistas (badges + desafios)
+    },
+    hybrid: {
+      pubgScore: 0.6,     // 60% - Score PUBG composto
+      internalScore: 0.4  // 40% - Score interno composto
+    }
   };
 
   constructor(client: ExtendedClient) {
@@ -958,5 +979,233 @@ export class RankingService {
     }
     
     this.logger.info(`Cleared ranking cache${guildId ? ` for guild ${guildId}` : ''}`);
+  }
+
+  /**
+   * Calcula score PUBG composto baseado em múltiplas métricas
+   */
+  private calculatePUBGScore(stats: UserRankingData['stats']): number {
+    const weights = this.rankingWeights.pubg;
+    
+    // Normalizar valores para escala 0-100
+    const normalizedRankPoints = Math.min(stats.rankPoints / 50, 100); // Max ~5000 pontos
+    const normalizedKDA = Math.min(stats.kda * 20, 100); // Max KDA ~5
+    const normalizedWinRate = Math.min(stats.winRate, 100); // Já em %
+    const normalizedDamage = Math.min(stats.averageDamage / 10, 100); // Max ~1000 dano
+    
+    return (
+      normalizedRankPoints * weights.rankPoints +
+      normalizedKDA * weights.kda +
+      normalizedWinRate * weights.winRate +
+      normalizedDamage * weights.averageDamage
+    );
+  }
+
+  /**
+   * Calcula score interno composto baseado em atividade e conquistas
+   */
+  private calculateInternalScore(stats: UserRankingData['stats']): number {
+    const weights = this.rankingWeights.internal;
+    
+    // Normalizar valores para escala 0-100
+    const normalizedLevel = Math.min(stats.level * 2, 100); // Max level ~50
+    const normalizedXP = Math.min(stats.xp / 1000, 100); // Max ~100k XP
+    const normalizedActivity = Math.min(
+      (stats.messages / 100 + stats.voiceTime / 3600) * 5, 100
+    ); // Mensagens + horas de voz
+    const normalizedAchievements = Math.min(
+      (stats.badgeCount * 10 + stats.quizScore * 2) * 2, 100
+    ); // Badges + quiz scores
+    
+    return (
+      normalizedLevel * weights.level +
+      normalizedXP * weights.xp +
+      normalizedActivity * weights.activity +
+      normalizedAchievements * weights.achievements
+    );
+  }
+
+  /**
+   * Calcula score híbrido combinando PUBG e interno
+   */
+  private calculateHybridScore(stats: UserRankingData['stats']): number {
+    const pubgScore = this.calculatePUBGScore(stats);
+    const internalScore = this.calculateInternalScore(stats);
+    const weights = this.rankingWeights.hybrid;
+    
+    return (
+      pubgScore * weights.pubgScore +
+      internalScore * weights.internalScore
+    );
+  }
+
+  /**
+   * Obtém ranking híbrido balanceado
+   */
+  public getHybridRanking(
+    guildId: string,
+    period: RankingPeriod,
+    limit: number = 50
+  ): Array<UserRankingData & { hybridScore: number; rank: number }> {
+    const guildRankings = this.rankings.get(guildId);
+    if (!guildRankings) return [];
+
+    const users = Array.from(guildRankings.values())
+      .filter(user => {
+        // Filtrar por período se necessário
+        if (period.type !== 'all_time') {
+          return user.lastUpdated >= period.startDate && user.lastUpdated <= period.endDate;
+        }
+        return true;
+      })
+      .map(user => ({
+        ...user,
+        hybridScore: this.calculateHybridScore(user.stats)
+      }))
+      .sort((a, b) => b.hybridScore - a.hybridScore)
+      .slice(0, limit)
+      .map((user, index) => ({
+        ...user,
+        rank: index + 1
+      }));
+
+    return users;
+  }
+
+  /**
+   * Obtém ranking por categoria específica
+   */
+  public getCategoryRanking(
+    guildId: string,
+    category: 'pubg_score' | 'internal_score' | 'hybrid_score' | 'activity' | 'skill',
+    period: RankingPeriod,
+    limit: number = 50
+  ): Array<UserRankingData & { score: number; rank: number; category: string }> {
+    const guildRankings = this.rankings.get(guildId);
+    if (!guildRankings) return [];
+
+    const users = Array.from(guildRankings.values())
+      .filter(user => {
+        if (period.type !== 'all_time') {
+          return user.lastUpdated >= period.startDate && user.lastUpdated <= period.endDate;
+        }
+        return true;
+      })
+      .map(user => {
+        let score: number;
+        let categoryName: string;
+        
+        switch (category) {
+          case 'pubg_score':
+            score = this.calculatePUBGScore(user.stats);
+            categoryName = 'PUBG Performance';
+            break;
+          case 'internal_score':
+            score = this.calculateInternalScore(user.stats);
+            categoryName = 'Server Activity';
+            break;
+          case 'hybrid_score':
+            score = this.calculateHybridScore(user.stats);
+            categoryName = 'Overall Performance';
+            break;
+          case 'activity':
+            score = user.stats.messages + (user.stats.voiceTime / 60); // Mensagens + minutos de voz
+            categoryName = 'Activity Level';
+            break;
+          case 'skill':
+            score = (user.stats.kda * 20) + (user.stats.winRate * 2) + (user.stats.averageDamage / 10);
+            categoryName = 'Skill Rating';
+            break;
+          default:
+            score = 0;
+            categoryName = 'Unknown';
+        }
+        
+        return {
+          ...user,
+          score,
+          category: categoryName
+        };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit)
+      .map((user, index) => ({
+        ...user,
+        rank: index + 1
+      }));
+
+    return users;
+  }
+
+  /**
+   * Obtém estatísticas de balanceamento do ranking
+   */
+  public getRankingBalance(guildId: string): {
+    totalUsers: number;
+    activeUsers: number;
+    pubgUsers: number;
+    averageHybridScore: number;
+    scoreDistribution: { range: string; count: number }[];
+    topPerformers: { category: string; userId: string; username: string; score: number }[];
+  } {
+    const guildRankings = this.rankings.get(guildId);
+    if (!guildRankings) {
+      return {
+        totalUsers: 0,
+        activeUsers: 0,
+        pubgUsers: 0,
+        averageHybridScore: 0,
+        scoreDistribution: [],
+        topPerformers: []
+      };
+    }
+
+    const users = Array.from(guildRankings.values());
+    const activeUsers = users.filter(u => u.stats.messages > 0 || u.stats.voiceTime > 0);
+    const pubgUsers = users.filter(u => u.pubgName);
+    
+    const hybridScores = users.map(u => this.calculateHybridScore(u.stats));
+    const averageHybridScore = hybridScores.reduce((a, b) => a + b, 0) / hybridScores.length || 0;
+    
+    // Distribuição de scores
+    const scoreRanges = [
+      { range: '0-20', min: 0, max: 20 },
+      { range: '21-40', min: 21, max: 40 },
+      { range: '41-60', min: 41, max: 60 },
+      { range: '61-80', min: 61, max: 80 },
+      { range: '81-100', min: 81, max: 100 }
+    ];
+    
+    const scoreDistribution = scoreRanges.map(range => ({
+      range: range.range,
+      count: hybridScores.filter(score => score >= range.min && score <= range.max).length
+    }));
+    
+    // Top performers por categoria
+    const categories = ['pubg_score', 'internal_score', 'activity', 'skill'] as const;
+    const topPerformers = categories.map(category => {
+      const categoryRanking = this.getCategoryRanking(guildId, category, {
+        type: 'all_time',
+        startDate: new Date(0),
+        endDate: new Date()
+      }, 1);
+      
+      const top = categoryRanking[0];
+      return {
+        category: top?.category || category,
+        userId: top?.userId || '',
+        username: top?.username || 'N/A',
+        score: top?.score || 0
+      };
+    });
+    
+    return {
+      totalUsers: users.length,
+      activeUsers: activeUsers.length,
+      pubgUsers: pubgUsers.length,
+      averageHybridScore: Math.round(averageHybridScore * 100) / 100,
+      scoreDistribution,
+      topPerformers
+    };
   }
 }

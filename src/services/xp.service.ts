@@ -30,30 +30,46 @@ export class XPService {
   private logger: Logger;
   private cache: CacheService;
   
-  // XP base por tipo de atividade
+  // XP base por tipo de atividade (REBALANCEADO)
   private readonly ACTIVITY_XP: Record<string, number> = {
-    MM: 25,
-    SCRIM: 50,
-    CAMPEONATO: 100,
-    RANKED: 75,
-    DAILY_CHALLENGE: 50,
-    ACHIEVEMENT: 100,
-    BADGE_EARNED: 25,
-    QUIZ_COMPLETED: 30,
-    CLIP_APPROVED: 40,
-    CHECK_IN: 10,
+    MM: 35,              // +10 (25→35) - Matchmaking mais valorizado
+    SCRIM: 65,           // +15 (50→65) - Scrimmages mais recompensadoras
+    CAMPEONATO: 120,     // +20 (100→120) - Campeonatos premium
+    RANKED: 85,          // +10 (75→85) - Ranked mais atrativo
+    DAILY_CHALLENGE: 60, // +10 (50→60) - Desafios diários mais valiosos
+    ACHIEVEMENT: 80,     // -20 (100→80) - Conquistas menos inflacionárias
+    BADGE_EARNED: 35,    // +10 (25→35) - Badges mais significativas
+    QUIZ_COMPLETED: 45,  // +15 (30→45) - Quiz mais educativo
+    CLIP_APPROVED: 55,   // +15 (40→55) - Clips de qualidade recompensados
+    CHECK_IN: 15,        // +5 (10→15) - Check-in diário mais atrativo
+    WEAPON_MASTERY: 40,  // NOVO - Maestria de armas
+    TOURNAMENT_WIN: 200, // NOVO - Vitória em torneio
+    STREAK_BONUS: 25,    // NOVO - Bônus por sequências
   };
 
-  // Bônus XP por tempo de atividade
+  // Bônus XP por tempo de atividade (REBALANCEADO)
   private readonly TIME_BONUS_XP: Record<string, number> = {
-    '1h': 25,
-    '2h': 50,
-    '3h+': 100,
+    '30m': 15,   // NOVO - Bônus para sessões curtas
+    '1h': 35,    // +10 (25→35) - 1 hora mais recompensadora
+    '2h': 70,    // +20 (50→70) - 2 horas significativamente melhor
+    '3h': 120,   // +20 (100→120) - 3 horas premium
+    '4h+': 180,  // NOVO - Sessões longas muito recompensadoras
   };
 
-  // Fórmula para calcular XP necessário para próximo nível
-  private readonly XP_PER_LEVEL = 100;
-  private readonly XP_MULTIPLIER = 1.2;
+  // Multiplicadores por dificuldade de desafio
+  private readonly CHALLENGE_DIFFICULTY_MULTIPLIER: Record<string, number> = {
+    'easy': 1.0,
+    'medium': 1.3,
+    'hard': 1.6,
+    'extreme': 2.0,
+    'legendary': 2.5,
+  };
+
+  // Fórmula para calcular XP necessário para próximo nível (REBALANCEADA)
+  private readonly XP_PER_LEVEL = 120;     // +20 (100→120) - Níveis mais desafiadores
+  private readonly XP_MULTIPLIER = 1.15;   // -0.05 (1.2→1.15) - Crescimento mais suave
+  private readonly MAX_LEVEL = 100;        // NOVO - Nível máximo definido
+  private readonly PRESTIGE_XP_BONUS = 0.1; // NOVO - 10% bônus XP após prestígio
 
   constructor(client: any) {
     this.prisma = client.database.client;
@@ -407,5 +423,161 @@ export class XPService {
   ): Promise<XPGainResult> {
     const multiplier = achievementPoints / 100; // Normalizar baseado em 100 pontos
     return this.addXP(userId, 'ACHIEVEMENT', undefined, multiplier);
+  }
+
+  /**
+   * Adiciona XP com multiplicador de dificuldade de desafio
+   */
+  public async addChallengeXP(
+    userId: string,
+    difficulty: string,
+    baseXP: number = 60
+  ): Promise<XPGainResult> {
+    const multiplier = this.CHALLENGE_DIFFICULTY_MULTIPLIER[difficulty] || 1.0;
+    const finalXP = Math.floor(baseXP * multiplier);
+    
+    const challengeBaseXP = this.ACTIVITY_XP.DAILY_CHALLENGE || 1;
+    return this.addXP(userId, 'DAILY_CHALLENGE', undefined, finalXP / challengeBaseXP);
+  }
+
+  /**
+   * Adiciona XP de maestria de armas
+   */
+  public async addWeaponMasteryXP(
+    userId: string,
+    masteryLevel: number = 1
+  ): Promise<XPGainResult> {
+    const multiplier = 1 + (masteryLevel * 0.1); // 10% por nível de maestria
+    return this.addXP(userId, 'WEAPON_MASTERY', undefined, multiplier);
+  }
+
+  /**
+   * Adiciona XP de vitória em torneio
+   */
+  public async addTournamentWinXP(
+    userId: string,
+    tournamentTier: 'local' | 'regional' | 'national' | 'international' = 'local'
+  ): Promise<XPGainResult> {
+    const tierMultipliers = {
+      'local': 1.0,
+      'regional': 1.5,
+      'national': 2.0,
+      'international': 3.0
+    };
+    
+    const multiplier = tierMultipliers[tournamentTier];
+    return this.addXP(userId, 'TOURNAMENT_WIN', undefined, multiplier);
+  }
+
+  /**
+   * Adiciona XP de bônus por sequência (streak)
+   */
+  public async addStreakBonusXP(
+    userId: string,
+    streakCount: number
+  ): Promise<XPGainResult> {
+    const multiplier = Math.min(streakCount * 0.2, 3.0); // Máximo 3x multiplier
+    return this.addXP(userId, 'STREAK_BONUS', undefined, multiplier);
+  }
+
+  /**
+   * Sistema de prestígio - reseta nível mas mantém bônus
+   */
+  public async prestigeUser(userId: string): Promise<{
+    success: boolean;
+    newPrestigeLevel: number;
+    bonusXPPercent: number;
+  }> {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId }
+      });
+
+      if (!user || user.level < this.MAX_LEVEL) {
+        return { success: false, newPrestigeLevel: 0, bonusXPPercent: 0 };
+      }
+
+      const newPrestigeLevel = (user.prestigeLevel || 0) + 1;
+      const bonusXPPercent = newPrestigeLevel * this.PRESTIGE_XP_BONUS * 100;
+
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          level: 1,
+          xp: 0,
+          totalXp: user.totalXp, // Mantém XP total para histórico
+          prestigeLevel: newPrestigeLevel,
+        }
+      });
+
+      // Limpar cache
+      await this.cache.del(`user_xp:${userId}`);
+      await this.cache.del(`user_level:${userId}`);
+
+      this.logger.info(`User ${userId} prestiged to level ${newPrestigeLevel}`);
+
+      return {
+        success: true,
+        newPrestigeLevel,
+        bonusXPPercent
+      };
+    } catch (error) {
+      this.logger.error('Failed to prestige user:', error);
+      return { success: false, newPrestigeLevel: 0, bonusXPPercent: 0 };
+    }
+  }
+
+  /**
+   * Calcula bônus XP baseado no prestígio
+   */
+  private calculatePrestigeBonus(userId: string, baseXP: number): Promise<number> {
+    return new Promise(async (resolve) => {
+      try {
+        const user = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { prestigeLevel: true }
+        });
+
+        const prestigeLevel = user?.prestigeLevel || 0;
+        const bonus = baseXP * (prestigeLevel * this.PRESTIGE_XP_BONUS);
+        resolve(Math.floor(bonus));
+      } catch (error) {
+        resolve(0);
+      }
+    });
+  }
+
+  /**
+   * Obtém informações de prestígio do usuário
+   */
+  public async getUserPrestigeInfo(userId: string): Promise<{
+    prestigeLevel: number;
+    bonusXPPercent: number;
+    canPrestige: boolean;
+    nextPrestigeBenefit: string;
+  } | null> {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { level: true, prestigeLevel: true }
+      });
+
+      if (!user) return null;
+
+      const prestigeLevel = user.prestigeLevel || 0;
+      const bonusXPPercent = prestigeLevel * this.PRESTIGE_XP_BONUS * 100;
+      const canPrestige = user.level >= this.MAX_LEVEL;
+      const nextBonusPercent = (prestigeLevel + 1) * this.PRESTIGE_XP_BONUS * 100;
+
+      return {
+        prestigeLevel,
+        bonusXPPercent,
+        canPrestige,
+        nextPrestigeBenefit: `+${nextBonusPercent}% XP bonus`
+      };
+    } catch (error) {
+      this.logger.error('Failed to get prestige info:', error);
+      return null;
+    }
   }
 }

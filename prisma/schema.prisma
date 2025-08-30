@@ -27,6 +27,7 @@ model User {
   xp            Int      @default(0)
   totalXp       Int      @default(0)
   coins         Int      @default(0)
+  prestigeLevel Int      @default(0)
   dailyStreak   Int      @default(0)
   weeklyStreak  Int      @default(0)
   monthlyStreak Int      @default(0)

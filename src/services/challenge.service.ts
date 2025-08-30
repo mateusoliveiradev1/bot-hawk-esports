@@ -82,7 +82,7 @@ export class ChallengeService {
    */
   private initializeChallengeTemplates(): void {
     const templates: ChallengeDefinition[] = [
-      // Easy Challenges
+      // Easy Challenges (REBALANCEADOS)
       {
         id: 'daily_kills_5',
         name: 'Caçador Iniciante',
@@ -90,7 +90,7 @@ export class ChallengeService {
         type: 'kills',
         target: 5,
         difficulty: 'easy',
-        rewards: { xp: 100, coins: 50 },
+        rewards: { xp: 120, coins: 60 }, // +20 XP, +10 coins
         icon: '🎯',
         rarity: 'common',
         timeLimit: 24,
@@ -103,7 +103,7 @@ export class ChallengeService {
         type: 'games',
         target: 3,
         difficulty: 'easy',
-        rewards: { xp: 75, coins: 25 },
+        rewards: { xp: 90, coins: 35 }, // +15 XP, +10 coins
         icon: '🎮',
         rarity: 'common',
         timeLimit: 24,
@@ -116,14 +116,27 @@ export class ChallengeService {
         type: 'damage',
         target: 1000,
         difficulty: 'easy',
-        rewards: { xp: 125, coins: 75 },
+        rewards: { xp: 150, coins: 85 }, // +25 XP, +10 coins
         icon: '💥',
         rarity: 'common',
         timeLimit: 24,
         isActive: true,
       },
+      {
+        id: 'daily_survival_10min',
+        name: 'Sobrevivente',
+        description: 'Sobreviva por 10 minutos em uma partida',
+        type: 'survival_time',
+        target: 600, // 10 minutes in seconds
+        difficulty: 'easy',
+        rewards: { xp: 100, coins: 50 },
+        icon: '⏱️',
+        rarity: 'common',
+        timeLimit: 24,
+        isActive: true,
+      },
 
-      // Medium Challenges
+      // Medium Challenges (REBALANCEADOS)
       {
         id: 'daily_kills_10',
         name: 'Assassino Experiente',
@@ -131,7 +144,7 @@ export class ChallengeService {
         type: 'kills',
         target: 10,
         difficulty: 'medium',
-        rewards: { xp: 200, coins: 100 },
+        rewards: { xp: 260, coins: 130 }, // +60 XP, +30 coins
         icon: '⚔️',
         rarity: 'uncommon',
         timeLimit: 24,
@@ -144,8 +157,34 @@ export class ChallengeService {
         type: 'headshots',
         target: 3,
         difficulty: 'medium',
-        rewards: { xp: 250, coins: 125 },
+        rewards: { xp: 325, coins: 160 }, // +75 XP, +35 coins
         icon: '🎯',
+        rarity: 'uncommon',
+        timeLimit: 24,
+        isActive: true,
+      },
+      {
+        id: 'daily_wins_2',
+        name: 'Vencedor Consistente',
+        description: 'Vença 2 partidas do PUBG',
+        type: 'wins',
+        target: 2,
+        difficulty: 'medium',
+        rewards: { xp: 400, coins: 200 },
+        icon: '🏆',
+        rarity: 'uncommon',
+        timeLimit: 24,
+        isActive: true,
+      },
+      {
+        id: 'daily_revives_3',
+        name: 'Médico de Campo',
+        description: 'Reviva 3 companheiros de equipe',
+        type: 'revives',
+        target: 3,
+        difficulty: 'medium',
+        rewards: { xp: 280, coins: 140 },
+        icon: '🏥',
         rarity: 'uncommon',
         timeLimit: 24,
         isActive: true,
@@ -174,6 +213,129 @@ export class ChallengeService {
         icon: '🛡️',
         rarity: 'uncommon',
         timeLimit: 24,
+        isActive: true,
+      },
+
+      // Hard Challenges (REBALANCEADOS E EXPANDIDOS)
+      {
+        id: 'daily_kills_15',
+        name: 'Exterminador',
+        description: 'Elimine 15 inimigos em partidas do PUBG',
+        type: 'kills',
+        target: 15,
+        difficulty: 'hard',
+        rewards: { xp: 480, coins: 240, badge: 'exterminator' },
+        icon: '💀',
+        rarity: 'rare',
+        timeLimit: 24,
+        isActive: true,
+      },
+      {
+        id: 'daily_damage_3000',
+        name: 'Destruidor',
+        description: 'Cause 3.000 de dano em partidas',
+        type: 'damage',
+        target: 3000,
+        difficulty: 'hard',
+        rewards: { xp: 520, coins: 260 },
+        icon: '🔥',
+        rarity: 'rare',
+        timeLimit: 24,
+        isActive: true,
+      },
+      {
+        id: 'daily_headshots_7',
+        name: 'Sniper Elite',
+        description: 'Consiga 7 headshots em partidas',
+        type: 'headshots',
+        target: 7,
+        difficulty: 'hard',
+        rewards: { xp: 600, coins: 300, badge: 'sniper_elite' },
+        icon: '🎯',
+        rarity: 'rare',
+        timeLimit: 24,
+        isActive: true,
+      },
+      {
+        id: 'daily_wins_3',
+        name: 'Dominador',
+        description: 'Vença 3 partidas do PUBG',
+        type: 'wins',
+        target: 3,
+        difficulty: 'hard',
+        rewards: { xp: 750, coins: 375, badge: 'dominator' },
+        icon: '👑',
+        rarity: 'rare',
+        timeLimit: 24,
+        isActive: true,
+      },
+
+      // Extreme Challenges (NOVOS)
+      {
+        id: 'daily_kills_25',
+        name: 'Lenda Viva',
+        description: 'Elimine 25 inimigos em partidas do PUBG',
+        type: 'kills',
+        target: 25,
+        difficulty: 'extreme',
+        rewards: { xp: 1000, coins: 500, badge: 'living_legend' },
+        icon: '⚡',
+        rarity: 'epic',
+        timeLimit: 24,
+        isActive: true,
+      },
+      {
+        id: 'daily_wins_5',
+        name: 'Imperador',
+        description: 'Vença 5 partidas do PUBG',
+        type: 'wins',
+        target: 5,
+        difficulty: 'extreme',
+        rewards: { xp: 1250, coins: 625, badge: 'emperor' },
+        icon: '🏆',
+        rarity: 'epic',
+        timeLimit: 24,
+        isActive: true,
+      },
+      {
+        id: 'daily_damage_5000',
+        name: 'Apocalipse',
+        description: 'Cause 5.000 de dano em partidas',
+        type: 'damage',
+        target: 5000,
+        difficulty: 'extreme',
+        rewards: { xp: 1100, coins: 550 },
+        icon: '💥',
+        rarity: 'epic',
+        timeLimit: 24,
+        isActive: true,
+      },
+
+      // Weekly Challenges (NOVOS)
+      {
+        id: 'weekly_kills_50',
+        name: 'Ceifador Semanal',
+        description: 'Elimine 50 inimigos durante a semana',
+        type: 'kills',
+        target: 50,
+        difficulty: 'medium',
+        rewards: { xp: 800, coins: 400, badge: 'weekly_reaper' },
+        icon: '⚔️',
+        rarity: 'uncommon',
+        timeLimit: 168, // 7 days
+        isActive: true,
+      },
+      {
+        id: 'weekly_wins_10',
+        name: 'Conquistador Semanal',
+        description: 'Vença 10 partidas durante a semana',
+        type: 'wins',
+        target: 10,
+        difficulty: 'hard',
+        rewards: { xp: 1500, coins: 750, badge: 'weekly_conqueror' },
+        icon: '👑',
+        rarity: 'rare',
+        timeLimit: 168,
         isActive: true,
       },
 
@@ -366,31 +528,84 @@ export class ChallengeService {
   }
 
   /**
-   * Generate daily challenge set
+   * Generate daily challenge set (ALGORITMO REBALANCEADO)
    */
   private generateDailyChallengeSet(): ChallengeDefinition[] {
-    const templates = Array.from(this.challengeTemplates.values()).filter(
-      template => template.isActive
-    );
-
-    // Select challenges by difficulty
-    const easyTemplates = templates.filter(t => t.difficulty === 'easy');
-    const mediumTemplates = templates.filter(t => t.difficulty === 'medium');
-    const hardTemplates = templates.filter(t => t.difficulty === 'hard');
-    const extremeTemplates = templates.filter(t => t.difficulty === 'extreme');
-
+    const availableTemplates = Array.from(this.challengeTemplates.values())
+      .filter(template => template.isActive && template.timeLimit === 24);
+    
+    // Categorizar desafios por dificuldade
+    const easyTemplates = availableTemplates.filter(t => t.difficulty === 'easy');
+    const mediumTemplates = availableTemplates.filter(t => t.difficulty === 'medium');
+    const hardTemplates = availableTemplates.filter(t => t.difficulty === 'hard');
+    const extremeTemplates = availableTemplates.filter(t => t.difficulty === 'extreme');
+    
     const selectedChallenges: ChallengeDefinition[] = [];
-
-    // Select 2 easy, 2 medium, 1 hard, and sometimes 1 extreme
-    selectedChallenges.push(...this.selectRandomChallenges(easyTemplates, 2));
-    selectedChallenges.push(...this.selectRandomChallenges(mediumTemplates, 2));
-    selectedChallenges.push(...this.selectRandomChallenges(hardTemplates, 1));
-
-    // 30% chance for extreme challenge
-    if (Math.random() < 0.3 && extremeTemplates.length > 0) {
-      selectedChallenges.push(...this.selectRandomChallenges(extremeTemplates, 1));
+    
+    // Algoritmo balanceado baseado no dia da semana
+    const dayOfWeek = new Date().getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    
+    if (isWeekend) {
+      // Fins de semana: mais desafios e maior dificuldade
+      selectedChallenges.push(...this.selectRandomChallenges(easyTemplates, 2));
+      selectedChallenges.push(...this.selectRandomChallenges(mediumTemplates, 2));
+      selectedChallenges.push(...this.selectRandomChallenges(hardTemplates, 1));
+      
+      // 20% chance de desafio extremo no fim de semana
+      if (Math.random() < 0.2 && extremeTemplates.length > 0) {
+        selectedChallenges.push(...this.selectRandomChallenges(extremeTemplates, 1));
+      }
+    } else {
+      // Dias de semana: balanceamento padrão
+      selectedChallenges.push(...this.selectRandomChallenges(easyTemplates, 2));
+      selectedChallenges.push(...this.selectRandomChallenges(mediumTemplates, 1));
+      
+      // 40% chance de desafio difícil em dias de semana
+      if (Math.random() < 0.4 && hardTemplates.length > 0) {
+        selectedChallenges.push(...this.selectRandomChallenges(hardTemplates, 1));
+      }
+      
+      // 5% chance de desafio extremo em dias de semana
+      if (Math.random() < 0.05 && extremeTemplates.length > 0) {
+        selectedChallenges.push(...this.selectRandomChallenges(extremeTemplates, 1));
+      }
     }
-
+    
+    // Garantir diversidade de tipos de desafio
+    const challengeTypes = selectedChallenges.map(c => c.type);
+    const uniqueTypes = new Set(challengeTypes);
+    
+    // Se há muita repetição de tipos, substituir alguns
+    if (uniqueTypes.size < Math.max(2, selectedChallenges.length - 2)) {
+      const typeCount = new Map<string, number>();
+      challengeTypes.forEach(type => {
+        typeCount.set(type, (typeCount.get(type) || 0) + 1);
+      });
+      
+      // Encontrar tipo mais repetido e substituir um desafio
+      const mostRepeatedType = Array.from(typeCount.entries())
+        .sort((a, b) => b[1] - a[1])[0]?.[0];
+      
+      const indexToReplace = selectedChallenges.findIndex(c => c.type === mostRepeatedType);
+      if (indexToReplace !== -1) {
+        const challengeToReplace = selectedChallenges[indexToReplace];
+        if (challengeToReplace && mostRepeatedType) {
+          const alternativeTemplates = availableTemplates.filter(t => 
+            t.type !== mostRepeatedType && 
+            t.difficulty === challengeToReplace.difficulty
+          );
+          
+          if (alternativeTemplates.length > 0) {
+            const replacement = this.selectRandomChallenges(alternativeTemplates, 1)[0];
+            if (replacement) {
+              selectedChallenges[indexToReplace] = replacement;
+            }
+          }
+        }
+      }
+    }
+    
     return selectedChallenges;
   }
 
