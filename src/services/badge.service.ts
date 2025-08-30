@@ -397,7 +397,31 @@ export class BadgeService {
         category: 'special',
         rarity: 'mythic',
         requirements: [], // Manually awarded - exclusive to founder
-        rewards: { role: 'founder', xp: 1000, coins: 1000 },
+        rewards: { role: 'founder', xp: 5000, coins: 2500 },
+        isSecret: false,
+        isActive: true,
+      },
+      {
+        id: 'early_adopter',
+        name: 'Pioneiro',
+        description: 'Um dos primeiros 100 membros da comunidade',
+        icon: '🌟',
+        category: 'special',
+        rarity: 'legendary',
+        requirements: [], // Manually awarded based on join date
+        rewards: { role: 'early_adopter', xp: 2000, coins: 1000 },
+        isSecret: false,
+        isActive: true,
+      },
+      {
+        id: 'beta_tester',
+        name: 'Beta Tester',
+        description: 'Participou dos testes beta do bot',
+        icon: '🧪',
+        category: 'special',
+        rarity: 'epic',
+        requirements: [], // Manually awarded
+        rewards: { role: 'beta_tester', xp: 1500, coins: 750 },
         isSecret: false,
         isActive: true,
       },
