@@ -34,17 +34,20 @@ export class PUBGService {
     this.apiKey = process.env.PUBG_API_KEY || '';
 
     if (!this.apiKey) {
-      this.logger.warn('PUBG API key not provided. PUBG features will be limited.');
+      this.logger.warn('⚠️ PUBG API key not found in environment variables. Some features may not work.');
+    } else if (this.apiKey.length < 20) {
+      this.logger.warn('⚠️ PUBG API key appears to be invalid (too short).');
     }
 
     this.api = axios.create({
       baseURL: this.baseURL,
+      timeout: 10000,
       headers: {
         'Authorization': `Bearer ${this.apiKey}`,
         'Accept': 'application/vnd.api+json',
         'Content-Type': 'application/json',
+        'User-Agent': 'HawkEsports-Bot/1.0'
       },
-      timeout: 10000,
     });
 
     this.setupInterceptors();
@@ -71,6 +74,10 @@ export class PUBGService {
         }
         
         this.lastRequestTime = now;
+        
+        // Log request for debugging
+        this.logger.debug(`PUBG API Request: ${config.method?.toUpperCase()} ${config.url}`);
+        
         return config;
       },
       (error) => {
@@ -92,19 +99,28 @@ export class PUBGService {
         const status = error.response?.status;
         const message = error.response?.data?.errors?.[0]?.detail || error.message;
         
-        this.logger.error('PUBG API response error:', {
+        const errorInfo = {
           url: error.config?.url,
+          method: error.config?.method,
           status,
-          message,
-        });
+          message
+        };
 
         // Handle specific error codes
         if (status === 429) {
-          this.logger.warn('PUBG API rate limit exceeded');
+          this.logger.warn('⏱️ PUBG API: Rate limit exceeded', errorInfo);
+          const retryAfter = error.response.headers['retry-after'];
+          if (retryAfter) {
+            this.logger.info(`Rate limit retry after: ${retryAfter} seconds`);
+          }
         } else if (status === 404) {
-          this.logger.warn('PUBG API resource not found');
+          this.logger.warn('🔍 PUBG API: Resource not found', errorInfo);
         } else if (status === 401) {
-          this.logger.error('PUBG API authentication failed');
+          this.logger.error('🔐 PUBG API: Authentication failed', errorInfo);
+        } else if (status >= 500) {
+          this.logger.error('🚨 PUBG API: Server error', errorInfo);
+        } else {
+          this.logger.error('❌ PUBG API response error:', errorInfo);
         }
 
         return Promise.reject(error);
@@ -117,7 +133,20 @@ export class PUBGService {
    */
   public async getPlayerByName(playerName: string, platform: PUBGPlatform = PUBGPlatform.STEAM): Promise<PUBGPlayer | null> {
     try {
-      const cacheKey = this.cache.keyGenerators.pubgPlayer(`${platform}:${playerName}`);
+      // Validate input
+      if (!playerName || typeof playerName !== 'string') {
+        throw new Error('Player name is required and must be a string');
+      }
+
+      if (!this.validatePlayerName(playerName)) {
+        throw new Error('Invalid player name format');
+      }
+
+      if (!Object.values(PUBGPlatform).includes(platform)) {
+        throw new Error('Invalid platform');
+      }
+
+      const cacheKey = this.cache.keyGenerators.pubgPlayer(`${platform}:${playerName.toLowerCase()}`);
       const cached = await this.cache.get<PUBGPlayer>(cacheKey);
       
       if (cached) {
@@ -148,15 +177,30 @@ export class PUBGService {
 
       const player = players[0];
       
+      // Validate player data
+      if (!player || !player.id || !(player as any).attributes?.name) {
+        this.logger.error('Invalid player data received from API');
+        return null;
+      }
+      
       // Cache for 1 hour
       await this.cache.set(cacheKey, player, 3600);
       
       this.logger.pubg('PLAYER_FETCHED', player?.id || 'unknown');
       return player || null;
     } catch (error) {
-      this.logger.error(`Failed to get player ${playerName}:`, error);
-      // Return mock data as fallback
-      return this.createMockPlayer(playerName, platform);
+      this.logger.error(`Failed to get player ${playerName}:`, {
+        error: error instanceof Error ? error.message : String(error),
+        platform,
+        playerName
+      });
+      
+      // Return mock data for fallback only in development
+      if (process.env.NODE_ENV === 'development') {
+        return this.createMockPlayer(playerName, platform);
+      }
+      
+      return null;
     }
   }
 
@@ -400,8 +444,31 @@ export class PUBGService {
    * Validate player name format
    */
   public validatePlayerName(playerName: string): boolean {
+    if (!playerName || typeof playerName !== 'string') {
+      return false;
+    }
+
+    // Trim whitespace
+    playerName = playerName.trim();
+
     // PUBG player names are 3-16 characters, alphanumeric and some special characters
     const regex = /^[a-zA-Z0-9_-]{3,16}$/;
+    
+    // Additional checks
+    if (playerName.length < 3 || playerName.length > 16) {
+      return false;
+    }
+
+    // Check for consecutive special characters
+    if (/[_-]{2,}/.test(playerName)) {
+      return false;
+    }
+
+    // Check for starting/ending with special characters
+    if (/^[_-]|[_-]$/.test(playerName)) {
+      return false;
+    }
+
     return regex.test(playerName);
   }
 
@@ -477,10 +544,26 @@ export class PUBGService {
    */
   public async isAPIAvailable(): Promise<boolean> {
     try {
-      await this.api.get('/status');
+      if (!this.apiKey) {
+        this.logger.warn('PUBG API key not configured');
+        return false;
+      }
+
+      // Use a lightweight endpoint to check API availability
+      const response = await Promise.race([
+        this.api.get('/status'),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('API check timeout')), 5000)
+        )
+      ]);
+      
+      this.logger.info('✅ PUBG API is available');
       return true;
     } catch (error) {
-      this.logger.error('PUBG API is not available:', error);
+      this.logger.error('❌ PUBG API is not available:', {
+        message: error instanceof Error ? error.message : String(error),
+        hasApiKey: !!this.apiKey
+      });
       return false;
     }
   }
@@ -815,10 +898,92 @@ export class PUBGService {
    */
   public async clearCache(): Promise<void> {
     try {
-      await this.cache.clearPattern('pubg:*');
-      this.logger.info('PUBG cache cleared');
+      const patterns = [
+        'pubg:player:*',
+        'pubg:stats:*',
+        'pubg:matches:*',
+        'pubg:match:*',
+        'pubg:season:*',
+        'pubg:leaderboard:*',
+        'pubg:weapon_mastery:*',
+        'pubg:survival_mastery:*'
+      ];
+
+      for (const pattern of patterns) {
+        await this.cache.clearPattern(pattern);
+      }
+      
+      this.logger.info('🧹 PUBG cache cleared successfully');
     } catch (error) {
       this.logger.error('Failed to clear PUBG cache:', error);
+      throw error;
     }
+  }
+
+  /**
+   * Get cache statistics
+   */
+  public async getCacheStats(): Promise<{
+    totalKeys: number;
+    patterns: Record<string, number>;
+  }> {
+    try {
+      const patterns = {
+        'pubg:player:*': 0,
+        'pubg:stats:*': 0,
+        'pubg:matches:*': 0,
+        'pubg:leaderboard:*': 0,
+        'pubg:weapon_mastery:*': 0,
+        'pubg:survival_mastery:*': 0
+      };
+
+      let totalKeys = 0;
+      for (const pattern of Object.keys(patterns)) {
+        const keys = await this.cache.keys(pattern);
+        (patterns as any)[pattern] = keys.length;
+        totalKeys += keys.length;
+      }
+
+      return { totalKeys, patterns };
+    } catch (error) {
+      this.logger.error('Failed to get cache stats:', error);
+      return { totalKeys: 0, patterns: {} };
+    }
+  }
+
+  /**
+   * Health check for PUBG service
+   */
+  public async healthCheck(): Promise<{
+    status: 'healthy' | 'degraded' | 'unhealthy';
+    apiAvailable: boolean;
+    cacheAvailable: boolean;
+    lastRequestTime: number;
+    rateLimitDelay: number;
+  }> {
+    const apiAvailable = await this.isAPIAvailable();
+    let cacheAvailable = true;
+    
+    try {
+      await this.cache.get('health-check');
+    } catch (error) {
+      cacheAvailable = false;
+    }
+
+    let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+    
+    if (!apiAvailable && !cacheAvailable) {
+      status = 'unhealthy';
+    } else if (!apiAvailable || !cacheAvailable) {
+      status = 'degraded';
+    }
+
+    return {
+      status,
+      apiAvailable,
+      cacheAvailable,
+      lastRequestTime: this.lastRequestTime,
+      rateLimitDelay: this.rateLimitDelay
+    };
   }
 }

@@ -85,6 +85,10 @@ export class APIService {
   private upload!: multer.Multer;
 
   constructor(client: ExtendedClient) {
+    if (!client) {
+      throw new Error('ExtendedClient is required for APIService');
+    }
+
     this.client = client;
     this.logger = new Logger();
     this.database = client.database;
@@ -98,17 +102,24 @@ export class APIService {
     this.clipService = client.clipService;
     this.securityService = new SecurityService(this.database);
 
+    // Validate required environment variables
+    const requiredEnvVars = ['JWT_SECRET'];
+    const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+    if (missingVars.length > 0) {
+      this.logger.error(`Missing required environment variables: ${missingVars.join(', ')}`);
+    }
+
     this.config = {
-      port: parseInt(process.env.API_PORT || '3001'),
+      port: this.validatePort(process.env.API_PORT || '3001'),
       host: process.env.API_HOST || '0.0.0.0',
-      corsOrigins: process.env.CORS_ORIGINS?.split(',') || [
+      corsOrigins: this.validateCorsOrigins(process.env.CORS_ORIGINS?.split(',') || [
         'http://localhost:3000',
-      ],
+      ]),
       jwtSecret: process.env.JWT_SECRET || 'your-secret-key',
       jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
-      rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-      rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '100'),
-      uploadMaxSize: parseInt(process.env.UPLOAD_MAX_SIZE || '104857600'), // 100MB
+      rateLimitWindowMs: this.validateNumber(process.env.RATE_LIMIT_WINDOW_MS, 900000, 60000, 3600000), // 1min - 1hour
+      rateLimitMax: this.validateNumber(process.env.RATE_LIMIT_MAX, 100, 10, 1000),
+      uploadMaxSize: this.validateNumber(process.env.UPLOAD_MAX_SIZE, 104857600, 1048576, 1073741824), // 1MB - 1GB
       uploadDir: process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads'),
     };
 
@@ -240,11 +251,31 @@ export class APIService {
 
     // Request logging
     this.app.use((req: Request, res: Response, next: NextFunction) => {
-      this.logger.api(req.method, req.path, 200, 0, {
+      const startTime = Date.now();
+      
+      // Log request
+      this.logger.api(req.method, req.path, 0, 0, {
         ip: req.ip,
         userAgent: req.get('User-Agent'),
-        body: req.method !== 'GET' ? req.body : undefined,
+        contentLength: req.get('Content-Length'),
+        referer: req.get('Referer')
       });
+
+      // Override res.json to log response
+      const originalJson = res.json;
+      res.json = function(body) {
+        const duration = Date.now() - startTime;
+        const logger = (req as any).logger || new Logger();
+        
+        logger.api(req.method, req.path, res.statusCode, duration, {
+          ip: req.ip,
+          userAgent: req.get('User-Agent'),
+          responseSize: JSON.stringify(body).length
+        });
+        
+        return originalJson.call(this, body);
+      };
+
       next();
     });
 
@@ -310,20 +341,72 @@ export class APIService {
   private setupErrorHandling(): void {
     this.app.use(
       (error: Error, req: Request, res: Response, next: NextFunction) => {
-        this.logger.error('API Error:', error);
+        this.logger.error('API Error:', {
+          message: error.message,
+          stack: error.stack,
+          url: req.url,
+          method: req.method,
+          ip: req.ip,
+          userAgent: req.get('User-Agent')
+        });
 
+        // Handle specific error types
         if (error instanceof multer.MulterError) {
-          if ((error as any).code === 'LIMIT_FILE_SIZE') {
-            return res.status(400).json({
-              success: false,
-              error: 'File too large',
-            });
+          switch (error.code) {
+            case 'LIMIT_FILE_SIZE':
+              return res.status(400).json({
+                success: false,
+                error: 'File too large',
+                maxSize: this.config.uploadMaxSize
+              });
+            case 'LIMIT_FILE_COUNT':
+              return res.status(400).json({
+                success: false,
+                error: 'Too many files'
+              });
+            case 'LIMIT_UNEXPECTED_FILE':
+              return res.status(400).json({
+                success: false,
+                error: 'Unexpected file field'
+              });
+            default:
+              return res.status(400).json({
+                success: false,
+                error: 'File upload error'
+              });
           }
         }
 
+        // Handle JWT errors
+        if (error.name === 'JsonWebTokenError') {
+          return res.status(401).json({
+            success: false,
+            error: 'Invalid token'
+          });
+        }
+
+        if (error.name === 'TokenExpiredError') {
+          return res.status(401).json({
+            success: false,
+            error: 'Token expired'
+          });
+        }
+
+        // Handle validation errors
+        if (error.name === 'ValidationError') {
+          return res.status(400).json({
+            success: false,
+            error: 'Validation failed',
+            details: error.message
+          });
+        }
+
+        // Don't expose internal errors in production
+        const isDevelopment = process.env.NODE_ENV === 'development';
         return res.status(500).json({
           success: false,
           error: 'Internal server error',
+          ...(isDevelopment && { details: error.message })
         });
       },
     );
@@ -336,64 +419,118 @@ export class APIService {
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
-  ): Promise<void> => {
+  ): Promise<void | Response> => {
     try {
       const authHeader = req.headers['authorization'];
       const token = authHeader && authHeader.split(' ')[1];
 
       if (!token) {
-        res.status(401).json({
+        return res.status(401).json({
           success: false,
           error: 'Access token required',
         });
-        return;
+      }
+
+      // Validate token format
+      if (!this.isValidJWTFormat(token)) {
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid token format',
+        });
       }
 
       const decoded = jwt.verify(token, this.config.jwtSecret) as any;
 
-      // Get user from database
-      const user = await this.database.client.user.findUnique({
-        where: { id: decoded.userId },
-        include: {
-          guilds: {
-            include: {
-              guild: true
-            }
-          }
-        }
-      });
-
-      if (!user) {
-        res.status(401).json({
+      // Validate decoded token structure
+      if (!decoded.userId || typeof decoded.userId !== 'string') {
+        return res.status(401).json({
           success: false,
-          error: 'Invalid token'
+          error: 'Invalid token payload',
         });
-        return;
       }
 
-      // Get Discord user info
-      const discordUser = await this.client.users.fetch(user.id).catch(() => null);
+      // Get user from database with timeout
+      const user = await Promise.race([
+        this.database.client.user.findUnique({
+          where: { id: decoded.userId },
+          include: {
+            guilds: {
+              include: {
+                guild: true
+              }
+            }
+          }
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Database timeout')), 5000)
+        )
+      ]) as any;
+
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          error: 'User not found',
+        });
+      }
+
+      // Get Discord user info with fallback
+      let discordUser = null;
+      try {
+        discordUser = await Promise.race([
+          this.client.users.fetch(user.id),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Discord API timeout')), 3000)
+          )
+        ]) as any;
+      } catch (error) {
+        this.logger.warn(`Failed to fetch Discord user ${user.id}:`, error);
+      }
+
       // Get first active guild from UserGuild relation
-       const primaryUserGuild = user.guilds.find(ug => ug.isActive) || user.guilds[0];
+      const primaryUserGuild = user.guilds?.find((ug: any) => ug.isActive) || user.guilds?.[0];
       const guildId = primaryUserGuild?.guildId || '';
-      const guild = guildId ? this.client.guilds.cache.get(guildId) : null;
-      const member = guild ? await guild.members.fetch(user.id).catch(() => null) : null;
+      
+      let member = null;
+      if (guildId) {
+        const guild = this.client.guilds.cache.get(guildId);
+        if (guild) {
+          try {
+            member = await Promise.race([
+              guild.members.fetch(user.id),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Member fetch timeout')), 3000)
+              )
+            ]) as any;
+          } catch (error) {
+            this.logger.warn(`Failed to fetch member ${user.id} from guild ${guildId}:`, error);
+          }
+        }
+      }
 
       req.user = {
         id: user.id,
         guildId: guildId,
-        username: discordUser?.username || user.username,
-        discriminator: discordUser?.discriminator || '0000',
+        username: discordUser?.username || user.username || 'Unknown',
+        discriminator: discordUser?.discriminator || user.discriminator || '0000',
         avatar: discordUser?.avatar || undefined,
-        roles: member ? member.roles.cache.map(role => role.id) : [],
+        roles: member ? member.roles.cache.map((role: any) => role.id) : [],
         permissions: member ? member.permissions.toArray() : []
       };
 
       next();
-    } catch (error) {
-      res.status(401).json({
+    } catch (error: unknown) {
+      this.logger.error('Authentication error:', error);
+      
+      if (error instanceof Error && error.name === 'TokenExpiredError') {
+        return res.status(401).json({
+          success: false,
+          error: 'Token expired',
+        });
+      }
+      
+      return res.status(401).json({
         success: false,
-        error: 'Invalid token',
+        error: 'Authentication failed',
       });
     }
   };
@@ -681,7 +818,7 @@ export class APIService {
             backupCodes: setup.backupCodes
           }
         });
-      } catch (error) {
+      } catch (error: unknown) {
         this.logger.error('2FA setup error:', error);
         res.status(500).json({
           success: false,
@@ -715,7 +852,7 @@ export class APIService {
             error: 'Invalid 2FA token'
           });
         }
-      } catch (error) {
+      } catch (error: unknown) {
         this.logger.error('2FA enable error:', error);
         return res.status(500).json({
           success: false,
@@ -1018,7 +1155,7 @@ export class APIService {
             expiresIn: this.config.jwtExpiresIn,
           },
         });
-      } catch (error) {
+      } catch (error: unknown) {
         this.logger.error('Refresh token error:', error);
         return res.status(401).json({
           success: false,
@@ -1692,7 +1829,7 @@ export class APIService {
               totalPages: Math.ceil(total / Number(limit)),
             },
           });
-        } catch (error) {
+        } catch (error: unknown) {
           this.logger.error('Get guild members error:', error);
           return res.status(500).json({
             success: false,
@@ -2524,7 +2661,7 @@ export class APIService {
             message: result.message,
             data: result.track,
           });
-        } catch (error) {
+        } catch (error: unknown) {
           this.logger.error('Add track error:', error);
           return res.status(500).json({
             success: false,
@@ -2654,7 +2791,7 @@ export class APIService {
             success: true,
             data: clips,
           });
-        } catch (error) {
+        } catch (error: unknown) {
           this.logger.error('Get clips error:', error);
           return res.status(500).json({
             success: false,
@@ -2784,31 +2921,66 @@ export class APIService {
   public async start(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
+        // Validate configuration before starting
+        this.validateConfiguration();
+
+        // Ensure upload directory exists
+        this.ensureUploadDirectory();
+
         this.server = this.app.listen(
           this.config.port,
           this.config.host,
           () => {
             this.logger.info(
-              `API server started on ${this.config.host}:${this.config.port}`,
+              `🚀 API server started on ${this.config.host}:${this.config.port}`,
+              {
+                environment: process.env.NODE_ENV || 'development',
+                corsOrigins: this.config.corsOrigins,
+                rateLimitMax: this.config.rateLimitMax
+              }
             );
             
             // Setup WebSocket
-            this.setupWebSocket();
+            try {
+              this.setupWebSocket();
+            } catch (wsError) {
+              this.logger.error('Failed to setup WebSocket:', wsError);
+            }
               
-              // Start simulated updates in development
-              if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+            // Start simulated updates in development
+            if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+              try {
                 this.startSimulatedUpdates();
+              } catch (updateError) {
+                this.logger.error('Failed to start simulated updates:', updateError);
               }
+            }
               
-              resolve();
+            resolve();
           },
         );
 
-        this.server.on('error', (error) => {
-          this.logger.error('API server error:', error);
+        this.server.on('error', (error: any) => {
+          this.logger.error('API server error:', {
+            message: error.message,
+            code: error.code,
+            port: this.config.port,
+            host: this.config.host
+          });
+          
+          if (error.code === 'EADDRINUSE') {
+            this.logger.error(`Port ${this.config.port} is already in use`);
+          }
+          
           reject(error);
         });
-      } catch (error) {
+
+        // Handle graceful shutdown
+        process.on('SIGTERM', () => this.handleShutdown('SIGTERM'));
+        process.on('SIGINT', () => this.handleShutdown('SIGINT'));
+        
+      } catch (error: unknown) {
+        this.logger.error('Failed to start API server:', error);
         reject(error);
       }
     });
@@ -2904,20 +3076,56 @@ export class APIService {
    */
   public async stop(): Promise<void> {
     return new Promise((resolve) => {
-      if (this.io) {
-        this.io.close();
-        this.io = null;
-        this.logger.info('🔌 WebSocket server stopped');
-      }
+      this.logger.info('🛑 Stopping API server...');
       
-      if (this.server) {
-        this.server.close(() => {
-          this.logger.info('API server stopped');
-          resolve();
+      const cleanup = () => {
+        this.logger.info('✅ API server stopped gracefully');
+        resolve();
+      };
+
+      let stopped = 0;
+      const totalServices = 2; // WebSocket + HTTP Server
+
+      const checkComplete = () => {
+        stopped++;
+        if (stopped >= totalServices) {
+          cleanup();
+        }
+      };
+
+      // Stop WebSocket server
+      if (this.io) {
+        this.io.close(() => {
+          this.io = null;
+          this.logger.info('🔌 WebSocket server stopped');
+          checkComplete();
         });
       } else {
-        resolve();
+        checkComplete();
       }
+      
+      // Stop HTTP server
+      if (this.server) {
+        this.server.close((error) => {
+          if (error) {
+            this.logger.error('Error stopping HTTP server:', error);
+          } else {
+            this.logger.info('🌐 HTTP server stopped');
+          }
+          this.server = null;
+          checkComplete();
+        });
+      } else {
+        checkComplete();
+      }
+
+      // Force close after timeout
+      setTimeout(() => {
+        if (stopped < totalServices) {
+          this.logger.warn('⚠️ Force closing API server after timeout');
+          cleanup();
+        }
+      }, 5000);
     });
   }
 
@@ -2966,6 +3174,111 @@ export class APIService {
       port: this.config.port,
       host: this.config.host,
       running: this.server !== null,
+      websocket: this.io !== null,
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development',
+      version: process.env.npm_package_version || '1.0.0',
+      memory: process.memoryUsage(),
+      config: {
+        rateLimitMax: this.config.rateLimitMax,
+        rateLimitWindowMs: this.config.rateLimitWindowMs,
+        uploadMaxSize: this.config.uploadMaxSize,
+        corsOrigins: this.config.corsOrigins.length
+      }
     };
+  }
+
+  /**
+   * Validate port number
+   */
+  private validatePort(portStr: string): number {
+    const port = parseInt(portStr);
+    if (isNaN(port) || port < 1 || port > 65535) {
+      this.logger.warn(`Invalid port ${portStr}, using default 3001`);
+      return 3001;
+    }
+    return port;
+  }
+
+  /**
+   * Validate CORS origins
+   */
+  private validateCorsOrigins(origins: string[]): string[] {
+    return origins.filter(origin => {
+      try {
+        new URL(origin);
+        return true;
+      } catch {
+        this.logger.warn(`Invalid CORS origin: ${origin}`);
+        return false;
+      }
+    });
+  }
+
+  /**
+   * Validate number with min/max bounds
+   */
+  private validateNumber(value: string | undefined, defaultValue: number, min: number, max: number): number {
+    if (!value) return defaultValue;
+    const num = parseInt(value);
+    if (isNaN(num) || num < min || num > max) {
+      this.logger.warn(`Invalid number ${value}, using default ${defaultValue}`);
+      return defaultValue;
+    }
+    return num;
+  }
+
+  /**
+   * Validate JWT token format
+   */
+  private isValidJWTFormat(token: string): boolean {
+    const parts = token.split('.');
+    return parts.length === 3 && parts.every(part => part.length > 0);
+  }
+
+  /**
+   * Validate configuration
+   */
+  private validateConfiguration(): void {
+    if (this.config.jwtSecret === 'your-secret-key') {
+      this.logger.error('⚠️ Using default JWT secret! This is insecure for production.');
+    }
+
+    if (this.config.jwtSecret.length < 32) {
+      this.logger.warn('⚠️ JWT secret is too short. Recommended minimum: 32 characters.');
+    }
+
+    if (this.config.corsOrigins.length === 0) {
+      this.logger.warn('⚠️ No valid CORS origins configured.');
+    }
+  }
+
+  /**
+   * Ensure upload directory exists
+   */
+  private ensureUploadDirectory(): void {
+    try {
+      if (!fs.existsSync(this.config.uploadDir)) {
+        fs.mkdirSync(this.config.uploadDir, { recursive: true });
+        this.logger.info(`📁 Created upload directory: ${this.config.uploadDir}`);
+      }
+    } catch (error) {
+      this.logger.error('Failed to create upload directory:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Handle graceful shutdown
+   */
+  private async handleShutdown(signal: string): Promise<void> {
+    this.logger.info(`📡 Received ${signal}, shutting down gracefully...`);
+    try {
+      await this.stop();
+      process.exit(0);
+    } catch (error) {
+      this.logger.error('Error during shutdown:', error);
+      process.exit(1);
+    }
   }
 }

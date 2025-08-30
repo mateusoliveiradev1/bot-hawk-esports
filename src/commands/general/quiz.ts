@@ -145,7 +145,7 @@ const quiz: Command = {
       });
 
       // Auto-join the host
-      gameService.joinQuiz(session.id, interaction.user.id, interaction.user.username);
+      await gameService.joinQuiz(session.id, interaction.user.id, interaction.user.username);
 
       // Set up button collector for joining
       const collector = response.createMessageComponentCollector({
@@ -155,7 +155,7 @@ const quiz: Command = {
 
       collector.on('collect', async (buttonInteraction: any) => {
         if (buttonInteraction.customId === `quiz_join_${session.id}`) {
-          const joined = gameService.joinQuiz(
+          const joined = await gameService.joinQuiz(
             session.id,
             buttonInteraction.user.id,
             buttonInteraction.user.username,

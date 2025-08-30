@@ -47,42 +47,88 @@ export class DatabaseService {
    * Setup Prisma event listeners for logging
    */
   private setupEventListeners(): void {
-    // Query event listener commented out due to TypeScript compatibility issues
-    // this.prisma.$on('query', (e: any) => {
-    //   this.logger.database('query', e.target || 'unknown', e.duration, {
-    //     query: e.query,
-    //     params: e.params,
-    //     timestamp: new Date().toISOString()
-    //   });
-    // });
+    try {
+      // Note: Prisma event listeners may not be available in all versions
+      // Wrapping in try-catch to handle gracefully
+      try {
+        // @ts-ignore - Prisma event types may vary by version
+        this.prisma.$on('query', (e: any) => {
+          if (e.duration > 1000) { // Log slow queries (>1s)
+            this.logger.warn(`Slow query detected (${e.duration}ms):`, {
+              query: e.query?.substring(0, 200) + '...',
+              params: e.params,
+              timestamp: new Date().toISOString()
+            });
+          }
+        });
+      } catch (queryEventError) {
+        this.logger.debug('Query event listener not available:', queryEventError);
+      }
 
-    // Event listeners commented out due to TypeScript compatibility issues
-    // this.prisma.$on('error', (e: any) => {
-    //   this.logger.error('Database error:', e);
-    // });
-    // this.prisma.$on('info', (e: any) => {
-    //   this.logger.info('Database info:', e);
-    // });
-    // this.prisma.$on('warn', (e: any) => {
-    //   this.logger.warn('Database warning:', e);
-    // });
+      try {
+        // @ts-ignore - Prisma event types may vary by version
+        this.prisma.$on('error', (e: any) => {
+          this.logger.error('Database error event:', e);
+        });
+      } catch (errorEventError) {
+        this.logger.debug('Error event listener not available:', errorEventError);
+      }
+
+      try {
+        // @ts-ignore - Prisma event types may vary by version
+        this.prisma.$on('info', (e: any) => {
+          this.logger.info('Database info event:', e.message);
+        });
+      } catch (infoEventError) {
+        this.logger.debug('Info event listener not available:', infoEventError);
+      }
+
+      try {
+        // @ts-ignore - Prisma event types may vary by version
+        this.prisma.$on('warn', (e: any) => {
+          this.logger.warn('Database warning event:', e.message);
+        });
+      } catch (warnEventError) {
+        this.logger.debug('Warning event listener not available:', warnEventError);
+      }
+    } catch (error) {
+      this.logger.warn('Failed to setup database event listeners:', error);
+    }
   }
 
   /**
-   * Connect to the database
+   * Connect to the database with retry logic
    */
-  public async connect(): Promise<void> {
-    try {
-      await this.prisma.$connect();
-      this.isConnected = true;
-      this.logger.info('✅ Connected to database successfully');
-      
-      // Test the connection
-      await this.healthCheck();
-    } catch (error) {
-      this.logger.error('❌ Failed to connect to database:', error);
-      throw error;
+  public async connect(maxRetries: number = 3): Promise<void> {
+    let lastError: any;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await this.prisma.$connect();
+        this.isConnected = true;
+        this.logger.info('✅ Connected to database successfully');
+        
+        // Test the connection
+        const isHealthy = await this.healthCheck();
+        if (!isHealthy) {
+          throw new Error('Database health check failed after connection');
+        }
+        
+        return; // Success, exit retry loop
+      } catch (error) {
+        lastError = error;
+        this.logger.warn(`❌ Database connection attempt ${attempt}/${maxRetries} failed:`, error);
+        
+        if (attempt < maxRetries) {
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000); // Exponential backoff, max 10s
+          this.logger.info(`Retrying database connection in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
     }
+    
+    this.logger.error('❌ Failed to connect to database after all retries');
+    throw lastError;
   }
 
   /**
@@ -194,7 +240,7 @@ export class DatabaseService {
     },
 
     /**
-     * Create or update user
+     * Create or update user with validation
      */
     upsert: async (data: {
       id: string;
@@ -202,53 +248,92 @@ export class DatabaseService {
       discriminator: string;
       avatar?: string;
     }) => {
-      return this.prisma.user.upsert({
-        where: { id: data.id },
-        update: {
-          username: data.username,
-          discriminator: data.discriminator,
-          avatar: data.avatar,
-          updatedAt: new Date(),
-        },
-        create: {
-          id: data.id,
-          username: data.username,
-          discriminator: data.discriminator,
-          avatar: data.avatar,
-          stats: {
-            create: {},
+      // Validate input data
+      if (!data.id || typeof data.id !== 'string') {
+        throw new Error('Invalid user ID provided');
+      }
+      if (!data.username || typeof data.username !== 'string') {
+        throw new Error('Invalid username provided');
+      }
+      if (!data.discriminator || typeof data.discriminator !== 'string') {
+        throw new Error('Invalid discriminator provided');
+      }
+      
+      try {
+        return await this.prisma.user.upsert({
+          where: { id: data.id },
+          update: {
+            username: data.username.substring(0, 32), // Discord username limit
+            discriminator: data.discriminator,
+            avatar: data.avatar,
+            updatedAt: new Date(),
           },
-        },
-        include: {
-          stats: true,
-        },
-      });
+          create: {
+            id: data.id,
+            username: data.username.substring(0, 32),
+            discriminator: data.discriminator,
+            avatar: data.avatar,
+            stats: {
+              create: {},
+            },
+          },
+          include: {
+            stats: true,
+          },
+        });
+      } catch (error) {
+        this.logger.error(`Failed to upsert user ${data.id}:`, error);
+        throw new Error(`Database operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     },
 
     /**
-     * Update user XP and level
+     * Update user XP and level with validation and atomic operation
      */
     updateXP: async (userId: string, xpGain: number) => {
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-      });
-
-      if (!user) {
-        throw new Error('User not found');
+      // Validate input
+      if (!userId || typeof userId !== 'string') {
+        throw new Error('Invalid user ID provided');
+      }
+      if (typeof xpGain !== 'number' || isNaN(xpGain)) {
+        throw new Error('Invalid XP gain value');
+      }
+      if (xpGain < 0) {
+        throw new Error('XP gain cannot be negative');
+      }
+      if (xpGain > 10000) { // Reasonable limit to prevent abuse
+        throw new Error('XP gain exceeds maximum allowed value');
       }
 
-      const newXP = user.xp + xpGain;
-      const newTotalXP = user.totalXp + xpGain;
-      const newLevel = Math.floor(Math.sqrt(newTotalXP / 100)) + 1;
+      try {
+        return await this.prisma.$transaction(async (prisma) => {
+          const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, xp: true, totalXp: true, level: true }
+          });
 
-      return this.prisma.user.update({
-        where: { id: userId },
-        data: {
-          xp: newXP,
-          totalXp: newTotalXP,
-          level: newLevel,
-        },
-      });
+          if (!user) {
+            throw new Error(`User with ID ${userId} not found`);
+          }
+
+          const newXP = Math.max(0, user.xp + xpGain);
+          const newTotalXP = Math.max(0, user.totalXp + xpGain);
+          const newLevel = Math.floor(Math.sqrt(newTotalXP / 100)) + 1;
+
+          return await prisma.user.update({
+            where: { id: userId },
+            data: {
+              xp: newXP,
+              totalXp: newTotalXP,
+              level: newLevel,
+              updatedAt: new Date(),
+            },
+          });
+        });
+      } catch (error) {
+        this.logger.error(`Failed to update XP for user ${userId}:`, error);
+        throw new Error(`XP update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     },
 
     /**
@@ -470,30 +555,147 @@ export class DatabaseService {
   };
 
   /**
-   * Cleanup old data
+   * Cleanup old data with configurable retention periods
    */
-  public async cleanup(): Promise<void> {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  public async cleanup(retentionDays: number = 30): Promise<void> {
+    if (retentionDays < 1) {
+      throw new Error('Retention days must be at least 1');
+    }
 
-    // Clean up old audit logs
-    await this.prisma.auditLog.deleteMany({
-      where: {
-        createdAt: {
-          lt: thirtyDaysAgo,
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+
+    try {
+      const results = await this.prisma.$transaction(async (prisma) => {
+        // Clean up old audit logs
+        const auditLogsDeleted = await prisma.auditLog.deleteMany({
+          where: {
+            createdAt: {
+              lt: cutoffDate,
+            },
+          },
+        });
+
+        // Clean up old ranking snapshots
+        const rankingSnapshotsDeleted = await prisma.rankingSnapshot.deleteMany({
+          where: {
+            createdAt: {
+              lt: cutoffDate,
+            },
+          },
+        });
+
+        // Clean up old transactions (keep financial records longer)
+        const transactionCutoff = new Date();
+        transactionCutoff.setDate(transactionCutoff.getDate() - (retentionDays * 3));
+        
+        const transactionsDeleted = await prisma.transaction.deleteMany({
+          where: {
+            createdAt: {
+              lt: transactionCutoff,
+            },
+          },
+        });
+
+        return {
+          auditLogs: auditLogsDeleted.count,
+          rankingSnapshots: rankingSnapshotsDeleted.count,
+          transactions: transactionsDeleted.count,
+        };
+      });
+
+      this.logger.info(`Database cleanup completed:`, {
+        auditLogsDeleted: results.auditLogs,
+        rankingSnapshotsDeleted: results.rankingSnapshots,
+        transactionsDeleted: results.transactions,
+        retentionDays,
+      });
+    } catch (error) {
+      this.logger.error('Database cleanup failed:', error);
+      throw new Error(`Cleanup operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Verify database integrity and consistency
+   */
+  public async verifyIntegrity(): Promise<{
+    isHealthy: boolean;
+    issues: string[];
+    stats: any;
+  }> {
+    const issues: string[] = [];
+    let isHealthy = true;
+
+    try {
+      // Check basic connectivity
+      const healthCheck = await this.healthCheck();
+      if (!healthCheck) {
+        issues.push('Database connectivity check failed');
+        isHealthy = false;
+      }
+
+      // Check for orphaned records
+      const orphanedUserBadges = await this.prisma.userBadge.count({
+        where: {
+          badgeId: {
+            not: {
+              in: await this.prisma.badge.findMany({ select: { id: true } }).then(badges => badges.map(b => b.id))
+            }
+          }
         },
-      },
-    });
+      });
+      
+      if (orphanedUserBadges > 0) {
+        issues.push(`Found ${orphanedUserBadges} orphaned user badges`);
+        isHealthy = false;
+      }
 
-    // Clean up old ranking snapshots
-    await this.prisma.rankingSnapshot.deleteMany({
-      where: {
-        createdAt: {
-          lt: thirtyDaysAgo,
+      // Check for users without stats
+      const usersWithoutStats = await this.prisma.user.count({
+        where: {
+          stats: null,
         },
-      },
-    });
+      });
+      
+      if (usersWithoutStats > 0) {
+        issues.push(`Found ${usersWithoutStats} users without stats records`);
+        isHealthy = false;
+      }
 
-    this.logger.info('Database cleanup completed');
+      // Get current stats
+      const stats = await this.getStats();
+
+      return {
+        isHealthy,
+        issues,
+        stats,
+      };
+    } catch (error) {
+      this.logger.error('Database integrity check failed:', error);
+      return {
+        isHealthy: false,
+        issues: [`Integrity check failed: ${error instanceof Error ? error.message : 'Unknown error'}`],
+        stats: null,
+      };
+    }
+  }
+
+  /**
+   * Graceful shutdown with connection cleanup
+   */
+  public async shutdown(): Promise<void> {
+    try {
+      this.logger.info('Initiating database shutdown...');
+      
+      // Wait for any pending operations to complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      await this.disconnect();
+      this.logger.info('✅ Database shutdown completed');
+    } catch (error) {
+      this.logger.error('❌ Error during database shutdown:', error);
+      throw error;
+    }
   }
 }

@@ -46,16 +46,33 @@ export class TicketService {
   private loggingService: LoggingService;
   private ticketSettings: Map<string, TicketSettings> = new Map();
   private activeTickets: Map<string, Map<string, TicketData>> = new Map(); // guildId -> userId -> ticket
+  private inactivityInterval?: NodeJS.Timeout;
+  private readonly MAX_TICKETS_PER_GUILD = 100;
+  private readonly DEFAULT_INACTIVITY_HOURS = 72;
 
   constructor(client: ExtendedClient) {
+    // Validate dependencies
+    if (!client) {
+      throw new Error('ExtendedClient is required for TicketService');
+    }
+    if (!client.database) {
+      throw new Error('DatabaseService is required for TicketService');
+    }
+
     this.logger = new Logger();
     this.database = client.database;
     this.client = client;
     this.loggingService = new LoggingService(client, client.database);
     
-    this.loadTicketSettings();
-    this.loadActiveTickets();
-    this.startInactivityChecker();
+    try {
+      this.loadTicketSettings();
+      this.loadActiveTickets();
+      this.startInactivityChecker();
+      this.logger.info('TicketService initialized successfully');
+    } catch (error) {
+      this.logger.error('Failed to initialize TicketService:', error);
+      throw error;
+    }
   }
 
   /**
@@ -63,27 +80,39 @@ export class TicketService {
    */
   private async loadTicketSettings(): Promise<void> {
     try {
+      if (!this.database?.client?.ticketSettings) {
+        this.logger.warn('TicketSettings table not available in database');
+        return;
+      }
+
       const settings = await this.database.client.ticketSettings.findMany();
       
       for (const setting of settings) {
-        this.ticketSettings.set(setting.guildId, {
-          guildId: setting.guildId,
-          enabled: setting.enabled,
-          categoryId: setting.categoryId || undefined,
-          logChannelId: setting.logChannelId || undefined,
-          supportRoleId: setting.supportRoleId || undefined,
-          maxTicketsPerUser: setting.maxTicketsPerUser,
-          autoAssign: setting.autoAssign,
-          requireReason: setting.requireReason,
-          allowAnonymous: setting.allowAnonymous,
-          closeAfterInactivity: setting.closeAfterInactivity,
-          notificationSettings: setting.notificationSettings ? JSON.parse(setting.notificationSettings) : {
-            onCreate: true,
-            onAssign: true,
-            onClose: true,
-            onReopen: true
+        try {
+          // Validate setting data
+          if (!setting.guildId) {
+            this.logger.warn('Invalid ticket setting found: missing guildId');
+            continue;
           }
-        });
+
+          const parsedNotifications = this.parseNotificationSettings(setting.notificationSettings);
+          
+          this.ticketSettings.set(setting.guildId, {
+            guildId: setting.guildId,
+            enabled: Boolean(setting.enabled),
+            categoryId: setting.categoryId || undefined,
+            logChannelId: setting.logChannelId || undefined,
+            supportRoleId: setting.supportRoleId || undefined,
+            maxTicketsPerUser: Math.max(1, Math.min(setting.maxTicketsPerUser || 3, 10)), // Clamp between 1-10
+            autoAssign: Boolean(setting.autoAssign),
+            requireReason: Boolean(setting.requireReason),
+            allowAnonymous: Boolean(setting.allowAnonymous),
+            closeAfterInactivity: Math.max(0, setting.closeAfterInactivity || this.DEFAULT_INACTIVITY_HOURS),
+            notificationSettings: parsedNotifications
+          });
+        } catch (settingError) {
+          this.logger.error(`Error processing ticket setting for guild ${setting.guildId}:`, settingError);
+        }
       }
       
       this.logger.info(`Loaded ${settings.length} ticket settings`);
@@ -97,6 +126,11 @@ export class TicketService {
    */
   private async loadActiveTickets(): Promise<void> {
     try {
+      if (!this.database?.client?.ticket) {
+        this.logger.warn('Ticket table not available in database');
+        return;
+      }
+
       const tickets = await this.database.client.ticket.findMany({
         where: {
           status: {
@@ -105,41 +139,151 @@ export class TicketService {
         }
       });
 
+      let loadedCount = 0;
+      let skippedCount = 0;
+
       for (const ticket of tickets) {
-        if (!this.activeTickets.has(ticket.guildId)) {
-          this.activeTickets.set(ticket.guildId, new Map());
+        try {
+          // Validate ticket data
+          if (!ticket.guildId || !ticket.userId || !ticket.id) {
+            this.logger.warn(`Invalid ticket data found: ${ticket.id}`);
+            skippedCount++;
+            continue;
+          }
+
+          if (!this.activeTickets.has(ticket.guildId)) {
+            this.activeTickets.set(ticket.guildId, new Map());
+          }
+          
+          const guildTickets = this.activeTickets.get(ticket.guildId)!;
+          
+          // Check for duplicate tickets per user
+          if (guildTickets.has(ticket.userId)) {
+            this.logger.warn(`Duplicate active ticket found for user ${ticket.userId} in guild ${ticket.guildId}`);
+          }
+          
+          guildTickets.set(ticket.userId, {
+            id: ticket.id,
+            userId: ticket.userId,
+            guildId: ticket.guildId,
+            channelId: ticket.channelId || undefined,
+            title: ticket.title || 'Untitled Ticket',
+            description: ticket.description || 'No description provided',
+            status: this.validateTicketStatus(ticket.status),
+            priority: this.validateTicketPriority(ticket.priority),
+            assignedTo: ticket.assignedTo || undefined,
+            tags: ticket.tags || undefined,
+            metadata: this.parseTicketMetadata(ticket.metadata),
+            createdAt: ticket.createdAt,
+            updatedAt: ticket.updatedAt
+          });
+          
+          loadedCount++;
+        } catch (ticketError) {
+          this.logger.error(`Error processing ticket ${ticket.id}:`, ticketError);
+          skippedCount++;
         }
-        
-        this.activeTickets.get(ticket.guildId)!.set(ticket.userId, {
-          id: ticket.id,
-          userId: ticket.userId,
-          guildId: ticket.guildId,
-          channelId: ticket.channelId || undefined,
-          title: ticket.title,
-          description: ticket.description,
-          status: ticket.status as 'open' | 'in_progress' | 'closed',
-          priority: ticket.priority as 'low' | 'medium' | 'high' | 'urgent',
-          assignedTo: ticket.assignedTo || undefined,
-          tags: ticket.tags || undefined,
-          metadata: ticket.metadata,
-          createdAt: ticket.createdAt,
-          updatedAt: ticket.updatedAt
-        });
       }
 
-      this.logger.info(`Loaded ${tickets.length} active tickets`);
+      this.logger.info(`Loaded ${loadedCount} active tickets (${skippedCount} skipped due to errors)`);
     } catch (error) {
       this.logger.error('Failed to load active tickets:', error);
     }
   }
 
   /**
+   * Parse notification settings safely
+   */
+  private parseNotificationSettings(notificationSettings: any): TicketSettings['notificationSettings'] {
+    try {
+      if (typeof notificationSettings === 'string') {
+        const parsed = JSON.parse(notificationSettings);
+        return {
+          onCreate: Boolean(parsed.onCreate ?? true),
+          onAssign: Boolean(parsed.onAssign ?? true),
+          onClose: Boolean(parsed.onClose ?? true),
+          onReopen: Boolean(parsed.onReopen ?? true)
+        };
+      }
+      
+      if (typeof notificationSettings === 'object' && notificationSettings !== null) {
+        return {
+          onCreate: Boolean(notificationSettings.onCreate ?? true),
+          onAssign: Boolean(notificationSettings.onAssign ?? true),
+          onClose: Boolean(notificationSettings.onClose ?? true),
+          onReopen: Boolean(notificationSettings.onReopen ?? true)
+        };
+      }
+    } catch (error) {
+      this.logger.warn('Failed to parse notification settings, using defaults:', error);
+    }
+    
+    return {
+      onCreate: true,
+      onAssign: true,
+      onClose: true,
+      onReopen: true
+    };
+  }
+
+  /**
+   * Validate and normalize ticket status
+   */
+  private validateTicketStatus(status: any): 'open' | 'in_progress' | 'closed' {
+    const validStatuses = ['open', 'in_progress', 'closed'];
+    if (typeof status === 'string' && validStatuses.includes(status)) {
+      return status as 'open' | 'in_progress' | 'closed';
+    }
+    this.logger.warn(`Invalid ticket status: ${status}, defaulting to 'open'`);
+    return 'open';
+  }
+
+  /**
+   * Validate and normalize ticket priority
+   */
+  private validateTicketPriority(priority: any): 'low' | 'medium' | 'high' | 'urgent' {
+    const validPriorities = ['low', 'medium', 'high', 'urgent'];
+    if (typeof priority === 'string' && validPriorities.includes(priority)) {
+      return priority as 'low' | 'medium' | 'high' | 'urgent';
+    }
+    this.logger.warn(`Invalid ticket priority: ${priority}, defaulting to 'medium'`);
+    return 'medium';
+  }
+
+  /**
+   * Parse ticket metadata safely
+   */
+  private parseTicketMetadata(metadata: any): any {
+    try {
+      if (typeof metadata === 'string') {
+        return JSON.parse(metadata);
+      }
+      if (typeof metadata === 'object') {
+        return metadata;
+      }
+    } catch (error) {
+      this.logger.warn('Failed to parse ticket metadata:', error);
+    }
+    return {};
+  }
+
+  /**
    * Start inactivity checker
    */
   private startInactivityChecker(): void {
-    setInterval(async () => {
-      await this.checkInactiveTickets();
+    if (this.inactivityInterval) {
+      clearInterval(this.inactivityInterval);
+    }
+    
+    this.inactivityInterval = setInterval(async () => {
+      try {
+        await this.checkInactiveTickets();
+      } catch (error) {
+        this.logger.error('Error in inactivity checker:', error);
+      }
     }, 60 * 60 * 1000); // Check every hour
+    
+    this.logger.debug('Ticket inactivity checker started');
   }
 
   /**
@@ -314,14 +458,41 @@ export class TicketService {
    * Get ticket settings for guild
    */
   public getTicketSettings(guildId: string): TicketSettings {
-    return this.ticketSettings.get(guildId) || {
+    try {
+      if (!guildId || typeof guildId !== 'string') {
+        this.logger.warn('Invalid guildId provided to getTicketSettings');
+        return this.getDefaultTicketSettings('unknown');
+      }
+
+      const settings = this.ticketSettings.get(guildId);
+      if (settings) {
+        return settings;
+      }
+
+      // Create and cache default settings for new guilds
+      const defaultSettings = this.getDefaultTicketSettings(guildId);
+      this.ticketSettings.set(guildId, defaultSettings);
+      this.logger.debug(`Created default ticket settings for guild ${guildId}`);
+      
+      return defaultSettings;
+    } catch (error) {
+      this.logger.error('Error getting ticket settings:', error);
+      return this.getDefaultTicketSettings(guildId || 'unknown');
+    }
+  }
+
+  /**
+   * Get default ticket settings
+   */
+  private getDefaultTicketSettings(guildId: string): TicketSettings {
+    return {
       guildId,
       enabled: true,
       maxTicketsPerUser: 3,
       autoAssign: false,
       requireReason: true,
       allowAnonymous: false,
-      closeAfterInactivity: 72, // 3 days
+      closeAfterInactivity: this.DEFAULT_INACTIVITY_HOURS,
       notificationSettings: {
         onCreate: true,
         onAssign: true,
@@ -342,9 +513,46 @@ export class TicketService {
     priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium'
   ): Promise<{ success: boolean; message: string; ticket?: TicketData; channel?: TextChannel }> {
     try {
+      // Input validation
+      if (!guildId || typeof guildId !== 'string') {
+        this.logger.warn('Invalid guildId provided to createTicket');
+        return { success: false, message: 'ID do servidor inválido.' };
+      }
+
+      if (!userId || typeof userId !== 'string') {
+        this.logger.warn('Invalid userId provided to createTicket');
+        return { success: false, message: 'ID do usuário inválido.' };
+      }
+
+      if (!title || typeof title !== 'string' || title.trim().length === 0) {
+        return { success: false, message: 'Título do ticket é obrigatório.' };
+      }
+
+      if (!description || typeof description !== 'string' || description.trim().length === 0) {
+        return { success: false, message: 'Descrição do ticket é obrigatória.' };
+      }
+
+      // Sanitize and validate inputs
+      title = title.trim().slice(0, 100); // Limit title length
+      description = description.trim().slice(0, 2000); // Limit description length
+      priority = this.validateTicketPriority(priority);
+
+      // Check database availability
+      if (!this.database?.client) {
+        this.logger.error('Database not available for ticket creation');
+        return { success: false, message: 'Serviço de banco de dados indisponível.' };
+      }
+
       const settings = this.getTicketSettings(guildId);
       if (!settings.enabled) {
         return { success: false, message: 'Sistema de tickets está desabilitado neste servidor.' };
+      }
+
+      // Check guild ticket limit
+      const guildTickets = await this.getGuildTickets(guildId, 'open');
+      if (guildTickets.length >= this.MAX_TICKETS_PER_GUILD) {
+        this.logger.warn(`Guild ${guildId} has reached maximum ticket limit`);
+        return { success: false, message: 'Servidor atingiu o limite máximo de tickets abertos.' };
       }
 
       // Check if user has reached max tickets
@@ -355,39 +563,68 @@ export class TicketService {
 
       const guild = this.client.guilds.cache.get(guildId);
       if (!guild) {
+        this.logger.warn(`Guild not found: ${guildId}`);
         return { success: false, message: 'Servidor não encontrado.' };
       }
 
-      const user = await guild.members.fetch(userId).catch(() => null);
+      const user = await guild.members.fetch(userId).catch((error) => {
+        this.logger.warn(`Failed to fetch user ${userId} in guild ${guildId}:`, error);
+        return null;
+      });
       if (!user) {
         return { success: false, message: 'Usuário não encontrado no servidor.' };
       }
 
-      // Create ticket in database
-      const ticketData = await this.database.client.ticket.create({
-        data: {
-          userId,
-          guildId,
-          title,
-          description,
-          priority,
-          status: 'open'
-        }
-      });
+      // Create ticket in database with error handling
+      let ticketData;
+      try {
+        ticketData = await this.database.client.ticket.create({
+          data: {
+            userId,
+            guildId,
+            title,
+            description,
+            priority,
+            status: 'open',
+            metadata: JSON.stringify({})
+          }
+        });
+        this.logger.debug(`Ticket created in database: ${ticketData.id}`);
+      } catch (error) {
+        this.logger.error('Failed to create ticket in database:', error);
+        return { success: false, message: 'Erro ao salvar ticket no banco de dados.' };
+      }
 
-      // Create ticket channel
+      // Create ticket channel with rollback on failure
       const channel = await this.createTicketChannel(guild, user.user, ticketData.id, title);
       if (!channel) {
         // Rollback database creation
-        await this.database.client.ticket.delete({ where: { id: ticketData.id } });
+        try {
+          await this.database.client.ticket.delete({ where: { id: ticketData.id } });
+          this.logger.debug(`Rolled back ticket creation: ${ticketData.id}`);
+        } catch (rollbackError) {
+          this.logger.error('Failed to rollback ticket creation:', rollbackError);
+        }
         return { success: false, message: 'Erro ao criar canal do ticket.' };
       }
 
       // Update ticket with channel ID
-      await this.database.client.ticket.update({
-        where: { id: ticketData.id },
-        data: { channelId: channel.id }
-      });
+      try {
+        await this.database.client.ticket.update({
+          where: { id: ticketData.id },
+          data: { channelId: channel.id }
+        });
+        this.logger.debug(`Updated ticket ${ticketData.id} with channel ID: ${channel.id}`);
+      } catch (error) {
+        this.logger.error('Failed to update ticket with channel ID:', error);
+        // Try to clean up the channel
+        try {
+          await channel.delete('Failed to update ticket in database');
+        } catch (cleanupError) {
+          this.logger.error('Failed to cleanup channel after database error:', cleanupError);
+        }
+        return { success: false, message: 'Erro ao atualizar informações do ticket.' };
+      }
 
       const ticket: TicketData = {
         id: ticketData.id,
@@ -398,44 +635,80 @@ export class TicketService {
         description,
         status: 'open',
         priority,
+        assignedTo: ticketData.assignedTo || undefined,
+        tags: ticketData.tags || undefined,
+        metadata: this.parseTicketMetadata(ticketData.metadata),
         createdAt: ticketData.createdAt,
         updatedAt: ticketData.updatedAt
       };
 
-      // Add to active tickets
+      // Add to active tickets cache
       if (!this.activeTickets.has(guildId)) {
         this.activeTickets.set(guildId, new Map());
       }
       this.activeTickets.get(guildId)!.set(userId, ticket);
+      this.logger.debug(`Added ticket ${ticket.id} to active tickets cache`);
 
-      // Send initial message to ticket channel
-      await this.sendTicketWelcomeMessage(channel, user.user, ticket);
+      // Send initial message to ticket channel with error handling
+      try {
+        await this.sendTicketWelcomeMessage(channel, user.user, ticket);
+        this.logger.debug(`Welcome message sent for ticket ${ticket.id}`);
+      } catch (error) {
+        this.logger.error('Failed to send welcome message:', error);
+        // Don't fail the entire operation for this
+      }
 
-      // Auto-assign if enabled
+      // Auto-assign if enabled with error handling
       if (settings.autoAssign) {
-        const assignee = await this.findAvailableAssignee(guildId);
-        if (assignee) {
-          await this.assignTicket(guildId, ticketData.id, assignee.id);
+        try {
+          const assignee = await this.findAvailableAssignee(guildId);
+          if (assignee) {
+            const assignResult = await this.assignTicket(guildId, ticketData.id, assignee.id);
+            if (assignResult.success) {
+              this.logger.debug(`Auto-assigned ticket ${ticket.id} to ${assignee.id}`);
+            } else {
+              this.logger.warn(`Failed to auto-assign ticket ${ticket.id}: ${assignResult.message}`);
+            }
+          } else {
+            this.logger.debug(`No available assignee found for ticket ${ticket.id}`);
+          }
+        } catch (error) {
+          this.logger.error('Error during auto-assignment:', error);
+          // Don't fail the entire operation for this
         }
       }
 
-      // Send notification
+      // Send notification with error handling
       if (settings.notificationSettings.onCreate) {
-        await this.sendTicketNotification(guildId, 'create', ticket);
+        try {
+          await this.sendTicketNotification(guildId, 'create', ticket);
+          this.logger.debug(`Creation notification sent for ticket ${ticket.id}`);
+        } catch (error) {
+          this.logger.error('Failed to send creation notification:', error);
+          // Don't fail the entire operation for this
+        }
       }
 
-      // Log ticket creation
-      await this.loggingService.logTicketCreate(guild.id, {
-        ticketId: ticket.id,
-        userId: ticket.userId,
-        channelId: ticket.channelId,
-        title: ticket.title,
-        description: ticket.description,
-        priority: ticket.priority,
-        createdAt: ticket.createdAt
-      });
+      // Log ticket creation with error handling
+      try {
+        if (this.loggingService) {
+          await this.loggingService.logTicketCreate(guild.id, {
+            ticketId: ticket.id,
+            userId: ticket.userId,
+            channelId: ticket.channelId,
+            title: ticket.title,
+            description: ticket.description,
+            priority: ticket.priority,
+            createdAt: ticket.createdAt
+          });
+          this.logger.debug(`Logged ticket creation for ${ticket.id}`);
+        }
+      } catch (error) {
+        this.logger.error('Failed to log ticket creation:', error);
+        // Don't fail the entire operation for this
+      }
 
-      this.logger.info(`Ticket created: ${ticket.id} by ${userId} in ${guildId}`);
+      this.logger.info(`Ticket created successfully: ${ticket.id} by ${userId} in ${guildId}`);
       return { success: true, message: 'Ticket criado com sucesso!', ticket, channel };
     } catch (error) {
       this.logger.error('Error creating ticket:', error);
@@ -453,58 +726,125 @@ export class TicketService {
     title: string
   ): Promise<TextChannel | null> {
     try {
-      const settings = this.getTicketSettings(guild.id);
-      const channelName = `ticket-${ticketId.slice(-8)}`;
+      // Input validation
+      if (!guild || !user || !ticketId || !title) {
+        this.logger.error('Invalid parameters provided to createTicketChannel');
+        return null;
+      }
 
-      // Find or create category
+      if (typeof ticketId !== 'string' || ticketId.length < 8) {
+        this.logger.error('Invalid ticketId format');
+        return null;
+      }
+
+      const settings = this.getTicketSettings(guild.id);
+      const channelName = `ticket-${ticketId.slice(-8)}`.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+
+      // Validate bot permissions
+      const botMember = guild.members.me;
+      if (!botMember) {
+        this.logger.error('Bot member not found in guild');
+        return null;
+      }
+
+      const requiredPermissions = [
+        PermissionFlagsBits.ManageChannels,
+        PermissionFlagsBits.ViewChannel,
+        PermissionFlagsBits.SendMessages
+      ];
+
+      if (!botMember.permissions.has(requiredPermissions)) {
+        this.logger.error('Bot lacks required permissions to create ticket channel');
+        return null;
+      }
+
+      // Find or create category with error handling
       let category: CategoryChannel | null = null;
       if (settings.categoryId) {
-        category = guild.channels.cache.get(settings.categoryId) as CategoryChannel;
+        try {
+          const categoryChannel = guild.channels.cache.get(settings.categoryId);
+          if (categoryChannel && categoryChannel.type === ChannelType.GuildCategory) {
+            category = categoryChannel as CategoryChannel;
+            this.logger.debug(`Using configured category: ${category.name}`);
+          } else {
+            this.logger.warn(`Configured category ${settings.categoryId} not found or invalid`);
+          }
+        } catch (error) {
+          this.logger.warn('Error accessing configured category:', error);
+        }
       }
       
       if (!category) {
-        // Find tickets category or create one
-        category = guild.channels.cache.find((c: any) => 
-          c.type === ChannelType.GuildCategory && c.name.toLowerCase().includes('ticket')
-        ) as CategoryChannel;
+        // Find existing tickets category
+        try {
+          category = guild.channels.cache.find((c: any) => 
+            c.type === ChannelType.GuildCategory && 
+            c.name.toLowerCase().includes('ticket')
+          ) as CategoryChannel;
+          
+          if (category) {
+            this.logger.debug(`Found existing tickets category: ${category.name}`);
+          }
+        } catch (error) {
+          this.logger.warn('Error finding existing tickets category:', error);
+        }
         
         if (!category) {
-          category = await guild.channels.create({
-            name: '🎫 TICKETS',
-            type: ChannelType.GuildCategory,
-            permissionOverwrites: [
-              {
-                id: guild.roles.everyone.id,
-                deny: [PermissionFlagsBits.ViewChannel]
-              }
-            ]
-          });
+          // Create new tickets category
+          try {
+            category = await guild.channels.create({
+              name: '🎫 TICKETS',
+              type: ChannelType.GuildCategory,
+              permissionOverwrites: [
+                {
+                  id: guild.roles.everyone.id,
+                  deny: [PermissionFlagsBits.ViewChannel]
+                }
+              ]
+            });
+            this.logger.info(`Created new tickets category: ${category?.name || 'Unknown'}`);
+          } catch (error) {
+            this.logger.error('Failed to create tickets category:', error);
+            // Continue without category
+          }
         }
       }
 
-      // Create ticket channel
-      const channel = await guild.channels.create({
-        name: channelName,
-        type: ChannelType.GuildText,
-        parent: category?.id,
-        topic: `Ticket: ${title} | Usuário: ${user.tag} | ID: ${ticketId}`,
-        permissionOverwrites: [
-          {
-            id: guild.roles.everyone.id,
-            deny: [PermissionFlagsBits.ViewChannel]
-          },
-          {
-            id: user.id,
-            allow: [
-              PermissionFlagsBits.ViewChannel,
-              PermissionFlagsBits.SendMessages,
-              PermissionFlagsBits.ReadMessageHistory,
-              PermissionFlagsBits.AttachFiles,
-              PermissionFlagsBits.EmbedLinks
-            ]
-          },
-          // Add support role permissions if configured
-          ...(settings.supportRoleId ? [{
+      // Prepare permission overwrites
+      const permissionOverwrites = [
+        {
+          id: guild.roles.everyone.id,
+          deny: [PermissionFlagsBits.ViewChannel]
+        },
+        {
+          id: user.id,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.ReadMessageHistory,
+            PermissionFlagsBits.AttachFiles,
+            PermissionFlagsBits.EmbedLinks
+          ]
+        },
+        {
+          id: botMember.id,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.ReadMessageHistory,
+            PermissionFlagsBits.AttachFiles,
+            PermissionFlagsBits.EmbedLinks,
+            PermissionFlagsBits.ManageMessages,
+            PermissionFlagsBits.ManageChannels
+          ]
+        }
+      ];
+
+      // Add support role permissions if configured and valid
+      if (settings.supportRoleId) {
+        const supportRole = guild.roles.cache.get(settings.supportRoleId);
+        if (supportRole) {
+          permissionOverwrites.push({
             id: settings.supportRoleId,
             allow: [
               PermissionFlagsBits.ViewChannel,
@@ -514,9 +854,53 @@ export class TicketService {
               PermissionFlagsBits.EmbedLinks,
               PermissionFlagsBits.ManageMessages
             ]
-          }] : [])
-        ]
-      });
+          });
+          this.logger.debug(`Added support role permissions: ${supportRole.name}`);
+        } else {
+          this.logger.warn(`Support role ${settings.supportRoleId} not found`);
+        }
+      }
+
+      // Create ticket channel with comprehensive error handling
+      let channel: TextChannel;
+      try {
+        const channelOptions = {
+          name: channelName,
+          type: ChannelType.GuildText,
+          parent: category?.id,
+          topic: `Ticket: ${title.slice(0, 50)} | Usuário: ${user.tag} | ID: ${ticketId}`,
+          permissionOverwrites
+        };
+
+        channel = await guild.channels.create(channelOptions);
+        this.logger.info(`Created ticket channel: ${channel.name} (${channel.id})`);
+      } catch (error) {
+        this.logger.error('Failed to create ticket channel:', error);
+        return null;
+      }
+
+      // Verify channel was created successfully
+      if (!channel || !channel.id) {
+        this.logger.error('Channel creation returned invalid result');
+        return null;
+      }
+
+      // Verify bot can access the channel
+      try {
+        const botPermissions = channel.permissionsFor(botMember);
+        if (!botPermissions || !botPermissions.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
+          this.logger.error('Bot cannot access created ticket channel');
+          // Try to delete the problematic channel
+          try {
+            await channel.delete('Bot cannot access channel');
+          } catch (deleteError) {
+            this.logger.error('Failed to cleanup inaccessible channel:', deleteError);
+          }
+          return null;
+        }
+      } catch (error) {
+        this.logger.warn('Could not verify bot permissions on created channel:', error);
+      }
 
       return channel;
     } catch (error) {

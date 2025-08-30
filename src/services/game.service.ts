@@ -222,12 +222,31 @@ export class GameService {
 
   constructor(client: ExtendedClient) {
     this.logger = new Logger();
-    this.cache = client.cache;
-    this.database = client.database;
-    this.client = client;
     
-    this.loadActiveChallenges();
-    this.startChallengeScheduler();
+    try {
+      if (!client) {
+        throw new Error('ExtendedClient is required');
+      }
+      this.cache = client.cache;
+      this.database = client.database;
+      this.client = client;
+      
+      if (!this.cache) {
+        this.logger.warn('CacheService not available, some features may be limited');
+      }
+      
+      if (!this.database) {
+        throw new Error('DatabaseService is required');
+      }
+      
+      this.loadActiveChallenges();
+      this.startChallengeScheduler();
+      
+      this.logger.info('GameService initialized successfully');
+    } catch (error) {
+      this.logger.error('Failed to initialize GameService:', error);
+      throw error;
+    }
   }
 
   /**
@@ -429,18 +448,95 @@ export class GameService {
   /**
    * Create a new challenge
    */
-  public async createChallenge(challengeData: Omit<Challenge, 'id' | 'isActive'>): Promise<Challenge> {
+  public async createChallenge(challengeData: Omit<Challenge, 'id' | 'isActive'>, guildId?: string): Promise<Challenge> {
     try {
+      // Input validation
+      if (!challengeData) {
+        throw new Error('Challenge data is required');
+      }
+      
+      if (!challengeData.name || typeof challengeData.name !== 'string' || challengeData.name.trim().length === 0) {
+        throw new Error('Challenge name is required and must be a non-empty string');
+      }
+      
+      if (challengeData.name.length > 100) {
+        throw new Error('Challenge name must be 100 characters or less');
+      }
+      
+      if (!challengeData.description || typeof challengeData.description !== 'string' || challengeData.description.trim().length === 0) {
+        throw new Error('Challenge description is required and must be a non-empty string');
+      }
+      
+      if (challengeData.description.length > 500) {
+        throw new Error('Challenge description must be 500 characters or less');
+      }
+      
+      if (!['daily', 'weekly', 'monthly', 'special'].includes(challengeData.type)) {
+        throw new Error('Invalid challenge type');
+      }
+      
+      if (!['pubg', 'social', 'gaming', 'participation'].includes(challengeData.category)) {
+        throw new Error('Invalid challenge category');
+      }
+      
+      if (!Array.isArray(challengeData.requirements) || challengeData.requirements.length === 0) {
+        throw new Error('Challenge requirements must be a non-empty array');
+      }
+      
+      // Validate requirements
+      for (const req of challengeData.requirements) {
+        if (!req.type || !['kills', 'wins', 'games', 'messages', 'voice_time', 'quiz_score', 'mini_game_wins'].includes(req.type)) {
+          throw new Error(`Invalid requirement type: ${req.type}`);
+        }
+        
+        if (typeof req.target !== 'number' || req.target <= 0 || req.target > 10000) {
+          throw new Error(`Invalid requirement target: ${req.target}. Must be between 1 and 10000`);
+        }
+      }
+      
+      // Validate rewards
+      if (!challengeData.rewards || typeof challengeData.rewards !== 'object') {
+        throw new Error('Challenge rewards are required');
+      }
+      
+      if (typeof challengeData.rewards.xp !== 'number' || challengeData.rewards.xp < 0 || challengeData.rewards.xp > 10000) {
+        throw new Error('Invalid XP reward. Must be between 0 and 10000');
+      }
+      
+      if (typeof challengeData.rewards.coins !== 'number' || challengeData.rewards.coins < 0 || challengeData.rewards.coins > 10000) {
+        throw new Error('Invalid coins reward. Must be between 0 and 10000');
+      }
+      
+      // Validate dates
+      if (!(challengeData.startDate instanceof Date) || isNaN(challengeData.startDate.getTime())) {
+        throw new Error('Invalid start date');
+      }
+      
+      if (!(challengeData.endDate instanceof Date) || isNaN(challengeData.endDate.getTime())) {
+        throw new Error('Invalid end date');
+      }
+      
+      if (challengeData.endDate <= challengeData.startDate) {
+        throw new Error('End date must be after start date');
+      }
+      
+      // Sanitize data
+      const sanitizedData = {
+        ...challengeData,
+        name: challengeData.name.trim(),
+        description: challengeData.description.trim(),
+      };
+      
       const challenge = await this.database.client.challenge.create({
         data: {
-          guildId: '1', // TODO: Add guildId parameter to method
-          name: challengeData.name,
-          description: challengeData.description,
-          type: challengeData.type,
-          requirements: JSON.stringify(challengeData.requirements),
-          rewards: JSON.stringify(challengeData.rewards),
-          startDate: challengeData.startDate,
-          endDate: challengeData.endDate,
+          guildId: guildId || '1', // Use provided guildId or default
+          name: sanitizedData.name,
+          description: sanitizedData.description,
+          type: sanitizedData.type,
+          requirements: JSON.stringify(sanitizedData.requirements),
+          rewards: JSON.stringify(sanitizedData.rewards),
+          startDate: sanitizedData.startDate,
+          endDate: sanitizedData.endDate,
           isActive: true,
         },
       });
@@ -450,7 +546,7 @@ export class GameService {
         name: challenge.name,
         description: challenge.description,
         type: challenge.type as 'daily' | 'weekly' | 'monthly' | 'special',
-        category: ((challenge as any).category || 'pubg') as 'pubg' | 'social' | 'gaming' | 'participation',
+        category: sanitizedData.category,
         requirements: challenge.requirements ? JSON.parse(challenge.requirements as string) : [],
         rewards: challenge.rewards ? JSON.parse(challenge.rewards as string) : { xp: 0, coins: 0 },
         startDate: challenge.startDate || new Date(),
@@ -463,6 +559,7 @@ export class GameService {
       this.logger.game('CHALLENGE_CREATED', challenge.id, 'system', {
         name: challenge.name,
         type: challenge.type,
+        guildId: guildId || '1',
       });
       
       return newChallenge;
@@ -481,82 +578,276 @@ export class GameService {
     hostId: string,
     settings: QuizSettings,
   ): Promise<QuizSession> {
-    const sessionId = `quiz_${guildId}_${Date.now()}`;
-    
-    // Get questions based on settings
-    const questions = this.getQuizQuestions(settings);
-    
-    const session: QuizSession = {
-      id: sessionId,
-      guildId,
-      channelId,
-      hostId,
-      participants: new Map(),
-      questions,
-      currentQuestionIndex: 0,
-      isActive: true,
-      startedAt: new Date(),
-      settings,
-    };
-    
-    this.quizSessions.set(sessionId, session);
-    
-    // Save to database
-    await this.database.client.quiz.create({
-      data: {
+    try {
+      // Input validation
+      if (!guildId || typeof guildId !== 'string' || guildId.trim().length === 0) {
+        throw new Error('Guild ID is required and must be a non-empty string');
+      }
+      
+      if (!channelId || typeof channelId !== 'string' || channelId.trim().length === 0) {
+        throw new Error('Channel ID is required and must be a non-empty string');
+      }
+      
+      if (!hostId || typeof hostId !== 'string' || hostId.trim().length === 0) {
+        throw new Error('Host ID is required and must be a non-empty string');
+      }
+      
+      if (!settings || typeof settings !== 'object') {
+        throw new Error('Quiz settings are required');
+      }
+      
+      // Validate settings
+      if (typeof settings.questionCount !== 'number' || settings.questionCount < 1 || settings.questionCount > 50) {
+        throw new Error('Question count must be between 1 and 50');
+      }
+      
+      if (typeof settings.timePerQuestion !== 'number' || settings.timePerQuestion < 10 || settings.timePerQuestion > 300) {
+        throw new Error('Time per question must be between 10 and 300 seconds');
+      }
+      
+      if (!['pubg', 'general', 'gaming', 'esports', 'mixed'].includes(settings.category)) {
+        throw new Error('Invalid quiz category');
+      }
+      
+      if (!['easy', 'medium', 'hard', 'mixed'].includes(settings.difficulty)) {
+        throw new Error('Invalid quiz difficulty');
+      }
+      
+      if (typeof settings.allowMultipleAttempts !== 'boolean') {
+        throw new Error('allowMultipleAttempts must be a boolean');
+      }
+      
+      if (typeof settings.showCorrectAnswer !== 'boolean') {
+        throw new Error('showCorrectAnswer must be a boolean');
+      }
+      
+      // Check for existing active quiz in the same channel
+      const existingQuiz = Array.from(this.quizSessions.values())
+        .find(session => session.guildId === guildId && session.channelId === channelId && session.isActive);
+      
+      if (existingQuiz) {
+        throw new Error('There is already an active quiz in this channel');
+      }
+      
+      const sessionId = `quiz_${guildId}_${Date.now()}`;
+      
+      // Get questions based on settings
+      const questions = this.getQuizQuestions(settings);
+      
+      if (questions.length === 0) {
+        throw new Error('No questions available for the selected criteria');
+      }
+      
+      const session: QuizSession = {
         id: sessionId,
-        guildId,
-        title: `Quiz Session ${sessionId}`,
-        questions: JSON.stringify(questions),
-        difficulty: settings.difficulty === 'mixed' ? 'medium' : settings.difficulty,
-        category: settings.category === 'mixed' ? 'general' : settings.category,
-        timeLimit: settings.timePerQuestion,
+        guildId: guildId.trim(),
+        channelId: channelId.trim(),
+        hostId: hostId.trim(),
+        participants: new Map(),
+        questions,
+        currentQuestionIndex: 0,
         isActive: true,
-      },
-    });
-    
-    this.logger.game('QUIZ_STARTED', sessionId, hostId, {
-      guildId,
-      questionCount: questions.length,
-    });
-    
-    return session;
+        startedAt: new Date(),
+        settings,
+      };
+      
+      this.quizSessions.set(sessionId, session);
+      
+      // Save to database with error handling
+      try {
+        await this.database.client.quiz.create({
+          data: {
+            id: sessionId,
+            guildId: guildId.trim(),
+            title: `Quiz Session ${sessionId}`,
+            questions: JSON.stringify(questions),
+            difficulty: settings.difficulty === 'mixed' ? 'medium' : settings.difficulty,
+            category: settings.category === 'mixed' ? 'general' : settings.category,
+            timeLimit: settings.timePerQuestion,
+            isActive: true,
+          },
+        });
+      } catch (dbError) {
+        // Remove from memory if database save fails
+        this.quizSessions.delete(sessionId);
+        this.logger.error('Failed to save quiz to database:', dbError);
+        throw new Error('Failed to save quiz session to database');
+      }
+      
+      this.logger.game('QUIZ_STARTED', sessionId, hostId, {
+        guildId,
+        channelId,
+        questionCount: questions.length,
+        difficulty: settings.difficulty,
+        category: settings.category,
+      });
+      
+      return session;
+    } catch (error) {
+      this.logger.error('Failed to start quiz:', error);
+      throw error;
+    }
   }
 
   /**
    * Get quiz questions based on settings
    */
   private getQuizQuestions(settings: QuizSettings): QuizQuestion[] {
-    let availableQuestions = [...this.pubgQuestions];
-    
-    // Filter by category
-    if (settings.category !== 'mixed') {
-      availableQuestions = availableQuestions.filter(q => q.category === settings.category);
+    try {
+      // Input validation
+      if (!settings || typeof settings !== 'object') {
+        throw new Error('Quiz settings are required');
+      }
+      
+      if (typeof settings.questionCount !== 'number' || settings.questionCount < 1 || settings.questionCount > 50) {
+        throw new Error('Question count must be between 1 and 50');
+      }
+      
+      if (!['pubg', 'general', 'gaming', 'esports', 'mixed'].includes(settings.category)) {
+        throw new Error('Invalid quiz category');
+      }
+      
+      if (!['easy', 'medium', 'hard', 'mixed'].includes(settings.difficulty)) {
+        throw new Error('Invalid quiz difficulty');
+      }
+      
+      // Validate question pool
+      if (!this.pubgQuestions || this.pubgQuestions.length === 0) {
+        throw new Error('No questions available in the question pool');
+      }
+      
+      // Validate each question in the pool
+      const validQuestions = this.pubgQuestions.filter(question => {
+        return question &&
+               typeof question.id === 'string' &&
+               typeof question.question === 'string' &&
+               Array.isArray(question.options) &&
+               question.options.length >= 2 &&
+               typeof question.correctAnswer === 'number' &&
+               question.correctAnswer >= 0 &&
+               question.correctAnswer < question.options.length &&
+               ['easy', 'medium', 'hard'].includes(question.difficulty) &&
+               ['pubg', 'general', 'gaming', 'esports'].includes(question.category) &&
+               typeof question.points === 'number' &&
+               question.points > 0 &&
+               typeof question.timeLimit === 'number' &&
+               question.timeLimit > 0;
+      });
+      
+      if (validQuestions.length === 0) {
+        throw new Error('No valid questions found in the question pool');
+      }
+      
+      let availableQuestions = [...validQuestions];
+      
+      // Filter by category
+      if (settings.category !== 'mixed') {
+        availableQuestions = availableQuestions.filter(q => q.category === settings.category);
+        
+        if (availableQuestions.length === 0) {
+          this.logger.warn(`No questions found for category: ${settings.category}. Using all categories.`);
+          availableQuestions = [...validQuestions];
+        }
+      }
+      
+      // Filter by difficulty
+      if (settings.difficulty !== 'mixed') {
+        const filteredByDifficulty = availableQuestions.filter(q => q.difficulty === settings.difficulty);
+        
+        if (filteredByDifficulty.length === 0) {
+          this.logger.warn(`No questions found for difficulty: ${settings.difficulty}. Using all difficulties.`);
+        } else {
+          availableQuestions = filteredByDifficulty;
+        }
+      }
+      
+      if (availableQuestions.length === 0) {
+        throw new Error('No questions match the specified criteria');
+      }
+      
+      // Shuffle using Fisher-Yates algorithm for better randomization
+      const shuffled = [...availableQuestions];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
+      }
+      
+      const requestedCount = Math.min(settings.questionCount, shuffled.length);
+      const selectedQuestions = shuffled.slice(0, requestedCount);
+      
+      if (selectedQuestions.length < settings.questionCount) {
+        this.logger.warn(`Only ${selectedQuestions.length} questions available, but ${settings.questionCount} were requested`);
+      }
+      
+      this.logger.debug(`Selected ${selectedQuestions.length} questions for quiz`, {
+        category: settings.category,
+        difficulty: settings.difficulty,
+        totalAvailable: availableQuestions.length,
+      });
+      
+      return selectedQuestions;
+    } catch (error) {
+      this.logger.error('Failed to get quiz questions:', error);
+      throw error;
     }
-    
-    // Filter by difficulty
-    if (settings.difficulty !== 'mixed') {
-      availableQuestions = availableQuestions.filter(q => q.difficulty === settings.difficulty);
-    }
-    
-    // Shuffle and take requested amount
-    const shuffled = availableQuestions.sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, Math.min(settings.questionCount, shuffled.length));
   }
 
   /**
    * Join quiz session
    */
-  public joinQuiz(sessionId: string, userId: string, username: string): boolean {
-    const session = this.quizSessions.get(sessionId);
-    if (!session || !session.isActive) {
-      return false;
-    }
-    
-    if (!session.participants.has(userId)) {
-      session.participants.set(userId, {
-        userId,
-        username,
+  public async joinQuiz(sessionId: string, userId: string, username: string): Promise<boolean> {
+    try {
+      // Input validation
+      if (!sessionId || typeof sessionId !== 'string' || sessionId.trim().length === 0) {
+        throw new Error('Session ID is required and must be a non-empty string');
+      }
+      
+      if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+        throw new Error('User ID is required and must be a non-empty string');
+      }
+      
+      if (!username || typeof username !== 'string' || username.trim().length === 0) {
+        throw new Error('Username is required and must be a non-empty string');
+      }
+      
+      // Sanitize inputs
+      const cleanSessionId = sessionId.trim();
+      const cleanUserId = userId.trim();
+      const cleanUsername = username.trim().substring(0, 100); // Limit username length
+      
+      const session = this.quizSessions.get(cleanSessionId);
+      
+      if (!session) {
+        this.logger.warn(`Quiz session not found: ${cleanSessionId}`);
+        return false;
+      }
+      
+      if (!session.isActive) {
+        this.logger.warn(`Quiz session is not active: ${cleanSessionId}`);
+        return false;
+      }
+      
+      // Check if quiz has already started (optional restriction)
+      if (session.currentQuestionIndex > 0) {
+        this.logger.warn(`Cannot join quiz ${cleanSessionId}: already in progress`);
+        return false;
+      }
+      
+      if (session.participants.has(cleanUserId)) {
+        this.logger.debug(`User ${cleanUserId} already joined quiz ${cleanSessionId}`);
+        return true; // Already joined
+      }
+      
+      // Check participant limit (optional)
+      const maxParticipants = 50; // Configurable limit
+      if (session.participants.size >= maxParticipants) {
+        this.logger.warn(`Quiz ${cleanSessionId} is full (${maxParticipants} participants)`);
+        return false;
+      }
+      
+      session.participants.set(cleanUserId, {
+        userId: cleanUserId,
+        username: cleanUsername,
         score: 0,
         correctAnswers: 0,
         totalAnswers: 0,
@@ -564,10 +855,17 @@ export class GameService {
         lastAnswerTime: 0,
       });
       
-      this.logger.game('QUIZ_JOINED', sessionId, userId, { username });
+      this.logger.game('QUIZ_JOINED', cleanSessionId, cleanUserId, {
+        username: cleanUsername,
+        participantCount: session.participants.size,
+        guildId: session.guildId,
+      });
+      
+      return true;
+    } catch (error) {
+      this.logger.error('Failed to join quiz:', error);
+      return false;
     }
-    
-    return true;
   }
 
   /**
@@ -578,53 +876,107 @@ export class GameService {
     userId: string,
     answerIndex: number,
   ): Promise<{ correct: boolean; points: number; streak: number } | null> {
-    const session = this.quizSessions.get(sessionId);
-    if (!session || !session.isActive) {
-      return null;
-    }
-    
-    const participant = session.participants.get(userId);
-    if (!participant) {
-      return null;
-    }
-    
-    const currentQuestion = session.questions[session.currentQuestionIndex];
-    if (!currentQuestion) {
-      return null;
-    }
-    
-    const isCorrect = answerIndex === currentQuestion.correctAnswer;
-    const now = Date.now();
-    
-    participant.totalAnswers++;
-    participant.lastAnswerTime = now;
-    
-    let points = 0;
-    if (isCorrect) {
-      participant.correctAnswers++;
-      participant.streak++;
+    try {
+      // Input validation
+      if (!sessionId || typeof sessionId !== 'string' || sessionId.trim().length === 0) {
+        throw new Error('Session ID is required and must be a non-empty string');
+      }
       
-      // Calculate points with streak bonus
-      points = currentQuestion.points + (participant.streak * 2);
-      participant.score += points;
+      if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+        throw new Error('User ID is required and must be a non-empty string');
+      }
       
-      // Update challenge progress
-      await this.updateChallengeProgress(userId, 'quiz_score', 1);
-    } else {
-      participant.streak = 0;
+      if (typeof answerIndex !== 'number' || answerIndex < 0 || answerIndex > 10) {
+        throw new Error('Answer index must be a valid number between 0 and 10');
+      }
+      
+      // Sanitize inputs
+      const cleanSessionId = sessionId.trim();
+      const cleanUserId = userId.trim();
+      
+      const session = this.quizSessions.get(cleanSessionId);
+      if (!session || !session.isActive) {
+        this.logger.warn(`Quiz session not found or inactive: ${cleanSessionId}`);
+        return null;
+      }
+      
+      const participant = session.participants.get(cleanUserId);
+      if (!participant) {
+        this.logger.warn(`User not in quiz session: ${cleanUserId}`);
+        return null;
+      }
+      
+      const currentQuestion = session.questions[session.currentQuestionIndex];
+      if (!currentQuestion) {
+        this.logger.warn(`No current question available for session: ${cleanSessionId}`);
+        return null;
+      }
+      
+      // Validate answer index against question options
+      if (answerIndex >= currentQuestion.options.length) {
+        throw new Error(`Invalid answer index: ${answerIndex}. Question has ${currentQuestion.options.length} options`);
+      }
+      
+      // Check if user already answered this question (if multiple attempts not allowed)
+      if (!session.settings.allowMultipleAttempts) {
+        const answeredKey = `${cleanUserId}_${session.currentQuestionIndex}`;
+        if ((session as any).answeredQuestions?.has(answeredKey)) {
+          this.logger.warn(`User ${cleanUserId} already answered question ${session.currentQuestionIndex}`);
+          return null;
+        }
+        
+        // Track answered questions
+        if (!(session as any).answeredQuestions) {
+          (session as any).answeredQuestions = new Set();
+        }
+        (session as any).answeredQuestions.add(answeredKey);
+      }
+      
+      const isCorrect = answerIndex === currentQuestion.correctAnswer;
+      const now = Date.now();
+      
+      participant.totalAnswers++;
+      participant.lastAnswerTime = now;
+      
+      let points = 0;
+      if (isCorrect) {
+        participant.correctAnswers++;
+        participant.streak++;
+        
+        // Calculate points with streak bonus and time bonus
+        const timeBonus = Math.max(0, Math.floor((currentQuestion.timeLimit - 10) / 5)); // Time bonus
+        points = currentQuestion.points + (participant.streak * 2) + timeBonus;
+        participant.score += points;
+        
+        // Update challenge progress with error handling
+        try {
+          await this.updateChallengeProgress(cleanUserId, 'quiz_score', 1);
+        } catch (challengeError) {
+          this.logger.warn('Failed to update challenge progress:', challengeError);
+          // Don't return null, just log the error
+        }
+      } else {
+        participant.streak = 0;
+      }
+      
+      this.logger.game('QUIZ_ANSWER', cleanSessionId, cleanUserId, {
+        questionIndex: session.currentQuestionIndex,
+        answerIndex,
+        correct: isCorrect,
+        points,
+        streak: participant.streak,
+        guildId: session.guildId,
+      });
+      
+      return {
+        correct: isCorrect,
+        points,
+        streak: participant.streak,
+      };
+    } catch (error) {
+      this.logger.error('Failed to submit quiz answer:', error);
+      return null;
     }
-    
-    this.logger.game('QUIZ_ANSWER', sessionId, userId, {
-      questionIndex: session.currentQuestionIndex,
-      correct: isCorrect,
-      points,
-    });
-    
-    return {
-      correct: isCorrect,
-      points,
-      streak: participant.streak,
-    };
   }
 
   /**

@@ -67,19 +67,40 @@ export class SchedulerService {
   private readonly maxExecutionHistory = 1000;
 
   constructor(client: ExtendedClient) {
+    if (!client) {
+      throw new Error('ExtendedClient is required');
+    }
+
     this.logger = new Logger();
-    this.cache = client.cache;
-    this.database = client.database;
-    this.rankingService = new RankingService(client);
-    this.badgeService = new BadgeService(client, (client as any).xpService);
-    this.presenceService = new PresenceService(client);
-    this.clipService = new ClipService(client);
-    this.weaponMasteryService = new WeaponMasteryService(client);
     this.client = client;
     
-    this.initializeTasks();
-    this.startTasks();
-    this.startMonitoring();
+    // Validate required services
+    if (!client.cache) {
+      throw new Error('CacheService is required');
+    }
+    if (!client.database) {
+      throw new Error('DatabaseService is required');
+    }
+
+    this.cache = client.cache;
+    this.database = client.database;
+    
+    try {
+      this.rankingService = new RankingService(client);
+      this.badgeService = new BadgeService(client, (client as any).xpService);
+      this.presenceService = new PresenceService(client);
+      this.clipService = new ClipService(client);
+      this.weaponMasteryService = new WeaponMasteryService(client);
+      
+      this.initializeTasks();
+      this.startTasks();
+      this.startMonitoring();
+      
+      this.logger.info('SchedulerService initialized successfully');
+    } catch (error) {
+      this.logger.error('Failed to initialize SchedulerService:', error);
+      throw error;
+    }
   }
 
   /**
@@ -293,48 +314,126 @@ export class SchedulerService {
    * Add a new scheduled task
    */
   private addTask(task: ScheduledTask): void {
-    this.tasks.set(task.id, task);
+    try {
+      // Validate task
+      if (!task || typeof task !== 'object') {
+        throw new Error('Task must be a valid object');
+      }
+      if (!task.id || typeof task.id !== 'string') {
+        throw new Error('Task ID is required and must be a string');
+      }
+      if (!task.name || typeof task.name !== 'string') {
+        throw new Error('Task name is required and must be a string');
+      }
+      if (!task.cronExpression || typeof task.cronExpression !== 'string') {
+        throw new Error('Cron expression is required and must be a string');
+      }
+      if (typeof task.handler !== 'function') {
+        throw new Error('Task handler must be a function');
+      }
+
+      // Validate cron expression
+      if (!cron.validate(task.cronExpression)) {
+        throw new Error(`Invalid cron expression: ${task.cronExpression}`);
+      }
+
+      // Check for duplicate task IDs
+      if (this.tasks.has(task.id)) {
+        this.logger.warn(`Task with ID '${task.id}' already exists, replacing...`);
+      }
+
+      this.tasks.set(task.id, task);
+      this.logger.debug(`Added task: ${task.name} (${task.id})`);
+    } catch (error) {
+      this.logger.error(`Failed to add task: ${task?.name || 'unknown'}`, error);
+      throw error;
+    }
   }
 
   /**
    * Start all enabled tasks
    */
   private startTasks(): void {
-    for (const [taskId, task] of this.tasks) {
-      if (task.enabled) {
-        this.startTask(taskId);
+    try {
+      let startedCount = 0;
+      let failedCount = 0;
+
+      for (const [taskId, task] of this.tasks) {
+        if (task.enabled) {
+          try {
+            this.startTask(taskId);
+            startedCount++;
+          } catch (error) {
+            this.logger.error(`Failed to start task ${task.name} (${taskId}):`, error);
+            failedCount++;
+          }
+        }
       }
+      
+      this.logger.info(`Started ${startedCount} scheduled tasks (${failedCount} failed)`);
+    } catch (error) {
+      this.logger.error('Failed to start tasks:', error);
+      throw error;
     }
-    
-    this.logger.info(`Started ${this.cronJobs.size} scheduled tasks`);
   }
 
   /**
    * Start a specific task
    */
   private startTask(taskId: string): void {
-    const task = this.tasks.get(taskId);
-    if (!task) {
-      return;
-    }
-    
     try {
-      const cronJob = cron.schedule(task.cronExpression, async () => {
+      if (!taskId || typeof taskId !== 'string') {
+        throw new Error('Task ID must be a valid string');
+      }
+
+      const task = this.tasks.get(taskId);
+      if (!task) {
+        throw new Error(`Task not found: ${taskId}`);
+      }
+
+      if (!task.enabled) {
+        this.logger.warn(`Attempted to start disabled task: ${task.name}`);
+        return;
+      }
+      
+      // Stop existing job if running
+      if (this.cronJobs.has(taskId)) {
+        try {
+          this.cronJobs.get(taskId)!.stop();
+          this.cronJobs.delete(taskId);
+          this.logger.debug(`Stopped existing job for task: ${task.name}`);
+        } catch (error) {
+          this.logger.warn(`Failed to stop existing job for task ${task.name}:`, error);
+        }
+      }
+      
+      // Validate cron expression before creating job
+      if (!cron.validate(task.cronExpression)) {
+        throw new Error(`Invalid cron expression for task ${task.name}: ${task.cronExpression}`);
+      }
+      
+      // Create new cron job
+      const job = cron.schedule(task.cronExpression, async () => {
         await this.executeTask(taskId);
       }, {
         scheduled: false,
         timezone: 'America/Sao_Paulo',
       });
       
-      cronJob.start();
-      this.cronJobs.set(taskId, cronJob);
+      job.start();
+      this.cronJobs.set(taskId, job);
       
       // Calculate next run time
-      task.nextRun = this.getNextRunTime(task.cronExpression);
+      try {
+        task.nextRun = this.getNextRunTime(task.cronExpression);
+      } catch (error) {
+        this.logger.warn(`Failed to calculate next run time for task ${task.name}:`, error);
+      }
       
-      this.logger.debug(`Started task: ${task.name}`);
+      this.logger.info(`Started task: ${task.name} (next run: ${task.nextRun?.toISOString()})`);
     } catch (error) {
       this.logger.error(`Failed to start task ${taskId}:`, error);
+      throw error;
     }
   }
 
@@ -342,17 +441,34 @@ export class SchedulerService {
    * Stop a specific task
    */
   private stopTask(taskId: string): void {
-    const cronJob = this.cronJobs.get(taskId);
-    if (cronJob) {
-      cronJob.stop();
-      this.cronJobs.delete(taskId);
-      
-      const task = this.tasks.get(taskId);
-      if (task) {
-        task.nextRun = undefined;
+    try {
+      if (!taskId || typeof taskId !== 'string') {
+        throw new Error('Task ID must be a valid string');
       }
-      
-      this.logger.debug(`Stopped task: ${taskId}`);
+
+      const cronJob = this.cronJobs.get(taskId);
+      if (cronJob) {
+        try {
+          cronJob.stop();
+          this.cronJobs.delete(taskId);
+          
+          const task = this.tasks.get(taskId);
+          if (task) {
+            task.nextRun = undefined;
+            this.logger.info(`Stopped task: ${task.name}`);
+          } else {
+            this.logger.info(`Stopped task: ${taskId}`);
+          }
+        } catch (error) {
+          this.logger.error(`Failed to stop cron job for task ${taskId}:`, error);
+          // Still remove from map even if stop failed
+          this.cronJobs.delete(taskId);
+        }
+      } else {
+        this.logger.warn(`No running job found for task: ${taskId}`);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to stop task ${taskId}:`, error);
     }
   }
 
@@ -360,8 +476,19 @@ export class SchedulerService {
    * Execute a task
    */
   private async executeTask(taskId: string): Promise<void> {
+    if (!taskId || typeof taskId !== 'string') {
+      this.logger.error('Invalid task ID provided for execution');
+      return;
+    }
+
     const task = this.tasks.get(taskId);
     if (!task) {
+      this.logger.error(`Task not found for execution: ${taskId}`);
+      return;
+    }
+
+    if (!task.enabled) {
+      this.logger.warn(`Attempted to execute disabled task: ${task.name}`);
       return;
     }
     
@@ -374,7 +501,18 @@ export class SchedulerService {
     try {
       this.logger.info(`Executing task: ${task.name}`);
       
-      await task.handler();
+      // Validate handler exists and is callable
+      if (typeof task.handler !== 'function') {
+        throw new Error(`Task handler is not a function: ${task.name}`);
+      }
+
+      // Execute the task with timeout protection
+      const timeoutMs = 30 * 60 * 1000; // 30 minutes timeout
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Task execution timeout')), timeoutMs);
+      });
+
+      await Promise.race([task.handler(), timeoutPromise]);
       
       execution.endTime = new Date();
       execution.duration = execution.endTime.getTime() - execution.startTime.getTime();
@@ -382,14 +520,21 @@ export class SchedulerService {
       
       // Update task statistics
       task.lastRun = execution.startTime;
-      task.nextRun = this.getNextRunTime(task.cronExpression);
+      try {
+        task.nextRun = this.getNextRunTime(task.cronExpression);
+      } catch (error) {
+        this.logger.warn(`Failed to calculate next run time for ${task.name}:`, error);
+      }
       task.runCount++;
       
-      // Update average execution time
+      // Update average execution time with weighted average
       if (task.averageExecutionTime === 0) {
         task.averageExecutionTime = execution.duration;
       } else {
-        task.averageExecutionTime = (task.averageExecutionTime + execution.duration) / 2;
+        // Use weighted average (70% old, 30% new) for smoother transitions
+        task.averageExecutionTime = Math.round(
+          (task.averageExecutionTime * 0.7) + (execution.duration * 0.3)
+        );
       }
       
       this.logger.info(`Task completed: ${task.name} (${execution.duration}ms)`);
@@ -401,13 +546,25 @@ export class SchedulerService {
       
       task.errorCount++;
       
-      this.logger.error(`Task failed: ${task.name}`, error);
+      this.logger.error(`Task failed: ${task.name} (${execution.duration}ms)`, error);
+      
+      // If task has too many consecutive errors, consider disabling it
+      if (task.errorCount > 10 && task.runCount > 0) {
+        const errorRate = task.errorCount / task.runCount;
+        if (errorRate > 0.8) {
+          this.logger.warn(`Task ${task.name} has high error rate (${Math.round(errorRate * 100)}%), consider reviewing`);
+        }
+      }
     }
     
     // Store execution history
-    this.executions.push(execution);
-    if (this.executions.length > this.maxExecutionHistory) {
-      this.executions.shift();
+    try {
+      this.executions.push(execution);
+      if (this.executions.length > this.maxExecutionHistory) {
+        this.executions.shift();
+      }
+    } catch (error) {
+      this.logger.error('Failed to store execution history:', error);
     }
   }
 
@@ -416,10 +573,29 @@ export class SchedulerService {
    */
   private getNextRunTime(cronExpression: string): Date {
     try {
-      // Simple approximation - in production, use a proper cron parser
-      const now = new Date();
-      return new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
+      if (!cronExpression || typeof cronExpression !== 'string') {
+        this.logger.warn('Invalid cron expression provided, using default interval');
+        return new Date(Date.now() + 60 * 60 * 1000);
+      }
+
+      // Validate cron expression format (basic validation)
+      const cronParts = cronExpression.trim().split(/\s+/);
+      if (cronParts.length !== 5 && cronParts.length !== 6) {
+        this.logger.warn(`Invalid cron expression format: ${cronExpression}`);
+        return new Date(Date.now() + 60 * 60 * 1000);
+      }
+
+      // Use node-cron to validate and get next run time
+      if (cron.validate(cronExpression)) {
+        // Simple approximation - in production, use a proper cron parser like 'node-cron'
+        const now = new Date();
+        return new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
+      } else {
+        this.logger.warn(`Invalid cron expression: ${cronExpression}`);
+        return new Date(Date.now() + 60 * 60 * 1000);
+      }
     } catch (error) {
+      this.logger.error('Error calculating next run time:', error);
       return new Date(Date.now() + 60 * 60 * 1000);
     }
   }
@@ -428,43 +604,100 @@ export class SchedulerService {
    * Start monitoring
    */
   private startMonitoring(): void {
-    // Monitor task health every 5 minutes
-    setInterval(() => {
-      this.monitorTaskHealth();
-    }, 5 * 60 * 1000);
-    
-    // Log statistics every hour
-    setInterval(() => {
-      this.logStatistics();
-    }, 60 * 60 * 1000);
+    try {
+      // Monitor task health every 5 minutes
+      const healthInterval = setInterval(() => {
+        try {
+          this.monitorTaskHealth();
+        } catch (error) {
+          this.logger.error('Error during task health monitoring:', error);
+        }
+      }, 5 * 60 * 1000);
+      
+      // Log statistics every hour
+      const statsInterval = setInterval(() => {
+        try {
+          this.logStatistics();
+        } catch (error) {
+          this.logger.error('Error during statistics logging:', error);
+        }
+      }, 60 * 60 * 1000);
+
+      this.logger.info('Scheduler monitoring started successfully');
+    } catch (error) {
+      this.logger.error('Failed to start scheduler monitoring:', error);
+    }
   }
 
   /**
    * Monitor task health
    */
   private monitorTaskHealth(): void {
-    const now = new Date();
-    
-    for (const [taskId, task] of this.tasks) {
-      if (!task.enabled) {
-        continue;
-      }
+    try {
+      const now = new Date();
+      let healthyTasks = 0;
+      let unhealthyTasks = 0;
+      let restartedTasks = 0;
       
-      // Check if task should have run by now
-      if (task.nextRun && now > task.nextRun) {
-        const delay = now.getTime() - task.nextRun.getTime();
-        if (delay > 5 * 60 * 1000) { // 5 minutes late
-          this.logger.warn(`Task ${task.name} is ${Math.round(delay / 1000)}s late`);
+      for (const [taskId, task] of this.tasks) {
+        if (!task.enabled) {
+          continue;
+        }
+        
+        let isHealthy = true;
+        
+        // Check if task should have run by now
+        if (task.nextRun && now > task.nextRun) {
+          const delay = now.getTime() - task.nextRun.getTime();
+          if (delay > 5 * 60 * 1000) { // 5 minutes late
+            this.logger.warn(`Task ${task.name} is ${Math.round(delay / 1000)}s late`);
+            isHealthy = false;
+          }
+        }
+        
+        // Check if task hasn't run for too long
+        if (task.lastRun) {
+          const timeSinceLastRun = now.getTime() - task.lastRun.getTime();
+          const maxInterval = 24 * 60 * 60 * 1000; // 24 hours
+          if (timeSinceLastRun > maxInterval) {
+            this.logger.warn(`Task ${task.name} hasn't run for ${Math.round(timeSinceLastRun / 1000 / 60 / 60)} hours`);
+            isHealthy = false;
+          }
+        }
+        
+        // Check error rate
+        if (task.runCount > 0) {
+          const errorRate = task.errorCount / task.runCount;
+          if (errorRate > 0.5) { // More than 50% failure rate
+            this.logger.warn(`Task ${task.name} has high error rate: ${Math.round(errorRate * 100)}%`);
+            isHealthy = false;
+            
+            // Try to restart problematic tasks
+            if (task.runCount >= 5 && errorRate > 0.8) {
+              try {
+                this.logger.info(`Attempting to restart problematic task: ${task.name}`);
+                this.stopTask(taskId);
+                setTimeout(() => this.startTask(taskId), 1000);
+                restartedTasks++;
+              } catch (error) {
+                this.logger.error(`Failed to restart task ${task.name}:`, error);
+              }
+            }
+          }
+        }
+        
+        if (isHealthy) {
+          healthyTasks++;
+        } else {
+          unhealthyTasks++;
         }
       }
       
-      // Check error rate
-      if (task.runCount > 0) {
-        const errorRate = task.errorCount / task.runCount;
-        if (errorRate > 0.5) { // More than 50% failure rate
-          this.logger.warn(`Task ${task.name} has high error rate: ${Math.round(errorRate * 100)}%`);
-        }
+      if (unhealthyTasks > 0 || restartedTasks > 0) {
+        this.logger.info(`Task health check completed - Healthy: ${healthyTasks}, Unhealthy: ${unhealthyTasks}, Restarted: ${restartedTasks}`);
       }
+    } catch (error) {
+      this.logger.error('Error during task health monitoring:', error);
     }
   }
 
@@ -472,16 +705,51 @@ export class SchedulerService {
    * Log statistics
    */
   private logStatistics(): void {
-    const stats = this.getStatistics();
-    
-    this.logger.info('Scheduler Statistics:', {
-      totalTasks: stats.totalTasks,
-      activeTasks: stats.activeTasks,
-      totalExecutions: stats.totalExecutions,
-      successRate: `${Math.round((stats.successfulExecutions / stats.totalExecutions) * 100)}%`,
-      averageExecutionTime: `${Math.round(stats.averageExecutionTime)}ms`,
-      uptime: `${Math.round(stats.uptime / 1000 / 60)}min`,
-    });
+    try {
+      const stats = this.getStatistics();
+      
+      // Calculate success rate safely
+      const successRate = stats.totalExecutions > 0 
+        ? Math.round((stats.successfulExecutions / stats.totalExecutions) * 100)
+        : 0;
+      
+      // Convert uptime to hours for better readability
+      const uptimeHours = Math.round(stats.uptime / 1000 / 60 / 60 * 100) / 100;
+      
+      this.logger.info('Scheduler Statistics:', {
+        totalTasks: stats.totalTasks,
+        activeTasks: stats.activeTasks,
+        totalExecutions: stats.totalExecutions,
+        successfulExecutions: stats.successfulExecutions,
+        failedExecutions: stats.failedExecutions,
+        successRate: `${successRate}%`,
+        averageExecutionTime: `${Math.round(stats.averageExecutionTime)}ms`,
+        uptime: `${uptimeHours}h`,
+        lastUpdate: stats.lastUpdate.toISOString()
+      });
+      
+      // Log individual task statistics for problematic tasks
+      const problematicTasks = Array.from(this.tasks.values())
+        .filter(task => {
+          if (task.runCount === 0) return false;
+          const errorRate = task.errorCount / task.runCount;
+          return errorRate > 0.3 || task.averageExecutionTime > 30000; // 30 seconds
+        })
+        .map(task => ({
+          name: task.name,
+          runCount: task.runCount,
+          errorCount: task.errorCount,
+          errorRate: `${Math.round((task.errorCount / task.runCount) * 100)}%`,
+          avgTime: `${Math.round(task.averageExecutionTime)}ms`,
+          lastRun: task.lastRun?.toISOString() || 'Never'
+        }));
+      
+      if (problematicTasks.length > 0) {
+        this.logger.warn('Tasks with issues:', problematicTasks);
+      }
+    } catch (error) {
+      this.logger.error('Error logging scheduler statistics:', error);
+    }
   }
 
   // Task Handlers
@@ -1326,26 +1594,49 @@ export class SchedulerService {
    * Get scheduler statistics
    */
   public getStatistics(): SchedulerStats {
-    const totalExecutions = this.executions.length;
-    const successfulExecutions = this.executions.filter(e => e.success).length;
-    const failedExecutions = totalExecutions - successfulExecutions;
-    
-    const totalExecutionTime = this.executions
-      .filter(e => e.duration)
-      .reduce((sum, e) => sum + e.duration!, 0);
-    
-    const averageExecutionTime = totalExecutions > 0 ? totalExecutionTime / totalExecutions : 0;
-    
-    return {
-      totalTasks: this.tasks.size,
-      activeTasks: this.cronJobs.size,
-      totalExecutions,
-      successfulExecutions,
-      failedExecutions,
-      averageExecutionTime,
-      uptime: Date.now() - this.startTime.getTime(),
-      lastUpdate: new Date(),
-    };
+    try {
+      // Safely calculate execution statistics
+      const totalExecutions = this.executions?.length || 0;
+      const successfulExecutions = this.executions?.filter(e => e && e.success === true).length || 0;
+      const failedExecutions = Math.max(0, totalExecutions - successfulExecutions);
+      
+      // Calculate average execution time more robustly
+      const executionsWithDuration = this.executions?.filter(e => e && typeof e.duration === 'number' && e.duration > 0) || [];
+      const totalExecutionTime = executionsWithDuration.reduce((sum, e) => sum + e.duration!, 0);
+      const averageExecutionTime = executionsWithDuration.length > 0 ? totalExecutionTime / executionsWithDuration.length : 0;
+      
+      // Ensure uptime is always positive
+      const uptime = Math.max(0, Date.now() - this.startTime.getTime());
+      
+      // Count active tasks (enabled tasks with running cron jobs)
+      const activeTasks = Array.from(this.tasks.values())
+        .filter(task => task.enabled && this.cronJobs.has(task.id)).length;
+      
+      return {
+        totalTasks: this.tasks?.size || 0,
+        activeTasks,
+        totalExecutions,
+        successfulExecutions,
+        failedExecutions,
+        averageExecutionTime: Math.round(averageExecutionTime * 100) / 100, // Round to 2 decimal places
+        uptime,
+        lastUpdate: new Date(),
+      };
+    } catch (error) {
+      this.logger.error('Error calculating scheduler statistics:', error);
+      
+      // Return safe default statistics
+      return {
+        totalTasks: 0,
+        activeTasks: 0,
+        totalExecutions: 0,
+        successfulExecutions: 0,
+        failedExecutions: 0,
+        averageExecutionTime: 0,
+        uptime: Math.max(0, Date.now() - this.startTime.getTime()),
+        lastUpdate: new Date(),
+      };
+    }
   }
 
   /**

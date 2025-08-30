@@ -138,17 +138,73 @@ export class ClipService {
 
   constructor(client: ExtendedClient) {
     this.logger = new Logger();
-    this.cache = client.cache;
-    this.database = client.database;
-    this.badgeService = (client as any).services?.badge || new BadgeService(client, (client as any).services?.xp);
-    this.client = client;
-
-    this.ensureDirectories();
-    this.loadClips();
-    this.loadVotes();
-    this.loadGuildSettings();
-    this.startRankingUpdater();
-    this.startCleanupScheduler();
+    
+    try {
+      // Validate client instance
+      if (!client || typeof client !== 'object') {
+        throw new Error('ExtendedClient instance is required');
+      }
+      this.client = client;
+      
+      // Validate and initialize cache service
+      if (!client.cache) {
+        throw new Error('CacheService is not available on client');
+      }
+      this.cache = client.cache;
+      
+      // Validate and initialize database service
+      if (!client.database) {
+        throw new Error('DatabaseService is not available on client');
+      }
+      this.database = client.database;
+      
+      // Initialize badge service with fallback
+      try {
+        this.badgeService = (client as any).services?.badge || new BadgeService(client, (client as any).services?.xp);
+      } catch (badgeError) {
+        this.logger.warn('Failed to initialize BadgeService, creating fallback instance:', badgeError);
+        this.badgeService = new BadgeService(client, (client as any).services?.xp);
+      }
+      
+      // Initialize directories and data
+      try {
+        this.ensureDirectories();
+      } catch (dirError) {
+        this.logger.error('Failed to ensure directories:', dirError);
+        throw new Error('Failed to create required directories');
+      }
+      
+      // Load data asynchronously with error handling
+      this.initializeAsync().catch(error => {
+        this.logger.error('Failed to initialize ClipService data:', error);
+      });
+      
+      this.logger.info('ClipService initialized successfully');
+    } catch (error) {
+      this.logger.error('Failed to initialize ClipService:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Initialize async operations
+   */
+  private async initializeAsync(): Promise<void> {
+    try {
+      await Promise.all([
+        this.loadClips(),
+        this.loadVotes(),
+        this.loadGuildSettings(),
+      ]);
+      
+      this.startRankingUpdater();
+      this.startCleanupScheduler();
+      
+      this.logger.info('ClipService async initialization completed');
+    } catch (error) {
+      this.logger.error('Failed during async initialization:', error);
+      throw error;
+    }
   }
 
   /**
@@ -356,6 +412,35 @@ export class ClipService {
     tags?: string[]
   ): Promise<{ success: boolean; message: string; clipId?: string }> {
     try {
+      // Validate input parameters
+      if (!guildId || typeof guildId !== 'string') {
+        return { success: false, message: 'ID da guilda é obrigatório.' };
+      }
+      
+      if (!userId || typeof userId !== 'string') {
+        return { success: false, message: 'ID do usuário é obrigatório.' };
+      }
+      
+      if (!file || !Buffer.isBuffer(file) || file.length === 0) {
+        return { success: false, message: 'Arquivo é obrigatório e deve ser válido.' };
+      }
+      
+      if (!fileName || typeof fileName !== 'string' || fileName.trim().length === 0) {
+        return { success: false, message: 'Nome do arquivo é obrigatório.' };
+      }
+      
+      if (!title || typeof title !== 'string' || title.trim().length === 0) {
+        return { success: false, message: 'Título é obrigatório.' };
+      }
+      
+      // Sanitize inputs
+      const sanitizedTitle = title.trim().substring(0, 100);
+      const sanitizedDescription = description?.trim().substring(0, 500);
+      const sanitizedGameMode = gameMode?.trim().substring(0, 50);
+      const sanitizedTags = tags?.filter(tag => tag && typeof tag === 'string' && tag.trim().length > 0)
+        .map(tag => tag.trim().substring(0, 30))
+        .slice(0, 10) || [];
+      
       const settings = this.guildSettings.get(guildId);
       if (!settings || !settings.enabled) {
         return {
@@ -510,6 +595,23 @@ export class ClipService {
     voteType: 'like' | 'dislike'
   ): Promise<{ success: boolean; message: string }> {
     try {
+      // Validate input parameters
+      if (!guildId || typeof guildId !== 'string') {
+        return { success: false, message: 'ID da guilda é obrigatório.' };
+      }
+      
+      if (!clipId || typeof clipId !== 'string') {
+        return { success: false, message: 'ID do clip é obrigatório.' };
+      }
+      
+      if (!userId || typeof userId !== 'string') {
+        return { success: false, message: 'ID do usuário é obrigatório.' };
+      }
+      
+      if (!voteType || !['like', 'dislike'].includes(voteType)) {
+        return { success: false, message: 'Tipo de voto inválido.' };
+      }
+      
       const settings = this.guildSettings.get(guildId);
       if (!settings || !settings.allowVoting) {
         return {
@@ -523,6 +625,22 @@ export class ClipService {
         return {
           success: false,
           message: 'Clip não encontrado.',
+        };
+      }
+      
+      // Check if clip is approved
+      if (clip.status !== 'approved' && clip.status !== 'featured') {
+        return {
+          success: false,
+          message: 'Não é possível votar em clips não aprovados.',
+        };
+      }
+      
+      // Prevent self-voting
+      if (clip.userId === userId) {
+        return {
+          success: false,
+          message: 'Você não pode votar no seu próprio clip.',
         };
       }
 
@@ -679,11 +797,53 @@ export class ClipService {
     note?: string
   ): Promise<{ success: boolean; message: string }> {
     try {
+      // Validate input parameters
+      if (!guildId || typeof guildId !== 'string') {
+        return { success: false, message: 'ID da guilda é obrigatório.' };
+      }
+      
+      if (!clipId || typeof clipId !== 'string') {
+        return { success: false, message: 'ID do clip é obrigatório.' };
+      }
+      
+      if (!moderatorId || typeof moderatorId !== 'string') {
+        return { success: false, message: 'ID do moderador é obrigatório.' };
+      }
+      
+      if (!action || !['approve', 'reject', 'feature'].includes(action)) {
+        return { success: false, message: 'Ação de moderação inválida.' };
+      }
+      
+      // Sanitize note if provided
+      const sanitizedNote = note?.trim().substring(0, 500);
+      
       const clip = this.getClip(guildId, clipId);
       if (!clip) {
         return {
           success: false,
           message: 'Clip não encontrado.',
+        };
+      }
+      
+      // Check if clip can be moderated
+      if (action === 'approve' && clip.status === 'approved') {
+        return {
+          success: false,
+          message: 'Clip já está aprovado.',
+        };
+      }
+      
+      if (action === 'reject' && clip.status === 'rejected') {
+        return {
+          success: false,
+          message: 'Clip já está rejeitado.',
+        };
+      }
+      
+      if (action === 'feature' && clip.status === 'featured') {
+        return {
+          success: false,
+          message: 'Clip já está em destaque.',
         };
       }
 

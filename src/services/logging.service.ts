@@ -129,14 +129,33 @@ export class LoggingService {
   private guildConfigs: Map<string, LogConfig> = new Map();
   private logQueue: LogEntry[] = [];
   private processingQueue = false;
+  private queueProcessorInterval?: NodeJS.Timeout;
+  private readonly MAX_QUEUE_SIZE = 1000;
+  private readonly BATCH_SIZE = 10;
+  private readonly PROCESS_INTERVAL = 1000;
 
   constructor(
     private client: ExtendedClient,
     private database: DatabaseService
   ) {
+    // Validate dependencies
+    if (!client) {
+      throw new Error('ExtendedClient is required for LoggingService');
+    }
+    if (!database) {
+      throw new Error('DatabaseService is required for LoggingService');
+    }
+
     this.logger = new Logger();
-    this.setupEventListeners();
-    this.startQueueProcessor();
+    
+    try {
+      this.setupEventListeners();
+      this.startQueueProcessor();
+      this.logger.info('LoggingService initialized successfully');
+    } catch (error) {
+      this.logger.error('Failed to initialize LoggingService:', error);
+      throw error;
+    }
   }
 
   /**
@@ -177,7 +196,23 @@ export class LoggingService {
    * Get guild configuration
    */
   private getGuildConfig(guildId: string): LogConfig {
-    return this.guildConfigs.get(guildId) || this.getDefaultConfig(guildId);
+    try {
+      if (!guildId || typeof guildId !== 'string') {
+        this.logger.warn('Invalid guildId provided to getGuildConfig');
+        return this.getDefaultConfig('unknown');
+      }
+
+      if (!this.guildConfigs.has(guildId)) {
+        const newConfig = this.getDefaultConfig(guildId);
+        this.guildConfigs.set(guildId, newConfig);
+        this.logger.debug(`Created new log config for guild ${guildId}`);
+      }
+      
+      return this.guildConfigs.get(guildId) || this.getDefaultConfig(guildId);
+    } catch (error) {
+      this.logger.error('Error getting guild config:', error);
+      return this.getDefaultConfig(guildId || 'unknown');
+    }
   }
 
   /**
@@ -222,32 +257,59 @@ export class LoggingService {
    * Check if event should be logged
    */
   private shouldLog(guildId: string, type: LogType, userId?: string, channelId?: string): boolean {
-    const config = this.getGuildConfig(guildId);
-    
-    if (!config.enabled) return false;
-    
-    // Check if event type is enabled
-    const eventKey = type.replace('_', '') as keyof typeof config.events;
-    if (!config.events[eventKey as keyof typeof config.events]) return false;
-    
-    // Check filters
-    if (userId && config.filters.ignoreUsers.includes(userId)) return false;
-    if (channelId && config.filters.ignoreChannels.includes(channelId)) return false;
-    
-    return true;
+    try {
+      // Validate inputs
+      if (!guildId || typeof guildId !== 'string') {
+        this.logger.warn('Invalid guildId provided to shouldLog');
+        return false;
+      }
+
+      const config = this.getGuildConfig(guildId);
+      
+      if (!config.enabled) return false;
+      
+      // Check if event type is enabled
+      const eventKey = type.replace('_', '') as keyof typeof config.events;
+      if (!config.events[eventKey as keyof typeof config.events]) return false;
+      
+      // Check filters
+      if (userId && config.filters.ignoreUsers.includes(userId)) return false;
+      if (channelId && config.filters.ignoreChannels.includes(channelId)) return false;
+      
+      return true;
+    } catch (error) {
+      this.logger.error('Error in shouldLog:', error);
+      return false;
+    }
   }
 
   /**
    * Add log entry to queue
    */
   private async queueLog(entry: Omit<LogEntry, 'id' | 'timestamp'>): Promise<void> {
-    const logEntry: LogEntry = {
-      ...entry,
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date()
-    };
-    
-    this.logQueue.push(logEntry);
+    try {
+      // Validate entry
+      if (!entry.guildId || !entry.type || !entry.content) {
+        this.logger.warn('Invalid log entry provided to queueLog');
+        return;
+      }
+
+      // Check queue size limit
+      if (this.logQueue.length >= this.MAX_QUEUE_SIZE) {
+        this.logger.warn(`Log queue is full (${this.MAX_QUEUE_SIZE}), dropping oldest entries`);
+        this.logQueue.splice(0, Math.floor(this.MAX_QUEUE_SIZE * 0.1)); // Remove 10% of oldest entries
+      }
+
+      const logEntry: LogEntry = {
+        ...entry,
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date()
+      };
+      
+      this.logQueue.push(logEntry);
+    } catch (error) {
+      this.logger.error('Error queuing log entry:', error);
+    }
   }
 
   /**
@@ -259,11 +321,29 @@ export class LoggingService {
     this.processingQueue = true;
     
     try {
-      const entries = this.logQueue.splice(0, 10); // Process 10 at a time
+      const batch = this.logQueue.splice(0, this.BATCH_SIZE);
+      const processedCount = batch.length;
       
-      for (const entry of entries) {
-        await this.sendLogToChannel(entry);
-        await this.saveLogToDatabase(entry);
+      const results = await Promise.allSettled(
+        batch.map(async (entry) => {
+          try {
+            await Promise.all([
+              this.sendLogToChannel(entry),
+              this.saveLogToDatabase(entry)
+            ]);
+            return { success: true, entry };
+          } catch (error) {
+            this.logger.error(`Failed to process log entry ${entry.id}:`, error);
+            return { success: false, entry, error };
+          }
+        })
+      );
+
+      const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+      const failureCount = processedCount - successCount;
+
+      if (failureCount > 0) {
+        this.logger.warn(`Processed ${processedCount} log entries: ${successCount} successful, ${failureCount} failed`);
       }
     } catch (error) {
       this.logger.error('Error processing log queue:', error);
@@ -276,9 +356,17 @@ export class LoggingService {
    * Start queue processor
    */
   private startQueueProcessor(): void {
-    setInterval(() => {
-      this.processLogQueue();
-    }, 1000); // Process every second
+    if (this.queueProcessorInterval) {
+      clearInterval(this.queueProcessorInterval);
+    }
+    
+    this.queueProcessorInterval = setInterval(() => {
+      this.processLogQueue().catch(error => {
+        this.logger.error('Unhandled error in queue processor:', error);
+      });
+    }, this.PROCESS_INTERVAL);
+    
+    this.logger.debug('Log queue processor started');
   }
 
   /**
@@ -286,18 +374,42 @@ export class LoggingService {
    */
   private async sendLogToChannel(entry: LogEntry): Promise<void> {
     try {
+      // Validate entry
+      if (!entry || !entry.guildId || !entry.type) {
+        this.logger.warn('Invalid log entry provided to sendLogToChannel');
+        return;
+      }
+
       const config = this.getGuildConfig(entry.guildId);
       const channelId = this.getLogChannelForType(entry.type, config);
       
-      if (!channelId) return;
+      if (!channelId) {
+        this.logger.debug(`No log channel configured for type ${entry.type} in guild ${entry.guildId}`);
+        return;
+      }
       
       const channel = this.client.channels.cache.get(channelId) as TextChannel;
-      if (!channel) return;
+      if (!channel) {
+        this.logger.warn(`Log channel ${channelId} not found or not accessible`);
+        return;
+      }
+
+      // Check channel permissions
+      if (!channel.permissionsFor(this.client.user!)?.has(['SendMessages', 'EmbedLinks'])) {
+        this.logger.warn(`Missing permissions to send logs in channel ${channelId}`);
+        return;
+      }
       
       const embed = this.createLogEmbed(entry);
+      if (!embed) {
+        this.logger.warn(`Failed to create embed for log entry ${entry.id}`);
+        return;
+      }
+
       await channel.send({ embeds: [embed] });
     } catch (error) {
-      this.logger.error('Error sending log to channel:', error);
+      this.logger.error(`Error sending log to channel for entry ${entry.id}:`, error);
+      throw error; // Re-throw to be handled by caller
     }
   }
 
@@ -305,38 +417,48 @@ export class LoggingService {
    * Get appropriate log channel for event type
    */
   private getLogChannelForType(type: LogType, config: LogConfig): string | undefined {
-    switch (type) {
-      case LogType.MESSAGE_DELETE:
-      case LogType.MESSAGE_EDIT:
-        return config.channels.messages;
-      
-      case LogType.MEMBER_JOIN:
-      case LogType.MEMBER_LEAVE:
-      case LogType.MEMBER_UPDATE:
-        return config.channels.members;
-      
-      case LogType.VOICE_JOIN:
-      case LogType.VOICE_LEAVE:
-      case LogType.VOICE_MOVE:
-        return config.channels.voice;
-      
-      case LogType.MODERATION_WARN:
-      case LogType.MODERATION_MUTE:
-      case LogType.MODERATION_KICK:
-      case LogType.MODERATION_BAN:
-      case LogType.MODERATION_UNBAN:
-      case LogType.AUTOMOD_ACTION:
-        return config.channels.moderation;
-      
-      case LogType.TICKET_CREATE:
-      case LogType.TICKET_CLOSE:
-        return config.channels.moderation;
-      
-      case LogType.CHANGELOG:
-        return config.channels.changelog;
-      
-      default:
-        return config.channels.server;
+    try {
+      if (!type || !config || !config.channels) {
+        this.logger.warn('Invalid parameters provided to getLogChannelForType');
+        return undefined;
+      }
+
+      switch (type) {
+        case LogType.MESSAGE_DELETE:
+        case LogType.MESSAGE_EDIT:
+          return config.channels.messages;
+        
+        case LogType.MEMBER_JOIN:
+        case LogType.MEMBER_LEAVE:
+        case LogType.MEMBER_UPDATE:
+          return config.channels.members;
+        
+        case LogType.VOICE_JOIN:
+        case LogType.VOICE_LEAVE:
+        case LogType.VOICE_MOVE:
+          return config.channels.voice;
+        
+        case LogType.MODERATION_WARN:
+        case LogType.MODERATION_MUTE:
+        case LogType.MODERATION_KICK:
+        case LogType.MODERATION_BAN:
+        case LogType.MODERATION_UNBAN:
+        case LogType.AUTOMOD_ACTION:
+          return config.channels.moderation;
+        
+        case LogType.TICKET_CREATE:
+        case LogType.TICKET_CLOSE:
+          return config.channels.moderation;
+        
+        case LogType.CHANGELOG:
+          return config.channels.changelog;
+        
+        default:
+          return config.channels.server;
+      }
+    } catch (error) {
+      this.logger.error('Error getting log channel for type:', error);
+      return undefined;
     }
   }
 
@@ -456,11 +578,40 @@ export class LoggingService {
    */
   private async saveLogToDatabase(entry: LogEntry): Promise<void> {
     try {
-      // Implementation would depend on your database schema
-      // This is a placeholder for database integration
-      this.logger.debug(`Saving log entry ${entry.id} to database`);
+      // Validate entry
+      if (!entry || !entry.guildId || !entry.type) {
+        this.logger.warn('Invalid log entry provided to saveLogToDatabase');
+        return;
+      }
+
+      // Check if database service is available
+      if (!this.database) {
+        this.logger.warn('Database service not available for log persistence');
+        return;
+      }
+
+      // TODO: Implement actual database logging when schema is defined
+      // For now, we'll just validate the structure and log the attempt
+      const logData = {
+        id: entry.id,
+        guildId: entry.guildId,
+        type: entry.type,
+        content: typeof entry.content === 'string' ? entry.content : JSON.stringify(entry.content),
+        userId: entry.userId || null,
+        channelId: entry.channelId || null,
+        timestamp: entry.timestamp
+      };
+
+      // Placeholder for actual database insertion
+      this.logger.debug(`Would save log entry to database:`, { 
+        id: logData.id, 
+        type: logData.type, 
+        guildId: logData.guildId 
+      });
+      
     } catch (error) {
-      this.logger.error('Error saving log to database:', error);
+      this.logger.error(`Error saving log entry ${entry.id} to database:`, error);
+      throw error; // Re-throw to be handled by caller
     }
   }
 
@@ -969,38 +1120,110 @@ export class LoggingService {
    * Get logging statistics
    */
   public getStats(): { queueSize: number; configuredGuilds: number } {
-    return {
-      queueSize: this.logQueue.length,
-      configuredGuilds: this.guildConfigs.size
-    };
+    try {
+      return {
+        queueSize: this.logQueue.length,
+        configuredGuilds: this.guildConfigs.size
+      };
+    } catch (error) {
+      this.logger.error('Error getting logging stats:', error);
+      return {
+        queueSize: 0,
+        configuredGuilds: 0
+      };
+    }
+  }
+
+  /**
+   * Destroy the logging service and cleanup resources
+   */
+  public destroy(): void {
+    try {
+      // Clear the queue processor interval
+      if (this.queueProcessorInterval) {
+        clearInterval(this.queueProcessorInterval);
+        this.queueProcessorInterval = undefined;
+      }
+
+      // Process remaining queue items before shutdown
+      if (this.logQueue.length > 0) {
+        this.logger.info(`Processing ${this.logQueue.length} remaining log entries before shutdown`);
+        this.processLogQueue().catch(error => {
+          this.logger.error('Error processing final queue batch:', error);
+        });
+      }
+
+      // Clear all data structures
+      this.logQueue = [];
+      this.guildConfigs.clear();
+      this.processingQueue = false;
+
+      this.logger.info('LoggingService destroyed successfully');
+    } catch (error) {
+      this.logger.error('Error destroying LoggingService:', error);
+    }
+  }
+
+  /**
+   * Force process the current log queue
+   */
+  public async forceProcessQueue(): Promise<void> {
+    try {
+      if (this.processingQueue) {
+        this.logger.warn('Queue is already being processed');
+        return;
+      }
+
+      await this.processLogQueue();
+      this.logger.info('Queue processing completed');
+    } catch (error) {
+      this.logger.error('Error force processing queue:', error);
+      throw error;
+    }
   }
 
   /**
    * Clear log queue (for testing/debugging)
    */
   public clearQueue(): void {
-    this.logQueue = [];
-    this.logger.info('Log queue cleared');
+    try {
+      const queueSize = this.logQueue.length;
+      this.logQueue = [];
+      this.logger.info(`Log queue cleared (${queueSize} entries removed)`);
+    } catch (error) {
+      this.logger.error('Error clearing log queue:', error);
+    }
   }
 
   /**
    * Send test log message
    */
   public async sendTestLog(guildId: string): Promise<void> {
-    await this.queueLog({
-      guildId,
-      type: LogType.TICKET_CREATE,
-      userId: '123456789',
-      channelId: '987654321',
-      content: 'Teste do sistema de logs - Ticket criado',
-      metadata: {
-        user: '<@123456789>',
-        channel: '<#987654321>',
-        title: 'Ticket de Teste',
-        description: 'Este é um ticket de teste para verificar o sistema de logs',
-        priority: 'Alta',
-        ticketId: 'test-123'
+    try {
+      if (!guildId || typeof guildId !== 'string') {
+        throw new Error('Valid Guild ID is required for test log');
       }
-    });
+
+      await this.queueLog({
+        guildId,
+        type: LogType.TICKET_CREATE,
+        userId: '123456789',
+        channelId: '987654321',
+        content: 'Teste do sistema de logs - Ticket criado',
+        metadata: {
+          user: '<@123456789>',
+          channel: '<#987654321>',
+          title: 'Ticket de Teste',
+          description: 'Este é um ticket de teste para verificar o sistema de logs',
+          priority: 'Alta',
+          ticketId: 'test-123'
+        }
+      });
+      
+      this.logger.info(`Test log queued successfully for guild ${guildId}`);
+    } catch (error) {
+      this.logger.error('Error sending test log:', error);
+      throw error;
+    }
   }
 }

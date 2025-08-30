@@ -87,12 +87,43 @@ export class MusicService {
 
   constructor(cache?: CacheService, database?: DatabaseService) {
     this.logger = new Logger();
-    this.cache = cache || new CacheService();
-    this.database = database || new DatabaseService();
     
-    this.initializePlayDl();
-    this.initializeSpotify();
-    this.loadQueuesFromDatabase();
+    try {
+      
+      // Validate and initialize dependencies
+      if (cache && typeof cache.get !== 'function') {
+        throw new Error('Invalid CacheService provided');
+      }
+      if (database && typeof database.client !== 'object') {
+        throw new Error('Invalid DatabaseService provided');
+      }
+      
+      this.cache = cache || new CacheService();
+      this.database = database || new DatabaseService();
+      
+      // Initialize services asynchronously with error handling
+      this.initializeServices();
+      
+      this.logger.info('✅ MusicService initialized successfully');
+    } catch (error) {
+      this.logger.error('❌ Failed to initialize MusicService:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Initialize all music services
+   */
+  private async initializeServices(): Promise<void> {
+    try {
+      await Promise.allSettled([
+        this.initializePlayDl(),
+        this.initializeSpotify(),
+        this.loadQueuesFromDatabase()
+      ]);
+    } catch (error) {
+      this.logger.error('Error during service initialization:', error);
+    }
   }
 
   /**
@@ -102,20 +133,52 @@ export class MusicService {
     try {
       this.logger.debug('🎵 Initializing play-dl...');
       
-      // Try to get a free client ID for YouTube access
-      const clientID = await getFreeClientID();
+      // Validate play-dl availability
+      if (!play || typeof play.search !== 'function') {
+        throw new Error('play-dl module is not properly installed or imported');
+      }
+      
+      // Try to get a free client ID for YouTube access with timeout
+      const timeoutPromise = new Promise<string | null>((_, reject) => {
+        setTimeout(() => reject(new Error('getFreeClientID timeout')), 10000);
+      });
+      
+      const clientID = await Promise.race([
+        getFreeClientID(),
+        timeoutPromise
+      ]).catch(() => null);
+      
       if (clientID) {
         await setToken({
           youtube: {
-            cookie: ''
+            cookie: process.env.YOUTUBE_COOKIE || ''
           }
         });
         this.logger.info('✅ Play-dl initialized with cookie configuration');
       } else {
         this.logger.warn('⚠️ Could not get free client ID for play-dl, some features may be limited');
       }
+      
+      // Test play-dl functionality
+      await this.testPlayDlFunctionality();
+      
     } catch (error) {
       this.logger.warn('⚠️ Play-dl initialization failed, continuing without token:', (error as Error).message || 'Unknown error');
+    }
+  }
+
+  /**
+   * Test play-dl functionality
+   */
+  private async testPlayDlFunctionality(): Promise<void> {
+    try {
+      const testResults = await search('test music', { limit: 1 });
+      if (!testResults || testResults.length === 0) {
+        throw new Error('No search results returned');
+      }
+      this.logger.debug('✅ Play-dl functionality test passed');
+    } catch (error) {
+      this.logger.warn('⚠️ Play-dl functionality test failed:', (error as Error).message);
     }
   }
 
@@ -132,22 +195,47 @@ export class MusicService {
         return;
       }
       
+      // Validate credentials format
+      if (typeof clientId !== 'string' || clientId.length < 10) {
+        throw new Error('Invalid Spotify client ID format');
+      }
+      if (typeof clientSecret !== 'string' || clientSecret.length < 10) {
+        throw new Error('Invalid Spotify client secret format');
+      }
+      
+      // Validate SpotifyApi availability
+      if (!SpotifyApi || typeof SpotifyApi.withClientCredentials !== 'function') {
+        throw new Error('Spotify API SDK is not properly installed or imported');
+      }
+      
       this.spotify = SpotifyApi.withClientCredentials(
         clientId,
         clientSecret
       );
       
-      // Test the connection with timeout
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Spotify connection timeout')), 5000);
-      });
+      // Test the connection with timeout and retry logic
+      const testConnection = async (retries = 3): Promise<void> => {
+        for (let i = 0; i < retries; i++) {
+          try {
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => reject(new Error('Spotify connection timeout')), 8000);
+            });
+            
+            const searchPromise = this.spotify!.search('test', ['track'], 'US', 1);
+            await Promise.race([searchPromise, timeoutPromise]);
+            
+            this.logger.info('✅ Spotify API initialized successfully');
+            return;
+          } catch (error) {
+            if (i === retries - 1) throw error;
+            this.logger.debug(`Spotify connection attempt ${i + 1} failed, retrying...`);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+        }
+      };
       
-      await Promise.race([
-        this.spotify.search('test', ['track'], 'US', 1),
-        timeoutPromise
-      ]);
+      await testConnection();
       
-      this.logger.info('✅ Spotify API initialized successfully');
     } catch (error) {
       this.logger.warn('⚠️ Spotify API unavailable - continuing with YouTube-only mode:', (error as Error).message || 'Connection failed');
       this.spotify = null;
@@ -160,64 +248,150 @@ export class MusicService {
    */
   private async loadQueuesFromDatabase(): Promise<void> {
     try {
-      // Load all saved music queue entries (excluding playlists)
-      const savedTracks = await this.database.client.musicQueue.findMany({
-        where: {
-          channelId: {
-            not: 'playlist' // Exclude playlist entries
-          }
-        },
-        orderBy: [
-          { guildId: 'asc' },
-          { position: 'asc' }
-        ]
+      // Validate database connection
+      if (!this.database?.client) {
+        throw new Error('Database client is not available');
+      }
+      
+      this.logger.debug('Loading persistent queues from database...');
+      
+      // Load all saved music queue entries (excluding playlists) with timeout
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Database query timeout')), 15000);
       });
       
+      const savedTracks = await Promise.race([
+        this.database.client.musicQueue.findMany({
+          where: {
+            channelId: {
+              not: 'playlist' // Exclude playlist entries
+            }
+          },
+          orderBy: [
+            { guildId: 'asc' },
+            { position: 'asc' }
+          ]
+        }),
+        timeoutPromise
+      ]) as any[];
+      
+      if (!Array.isArray(savedTracks)) {
+        throw new Error('Invalid database response format');
+      }
+      
       // Group tracks by guildId and reconstruct queues
-      const guildTracks = new Map<string, any[]>();
+      const guildTracks = new Map<string, Track[]>();
+      let validTracks = 0;
+      let invalidTracks = 0;
       
       for (const track of savedTracks) {
-        if (!guildTracks.has(track.guildId)) {
-          guildTracks.set(track.guildId, []);
+        try {
+          // Validate track data
+          if (!track || typeof track !== 'object') {
+            invalidTracks++;
+            continue;
+          }
+          
+          if (!track.guildId || typeof track.guildId !== 'string') {
+            this.logger.warn('Invalid guildId in saved track:', track);
+            invalidTracks++;
+            continue;
+          }
+          
+          if (!track.title || typeof track.title !== 'string') {
+            this.logger.warn('Invalid title in saved track:', track);
+            invalidTracks++;
+            continue;
+          }
+          
+          if (!track.url || typeof track.url !== 'string' || !this.isValidUrl(track.url)) {
+            this.logger.warn('Invalid URL in saved track:', track);
+            invalidTracks++;
+            continue;
+          }
+          
+          if (!guildTracks.has(track.guildId)) {
+            guildTracks.set(track.guildId, []);
+          }
+          
+          // Convert database track to Track interface
+          const queueTrack: Track = {
+            id: track.id || `${Date.now()}-${Math.random()}`,
+            title: track.title.trim(),
+            artist: track.artist || 'Unknown Artist',
+            url: track.url.trim(),
+            duration: Math.max(0, parseInt(track.duration) || 0),
+            thumbnail: track.thumbnail || '',
+            platform: this.determinePlatform(track.url),
+            requestedBy: track.requestedBy || 'Unknown',
+            addedAt: track.createdAt || new Date()
+          };
+          
+          guildTracks.get(track.guildId)!.push(queueTrack);
+          validTracks++;
+          
+        } catch (trackError) {
+          this.logger.warn('Error processing saved track:', trackError);
+          invalidTracks++;
         }
-        
-        // Convert database track to Track interface
-        const queueTrack = {
-          title: track.title,
-          artist: 'Unknown Artist', // Not stored in current schema
-          url: track.url,
-          duration: track.duration || 0,
-          thumbnail: track.thumbnail || '',
-          platform: track.url.includes('youtube') ? 'youtube' as const : 'spotify' as const,
-          requestedBy: track.requestedBy
-        };
-        
-        guildTracks.get(track.guildId)!.push(queueTrack);
       }
       
       // Reconstruct queues in memory
+      let reconstructedQueues = 0;
       for (const [guildId, tracks] of guildTracks) {
-        if (tracks.length > 0) {
-          const queue: Queue = {
-            guildId,
-            tracks,
-            currentTrack: null,
-            volume: 100,
-            loop: 'none',
-            shuffle: false,
-            filters: [],
-            isPaused: false,
-            isPlaying: false
-          };
-          
-          this.queues.set(guildId, queue);
+        try {
+          if (tracks.length > 0) {
+            const queue: Queue = {
+              guildId,
+              tracks,
+              currentTrack: null,
+              volume: 100,
+              loop: 'none',
+              shuffle: false,
+              filters: [],
+              isPaused: false,
+              isPlaying: false
+            };
+            
+            this.queues.set(guildId, queue);
+            reconstructedQueues++;
+          }
+        } catch (queueError) {
+          this.logger.error(`Error reconstructing queue for guild ${guildId}:`, queueError);
         }
       }
       
-      this.logger.info(`Loaded ${guildTracks.size} persistent queues from database`);
+      this.logger.info(`✅ Loaded ${reconstructedQueues} persistent queues from database (${validTracks} valid tracks, ${invalidTracks} invalid tracks)`);
+      
     } catch (error) {
-      this.logger.error('Failed to load queues from database:', error);
+      this.logger.error('❌ Failed to load queues from database:', error);
+      // Initialize empty queues map to prevent further errors
+      if (!this.queues) {
+        this.queues = new Map();
+      }
     }
+  }
+  
+  /**
+   * Validate if a URL is properly formatted
+   */
+  private isValidUrl(url: string): boolean {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  
+  /**
+   * Determine platform from URL
+   */
+  private determinePlatform(url: string): 'youtube' | 'spotify' {
+    if (url.includes('spotify.com')) {
+      return 'spotify';
+    }
+    return 'youtube'; // Default to YouTube
   }
 
   /**
@@ -226,42 +400,97 @@ export class MusicService {
    */
   private async saveQueueToDatabase(guildId: string): Promise<void> {
     try {
-      const queue = this.queues.get(guildId);
-      if (!queue) return;
+      // Validate inputs
+      if (!guildId || typeof guildId !== 'string') {
+        throw new Error('Invalid guildId provided');
+      }
       
-      // Remove existing queue entries for this guild
-      await this.database.client.musicQueue.deleteMany({
-        where: {
-          guildId,
-          channelId: {
-            not: 'playlist' // Don't delete playlist entries
+      if (!this.database?.client) {
+        throw new Error('Database client is not available');
+      }
+      
+      const queue = this.queues.get(guildId);
+      if (!queue) {
+        this.logger.debug(`No queue found for guild ${guildId}, skipping save`);
+        return;
+      }
+      
+      if (!Array.isArray(queue.tracks)) {
+        throw new Error('Invalid queue tracks format');
+      }
+      
+      this.logger.debug(`Saving queue for guild ${guildId} with ${queue.tracks.length} tracks`);
+      
+      // Use transaction for atomic operation
+      await this.database.client.$transaction(async (tx) => {
+        // Remove existing queue entries for this guild
+        await tx.musicQueue.deleteMany({
+          where: {
+            guildId,
+            channelId: {
+              not: 'playlist' // Don't delete playlist entries
+            }
+          }
+        });
+        
+        // Save current queue tracks in batches
+        const batchSize = 50;
+        for (let i = 0; i < queue.tracks.length; i += batchSize) {
+          const batch = queue.tracks.slice(i, i + batchSize);
+          const createData = [];
+          
+          for (let j = 0; j < batch.length; j++) {
+            const track = batch[j];
+            if (!track || typeof track !== 'object') {
+              this.logger.warn(`Invalid track at position ${i + j}, skipping`);
+              continue;
+            }
+            
+            // Validate track data
+            if (!track.title || !track.url || !this.isValidUrl(track.url)) {
+              this.logger.warn(`Invalid track data at position ${i + j}:`, track);
+              continue;
+            }
+            
+            createData.push({
+              guildId,
+              channelId: 'queue', // Identifier for active queue
+              title: track.title.substring(0, 255), // Limit title length
+              url: track.url,
+              duration: Math.max(0, track.duration || 0),
+              thumbnail: track.thumbnail?.substring(0, 500) || null, // Limit thumbnail URL length
+              requestedBy: track.requestedBy?.substring(0, 100) || 'Unknown',
+              position: i + j,
+              isPlaying: false
+            });
+          }
+          
+          if (createData.length > 0) {
+            await tx.musicQueue.createMany({
+              data: createData
+            });
           }
         }
       });
       
-      // Save current queue tracks
-       for (let i = 0; i < queue.tracks.length; i++) {
-         const track = queue.tracks[i];
-         if (!track) continue;
-         
-         await this.database.client.musicQueue.create({
-           data: {
-             guildId,
-             channelId: 'queue', // Identifier for active queue
-             title: track.title,
-             url: track.url,
-             duration: track.duration,
-             thumbnail: track.thumbnail || null,
-             requestedBy: track.requestedBy,
-             position: i,
-             isPlaying: false
-           }
-         });
-       }
+      this.logger.debug(`✅ Queue saved for guild ${guildId} with ${queue.tracks.length} tracks`);
       
-      this.logger.debug(`Queue saved for guild ${guildId} with ${queue.tracks.length} tracks`);
     } catch (error) {
-      this.logger.error(`Failed to save queue for guild ${guildId}:`, error);
+      this.logger.error(`❌ Failed to save queue for guild ${guildId}:`, error);
+      
+      // Try to save at least basic queue info in case of partial failure
+      try {
+        const queue = this.queues.get(guildId);
+        if (queue && queue.tracks.length > 0) {
+          await this.cache.set(`music_queue_backup_${guildId}`, {
+            tracks: queue.tracks.slice(0, 10), // Save first 10 tracks as backup
+            timestamp: Date.now()
+          }, 3600); // 1 hour cache
+          this.logger.debug(`Saved backup queue to cache for guild ${guildId}`);
+        }
+      } catch (cacheError) {
+        this.logger.warn(`Failed to save backup queue to cache:`, cacheError);
+      }
     }
   }
 
@@ -270,7 +499,36 @@ export class MusicService {
    */
   public async joinChannel(channel: VoiceBasedChannel): Promise<VoiceConnection | null> {
     try {
+      // Validate input parameters
+      if (!channel || typeof channel !== 'object') {
+        throw new Error('Invalid voice channel provided');
+      }
+      
+      if (!channel.id || typeof channel.id !== 'string') {
+        throw new Error('Invalid channel ID');
+      }
+      
+      if (!channel.guild || !channel.guild.id) {
+        throw new Error('Invalid guild information');
+      }
+      
+      if (!channel.guild.voiceAdapterCreator) {
+        throw new Error('Voice adapter creator not available');
+      }
+      
+      // Check if bot has necessary permissions
+      if (!channel.permissionsFor(channel.guild.members.me!)?.has(['Connect', 'Speak'])) {
+        throw new Error('Missing Connect or Speak permissions for voice channel');
+      }
+      
       this.logger.debug(`🔗 Attempting to join voice channel: ${channel.name} (${channel.id})`);
+      
+      // Check if already connected to this guild
+      const existingConnection = this.connections.get(channel.guild.id);
+      if (existingConnection && existingConnection.state.status !== VoiceConnectionStatus.Destroyed) {
+        this.logger.debug(`Already connected to guild ${channel.guild.id}, reusing connection`);
+        return existingConnection;
+      }
       
       const connection = joinVoiceChannel({
         channelId: channel.id,
@@ -280,31 +538,98 @@ export class MusicService {
         selfMute: false,
       });
 
-      // Wait for connection to be ready
-      await entersState(connection, VoiceConnectionStatus.Ready, 30000);
+      // Wait for connection to be ready with timeout
+      try {
+        await entersState(connection, VoiceConnectionStatus.Ready, 30000);
+      } catch (connectionError) {
+        this.logger.error(`Connection failed to reach Ready state:`, connectionError);
+        connection.destroy();
+        throw new Error('Failed to establish voice connection within timeout');
+      }
       
       this.connections.set(channel.guild.id, connection);
       
-      // Setup connection event listeners
+      // Setup connection event listeners with error handling
+      this.setupConnectionEvents(connection, channel.guild.id);
+      
+      // Create and setup audio player
+      await this.setupAudioPlayer(connection, channel.guild.id);
+      
+      this.logger.info(`✅ Successfully joined voice channel: ${channel.name} (${channel.id})`);
+      
+      return connection;
+      
+    } catch (error) {
+      this.logger.error(`❌ Failed to join voice channel ${channel?.id || 'unknown'}:`, error);
+      
+      // Cleanup on failure
+      if (channel?.guild?.id) {
+        this.cleanup(channel.guild.id);
+      }
+      
+      return null;
+    }
+  }
+  
+  /**
+   * Setup connection event listeners
+   */
+  private setupConnectionEvents(connection: VoiceConnection, guildId: string): void {
+    try {
       connection.on(VoiceConnectionStatus.Disconnected, async () => {
-        this.logger.warn(`🔌 Voice connection disconnected in guild ${channel.guild.id}`);
+        this.logger.warn(`🔌 Voice connection disconnected in guild ${guildId}`);
         try {
+          // Try to reconnect
           await Promise.race([
             entersState(connection, VoiceConnectionStatus.Signalling, 5000),
             entersState(connection, VoiceConnectionStatus.Connecting, 5000),
           ]);
-        } catch {
+          this.logger.debug(`Reconnection attempt successful for guild ${guildId}`);
+        } catch (reconnectError) {
+          this.logger.warn(`Reconnection failed for guild ${guildId}:`, reconnectError);
           connection.destroy();
-          this.connections.delete(channel.guild.id);
+          this.connections.delete(guildId);
+          
+          // Stop current playback
+          const queue = this.queues.get(guildId);
+          if (queue) {
+            queue.isPlaying = false;
+            queue.isPaused = false;
+          }
         }
       });
       
-      connection.on('error', (error) => {
-        this.logger.error(`🚨 Voice connection error in guild ${channel.guild.id}:`, error);
+      connection.on(VoiceConnectionStatus.Destroyed, () => {
+        this.logger.debug(`Voice connection destroyed for guild ${guildId}`);
+        this.connections.delete(guildId);
       });
       
+      connection.on('error', (error) => {
+        this.logger.error(`🚨 Voice connection error in guild ${guildId}:`, error);
+        
+        // Attempt to recover from certain errors
+        if (error.message.includes('VOICE_CONNECTION_TIMEOUT')) {
+          this.logger.debug(`Attempting to recover from timeout error in guild ${guildId}`);
+          connection.rejoin();
+        }
+      });
+      
+      connection.on('stateChange', (oldState, newState) => {
+        this.logger.debug(`Voice connection state changed in guild ${guildId}: ${oldState.status} -> ${newState.status}`);
+      });
+      
+    } catch (error) {
+      this.logger.error(`Error setting up connection events for guild ${guildId}:`, error);
+    }
+  }
+  
+  /**
+   * Setup audio player for guild
+   */
+  private async setupAudioPlayer(connection: VoiceConnection, guildId: string): Promise<void> {
+    try {
       // Create audio player if not exists
-      if (!this.players.has(channel.guild.id)) {
+      if (!this.players.has(guildId)) {
         const player = createAudioPlayer({
           behaviors: {
             noSubscriber: NoSubscriberBehavior.Pause,
@@ -312,24 +637,25 @@ export class MusicService {
           },
           debug: false,
         });
-        this.setupPlayerEvents(player, channel.guild.id);
-        this.players.set(channel.guild.id, player);
         
-        const subscription = connection.subscribe(player);
-        if (!subscription) {
-          this.logger.error(`❌ Failed to subscribe player to connection in guild ${channel.guild.id}`);
-          return null;
-        }
+        this.setupPlayerEvents(player, guildId);
+        this.players.set(guildId, player);
         
-        this.logger.debug(`✅ Audio player created and subscribed for guild ${channel.guild.id}`);
+        this.logger.debug(`Audio player created for guild ${guildId}`);
       }
       
-      this.logger.music('VOICE_JOINED', channel.guild.id, `🎤 Successfully joined channel: ${channel.name} (${channel.id})`);
+      const player = this.players.get(guildId)!;
+      const subscription = connection.subscribe(player);
       
-      return connection;
+      if (!subscription) {
+        throw new Error('Failed to subscribe player to connection');
+      }
+      
+      this.logger.debug(`✅ Audio player subscribed to connection for guild ${guildId}`);
+      
     } catch (error) {
-      this.logger.error(`❌ Failed to join voice channel ${channel.id}:`, error);
-      return null;
+      this.logger.error(`Failed to setup audio player for guild ${guildId}:`, error);
+      throw error;
     }
   }
 
@@ -337,122 +663,222 @@ export class MusicService {
    * Leave voice channel
    */
   public leaveChannel(guildId: string): void {
-    const connection = this.connections.get(guildId);
-    if (connection) {
-      connection.destroy();
-      this.connections.delete(guildId);
+    try {
+      // Validate input
+      if (!guildId || typeof guildId !== 'string') {
+        throw new Error('Invalid guildId provided');
+      }
+      
+      this.logger.debug(`Leaving voice channel for guild ${guildId}`);
+      
+      // Stop and cleanup player
+      const player = this.players.get(guildId);
+      if (player) {
+        try {
+          player.stop(true); // Force stop
+          this.players.delete(guildId);
+          this.logger.debug(`Audio player stopped and removed for guild ${guildId}`);
+        } catch (playerError) {
+          this.logger.warn(`Error stopping player for guild ${guildId}:`, playerError);
+        }
+      }
+      
+      // Destroy connection
+      const connection = this.connections.get(guildId);
+      if (connection) {
+        try {
+          connection.destroy();
+          this.connections.delete(guildId);
+          this.logger.debug(`Voice connection destroyed for guild ${guildId}`);
+        } catch (connectionError) {
+          this.logger.warn(`Error destroying connection for guild ${guildId}:`, connectionError);
+        }
+      }
+      
+      // Update queue state
+      const queue = this.queues.get(guildId);
+      if (queue) {
+        queue.isPlaying = false;
+        queue.isPaused = false;
+        queue.currentTrack = null;
+      }
+      
+      this.logger.info(`✅ Successfully left voice channel for guild ${guildId}`);
+      
+    } catch (error) {
+      this.logger.error(`Error leaving voice channel for guild ${guildId}:`, error);
     }
-    
-    const player = this.players.get(guildId);
-    if (player) {
-      player.stop();
-      this.players.delete(guildId);
-    }
-    
-    this.logger.music('VOICE_LEFT', guildId);
   }
 
   /**
    * Setup audio player events
    */
   private setupPlayerEvents(player: AudioPlayer, guildId: string): void {
-    player.on(AudioPlayerStatus.Playing, () => {
-      const queue = this.queues.get(guildId);
-      if (queue) {
-        queue.isPlaying = true;
-        queue.isPaused = false;
-        this.logger.music('TRACK_STARTED', guildId, `🎵 Audio player is now playing: ${queue.currentTrack?.title || 'Unknown'}`);
-      } else {
-        this.logger.music('TRACK_STARTED', guildId, '🎵 Audio player is now playing (no queue found)');
+    try {
+      // Validate inputs
+      if (!player || typeof player !== 'object') {
+        throw new Error('Invalid audio player provided');
       }
-    });
-
-    player.on(AudioPlayerStatus.Paused, () => {
-      const queue = this.queues.get(guildId);
-      if (queue) {
-        queue.isPaused = true;
-        queue.isPlaying = false;
-        this.logger.music('TRACK_PAUSED', guildId, `⏸️ Audio player paused: ${queue.currentTrack?.title || 'Unknown'}`);
-      } else {
-        this.logger.music('TRACK_PAUSED', guildId, '⏸️ Audio player paused (no queue found)');
-      }
-    });
-
-    player.on(AudioPlayerStatus.Idle, () => {
-      const queue = this.queues.get(guildId);
-      if (queue) {
-        queue.isPlaying = false;
-        queue.isPaused = false;
-        this.logger.music('TRACK_ENDED', guildId, `⏹️ Audio player is now idle, track ended: ${queue.currentTrack?.title || 'Unknown'}`);
-        this.handleTrackEnd(guildId);
-      } else {
-        this.logger.music('TRACK_ENDED', guildId, '⏹️ Audio player is now idle (no queue found)');
-      }
-    });
-
-    player.on(AudioPlayerStatus.Buffering, () => {
-      const queue = this.queues.get(guildId);
-      const trackInfo = queue?.currentTrack?.title || 'Unknown';
-      this.logger.music('TRACK_BUFFERING', guildId, `⏳ Audio player is buffering: ${trackInfo}`);
-    });
-
-    player.on(AudioPlayerStatus.AutoPaused, () => {
-      const queue = this.queues.get(guildId);
-      const trackInfo = queue?.currentTrack?.title || 'Unknown';
-      this.logger.warn(`🔇 Audio player auto-paused in guild ${guildId} - possible connection issue. Track: ${trackInfo}`);
-    });
-
-    player.on('error', (error) => {
-      const queue = this.queues.get(guildId);
-      const trackInfo = queue?.currentTrack?.title || 'Unknown';
-      this.logger.error(`❌ Audio player error in guild ${guildId} for track ${trackInfo}:`, error);
-      this.handleTrackEnd(guildId);
-    });
-
-    player.on('stateChange', (oldState, newState) => {
-      const queue = this.queues.get(guildId);
-      const trackInfo = queue?.currentTrack?.title || 'Unknown';
-      this.logger.debug(`🔄 Player state changed from ${oldState.status} to ${newState.status} in guild ${guildId} for track: ${trackInfo}`);
       
-      // Additional debug info for resource
-      if (newState.status === AudioPlayerStatus.Playing && 'resource' in newState) {
-        const resource = (newState as any).resource;
-        this.logger.debug(`📊 Resource info - readable: ${resource?.readable}, ended: ${resource?.ended}`);
+      if (!guildId || typeof guildId !== 'string') {
+        throw new Error('Invalid guildId provided');
       }
-    });
+      
+      player.on(AudioPlayerStatus.Playing, () => {
+        try {
+          const queue = this.queues.get(guildId);
+          if (queue) {
+            queue.isPlaying = true;
+            queue.isPaused = false;
+            this.logger.info(`🎵 Now playing: ${queue.currentTrack?.title || 'Unknown'} in guild ${guildId}`);
+          } else {
+            this.logger.debug(`🎵 Audio player is now playing in guild ${guildId} (no queue found)`);
+          }
+        } catch (error) {
+          this.logger.error(`Error handling Playing event for guild ${guildId}:`, error);
+        }
+      });
+
+      player.on(AudioPlayerStatus.Paused, () => {
+        try {
+          const queue = this.queues.get(guildId);
+          if (queue) {
+            queue.isPaused = true;
+            queue.isPlaying = false;
+            this.logger.debug(`⏸️ Playback paused in guild ${guildId}`);
+          }
+        } catch (error) {
+          this.logger.error(`Error handling Paused event for guild ${guildId}:`, error);
+        }
+      });
+      
+      player.on(AudioPlayerStatus.Idle, () => {
+        try {
+          const queue = this.queues.get(guildId);
+          if (queue) {
+            queue.isPlaying = false;
+            queue.isPaused = false;
+            this.logger.debug(`⏹️ Playback stopped in guild ${guildId}`);
+            
+            // Handle track end
+            this.handleTrackEnd(guildId).catch(error => {
+              this.logger.error(`Error handling track end for guild ${guildId}:`, error);
+            });
+          }
+        } catch (error) {
+          this.logger.error(`Error handling Idle event for guild ${guildId}:`, error);
+        }
+      });
+      
+      player.on('error', (error) => {
+        this.logger.error(`🚨 Audio player error in guild ${guildId}:`, error);
+        
+        try {
+          const queue = this.queues.get(guildId);
+          if (queue) {
+            queue.isPlaying = false;
+            queue.isPaused = false;
+            
+            // Try to skip to next track on error
+            this.skip(guildId).catch(skipError => {
+              this.logger.error(`Failed to skip after player error in guild ${guildId}:`, skipError);
+            });
+          }
+        } catch (recoveryError) {
+          this.logger.error(`Error during player error recovery for guild ${guildId}:`, recoveryError);
+        }
+      });
+      
+      player.on('stateChange', (oldState, newState) => {
+        this.logger.debug(`Player state changed in guild ${guildId}: ${oldState.status} -> ${newState.status}`);
+      });
+      
+      this.logger.debug(`Player events setup completed for guild ${guildId}`);
+      
+    } catch (error) {
+      this.logger.error(`Failed to setup player events for guild ${guildId}:`, error);
+    }
   }
 
   /**
    * Handle track end and play next
    */
   private async handleTrackEnd(guildId: string): Promise<void> {
-    const queue = this.queues.get(guildId);
-    if (!queue) {
-      return;
-    }
-
-    // Handle loop modes
-    if (queue.loop === 'track' && queue.currentTrack) {
-      await this.playTrack(guildId, queue.currentTrack);
-      return;
-    }
-
-    if (queue.loop === 'queue' && queue.currentTrack) {
-      queue.tracks.push(queue.currentTrack);
-    }
-
-    // Play next track
-    if (queue.tracks.length > 0) {
-      const nextTrack = queue.shuffle ? 
-        queue.tracks.splice(Math.floor(Math.random() * queue.tracks.length), 1)[0] :
-        queue.tracks.shift();
-      
-      if (nextTrack) {
-        await this.playTrack(guildId, nextTrack);
+    try {
+      // Validate input
+      if (!guildId || typeof guildId !== 'string') {
+        throw new Error('Invalid guildId provided');
       }
-    } else {
-      queue.currentTrack = null;
-      await this.saveQueueToDatabase(guildId);
+
+      const queue = this.queues.get(guildId);
+      if (!queue) {
+        this.logger.debug(`No queue found for guild ${guildId} during track end`);
+        return;
+      }
+
+      this.logger.debug(`Handling track end for guild ${guildId}, loop mode: ${queue.loop}`);
+
+      // Handle track loop
+      if (queue.loop === 'track' && queue.currentTrack) {
+        this.logger.debug(`Repeating current track in guild ${guildId}`);
+        const success = await this.playTrack(guildId, queue.currentTrack);
+        if (!success) {
+          this.logger.warn(`Failed to repeat track in guild ${guildId}, trying next track`);
+          // Reset loop to avoid infinite recursion and try next track
+          const originalLoop = queue.loop;
+          queue.loop = 'none';
+          await this.handleTrackEnd(guildId);
+          queue.loop = originalLoop;
+        }
+        return;
+      }
+
+      // Handle queue loop
+      if (queue.loop === 'queue' && queue.currentTrack) {
+        this.logger.debug(`Adding current track to end of queue for guild ${guildId}`);
+        queue.tracks.push(queue.currentTrack);
+      }
+
+      // Play next track
+      if (queue.tracks.length > 0) {
+        this.logger.debug(`Playing next track in guild ${guildId} (${queue.tracks.length} tracks remaining)`);
+        
+        const nextTrack = queue.shuffle ? 
+          queue.tracks.splice(Math.floor(Math.random() * queue.tracks.length), 1)[0] :
+          queue.tracks.shift();
+        
+        if (nextTrack) {
+          const success = await this.playTrack(guildId, nextTrack);
+          if (!success) {
+            this.logger.warn(`Failed to play next track in guild ${guildId}`);
+            queue.currentTrack = null;
+            queue.isPlaying = false;
+            await this.saveQueueToDatabase(guildId);
+          }
+        } else {
+          this.logger.warn(`Next track is null for guild ${guildId}`);
+          queue.currentTrack = null;
+          queue.isPlaying = false;
+          await this.saveQueueToDatabase(guildId);
+        }
+      } else {
+        this.logger.debug(`No more tracks in queue for guild ${guildId}, ending playback`);
+        queue.currentTrack = null;
+        queue.isPlaying = false;
+        queue.isPaused = false;
+        await this.saveQueueToDatabase(guildId);
+      }
+
+    } catch (error) {
+      this.logger.error(`Error handling track end for guild ${guildId}:`, error);
+      
+      // Ensure queue state is consistent on error
+      const queue = this.queues.get(guildId);
+      if (queue) {
+        queue.isPlaying = false;
+        queue.isPaused = false;
+        queue.currentTrack = null;
+      }
     }
   }
 
@@ -461,16 +887,26 @@ export class MusicService {
    */
   public async searchYouTube(query: string, limit: number = 5): Promise<Track[]> {
     try {
-      this.logger.debug(`🔍 Searching YouTube for: "${query}" (limit: ${limit})`);
+      // Validate inputs
+      if (!query || typeof query !== 'string' || query.trim().length === 0) {
+        throw new Error('Invalid search query provided');
+      }
+
+      if (typeof limit !== 'number' || limit < 1 || limit > 50) {
+        limit = 5; // Default safe limit
+      }
+
+      const cleanQuery = query.trim();
+      this.logger.debug(`🔍 Searching YouTube for: "${cleanQuery}" (limit: ${limit})`);
       
-      const cacheKey = `music:search:youtube:${query}:${limit}`;
+      const cacheKey = `music:search:youtube:${cleanQuery}:${limit}`;
       
       // Try to get from cache, but don't fail if cache is unavailable
       let cached: Track[] | null = null;
       try {
         cached = await this.cache.get<Track[]>(cacheKey);
-        if (cached) {
-          this.logger.debug(`📦 Found cached results for: "${query}" (${cached.length} tracks)`);
+        if (cached && Array.isArray(cached)) {
+          this.logger.debug(`📦 Found cached results for: "${cleanQuery}" (${cached.length} tracks)`);
           return cached;
         }
       } catch (cacheError) {
@@ -478,34 +914,51 @@ export class MusicService {
       }
 
       let tracks: Track[] = [];
+      let processedCount = 0;
+      let errorCount = 0;
 
       // Check if query is a YouTube URL
-      if (this.isYouTubeUrl(query)) {
-        this.logger.debug(`🔗 Processing YouTube URL: ${query}`);
+      if (this.isYouTubeUrl(cleanQuery)) {
+        this.logger.debug(`🔗 Processing YouTube URL: ${cleanQuery}`);
         
         // Clean URL to ensure compatibility (same logic as createYouTubeStream)
-        const cleanUrl = query.includes('youtube.com/watch?v=') ? 
-          `https://www.youtube.com/watch?v=${query.split('v=')[1]?.split('&')[0]}` : query;
+        const cleanUrl = cleanQuery.includes('youtube.com/watch?v=') ? 
+          `https://www.youtube.com/watch?v=${cleanQuery.split('v=')[1]?.split('&')[0]}` : cleanQuery;
         
         this.logger.info(`🧹 Cleaned URL for search: ${cleanUrl}`);
         
         try {
-          // Get video info directly from cleaned URL
-          const videoInfo = await video_basic_info(cleanUrl);
+          // Add timeout for video info request
+          const videoInfoPromise = video_basic_info(cleanUrl);
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('Video info request timeout')), 15000);
+          });
+
+          const videoInfo = await Promise.race([videoInfoPromise, timeoutPromise]);
           
+          // Validate video info structure
+          if (!videoInfo || !videoInfo.video_details) {
+            throw new Error('Invalid video info structure');
+          }
+
           this.logger.debug(`📋 Video info retrieved:`, {
             id: videoInfo.video_details.id,
             title: videoInfo.video_details.title,
             channel: videoInfo.video_details.channel?.name,
             duration: videoInfo.video_details.durationInSec
           });
+
+          const duration = (videoInfo.video_details.durationInSec || 0) * 1000;
+          if (duration > 7200000) { // Max 2 hours in milliseconds
+            throw new Error(`Video duration too long: ${duration / 1000}s`);
+          }
           
           const track: Track = {
             id: videoInfo.video_details.id || `yt_${Date.now()}`,
-            title: videoInfo.video_details.title || 'Unknown Title',
-            artist: videoInfo.video_details.channel?.name || 'Unknown Artist',
-            duration: (videoInfo.video_details.durationInSec || 0) * 1000, // Convert to milliseconds
-            url: videoInfo.video_details.url || cleanUrl, // Use cleaned URL
+            title: (videoInfo.video_details.title || 'Unknown Title').substring(0, 200),
+            artist: (videoInfo.video_details.channel?.name || 'Unknown Artist').substring(0, 100),
+            duration: duration,
+            url: videoInfo.video_details.url || cleanUrl,
             thumbnail: videoInfo.video_details.thumbnails?.[0]?.url || '',
             requestedBy: '',
             platform: 'youtube',
@@ -513,29 +966,63 @@ export class MusicService {
           };
           
           tracks.push(track);
+          processedCount++;
           this.logger.debug(`✅ Successfully processed YouTube URL: ${track.title}`);
         } catch (urlError) {
-          this.logger.error(`❌ Failed to get video info from URL "${query}":`, urlError);
+          this.logger.error(`❌ Failed to get video info from URL "${cleanQuery}":`, urlError);
+          errorCount++;
           return [];
         }
       } else {
-        this.logger.debug(`🔍 Searching YouTube by text query: "${query}"`);
+        this.logger.debug(`🔍 Searching YouTube by text query: "${cleanQuery}"`);
         try {
-          // Search by text query
-          const searchResults = await search(query, {
+          // Check if play-dl is available
+          if (!play || typeof play.search !== 'function') {
+            throw new Error('play-dl is not properly initialized');
+          }
+
+          // Search with timeout
+          const searchPromise = search(cleanQuery, {
             limit,
             source: { youtube: 'video' }
           });
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('YouTube search timeout')), 15000);
+          });
+
+          const searchResults = await Promise.race([searchPromise, timeoutPromise]);
           
+          if (!searchResults || !Array.isArray(searchResults)) {
+            throw new Error('Invalid search results structure');
+          }
+
           this.logger.debug(`📊 Search results found: ${searchResults.length} videos`);
           
           for (const video of searchResults) {
-            if (video.type === 'video') {
+            try {
+              if (!video || typeof video !== 'object' || video.type !== 'video') {
+                errorCount++;
+                continue;
+              }
+
+              if (!video.url || typeof video.url !== 'string') {
+                this.logger.warn(`Invalid video URL for: ${video.title || 'Unknown'}`);
+                errorCount++;
+                continue;
+              }
+
+              const duration = (video.durationInSec || 0) * 1000;
+              if (duration <= 0 || duration > 7200000) { // Max 2 hours
+                this.logger.warn(`Invalid duration for video: ${video.title} (${duration / 1000}s)`);
+                errorCount++;
+                continue;
+              }
+
               const track: Track = {
                 id: video.id || `yt_search_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                title: video.title || 'Unknown Title',
-                artist: video.channel?.name || 'Unknown Artist',
-                duration: (video.durationInSec || 0) * 1000, // Convert to milliseconds
+                title: (video.title || 'Unknown Title').substring(0, 200),
+                artist: (video.channel?.name || 'Unknown Artist').substring(0, 100),
+                duration: duration,
                 url: video.url || `https://www.youtube.com/watch?v=${video.id}`,
                 thumbnail: video.thumbnails?.[0]?.url || '',
                 requestedBy: '',
@@ -544,23 +1031,31 @@ export class MusicService {
               };
               
               tracks.push(track);
+              processedCount++;
               this.logger.debug(`📝 Added track: ${track.title} by ${track.artist} (${track.duration}ms)`);
+            } catch (trackError) {
+              this.logger.warn(`Error processing track result:`, trackError);
+              errorCount++;
+              continue;
             }
           }
         } catch (searchError) {
-          this.logger.error(`❌ Failed to search YouTube for "${query}":`, searchError);
+          this.logger.error(`❌ Failed to search YouTube for "${cleanQuery}":`, searchError);
+          errorCount++;
           return [];
         }
       }
       
-      this.logger.debug(`✅ YouTube search completed: ${tracks.length} tracks found`);
+      this.logger.debug(`✅ YouTube search completed: ${tracks.length} tracks found (processed: ${processedCount}, errors: ${errorCount})`);
       
       // Try to cache for 1 hour, but don't fail if cache is unavailable
-      try {
-        await this.cache.set(cacheKey, tracks, 3600);
-        this.logger.debug(`💾 Cached search results for: "${query}"`);
-      } catch (cacheError) {
-        this.logger.warn('Failed to cache search results:', cacheError);
+      if (tracks.length > 0) {
+        try {
+          await this.cache.set(cacheKey, tracks, 3600);
+          this.logger.debug(`💾 Cached search results for: "${cleanQuery}"`);
+        } catch (cacheError) {
+          this.logger.warn('Failed to cache search results:', cacheError);
+        }
       }
       
       return tracks;
@@ -574,51 +1069,182 @@ export class MusicService {
    * Search for tracks on Spotify
    */
   public async searchSpotify(query: string, limit: number = 5): Promise<Track[]> {
-    if (!this.spotify) {
-      this.logger.warn('Spotify API not initialized');
-      return [];
-    }
-    
     try {
-      const cacheKey = `music:search:spotify:${query}:${limit}`;
+      // Validate inputs
+      if (!query || typeof query !== 'string' || query.trim().length === 0) {
+        throw new Error('Invalid search query provided');
+      }
+
+      if (typeof limit !== 'number' || limit < 1 || limit > 50) {
+        limit = 5; // Default safe limit
+      }
+
+      const cleanQuery = query.trim();
+      this.logger.debug(`🔍 Searching Spotify for: "${cleanQuery}" (limit: ${limit})`);
+
+      if (!this.spotify) {
+        this.logger.warn('Spotify API not initialized, falling back to YouTube');
+        return this.searchYouTube(cleanQuery, limit);
+      }
+      
+      const cacheKey = `music:search:spotify:${cleanQuery}:${limit}`;
       
       // Try to get from cache, but don't fail if cache is unavailable
       let cached: Track[] | null = null;
       try {
         cached = await this.cache.get<Track[]>(cacheKey);
+        if (cached && Array.isArray(cached)) {
+          this.logger.debug(`📦 Found cached results for: "${cleanQuery}" (${cached.length} tracks)`);
+          return cached;
+        }
       } catch (cacheError) {
         this.logger.warn('Cache unavailable, proceeding without cache:', cacheError);
       }
-      
-      if (cached) {
-        return cached;
-      }
 
-      const results = await this.spotify.search(query, ['track'], 'US', Math.min(limit, 50) as any);
+      let tracks: Track[] = [];
+      let processedCount = 0;
+      let errorCount = 0;
+
+      // Check if query is a Spotify URL
+      if (this.isSpotifyUrl(cleanQuery)) {
+        this.logger.debug(`🔗 Processing Spotify URL: ${cleanQuery}`);
+        
+        try {
+          // Extract track ID from URL
+          const trackId = cleanQuery.split('/track/')[1]?.split('?')[0];
+          if (!trackId || trackId.length !== 22) { // Spotify track IDs are 22 characters
+            throw new Error('Invalid Spotify track URL format');
+          }
+          
+          // Add timeout for Spotify API request
+          const trackInfoPromise = this.spotify.tracks.get(trackId);
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('Spotify track info request timeout')), 10000);
+          });
+
+          const trackInfo = await Promise.race([trackInfoPromise, timeoutPromise]);
+          
+          // Validate track info structure
+          if (!trackInfo || !trackInfo.id || !trackInfo.name) {
+            throw new Error('Invalid track info structure from Spotify');
+          }
+
+          if (!trackInfo.external_urls?.spotify) {
+            throw new Error('Track missing Spotify URL');
+          }
+
+          const duration = trackInfo.duration_ms || 0;
+          if (duration <= 0 || duration > 7200000) { // Max 2 hours
+            throw new Error(`Invalid track duration: ${duration}ms`);
+          }
+          
+          const track: Track = {
+            id: trackInfo.id,
+            title: (trackInfo.name || 'Unknown Title').substring(0, 200),
+            artist: (trackInfo.artists?.map(artist => artist.name).join(', ') || 'Unknown Artist').substring(0, 100),
+            duration: duration,
+            url: trackInfo.external_urls.spotify,
+            thumbnail: trackInfo.album?.images?.[0]?.url || '',
+            requestedBy: '',
+            platform: 'spotify',
+            addedAt: new Date(),
+          };
+          
+          tracks.push(track);
+          processedCount++;
+          this.logger.debug(`✅ Successfully processed Spotify URL: ${track.title}`);
+        } catch (urlError) {
+          this.logger.error(`❌ Failed to get track info from Spotify URL "${cleanQuery}":`, urlError);
+          errorCount++;
+          // Fallback to YouTube search
+          return this.searchYouTube(cleanQuery, limit);
+        }
+      } else {
+        this.logger.debug(`🔍 Searching Spotify by text query: "${cleanQuery}"`);
+        try {
+          // Add timeout for Spotify search
+          const searchPromise = this.spotify.search(cleanQuery, ['track'], 'US', Math.min(limit, 50) as any);
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('Spotify search timeout')), 10000);
+          });
+
+          const results = await Promise.race([searchPromise, timeoutPromise]);
+          
+          // Validate search results structure
+          if (!results || !results.tracks || !Array.isArray(results.tracks.items)) {
+            throw new Error('Invalid search results structure from Spotify');
+          }
+
+          this.logger.debug(`📊 Search results found: ${results.tracks.items.length} tracks`);
+          
+          for (const track of results.tracks.items) {
+            try {
+              // Validate track structure
+              if (!track || !track.id || !track.name) {
+                this.logger.warn(`Invalid track structure in search results`);
+                errorCount++;
+                continue;
+              }
+
+              if (!track.external_urls?.spotify) {
+                this.logger.warn(`Track missing Spotify URL: ${track.name}`);
+                errorCount++;
+                continue;
+              }
+
+              const duration = track.duration_ms || 0;
+              if (duration <= 0 || duration > 7200000) { // Max 2 hours
+                this.logger.warn(`Invalid duration for track: ${track.name} (${duration}ms)`);
+                errorCount++;
+                continue;
+              }
+
+              const spotifyTrack: Track = {
+                id: track.id,
+                title: (track.name || 'Unknown Title').substring(0, 200),
+                artist: (track.artists?.map((artist: any) => artist.name).join(', ') || 'Unknown Artist').substring(0, 100),
+                duration: duration,
+                url: track.external_urls.spotify,
+                thumbnail: track.album?.images?.[0]?.url || '',
+                requestedBy: '',
+                platform: 'spotify' as const,
+                addedAt: new Date(),
+              };
+              
+              tracks.push(spotifyTrack);
+              processedCount++;
+              this.logger.debug(`📝 Added track: ${spotifyTrack.title} by ${spotifyTrack.artist} (${spotifyTrack.duration}ms)`);
+            } catch (trackError) {
+              this.logger.warn(`Error processing Spotify track result:`, trackError);
+              errorCount++;
+              continue;
+            }
+          }
+        } catch (searchError) {
+          this.logger.error(`❌ Failed to search Spotify for "${cleanQuery}":`, searchError);
+          errorCount++;
+          // Fallback to YouTube search
+          return this.searchYouTube(cleanQuery, limit);
+        }
+      }
       
-      const tracks = results.tracks.items.map((track: any) => ({
-        id: track.id,
-        title: track.name,
-        artist: track.artists.map((artist: any) => artist.name).join(', '),
-        duration: track.duration_ms, // Keep in milliseconds
-        url: track.external_urls.spotify,
-        thumbnail: track.album.images[0]?.url || '',
-        requestedBy: '',
-        platform: 'spotify' as const,
-        addedAt: new Date()
-      })) || [];
+      this.logger.debug(`✅ Spotify search completed: ${tracks.length} tracks found (processed: ${processedCount}, errors: ${errorCount})`);
       
       // Try to cache for 1 hour, but don't fail if cache is unavailable
-      try {
-        await this.cache.set(cacheKey, tracks, 3600);
-      } catch (cacheError) {
-        this.logger.warn('Failed to cache search results:', cacheError);
+      if (tracks.length > 0) {
+        try {
+          await this.cache.set(cacheKey, tracks, 3600);
+          this.logger.debug(`💾 Cached search results for: "${cleanQuery}"`);
+        } catch (cacheError) {
+          this.logger.warn('Failed to cache search results:', cacheError);
+        }
       }
       
       return tracks;
     } catch (error) {
-      this.logger.error(`Failed to search Spotify for "${query}":`, error);
-      return [];
+      this.logger.error(`❌ Failed to search Spotify for "${query}":`, error);
+      // Fallback to YouTube search
+      return this.searchYouTube(query, limit);
     }
   }
 
@@ -626,31 +1252,86 @@ export class MusicService {
    * Add track to queue
    */
   public async addToQueue(guildId: string, track: Track, requestedBy: string): Promise<void> {
-    let queue = this.queues.get(guildId);
-    
-    if (!queue) {
-      queue = {
-        guildId,
-        tracks: [],
-        currentTrack: null,
-        volume: 50,
-        loop: 'none',
-        shuffle: false,
-        filters: [],
-        isPaused: false,
-        isPlaying: false,
-      };
-      this.queues.set(guildId, queue);
+    try {
+      // Input validation
+      if (!guildId || typeof guildId !== 'string' || guildId.trim().length === 0) {
+        throw new Error('Invalid guildId provided');
+      }
+      
+      if (!track || typeof track !== 'object') {
+        throw new Error('Invalid track object provided');
+      }
+      
+      if (!requestedBy || typeof requestedBy !== 'string' || requestedBy.trim().length === 0) {
+        throw new Error('Invalid requestedBy provided');
+      }
+      
+      // Validate track properties
+      if (!track.id || !track.title || !track.url) {
+        throw new Error('Track missing required properties (id, title, url)');
+      }
+      
+      if (!this.isValidUrl(track.url)) {
+        throw new Error('Invalid track URL format');
+      }
+      
+      // Validate track duration (max 2 hours)
+      if (track.duration && track.duration > 7200) {
+        throw new Error('Track duration exceeds maximum allowed (2 hours)');
+      }
+      
+      let queue = this.queues.get(guildId);
+      
+      if (!queue) {
+        queue = {
+          guildId,
+          tracks: [],
+          currentTrack: null,
+          volume: 50,
+          loop: 'none',
+          shuffle: false,
+          filters: [],
+          isPaused: false,
+          isPlaying: false,
+        };
+        this.queues.set(guildId, queue);
+        this.logger.debug(`Created new queue for guild ${guildId}`);
+      }
+      
+      // Check queue size limit (max 100 tracks)
+      if (queue.tracks.length >= 100) {
+        throw new Error('Queue is full (maximum 100 tracks)');
+      }
+      
+      // Sanitize and set track metadata
+      track.requestedBy = requestedBy.trim();
+      track.addedAt = new Date();
+      
+      // Truncate long strings to prevent database issues
+      if (track.title.length > 200) {
+        track.title = track.title.substring(0, 197) + '...';
+      }
+      
+      if (track.artist && track.artist.length > 100) {
+        track.artist = track.artist.substring(0, 97) + '...';
+      }
+      
+      queue.tracks.push(track);
+      
+      // Save to database with error handling
+      try {
+        await this.saveQueueToDatabase(guildId);
+      } catch (dbError) {
+        this.logger.error(`Failed to save queue to database for guild ${guildId}:`, dbError);
+        // Don't throw here, track is already added to memory
+      }
+      
+      this.logger.music('TRACK_ADDED', guildId, `Added track: ${track.title} (Queue: ${queue.tracks.length})`);
+      
+    } catch (error) {
+      this.logger.error(`Failed to add track to queue for guild ${guildId}:`, error);
+      throw error;
     }
-    
-    track.requestedBy = requestedBy;
-    track.addedAt = new Date();
-    
-    queue.tracks.push(track);
-    
-    await this.saveQueueToDatabase(guildId);
-    
-    this.logger.music('TRACK_ADDED', guildId, `Added track: ${track.title} (Queue: ${queue.tracks.length})`);
   }
 
   /**
@@ -658,54 +1339,120 @@ export class MusicService {
    */
   public async addTrack(guildId: string, query: string, requestedBy: string): Promise<{ success: boolean; message: string; track?: Track }> {
     try {
+      // Input validation
+      if (!guildId || typeof guildId !== 'string' || guildId.trim().length === 0) {
+        return {
+          success: false,
+          message: 'Invalid guild ID provided',
+        };
+      }
+      
+      if (!query || typeof query !== 'string' || query.trim().length === 0) {
+        return {
+          success: false,
+          message: 'Invalid search query provided',
+        };
+      }
+      
+      if (!requestedBy || typeof requestedBy !== 'string' || requestedBy.trim().length === 0) {
+        return {
+          success: false,
+          message: 'Invalid user ID provided',
+        };
+      }
+      
+      // Sanitize query
+      query = query.trim();
+      
+      // Check query length
+      if (query.length > 500) {
+        return {
+          success: false,
+          message: 'Search query too long (maximum 500 characters)',
+        };
+      }
+      
       let tracks: Track[] = [];
+      let searchMethod = 'unknown';
       
       this.logger.debug(`🎵 Adding track for query: "${query}" in guild ${guildId}`);
       
       // Check if query is a URL
       if (this.isYouTubeUrl(query)) {
         this.logger.debug(`🔗 Detected YouTube URL`);
-        // Handle YouTube URL directly
+        searchMethod = 'YouTube URL';
         tracks = await this.searchYouTube(query, 1);
       } else if (this.isSpotifyUrl(query)) {
         this.logger.debug(`🎵 Detected Spotify URL`);
-        // Handle Spotify URL
+        searchMethod = 'Spotify URL';
         tracks = await this.searchSpotify(query, 1);
       } else {
         this.logger.debug(`🔍 Searching for text query`);
+        searchMethod = 'text search';
+        
         // Search query - try YouTube first, then Spotify
-        tracks = await this.searchYouTube(query, 1);
+        try {
+          tracks = await this.searchYouTube(query, 1);
+          if (tracks.length > 0) {
+            searchMethod = 'YouTube search';
+          }
+        } catch (youtubeError) {
+          this.logger.warn(`YouTube search failed for query "${query}":`, youtubeError);
+        }
         
         if (tracks.length === 0) {
           this.logger.debug(`🎵 No YouTube results, trying Spotify`);
-          tracks = await this.searchSpotify(query, 1);
+          try {
+            tracks = await this.searchSpotify(query, 1);
+            if (tracks.length > 0) {
+              searchMethod = 'Spotify search';
+            }
+          } catch (spotifyError) {
+            this.logger.warn(`Spotify search failed for query "${query}":`, spotifyError);
+          }
         }
       }
       
       if (tracks.length === 0) {
-        this.logger.warn(`❌ No tracks found for query: "${query}"`);
+        this.logger.warn(`❌ No tracks found for query: "${query}" (tried ${searchMethod})`);
         return {
           success: false,
-          message: 'No tracks found for the given query',
+          message: `No tracks found for the given query (searched via ${searchMethod})`,
         };
       }
       
       const track = tracks[0];
-      if (track) {
-        this.logger.debug(`✅ Found track: ${track.title} by ${track.artist}`);
+      if (!track) {
+        return {
+          success: false,
+          message: 'Invalid track data received from search',
+        };
+      }
+      
+      this.logger.debug(`✅ Found track: ${track.title} by ${track.artist} (via ${searchMethod})`);
+      
+      // Add to queue with error handling
+      try {
         await this.addToQueue(guildId, track, requestedBy);
+      } catch (addError) {
+        this.logger.error(`Failed to add track to queue:`, addError);
+        return {
+          success: false,
+          message: `Found track but failed to add to queue: ${addError instanceof Error ? addError.message : 'Unknown error'}`,
+        };
       }
       
       return {
         success: true,
-        message: 'Track added to queue successfully',
+        message: `Track added to queue successfully (found via ${searchMethod})`,
         track,
       };
+      
     } catch (error) {
       this.logger.error(`❌ Failed to add track for query "${query}":`, error);
       return {
         success: false,
-        message: 'Failed to add track to queue',
+        message: `Failed to add track to queue: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
@@ -714,151 +1461,185 @@ export class MusicService {
    * Create YouTube stream using yt-dlp + play-dl hybrid approach
    */
   private async createYouTubeStream(url: string): Promise<AudioResource | null> {
-    this.logger.info(`🎵 Creating YouTube stream for: \`${url}\``);
-    
-    // More robust URL cleaning
-    let cleanUrl = url.trim();
-    
-    // Extract video ID from various YouTube URL formats
-    let videoId = '';
-    
-    if (cleanUrl.includes('youtube.com/watch?v=')) {
-      videoId = cleanUrl.split('v=')[1]?.split('&')[0]?.split('#')[0] || '';
-    } else if (cleanUrl.includes('youtu.be/')) {
-      videoId = cleanUrl.split('youtu.be/')[1]?.split('?')[0]?.split('&')[0]?.split('#')[0] || '';
-    } else if (cleanUrl.includes('youtube.com/embed/')) {
-      videoId = cleanUrl.split('embed/')[1]?.split('?')[0]?.split('&')[0]?.split('#')[0] || '';
-    }
-    
-    if (!videoId || videoId.length !== 11) {
-      this.logger.error(`❌ Invalid YouTube video ID extracted: '${videoId}' from URL: ${url}`);
-      return null;
-    }
-    
-    // Reconstruct clean URL
-    cleanUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    
-    this.logger.info(`🧹 Cleaned URL: \`${cleanUrl}\` (Video ID: ${videoId})`);
-    
-    // Method 1: Try yt-dlp to get direct audio URL
     try {
-      this.logger.info(`🔄 STARTING yt-dlp method to extract audio URL...`);
-      
-      const { exec } = require('child_process');
-      const { promisify } = require('util');
-      const execAsync = promisify(exec);
-      
-      // Use yt-dlp to get the best audio URL
-      const ytDlpCommand = `python -m yt_dlp -f "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio" --get-url "${cleanUrl}"`;
-      this.logger.info(`🔧 Running: ${ytDlpCommand}`);
-      
-      const { stdout, stderr } = await execAsync(ytDlpCommand, { timeout: 30000 });
-      
-      if (stderr && !stderr.includes('WARNING')) {
-        throw new Error(`yt-dlp stderr: ${stderr}`);
+      // Input validation
+      if (!url || typeof url !== 'string') {
+        this.logger.error('❌ Invalid URL provided to createYouTubeStream');
+        return null;
       }
       
-      const audioUrl = stdout.trim();
-      if (!audioUrl || !audioUrl.startsWith('http')) {
-        throw new Error(`Invalid audio URL from yt-dlp: ${audioUrl}`);
+      const trimmedUrl = url.trim();
+      if (trimmedUrl.length === 0) {
+        this.logger.error('❌ Empty URL provided to createYouTubeStream');
+        return null;
       }
       
-      this.logger.info(`✅ yt-dlp extracted audio URL: ${audioUrl.substring(0, 100)}...`);
+      // Validate that it's a YouTube URL
+      if (!this.isYouTubeUrl(trimmedUrl)) {
+        this.logger.error(`❌ Not a valid YouTube URL: ${trimmedUrl}`);
+        return null;
+      }
       
-      // Create audio resource directly from the extracted URL
-      const https = require('https');
-      const http = require('http');
+      this.logger.info(`🎵 Creating YouTube stream for: \`${trimmedUrl}\``);
       
-      const protocol = audioUrl.startsWith('https:') ? https : http;
+      // More robust URL cleaning
+      let cleanUrl = trimmedUrl;
       
-      return new Promise((resolve, reject) => {
-        const request = protocol.get(audioUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-          }
-        }, (response: any) => {
-           if (response.statusCode !== 200) {
-             reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
-             return;
-           }
-           
-           this.logger.info(`✅ yt-dlp method succeeded - creating audio resource`);
-           const resource = createAudioResource(response, {
-             inputType: StreamType.Arbitrary,
-             inlineVolume: true,
-             metadata: {
-               title: 'Audio Stream'
-             }
-           });
-           resolve(resource);
-         });
-         
-         request.on('error', (error: any) => {
-           reject(error);
-         });
-        
-        request.setTimeout(10000, () => {
-          request.destroy();
-          reject(new Error('Request timeout'));
-        });
-      });
+      // Extract video ID from various YouTube URL formats
+      let videoId = '';
       
-    } catch (ytDlpError: any) {
-      this.logger.warn(`⚠️ yt-dlp method failed: ${ytDlpError.message}`);
-    }
+      if (cleanUrl.includes('youtube.com/watch?v=')) {
+        videoId = cleanUrl.split('v=')[1]?.split('&')[0]?.split('#')[0] || '';
+      } else if (cleanUrl.includes('youtu.be/')) {
+        videoId = cleanUrl.split('youtu.be/')[1]?.split('?')[0]?.split('&')[0]?.split('#')[0] || '';
+      } else if (cleanUrl.includes('youtube.com/embed/')) {
+        videoId = cleanUrl.split('embed/')[1]?.split('?')[0]?.split('&')[0]?.split('#')[0] || '';
+      }
+      
+      // Validate video ID format
+      if (!videoId || videoId.length !== 11 || !/^[a-zA-Z0-9_-]+$/.test(videoId)) {
+        this.logger.error(`❌ Invalid YouTube video ID extracted: '${videoId}' from URL: ${url}`);
+        return null;
+      }
+      
+      // Reconstruct clean URL
+      cleanUrl = `https://www.youtube.com/watch?v=${videoId}`;
+      
+      this.logger.info(`🧹 Cleaned URL: \`${cleanUrl}\` (Video ID: ${videoId})`);
     
-    // Method 1: Try play-dl with high quality
-    try {
-      this.logger.info(`🔄 STARTING play-dl method (high quality)...`);
-      this.logger.info(`🔍 Attempting to get video info for: \`${cleanUrl}\``);
-      
-      const info = await video_basic_info(cleanUrl);
-      this.logger.info(`📋 Play-dl info received: ${info ? 'SUCCESS' : 'FAILED'}`);
-      
-      if (!info || !info.video_details) {
-        throw new Error('Could not get video info from play-dl');
-      }
-      
-      this.logger.info(`📋 Play-dl video info: ${info.video_details.title}`);
-      this.logger.info(`📋 Video duration: ${info.video_details.durationInSec}s`);
-      
-      // Try to get high quality audio stream from play-dl
-      this.logger.info(`🎧 Getting high quality audio stream from play-dl...`);
-      const stream = await stream_from_info(info, { quality: 2 }) as any;
-      this.logger.info(`🎧 Stream received: ${stream ? 'SUCCESS' : 'FAILED'}`);
-      
-      if (!stream || !stream.stream) {
-        throw new Error('Could not get high quality audio stream from play-dl');
-      }
-      
-      this.logger.info(`✅ play-dl high quality stream created successfully`);
-      return createAudioResource(stream.stream, {
-        inputType: StreamType.Arbitrary,
-        inlineVolume: true,
-        metadata: {
-          title: 'Audio Stream'
-        }
-      });
-      
-    } catch (playDlHighError: any) {
-      this.logger.warn(`⚠️ play-dl high quality failed: ${playDlHighError.message}`);
-      this.logger.warn(`⚠️ Error stack: ${playDlHighError.stack}`);
-      
-      // Method 2: Try play-dl with medium quality as fallback
+      // Method 1: Try yt-dlp to get direct audio URL
       try {
-        this.logger.info(`🔄 Trying play-dl medium quality method...`);
+        this.logger.info(`🔄 STARTING yt-dlp method to extract audio URL...`);
         
-        const info = await video_basic_info(cleanUrl);
+        const { exec } = require('child_process');
+        const { promisify } = require('util');
+        const execAsync = promisify(exec);
+        
+        // Use yt-dlp to get the best audio URL with timeout
+        const ytDlpCommand = `python -m yt_dlp -f "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio" --get-url "${cleanUrl}"`;
+        this.logger.info(`🔧 Running: ${ytDlpCommand}`);
+        
+        const { stdout, stderr } = await Promise.race([
+          execAsync(ytDlpCommand, { timeout: 30000 }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('yt-dlp timeout after 30s')), 30000))
+        ]) as any;
+        
+        if (stderr && !stderr.includes('WARNING')) {
+          throw new Error(`yt-dlp stderr: ${stderr}`);
+        }
+        
+        const audioUrl = stdout?.trim();
+        if (!audioUrl || typeof audioUrl !== 'string' || !audioUrl.startsWith('http')) {
+          throw new Error(`Invalid audio URL from yt-dlp: ${audioUrl}`);
+        }
+        
+        // Validate URL length (reasonable limit)
+        if (audioUrl.length > 2000) {
+          throw new Error(`Audio URL too long: ${audioUrl.length} characters`);
+        }
+        
+        this.logger.info(`✅ yt-dlp extracted audio URL: ${audioUrl.substring(0, 100)}...`);
+        
+        // Create audio resource directly from the extracted URL
+        const https = require('https');
+        const http = require('http');
+        
+        const protocol = audioUrl.startsWith('https:') ? https : http;
+        
+        return new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('yt-dlp stream request timeout after 15s'));
+          }, 15000);
+          
+          const request = protocol.get(audioUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+          }, (response: any) => {
+            clearTimeout(timeout);
+            
+            if (response.statusCode !== 200) {
+              reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
+              return;
+            }
+            
+            this.logger.info(`✅ yt-dlp method succeeded - creating audio resource`);
+            const resource = createAudioResource(response, {
+              inputType: StreamType.Arbitrary,
+              inlineVolume: true,
+              metadata: {
+                title: 'Audio Stream'
+              }
+            });
+            resolve(resource);
+          });
+          
+          request.on('error', (error: any) => {
+            clearTimeout(timeout);
+            reject(error);
+          });
+          
+          request.setTimeout(10000, () => {
+            clearTimeout(timeout);
+            request.destroy();
+            reject(new Error('yt-dlp stream request timeout'));
+          });
+        });
+        
+      } catch (ytDlpError: any) {
+        this.logger.warn(`⚠️ yt-dlp method failed: ${ytDlpError.message}`);
+      }
+    
+      // Method 2: Try play-dl with high quality
+      try {
+        this.logger.info(`🔄 STARTING play-dl method (high quality)...`);
+        this.logger.info(`🔍 Attempting to get video info for: \`${cleanUrl}\``);
+        
+        // Add timeout for video info request
+        const info = await Promise.race([
+          video_basic_info(cleanUrl),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('play-dl video_basic_info timeout after 20s')), 20000))
+        ]) as any;
+        
+        this.logger.info(`📋 Play-dl info received: ${info ? 'SUCCESS' : 'FAILED'}`);
+        
         if (!info || !info.video_details) {
           throw new Error('Could not get video info from play-dl');
         }
         
-        const stream = await stream_from_info(info, { quality: 1 }) as any;
-        if (!stream || !stream.stream) {
-          throw new Error('Could not get medium quality audio stream from play-dl');
+        // Validate video details
+        if (!info.video_details.title || !info.video_details.id) {
+          throw new Error('Invalid video details from play-dl');
         }
         
-        this.logger.info(`✅ play-dl medium quality stream created successfully`);
+        // Check video duration (max 2 hours)
+        const duration = info.video_details.durationInSec || 0;
+        if (duration > 7200) {
+          throw new Error(`Video too long: ${duration}s (max 2 hours)`);
+        }
+        
+        this.logger.info(`📋 Play-dl video info: ${info.video_details.title}`);
+        this.logger.info(`📋 Video duration: ${duration}s`);
+        
+        // Try to get high quality audio stream from play-dl with timeout
+        this.logger.info(`🎧 Getting high quality audio stream from play-dl...`);
+        const stream = await Promise.race([
+          stream_from_info(info, { quality: 2 }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('play-dl stream_from_info timeout after 15s')), 15000))
+        ]) as any;
+        
+        this.logger.info(`🎧 Stream received: ${stream ? 'SUCCESS' : 'FAILED'}`);
+        
+        if (!stream || !stream.stream) {
+          throw new Error('Could not get high quality audio stream from play-dl');
+        }
+        
+        // Validate stream properties
+        if (typeof stream.stream.readable !== 'boolean') {
+          throw new Error('Invalid stream object from play-dl');
+        }
+        
+        this.logger.info(`✅ play-dl high quality stream created successfully`);
         return createAudioResource(stream.stream, {
           inputType: StreamType.Arbitrary,
           inlineVolume: true,
@@ -867,24 +1648,32 @@ export class MusicService {
           }
         });
         
-      } catch (playDlMediumError: any) {
-        this.logger.warn(`⚠️ play-dl medium quality failed: ${playDlMediumError.message}`);
+      } catch (playDlHighError: any) {
+        this.logger.warn(`⚠️ play-dl high quality failed: ${playDlHighError.message}`);
         
-        // Method 3: Try play-dl with lowest quality as last resort
+        // Method 3: Try play-dl with medium quality as fallback
         try {
-          this.logger.info(`🔄 Trying play-dl low quality method (last resort)...`);
+          this.logger.info(`🔄 Trying play-dl medium quality method...`);
           
-          const info = await video_basic_info(cleanUrl);
+          const info = await Promise.race([
+            video_basic_info(cleanUrl),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('play-dl video_basic_info timeout after 15s')), 15000))
+          ]) as any;
+          
           if (!info || !info.video_details) {
             throw new Error('Could not get video info from play-dl');
           }
           
-          const stream = await stream_from_info(info, { quality: 0 }) as any;
+          const stream = await Promise.race([
+            stream_from_info(info, { quality: 1 }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('play-dl medium quality timeout after 15s')), 15000))
+          ]) as any;
+          
           if (!stream || !stream.stream) {
-            throw new Error('Could not get low quality audio stream from play-dl');
+            throw new Error('Could not get medium quality audio stream from play-dl');
           }
           
-          this.logger.info(`✅ play-dl low quality stream created successfully`);
+          this.logger.info(`✅ play-dl medium quality stream created successfully`);
           return createAudioResource(stream.stream, {
             inputType: StreamType.Arbitrary,
             inlineVolume: true,
@@ -893,56 +1682,57 @@ export class MusicService {
             }
           });
           
-        } catch (playDlLowError: any) {
-          this.logger.error(`❌ play-dl low quality method failed: ${playDlLowError.message}`);
+        } catch (playDlMediumError: any) {
+          this.logger.warn(`⚠️ play-dl medium quality failed: ${playDlMediumError.message}`);
+          
+          // Method 4: Try play-dl with lowest quality as last resort
+          try {
+            this.logger.info(`🔄 Trying play-dl low quality method (last resort)...`);
+            
+            const info = await Promise.race([
+              video_basic_info(cleanUrl),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('play-dl video_basic_info timeout after 10s')), 10000))
+            ]) as any;
+            
+            if (!info || !info.video_details) {
+              throw new Error('Could not get video info from play-dl');
+            }
+          
+            const stream = await Promise.race([
+              stream_from_info(info, { quality: 0 }),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('play-dl low quality timeout after 10s')), 10000))
+            ]) as any;
+            
+            if (!stream || !stream.stream) {
+              throw new Error('Could not get low quality audio stream from play-dl');
+            }
+            
+            this.logger.info(`✅ play-dl low quality stream created successfully`);
+            return createAudioResource(stream.stream, {
+              inputType: StreamType.Arbitrary,
+              inlineVolume: true,
+              metadata: {
+                title: 'Audio Stream'
+              }
+            });
+            
+          } catch (playDlLowError: any) {
+            this.logger.error(`❌ play-dl low quality method failed: ${playDlLowError.message}`);
+          }
         }
       }
+      
+      // All methods failed - log comprehensive error
+      this.logger.error(`❌ All streaming methods failed for: ${cleanUrl}`);
+      this.logger.error(`💡 Attempted methods: yt-dlp, play-dl (high/medium/low quality)`);
+      this.logger.error(`💡 Video ID: ${videoId}`);
+      return null;
+      
+    } catch (overallError: any) {
+      this.logger.error(`❌ Critical error in createYouTubeStream: ${overallError.message}`);
+      this.logger.error(`❌ Stack trace: ${overallError.stack}`);
+      return null;
     }
-    
-    // Method 4: Try play-dl with different user agents as final fallback
-    try {
-      this.logger.info(`🔄 Trying play-dl with alternative user agent (final fallback)...`);
-      
-      // Set alternative user agent for play-dl
-      const originalUserAgent = process.env.USER_AGENT;
-      process.env.USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0';
-      
-      const stream = await play.stream(cleanUrl, {
-        quality: 0, // Lowest quality for maximum compatibility
-        discordPlayerCompatibility: true,
-      });
-      
-      // Restore original user agent
-      if (originalUserAgent) {
-        process.env.USER_AGENT = originalUserAgent;
-      } else {
-        delete process.env.USER_AGENT;
-      }
-      
-      this.logger.info(`✅ play-dl alternative user agent method succeeded`);
-      return createAudioResource(stream.stream, {
-        inputType: stream.type,
-        inlineVolume: true,
-        metadata: {
-          title: 'Audio Stream'
-        }
-      });
-      
-    } catch (playDlAltError: any) {
-      this.logger.error(`❌ play-dl alternative user agent method failed: ${playDlAltError.message}`);
-      
-      // Restore original user agent in case of error
-      const originalUserAgent = process.env.USER_AGENT;
-      if (originalUserAgent) {
-        process.env.USER_AGENT = originalUserAgent;
-      } else {
-        delete process.env.USER_AGENT;
-      }
-    }
-    
-    this.logger.error(`❌ All streaming methods failed for: ${cleanUrl}`);
-    this.logger.error(`💡 Note: ytdl-core is temporarily disabled due to YouTube parsing issues`);
-    return null;
   }
 
   /**
@@ -1353,24 +2143,24 @@ export class MusicService {
       });
       
       // Save each track as a MusicQueue entry
-       for (let i = 0; i < tracks.length; i++) {
-         const track = tracks[i];
-         if (!track) continue;
-         
-         await this.database.client.musicQueue.create({
-           data: {
-             guildId: playlistId,
-             channelId: 'playlist', // Special identifier for playlists
-             title: track.title,
-             url: track.url,
-             duration: track.duration,
-             thumbnail: track.thumbnail || null,
-             requestedBy: userId,
-             position: i,
-             isPlaying: false
-           }
-         });
-       }
+      for (let i = 0; i < tracks.length; i++) {
+        const track = tracks[i];
+        if (!track) continue;
+        
+        await this.database.client.musicQueue.create({
+          data: {
+            guildId: playlistId,
+            channelId: 'playlist', // Special identifier for playlists
+            title: track.title,
+            url: track.url,
+            duration: track.duration,
+            thumbnail: track.thumbnail || null,
+            requestedBy: userId,
+            position: i,
+            isPlaying: false
+          }
+        });
+      }
       
       this.logger.info(`Playlist '${name}' saved successfully for user ${userId} with ${tracks.length} tracks`);
       return true;

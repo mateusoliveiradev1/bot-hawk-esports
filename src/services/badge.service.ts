@@ -86,21 +86,53 @@ export class BadgeService {
   };
 
   constructor(client: ExtendedClient, xpService: XPService) {
+    // Validate required dependencies
+    if (!client) {
+      throw new Error('❌ ExtendedClient is required for BadgeService');
+    }
+    if (!client.cache) {
+      throw new Error('❌ CacheService is required for BadgeService');
+    }
+    if (!client.database) {
+      throw new Error('❌ DatabaseService is required for BadgeService');
+    }
+    if (!xpService) {
+      throw new Error('❌ XPService is required for BadgeService');
+    }
+
     this.logger = new Logger();
     this.cache = client.cache;
     this.database = client.database;
     this.client = client;
     this.xpService = xpService;
     
-    this.initializeBadges();
-    this.loadUserBadges();
-    this.startProgressTracker();
+    // Initialize asynchronously with error handling
+    this.initializeAsync().catch(error => {
+      this.logger.error('❌ Failed to initialize BadgeService:', error);
+    });
   }
 
   /**
-   * Initialize all badge definitions
+   * Async initialization wrapper
+   */
+  private async initializeAsync(): Promise<void> {
+    try {
+      await this.initializeBadges();
+      await this.loadUserBadges();
+      this.startProgressTracker();
+      this.logger.info('✅ BadgeService initialized successfully');
+    } catch (error) {
+      this.logger.error('❌ BadgeService initialization failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Initialize all badge definitions with validation and error handling
    */
   private async initializeBadges(): Promise<void> {
+    try {
+      this.logger.info('🔄 Initializing badge definitions...');
     const badgeDefinitions: Omit<BadgeDefinition, 'createdAt'>[] = [
       // PUBG Badges
       {
@@ -503,26 +535,73 @@ export class BadgeService {
       });
     }
     
-    this.logger.info(`Initialized ${this.badges.size} badges`);
+      this.logger.info(`✅ Initialized ${this.badges.size} badges successfully`);
+    } catch (error) {
+      this.logger.error('❌ Failed to initialize badges:', error);
+      throw error;
+    }
   }
 
   /**
-   * Load user badges from database
+   * Load user badges from database with validation and error handling
    */
   private async loadUserBadges(): Promise<void> {
     try {
-      const userBadges = await this.database.client.userBadge.findMany();
+      this.logger.info('🔄 Loading user badges from database...');
+      
+      if (!this.database?.client) {
+        throw new Error('Database client not available');
+      }
+
+      const userBadges = await this.database.client.userBadge.findMany({
+        select: {
+          userId: true,
+          badgeId: true,
+          earnedAt: true
+        }
+      });
+      
+      let loadedCount = 0;
+      let errorCount = 0;
       
       for (const userBadge of userBadges) {
-        if (!this.userBadges.has(userBadge.userId)) {
-          this.userBadges.set(userBadge.userId, new Set());
+        try {
+          // Validate user badge data
+          if (!userBadge.userId || typeof userBadge.userId !== 'string') {
+            this.logger.warn('⚠️ Invalid userId in user badge:', userBadge);
+            errorCount++;
+            continue;
+          }
+          
+          if (!userBadge.badgeId || typeof userBadge.badgeId !== 'string') {
+            this.logger.warn('⚠️ Invalid badgeId in user badge:', userBadge);
+            errorCount++;
+            continue;
+          }
+          
+          // Verify badge exists in our definitions
+          if (!this.badges.has(userBadge.badgeId)) {
+            this.logger.warn(`⚠️ User has badge that doesn't exist in definitions: ${userBadge.badgeId}`);
+            errorCount++;
+            continue;
+          }
+          
+          if (!this.userBadges.has(userBadge.userId)) {
+            this.userBadges.set(userBadge.userId, new Set());
+          }
+          this.userBadges.get(userBadge.userId)!.add(userBadge.badgeId);
+          loadedCount++;
+        } catch (error) {
+          this.logger.error('❌ Error processing user badge:', { userBadge, error });
+          errorCount++;
         }
-        this.userBadges.get(userBadge.userId)!.add(userBadge.badgeId);
       }
       
-      this.logger.info(`Loaded badges for ${this.userBadges.size} users`);
+      this.logger.info(`✅ Loaded ${loadedCount} badges for ${this.userBadges.size} users` + 
+        (errorCount > 0 ? ` (${errorCount} errors)` : ''));
     } catch (error) {
-      this.logger.error('Failed to load user badges:', error);
+      this.logger.error('❌ Failed to load user badges:', error);
+      throw error;
     }
   }
 
@@ -537,7 +616,7 @@ export class BadgeService {
   }
 
   /**
-   * Update user progress for badge requirements
+   * Update user progress for badge requirements with validation and error handling
    */
   public async updateProgress(
     userId: string,
@@ -545,48 +624,97 @@ export class BadgeService {
     value: number,
     operation: 'set' | 'increment' = 'increment',
   ): Promise<void> {
-    if (!this.badgeProgress.has(userId)) {
-      this.badgeProgress.set(userId, new Map());
-    }
-    
-    const userProgress = this.badgeProgress.get(userId)!;
-    
-    // Update progress for all relevant badges
-    for (const [badgeId, badge] of this.badges) {
-      if (!badge.isActive) {
-        continue;
+    try {
+      // Validate input parameters
+      if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+        throw new Error('Invalid userId provided');
       }
       
-      // Skip if user already has this badge
-      if (this.userBadges.get(userId)?.has(badgeId)) {
-        continue;
+      if (!requirementType || typeof requirementType !== 'string' || requirementType.trim().length === 0) {
+        throw new Error('Invalid requirementType provided');
       }
       
-      // Check if badge has this requirement type
-      const hasRequirement = badge.requirements.some(req => req.type === requirementType);
-      if (!hasRequirement) {
-        continue;
+      if (typeof value !== 'number' || !isFinite(value) || value < 0) {
+        throw new Error('Invalid value provided - must be a non-negative finite number');
       }
       
-      if (!userProgress.has(badgeId)) {
-        userProgress.set(badgeId, {
-          userId,
-          badgeId,
-          requirements: new Map(),
-          completed: false,
-        });
+      if (!['set', 'increment'].includes(operation)) {
+        throw new Error('Invalid operation - must be "set" or "increment"');
+      }
+
+      // Sanitize inputs
+      userId = userId.trim();
+      requirementType = requirementType.trim();
+      
+      if (!this.badgeProgress.has(userId)) {
+        this.badgeProgress.set(userId, new Map());
       }
       
-      const progress = userProgress.get(badgeId)!;
-      const currentValue = progress.requirements.get(requirementType) || 0;
+      const userProgress = this.badgeProgress.get(userId)!;
+      let updatedBadges = 0;
+      let awardedBadges: string[] = [];
       
-      const newValue = operation === 'set' ? value : currentValue + value;
-      progress.requirements.set(requirementType, newValue);
-      
-      // Check if badge requirements are met
-      if (this.checkBadgeRequirements(badge, progress.requirements)) {
-        await this.awardBadge(userId, badgeId);
+      // Update progress for all relevant badges
+      for (const [badgeId, badge] of this.badges) {
+        try {
+          if (!badge.isActive) {
+            continue;
+          }
+          
+          // Skip if user already has this badge
+          if (this.userBadges.get(userId)?.has(badgeId)) {
+            continue;
+          }
+          
+          // Check if badge has this requirement type
+          const hasRequirement = badge.requirements.some(req => req.type === requirementType);
+          if (!hasRequirement) {
+            continue;
+          }
+          
+          if (!userProgress.has(badgeId)) {
+            userProgress.set(badgeId, {
+              userId,
+              badgeId,
+              requirements: new Map(),
+              completed: false,
+            });
+          }
+          
+          const progress = userProgress.get(badgeId)!;
+          const currentValue = progress.requirements.get(requirementType) || 0;
+          
+          const newValue = operation === 'set' ? value : currentValue + value;
+          
+          // Ensure new value is valid
+          if (typeof newValue !== 'number' || !isFinite(newValue) || newValue < 0) {
+            this.logger.warn(`⚠️ Invalid calculated value for ${badgeId}: ${newValue}`);
+            continue;
+          }
+          
+          progress.requirements.set(requirementType, newValue);
+          updatedBadges++;
+          
+          // Check if badge requirements are met
+          if (this.checkBadgeRequirements(badge, progress.requirements)) {
+            const awarded = await this.awardBadge(userId, badgeId);
+            if (awarded) {
+              awardedBadges.push(badge.name);
+            }
+          }
+        } catch (error) {
+          this.logger.error(`❌ Error updating progress for badge ${badgeId}:`, error);
+        }
       }
+      
+      // Log progress update (only for significant updates)
+      if (updatedBadges > 0) {
+        this.logger.debug(`📊 Updated progress for ${updatedBadges} badges for user ${userId}` +
+          (awardedBadges.length > 0 ? ` - Awarded: ${awardedBadges.join(', ')}` : ''));
+      }
+    } catch (error) {
+      this.logger.error('❌ Failed to update badge progress:', { userId, requirementType, value, operation, error });
+      throw error;
     }
   }
 
@@ -629,35 +757,84 @@ export class BadgeService {
   }
 
   /**
-   * Award badge to user
+   * Award badge to user with validation and error handling
    */
   public async awardBadge(userId: string, badgeId: string, notify: boolean = true): Promise<boolean> {
     try {
+      // Validate input parameters
+      if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+        throw new Error('Invalid userId provided');
+      }
+      
+      if (!badgeId || typeof badgeId !== 'string' || badgeId.trim().length === 0) {
+        throw new Error('Invalid badgeId provided');
+      }
+      
+      // Sanitize inputs
+      userId = userId.trim();
+      badgeId = badgeId.trim();
+      
       // Check if user already has this badge
       if (this.userBadges.get(userId)?.has(badgeId)) {
+        this.logger.debug(`🔄 User ${userId} already has badge ${badgeId}`);
         return false;
       }
       
       const badge = this.badges.get(badgeId);
       if (!badge) {
-        this.logger.error(`Badge not found: ${badgeId}`);
+        this.logger.error(`❌ Badge not found: ${badgeId}`);
+        return false;
+      }
+      
+      // Check if badge is active
+      if (!badge.isActive) {
+        this.logger.warn(`⚠️ Attempted to award inactive badge: ${badgeId}`);
         return false;
       }
       
       // Check if it's the founder badge and user is not the founder
       if (badgeId === 'founder' && userId !== this.FOUNDER_USER_ID) {
-        this.logger.warn(`Attempted to award founder badge to non-founder user: ${userId}`);
+        this.logger.warn(`⚠️ Attempted to award founder badge to non-founder user: ${userId}`);
         return false;
       }
       
-      // Add to database
-      await this.database.client.userBadge.create({
-        data: {
-          userId,
-          badgeId,
-          earnedAt: new Date(),
-        },
+      // Validate database connection
+      if (!this.database?.client) {
+        throw new Error('Database client not available');
+      }
+      
+      // Use transaction for atomicity
+      const result = await this.database.client.$transaction(async (tx) => {
+        // Double-check in database to prevent race conditions
+        const existingBadge = await tx.userBadge.findUnique({
+          where: {
+            userId_badgeId: {
+              userId,
+              badgeId
+            }
+          }
+        });
+        
+        if (existingBadge) {
+          return false; // Badge already exists
+        }
+        
+        // Add to database
+        await tx.userBadge.create({
+          data: {
+            userId,
+            badgeId,
+            earnedAt: new Date(),
+          },
+        });
+        
+        return true;
       });
+      
+      if (!result) {
+        this.logger.debug(`🔄 Badge ${badgeId} already exists for user ${userId} (race condition)`);
+        return false;
+      }
       
       // Add to memory
       if (!this.userBadges.has(userId)) {
@@ -665,105 +842,223 @@ export class BadgeService {
       }
       this.userBadges.get(userId)!.add(badgeId);
       
-      // Award rewards
+      // Award rewards (non-blocking)
       if (badge.rewards) {
-        await this.awardBadgeRewards(userId, badge.rewards);
+        this.awardBadgeRewards(userId, badge.rewards).catch(error => {
+          this.logger.error(`❌ Failed to award badge rewards for ${badgeId}:`, error);
+        });
       }
       
-      // Send notification
+      // Send notification (non-blocking)
       if (notify) {
-        await this.sendBadgeNotification(userId, badge);
+        this.sendBadgeNotification(userId, badge).catch(error => {
+          this.logger.error(`❌ Failed to send badge notification for ${badgeId}:`, error);
+        });
       }
       
-      this.logger.info(`Badge awarded: ${badge.name} (${badgeId}) to user ${userId} - Rarity: ${badge.rarity}`);
+      // Update cache
+      await this.cache.del(`user_badges_${userId}`);
       
-      // Check for collector badge
+      this.logger.info(`✅ Badge awarded: ${badge.name} (${badgeId}) to user ${userId} - Rarity: ${badge.rarity}`);
+      
+      // Check for collector badge (non-blocking)
       const userBadgeCount = this.userBadges.get(userId)?.size || 0;
       if (userBadgeCount >= 25) {
-        await this.updateProgress(userId, 'badges_earned', userBadgeCount, 'set');
+        this.updateProgress(userId, 'badges_earned', userBadgeCount, 'set').catch(error => {
+          this.logger.error(`❌ Failed to update collector badge progress:`, error);
+        });
       }
       
       return true;
     } catch (error) {
-      this.logger.error(`Failed to award badge ${badgeId} to user ${userId}:`, error);
+      this.logger.error(`❌ Failed to award badge ${badgeId} to user ${userId}:`, error);
+      
+      // Clean up memory state if database operation failed
+      if (this.userBadges.get(userId)?.has(badgeId)) {
+        this.userBadges.get(userId)!.delete(badgeId);
+        this.logger.debug(`🧹 Cleaned up memory state for failed badge award: ${badgeId}`);
+      }
+      
       return false;
     }
   }
 
   /**
-   * Award badge rewards
+   * Award badge rewards with validation and error handling
    */
   private async awardBadgeRewards(userId: string, rewards: any): Promise<void> {
     try {
+      // Validate input parameters
+      if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+        throw new Error('Invalid userId provided for rewards');
+      }
+      
+      if (!rewards || typeof rewards !== 'object') {
+        throw new Error('Invalid rewards object provided');
+      }
+      
+      const rewardResults: string[] = [];
+      
       // Award XP using XPService
-      if (rewards.xp) {
-        await this.xpService.addXP(userId, 'BADGE_EARNED', undefined, rewards.xp / 25); // Normalize to base XP
-        this.logger.info(`XP awarded to user ${userId}: ${rewards.xp}`);
+      if (rewards.xp && typeof rewards.xp === 'number' && rewards.xp > 0) {
+        try {
+          if (!this.xpService) {
+            throw new Error('XPService not available');
+          }
+          
+          await this.xpService.addXP(userId, 'BADGE_EARNED', undefined, rewards.xp / 25); // Normalize to base XP
+          rewardResults.push(`XP: ${rewards.xp}`);
+          this.logger.debug(`✅ XP awarded to user ${userId}: ${rewards.xp}`);
+        } catch (error) {
+          this.logger.error(`❌ Failed to award XP to user ${userId}:`, error);
+          throw error;
+        }
       }
       
       // Award coins
-      if (rewards.coins) {
-        await this.database.users.updateCoins(userId, rewards.coins, 'Badge reward');
-        this.logger.info(`Coins awarded to user ${userId}: ${rewards.coins}`);
+      if (rewards.coins && typeof rewards.coins === 'number' && rewards.coins > 0) {
+        try {
+          if (!this.database?.users) {
+            throw new Error('Database users service not available');
+          }
+          
+          await this.database.users.updateCoins(userId, rewards.coins, 'Badge reward');
+          rewardResults.push(`Coins: ${rewards.coins}`);
+          this.logger.debug(`✅ Coins awarded to user ${userId}: ${rewards.coins}`);
+        } catch (error) {
+          this.logger.error(`❌ Failed to award coins to user ${userId}:`, error);
+          throw error;
+        }
       }
       
       // Award role (would integrate with role management)
-      if (rewards.role) {
-        // This would call the role service to assign role
-        this.logger.info(`Role awarded to user ${userId}: ${rewards.role}`);
+      if (rewards.role && typeof rewards.role === 'string' && rewards.role.trim().length > 0) {
+        try {
+          // TODO: Integrate with role management service when available
+          rewardResults.push(`Role: ${rewards.role}`);
+          this.logger.debug(`✅ Role marked for award to user ${userId}: ${rewards.role}`);
+        } catch (error) {
+          this.logger.error(`❌ Failed to award role to user ${userId}:`, error);
+          // Don't throw for role errors as it's not critical
+        }
       }
       
-      this.logger.info(`Rewards awarded to user ${userId}:`, rewards);
+      if (rewardResults.length > 0) {
+        this.logger.info(`🎁 Rewards awarded to user ${userId}: ${rewardResults.join(', ')}`);
+      } else {
+        this.logger.debug(`ℹ️ No valid rewards to award for user ${userId}`);
+      }
+      
     } catch (error) {
-      this.logger.error(`Failed to award rewards to user ${userId}:`, error);
+      this.logger.error(`❌ Failed to award rewards to user ${userId}:`, error);
+      throw error; // Re-throw to allow caller to handle
     }
   }
 
   /**
-   * Send badge notification to user
+   * Send badge notification to user with validation and error handling
    */
   private async sendBadgeNotification(userId: string, badge: BadgeDefinition): Promise<void> {
     try {
-      const user = await this.client.users.fetch(userId);
-      if (!user) {
+      // Validate input parameters
+      if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+        throw new Error('Invalid userId provided for notification');
+      }
+      
+      if (!badge || typeof badge !== 'object') {
+        throw new Error('Invalid badge object provided for notification');
+      }
+      
+      // Validate required badge properties
+      if (!badge.name || !badge.description || !badge.rarity || !badge.category) {
+        throw new Error('Badge missing required properties for notification');
+      }
+      
+      // Validate client availability
+      if (!this.client || !this.client.users) {
+        throw new Error('Discord client not available for notifications');
+      }
+      
+      // Fetch user with timeout and validation
+      let user;
+      try {
+        user = await Promise.race([
+          this.client.users.fetch(userId),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('User fetch timeout')), 5000)
+          )
+        ]);
+      } catch (error) {
+        this.logger.warn(`⚠️ Failed to fetch user ${userId} for badge notification:`, error);
         return;
       }
       
-      const embed = new EmbedBuilder()
-        .setTitle('🎉 Nova Badge Conquistada!')
-        .setDescription(`Parabéns! Você conquistou a badge **${badge.name}**!`)
-        .addFields(
-          { name: 'Descrição', value: badge.description, inline: false },
-          { name: 'Raridade', value: `${this.rarityEmojis[badge.rarity]} ${badge.rarity.toUpperCase()}`, inline: true },
-          { name: 'Categoria', value: badge.category.toUpperCase(), inline: true },
-        )
-        .setColor((this.rarityColors[badge.rarity] || '#95A5A6') as any)
-        .setThumbnail(user.displayAvatarURL())
-        .setTimestamp();
-      
-      if (badge.rewards) {
-        let rewardsText = '';
-        if (badge.rewards.xp) {
-          rewardsText += `+${badge.rewards.xp} XP\n`;
-        }
-        if (badge.rewards.coins) {
-          rewardsText += `+${badge.rewards.coins} moedas\n`;
-        }
-        if (badge.rewards.role) {
-          rewardsText += `Cargo: ${badge.rewards.role}\n`;
-        }
-        
-        if (rewardsText) {
-          embed.addFields({ name: 'Recompensas', value: rewardsText, inline: false });
-        }
+      if (!user) {
+        this.logger.warn(`⚠️ User ${userId} not found for badge notification`);
+        return;
       }
       
-      await user.send({ embeds: [embed] }).catch(() => {
-        // If DM fails, could send to a notification channel
-        this.logger.warn(`Could not send badge notification to user ${userId}`);
-      });
+      // Build embed with error handling
+      let embed;
+      try {
+        embed = new EmbedBuilder()
+          .setTitle('🎉 Nova Badge Conquistada!')
+          .setDescription(`Parabéns! Você conquistou a badge **${badge.name}**!`)
+          .addFields(
+            { name: 'Descrição', value: badge.description.slice(0, 1024), inline: false }, // Limit field length
+            { name: 'Raridade', value: `${this.rarityEmojis[badge.rarity] || '⚪'} ${badge.rarity.toUpperCase()}`, inline: true },
+            { name: 'Categoria', value: badge.category.toUpperCase(), inline: true },
+          )
+          .setColor((this.rarityColors[badge.rarity] || '#95A5A6') as any)
+          .setTimestamp();
+        
+        // Safely set thumbnail
+        try {
+          const avatarURL = (user as any).displayAvatarURL({ size: 256 });
+          if (avatarURL) {
+            embed.setThumbnail(avatarURL);
+          }
+        } catch (error) {
+          this.logger.debug(`Could not set thumbnail for user ${userId}:`, error);
+        }
+        
+        // Add rewards if available
+        if (badge.rewards && typeof badge.rewards === 'object') {
+          const rewardsText: string[] = [];
+          
+          if (badge.rewards.xp && typeof badge.rewards.xp === 'number' && badge.rewards.xp > 0) {
+            rewardsText.push(`+${badge.rewards.xp} XP`);
+          }
+          
+          if (badge.rewards.coins && typeof badge.rewards.coins === 'number' && badge.rewards.coins > 0) {
+            rewardsText.push(`+${badge.rewards.coins} moedas`);
+          }
+          
+          if (badge.rewards.role && typeof badge.rewards.role === 'string' && badge.rewards.role.trim().length > 0) {
+            rewardsText.push(`Cargo: ${badge.rewards.role.trim()}`);
+          }
+          
+          if (rewardsText.length > 0) {
+            embed.addFields({ name: 'Recompensas', value: rewardsText.join('\n').slice(0, 1024), inline: false });
+          }
+        }
+        
+      } catch (error) {
+        this.logger.error(`❌ Failed to build embed for badge ${badge.id}:`, error);
+        return;
+      }
       
-      // Badge notification sent successfully
+      // Send notification with fallback
+       try {
+         await (user as any).send({ embeds: [embed] });
+         this.logger.debug(`✅ Badge notification sent to user ${userId} for badge ${badge.id}`);
+       } catch (dmError) {
+         this.logger.warn(`⚠️ Could not send DM badge notification to user ${userId}:`, dmError);
+         
+         // TODO: Implement fallback to notification channel
+         // For now, just log the failure
+         this.logger.info(`📢 Badge notification fallback needed for user ${userId}, badge: ${badge.name}`);
+       }
       
     } catch (error) {
       this.logger.error(`Failed to send badge notification to user ${userId}:`, error);
@@ -1438,6 +1733,334 @@ export class BadgeService {
         byCategory: {},
         rarest: null
       };
+    }
+  }
+
+  /**
+   * Clear badge cache for user or globally
+   */
+  public async clearBadgeCache(userId?: string): Promise<void> {
+    try {
+      if (userId) {
+        // Clear specific user cache
+        await this.cache.del(`user_badges_${userId}`);
+        await this.cache.del(`user_badge_progress_${userId}`);
+        this.logger.debug(`🧹 Cleared badge cache for user ${userId}`);
+      } else {
+        // Clear all badge-related cache
+        const cacheKeys = [
+          'badge_stats',
+          'badge_leaderboard',
+          'available_badges',
+          'badge_categories'
+        ];
+        
+        for (const key of cacheKeys) {
+          await this.cache.del(key);
+        }
+        
+        this.logger.info('🧹 Cleared all badge cache');
+      }
+    } catch (error) {
+      this.logger.error(`❌ Failed to clear badge cache:`, error);
+    }
+  }
+
+  /**
+   * Validate badge system integrity
+   */
+  public async validateBadgeIntegrity(): Promise<{
+    isValid: boolean;
+    issues: string[];
+    stats: {
+      totalBadges: number;
+      activeBadges: number;
+      userBadgesCount: number;
+      orphanedUserBadges: number;
+    };
+  }> {
+    const issues: string[] = [];
+    let orphanedUserBadges = 0;
+
+    try {
+      // Check badge definitions
+      const badgeIds = Array.from(this.badges.keys());
+      const activeBadges = Array.from(this.badges.values()).filter(b => b.isActive);
+      
+      if (badgeIds.length === 0) {
+        issues.push('No badge definitions found');
+      }
+      
+      // Check for badges with invalid properties
+      for (const [id, badge] of this.badges) {
+        if (!badge.name || badge.name.trim().length === 0) {
+          issues.push(`Badge ${id} has invalid name`);
+        }
+        
+        if (!badge.description || badge.description.trim().length === 0) {
+          issues.push(`Badge ${id} has invalid description`);
+        }
+        
+        if (!badge.requirements || badge.requirements.length === 0) {
+          issues.push(`Badge ${id} has no requirements`);
+        }
+        
+        if (!this.rarityColors[badge.rarity]) {
+          issues.push(`Badge ${id} has invalid rarity: ${badge.rarity}`);
+        }
+      }
+      
+      // Check user badges for orphaned references
+      let totalUserBadges = 0;
+      for (const [userId, userBadgeSet] of this.userBadges) {
+        for (const badgeId of userBadgeSet) {
+          totalUserBadges++;
+          if (!this.badges.has(badgeId)) {
+            orphanedUserBadges++;
+            issues.push(`User ${userId} has orphaned badge: ${badgeId}`);
+          }
+        }
+      }
+      
+      // Check database consistency (if available)
+      if (this.database?.client) {
+        try {
+          const dbBadgeCount = await this.database.client.badge.count();
+          const memoryBadgeCount = this.badges.size;
+          
+          if (dbBadgeCount !== memoryBadgeCount) {
+            issues.push(`Database badge count (${dbBadgeCount}) doesn't match memory (${memoryBadgeCount})`);
+          }
+        } catch (error) {
+          issues.push(`Failed to validate database consistency: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      }
+      
+      const stats = {
+        totalBadges: badgeIds.length,
+        activeBadges: activeBadges.length,
+        userBadgesCount: totalUserBadges,
+        orphanedUserBadges
+      };
+      
+      const isValid = issues.length === 0;
+      
+      if (isValid) {
+        this.logger.info('✅ Badge system integrity validation passed');
+      } else {
+        this.logger.warn(`⚠️ Badge system integrity validation found ${issues.length} issues`);
+      }
+      
+      return { isValid, issues, stats };
+      
+    } catch (error) {
+      this.logger.error('❌ Failed to validate badge integrity:', error);
+      return {
+        isValid: false,
+        issues: [`Validation failed: ${error instanceof Error ? error.message : String(error)}`],
+        stats: {
+          totalBadges: 0,
+          activeBadges: 0,
+          userBadgesCount: 0,
+          orphanedUserBadges: 0
+        }
+      };
+    }
+  }
+
+  /**
+   * Get advanced badge statistics
+   */
+  public async getAdvancedBadgeStats(): Promise<{
+    overview: {
+      totalBadges: number;
+      totalAwarded: number;
+      uniqueHolders: number;
+      averageBadgesPerUser: number;
+    };
+    distribution: {
+      byRarity: Record<string, { count: number; awarded: number; percentage: number }>;
+      byCategory: Record<string, { count: number; awarded: number; percentage: number }>;
+    };
+    topBadges: Array<{ badgeId: string; name: string; holders: number; rarity: string }>;
+    rareHolders: Array<{ userId: string; badgeCount: number; rarest: string }>;
+  }> {
+    try {
+      const totalBadges = this.badges.size;
+      let totalAwarded = 0;
+      const uniqueHolders = this.userBadges.size;
+      
+      const rarityStats: Record<string, { count: number; awarded: number }> = {};
+      const categoryStats: Record<string, { count: number; awarded: number }> = {};
+      const badgeHolders: Record<string, number> = {};
+      
+      // Initialize stats
+      for (const badge of this.badges.values()) {
+        if (!rarityStats[badge.rarity]) {
+          rarityStats[badge.rarity] = { count: 0, awarded: 0 };
+        }
+        rarityStats[badge.rarity]!.count++;
+        
+        if (!categoryStats[badge.category]) {
+          categoryStats[badge.category] = { count: 0, awarded: 0 };
+        }
+        categoryStats[badge.category]!.count++;
+        
+        badgeHolders[badge.id] = 0;
+      }
+      
+      // Count awarded badges
+      for (const userBadgeSet of this.userBadges.values()) {
+        totalAwarded += userBadgeSet.size;
+        
+        for (const badgeId of userBadgeSet) {
+          const badge = this.badges.get(badgeId);
+          if (badge) {
+            rarityStats[badge.rarity]!.awarded++;
+            categoryStats[badge.category]!.awarded++;
+            badgeHolders[badgeId]!++;
+          }
+        }
+      }
+      
+      // Calculate percentages and create distribution
+      const rarityDistribution: Record<string, { count: number; awarded: number; percentage: number }> = {};
+      for (const [rarity, stats] of Object.entries(rarityStats)) {
+        rarityDistribution[rarity] = {
+          ...stats,
+          percentage: totalAwarded > 0 ? (stats.awarded / totalAwarded) * 100 : 0
+        };
+      }
+      
+      const categoryDistribution: Record<string, { count: number; awarded: number; percentage: number }> = {};
+      for (const [category, stats] of Object.entries(categoryStats)) {
+        categoryDistribution[category] = {
+          ...stats,
+          percentage: totalAwarded > 0 ? (stats.awarded / totalAwarded) * 100 : 0
+        };
+      }
+      
+      // Get top badges by holder count
+      const topBadges = Object.entries(badgeHolders)
+        .map(([badgeId, holders]) => {
+          const badge = this.badges.get(badgeId);
+          return {
+            badgeId,
+            name: badge?.name || 'Unknown',
+            holders,
+            rarity: badge?.rarity || 'unknown'
+          };
+        })
+        .sort((a, b) => b.holders - a.holders)
+        .slice(0, 10);
+      
+      // Get users with most rare badges
+      const rarityValues = { mythic: 6, legendary: 5, epic: 4, rare: 3, uncommon: 2, common: 1 };
+      const rareHolders = Array.from(this.userBadges.entries())
+        .map(([userId, badgeSet]) => {
+          let rarest = 'common';
+          let maxRarityValue = 0;
+          
+          for (const badgeId of badgeSet) {
+            const badge = this.badges.get(badgeId);
+            if (badge) {
+              const rarityValue = rarityValues[badge.rarity as keyof typeof rarityValues] || 0;
+              if (rarityValue > maxRarityValue) {
+                maxRarityValue = rarityValue;
+                rarest = badge.rarity;
+              }
+            }
+          }
+          
+          return {
+            userId,
+            badgeCount: badgeSet.size,
+            rarest
+          };
+        })
+        .sort((a, b) => {
+          const aRarityValue = rarityValues[a.rarest as keyof typeof rarityValues] || 0;
+          const bRarityValue = rarityValues[b.rarest as keyof typeof rarityValues] || 0;
+          return bRarityValue - aRarityValue || b.badgeCount - a.badgeCount;
+        })
+        .slice(0, 10);
+      
+      const averageBadgesPerUser = uniqueHolders > 0 ? totalAwarded / uniqueHolders : 0;
+      
+      return {
+        overview: {
+          totalBadges,
+          totalAwarded,
+          uniqueHolders,
+          averageBadgesPerUser: Math.round(averageBadgesPerUser * 100) / 100
+        },
+        distribution: {
+          byRarity: rarityDistribution,
+          byCategory: categoryDistribution
+        },
+        topBadges,
+        rareHolders
+      };
+      
+    } catch (error) {
+      this.logger.error('❌ Failed to get advanced badge stats:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cleanup orphaned user badges
+   */
+  public async cleanupOrphanedBadges(): Promise<{ cleaned: number; errors: string[] }> {
+    const errors: string[] = [];
+    let cleaned = 0;
+    
+    try {
+      for (const [userId, userBadgeSet] of this.userBadges) {
+        const badgesToRemove: string[] = [];
+        
+        for (const badgeId of userBadgeSet) {
+          if (!this.badges.has(badgeId)) {
+            badgesToRemove.push(badgeId);
+          }
+        }
+        
+        for (const badgeId of badgesToRemove) {
+          try {
+            userBadgeSet.delete(badgeId);
+            
+            // Remove from database if available
+            if (this.database?.client) {
+              await this.database.client.userBadge.deleteMany({
+                where: {
+                  userId,
+                  badgeId
+                }
+              });
+            }
+            
+            cleaned++;
+            this.logger.debug(`🧹 Removed orphaned badge ${badgeId} from user ${userId}`);
+          } catch (error) {
+            errors.push(`Failed to remove badge ${badgeId} from user ${userId}: ${error instanceof Error ? error.message : String(error)}`);
+          }
+        }
+        
+        // Remove empty user badge sets
+        if (userBadgeSet.size === 0) {
+          this.userBadges.delete(userId);
+        }
+      }
+      
+      if (cleaned > 0) {
+        this.logger.info(`🧹 Cleaned up ${cleaned} orphaned badges`);
+      }
+      
+      return { cleaned, errors };
+      
+    } catch (error) {
+      this.logger.error('❌ Failed to cleanup orphaned badges:', error);
+      return { cleaned, errors: [error instanceof Error ? error.message : String(error)] };
     }
   }
 }

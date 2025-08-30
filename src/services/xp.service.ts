@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-import { Logger } from '../utils/logger.js';
-import { CacheService } from './cache.service.js';
+import { Logger } from '../utils/logger';
+import { CacheService } from './cache.service';
 
 export interface ActivityType {
   MM: 25;
@@ -72,15 +72,37 @@ export class XPService {
   private readonly PRESTIGE_XP_BONUS = 0.1; // NOVO - 10% bônus XP após prestígio
 
   constructor(client: any) {
+    if (!client) {
+      throw new Error('Client is required for XPService');
+    }
+
+    if (!client.database?.client) {
+      throw new Error('Database client is required for XPService');
+    }
+
+    if (!client.cache) {
+      throw new Error('Cache service is required for XPService');
+    }
+
     this.prisma = client.database.client;
     this.logger = new Logger();
     this.cache = client.cache;
+
+    this.logger.info('✅ XPService initialized successfully');
   }
 
   /**
    * Calcula XP necessário para um nível específico
    */
   public calculateXPForLevel(level: number): number {
+    if (!Number.isInteger(level) || level < 1) {
+      throw new Error('Level must be a positive integer');
+    }
+
+    if (level > this.MAX_LEVEL) {
+      throw new Error(`Level cannot exceed maximum level of ${this.MAX_LEVEL}`);
+    }
+
     if (level <= 1) return 0;
     
     let totalXP = 0;
@@ -94,15 +116,19 @@ export class XPService {
    * Calcula nível baseado no XP total
    */
   public calculateLevelFromXP(totalXP: number): number {
+    if (!Number.isFinite(totalXP) || totalXP < 0) {
+      throw new Error('Total XP must be a non-negative number');
+    }
+
     let level = 1;
     let xpRequired = 0;
     
-    while (xpRequired <= totalXP) {
+    while (xpRequired <= totalXP && level < this.MAX_LEVEL) {
       level++;
       xpRequired += Math.floor(this.XP_PER_LEVEL * Math.pow(this.XP_MULTIPLIER, level - 2));
     }
     
-    return level - 1;
+    return Math.min(level - 1, this.MAX_LEVEL);
   }
 
   /**
@@ -115,28 +141,80 @@ export class XPService {
     multiplier: number = 1
   ): Promise<XPGainResult> {
     try {
-      // Buscar usuário atual
+      // Validar entrada
+      if (!userId || typeof userId !== 'string') {
+        throw new Error('User ID is required and must be a string');
+      }
+
+      if (!activityType || typeof activityType !== 'string') {
+        throw new Error('Activity type is required and must be a string');
+      }
+
+      if (multiplier < 0 || multiplier > 10) {
+        throw new Error('Multiplier must be between 0 and 10');
+      }
+
+      if (timeSpent !== undefined && (timeSpent < 0 || timeSpent > 24)) {
+        throw new Error('Time spent must be between 0 and 24 hours');
+      }
+
+      // Buscar usuário atual com transação
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        select: { xp: true, totalXp: true, level: true }
+        select: {
+          id: true,
+          xp: true, 
+          totalXp: true, 
+          level: true, 
+          prestigeLevel: true
+        }
       });
 
       if (!user) {
         throw new Error(`User ${userId} not found`);
       }
 
+      // Rate limiting removido - campo lastXpGain não existe no modelo User
+      const now = new Date();
+
       // Calcular XP base
-      const baseXP = (this.ACTIVITY_XP[activityType.toUpperCase()] || 0) * multiplier;
+      const activityKey = activityType.toUpperCase();
+      const baseActivityXP = this.ACTIVITY_XP[activityKey];
+      
+      if (baseActivityXP === undefined) {
+        this.logger.warn(`Unknown activity type: ${activityType}`);
+        return {
+          userId,
+          baseXP: 0,
+          bonusXP: 0,
+          totalXP: 0,
+          newLevel: user.level,
+          oldLevel: user.level,
+          leveledUp: false
+        };
+      }
+
+      let baseXP = Math.floor(baseActivityXP * multiplier);
+      
+      // Aplicar bônus de prestígio
+      if (user.prestigeLevel && user.prestigeLevel > 0) {
+        const prestigeBonus = await this.calculatePrestigeBonus(userId, baseXP);
+        baseXP += prestigeBonus;
+      }
       
       // Calcular bônus por tempo
       let bonusXP = 0;
-      if (timeSpent) {
-        if (timeSpent >= 3) {
-          bonusXP = this.TIME_BONUS_XP['3h+'] || 0;
+      if (timeSpent && timeSpent > 0) {
+        if (timeSpent >= 4) {
+          bonusXP = this.TIME_BONUS_XP['4h+'] || 0;
+        } else if (timeSpent >= 3) {
+          bonusXP = this.TIME_BONUS_XP['3h'] || 0;
         } else if (timeSpent >= 2) {
           bonusXP = this.TIME_BONUS_XP['2h'] || 0;
         } else if (timeSpent >= 1) {
           bonusXP = this.TIME_BONUS_XP['1h'] || 0;
+        } else if (timeSpent >= 0.5) {
+          bonusXP = this.TIME_BONUS_XP['30m'] || 0;
         }
       }
 
@@ -145,20 +223,35 @@ export class XPService {
       const newLevel = this.calculateLevelFromXP(newTotalXP);
       const leveledUp = newLevel > user.level;
 
-      // Atualizar usuário no banco
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: {
-          xp: user.xp + totalXPGain,
-          totalXp: newTotalXP,
-          level: newLevel,
-        }
+      // Usar transação para garantir consistência
+      const updatedUser = await this.prisma.$transaction(async (tx) => {
+        return await tx.user.update({
+          where: { id: userId },
+          data: {
+            xp: user.xp + totalXPGain,
+            totalXp: newTotalXP,
+            level: newLevel,
+            updatedAt: now
+          }
+        });
       });
 
       // Limpar cache do usuário
-      await this.cache.del(`user:${userId}`);
-      await this.cache.del(`user:${userId}:xp`);
-      await this.cache.del(`user:${userId}:level`);
+      const cacheKeys = [
+        `user:${userId}`,
+        `user:${userId}:xp`,
+        `user:${userId}:level`,
+        `user:${userId}:xp_info`,
+        `xp_leaderboard:*`
+      ];
+      
+      for (const key of cacheKeys) {
+        if (key.includes('*')) {
+          await this.cache.clearPattern(key);
+        } else {
+          await this.cache.del(key);
+        }
+      }
 
       const result: XPGainResult = {
         userId,
@@ -171,13 +264,14 @@ export class XPService {
       };
 
       // Log da atividade
-      this.logger.info(`XP gained for user ${userId}:`, {
+      this.logger.info(`💫 XP gained for user ${userId}:`, {
         activity: activityType,
         baseXP,
         bonusXP,
         totalGain: totalXPGain,
         newLevel,
-        leveledUp
+        leveledUp,
+        prestigeLevel: user.prestigeLevel || 0
       });
 
       // Se subiu de nível, processar recompensas
@@ -187,7 +281,13 @@ export class XPService {
 
       return result;
     } catch (error) {
-      this.logger.error('Failed to add XP:', error);
+      this.logger.error('Failed to add XP:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId,
+        activityType,
+        timeSpent,
+        multiplier
+      });
       throw error;
     }
   }
@@ -197,40 +297,73 @@ export class XPService {
    */
   private async processLevelUpRewards(userId: string, oldLevel: number, newLevel: number): Promise<void> {
     try {
-      // Recompensas por nível
-      const coinsReward = (newLevel - oldLevel) * 50; // 50 coins por nível
-      
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: {
-          coins: {
-            increment: coinsReward
-          }
-        }
-      });
+      if (!userId || oldLevel >= newLevel) {
+        return;
+      }
 
-      // Registrar transação
-      await this.prisma.transaction.create({
-        data: {
-          userId,
-          type: 'earn',
-          amount: coinsReward,
-          balance: 0, // Será atualizado por trigger ou outro processo
-          reason: `Level up reward (${oldLevel} → ${newLevel})`,
-          metadata: JSON.stringify({ oldLevel, newLevel })
+      const levelsGained = newLevel - oldLevel;
+      
+      // Recompensas escalonadas por nível
+      let totalCoinsReward = 0;
+      for (let level = oldLevel + 1; level <= newLevel; level++) {
+        if (level <= 10) {
+          totalCoinsReward += 25; // Níveis iniciais: 25 coins
+        } else if (level <= 25) {
+          totalCoinsReward += 50; // Níveis médios: 50 coins
+        } else if (level <= 50) {
+          totalCoinsReward += 75; // Níveis altos: 75 coins
+        } else {
+          totalCoinsReward += 100; // Níveis máximos: 100 coins
         }
+      }
+      
+      // Usar transação para garantir consistência
+      await this.prisma.$transaction(async (tx) => {
+        // Atualizar coins do usuário
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            coins: {
+              increment: totalCoinsReward
+            }
+          }
+        });
+
+        // Registrar transação
+        await tx.transaction.create({
+          data: {
+            userId,
+            type: 'earn',
+            amount: totalCoinsReward,
+            balance: 0, // Será atualizado por trigger ou outro processo
+            reason: `Level up reward (${oldLevel} → ${newLevel})`,
+            metadata: JSON.stringify({ 
+              oldLevel, 
+              newLevel, 
+              levelsGained,
+              coinsPerLevel: Math.floor(totalCoinsReward / levelsGained)
+            })
+          }
+        });
       });
 
       // Verificar se deve ganhar badges por nível
       await this.checkLevelBadges(userId, newLevel);
 
-      this.logger.info(`Level up rewards processed for user ${userId}:`, {
+      this.logger.info(`🎉 Level up rewards processed for user ${userId}:`, {
         oldLevel,
         newLevel,
-        coinsReward
+        levelsGained,
+        totalCoinsReward
       });
     } catch (error) {
-      this.logger.error('Failed to process level up rewards:', error);
+      this.logger.error('Failed to process level up rewards:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId,
+        oldLevel,
+        newLevel
+      });
+      // Não relançar o erro para não quebrar o fluxo principal de XP
     }
   }
 
@@ -238,51 +371,93 @@ export class XPService {
    * Verifica e concede badges baseadas no nível
    */
   private async checkLevelBadges(userId: string, level: number): Promise<void> {
-    const levelBadges = [
-      { level: 5, badgeName: 'Novato' },
-      { level: 10, badgeName: 'Experiente' },
-      { level: 25, badgeName: 'Veterano' },
-      { level: 50, badgeName: 'Elite' },
-      { level: 100, badgeName: 'Lenda' },
-    ];
+    try {
+      if (!userId || !Number.isInteger(level) || level < 1) {
+        return;
+      }
 
-    for (const { level: requiredLevel, badgeName } of levelBadges) {
-      if (level >= requiredLevel) {
+      const levelBadges = [
+        { level: 5, badge: 'novato', name: 'Novato' },
+        { level: 15, badge: 'experiente', name: 'Experiente' },
+        { level: 30, badge: 'veterano', name: 'Veterano' },
+        { level: 50, badge: 'elite', name: 'Elite' },
+        { level: 75, badge: 'lenda', name: 'Lenda' },
+        { level: 100, badge: 'imortal', name: 'Imortal' }
+      ];
+
+      // Verificar quais badges o usuário deve ter baseado no nível atual
+      const eligibleBadges = levelBadges.filter(b => level >= b.level);
+      
+      if (eligibleBadges.length === 0) {
+        return;
+      }
+
+      // Verificar badges já concedidos
+      const existingBadges = await this.prisma.userBadge.findMany({
+        where: {
+          userId,
+          badge: {
+            name: {
+              in: eligibleBadges.map(b => b.name)
+            }
+          }
+        },
+        include: {
+          badge: true
+        }
+      });
+
+      const existingBadgeNames = existingBadges.map(ub => ub.badge.name);
+      const newBadges = eligibleBadges.filter(b => !existingBadgeNames.includes(b.name));
+
+      // Conceder novos badges
+      for (const badgeInfo of newBadges) {
         try {
-          // Verificar se já tem a badge
-          const existingBadge = await this.prisma.userBadge.findFirst({
-            where: {
-              userId,
-              badge: {
-                name: badgeName
-              }
+          // Buscar ou criar o badge
+          const badge = await this.prisma.badge.upsert({
+            where: { name: badgeInfo.name },
+            update: {},
+            create: {
+              name: badgeInfo.name,
+              description: `Alcançado ao atingir o nível ${badgeInfo.level}`,
+              icon: '🏆',
+              category: 'level',
+              rarity: this.getBadgeRarity(badgeInfo.level)
             }
           });
 
-          if (!existingBadge) {
-            // Buscar a badge
-            const badge = await this.prisma.badge.findUnique({
-              where: { name: badgeName }
-            });
-
-            if (badge) {
-              // Conceder badge
-              await this.prisma.userBadge.create({
-                data: {
-                  userId,
-                  badgeId: badge.id,
-                  metadata: JSON.stringify({ earnedByLevel: level })
-                }
-              });
-
-              this.logger.info(`Badge '${badgeName}' awarded to user ${userId} for reaching level ${level}`);
+          // Conceder badge ao usuário
+          await this.prisma.userBadge.create({
+            data: {
+              userId,
+              badgeId: badge.id,
+              earnedAt: new Date()
             }
-          }
-        } catch (error) {
-          this.logger.error(`Failed to award level badge '${badgeName}' to user ${userId}:`, error);
+          });
+
+          this.logger.info(`🏆 Badge '${badgeInfo.name}' awarded to user ${userId} for reaching level ${level}`);
+        } catch (badgeError) {
+          this.logger.error(`Failed to award badge '${badgeInfo.badge}' to user ${userId}:`, badgeError);
         }
       }
+    } catch (error) {
+      this.logger.error('Failed to check level badges:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId,
+        level
+      });
     }
+  }
+
+  /**
+   * Determina a raridade do badge baseado no nível
+   */
+  private getBadgeRarity(level: number): string {
+    if (level >= 100) return 'legendary';
+    if (level >= 75) return 'epic';
+    if (level >= 50) return 'rare';
+    if (level >= 30) return 'uncommon';
+    return 'common';
   }
 
   /**
@@ -296,41 +471,112 @@ export class XPService {
     xpForNextLevel: number;
     xpProgress: number;
     xpProgressPercent: number;
+    isMaxLevel: boolean;
+    prestigeLevel: number;
+    rankingPosition: number;
+    accountAge: number;
   } | null> {
     try {
+      if (!userId || typeof userId !== 'string') {
+        throw new Error('User ID is required and must be a string');
+      }
+
       const cacheKey = `user:${userId}:xp_info`;
       const cached = await this.cache.get(cacheKey);
-      if (cached && typeof cached === 'string') return JSON.parse(cached);
+      
+      if (cached && typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {
+          this.logger.warn(`Failed to parse cached XP info for user ${userId}:`, parseError);
+          await this.cache.del(cacheKey);
+        }
+      }
 
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        select: { level: true, xp: true, totalXp: true }
+        select: {
+          level: true,
+          xp: true,
+          totalXp: true,
+          prestigeLevel: true,
+          createdAt: true
+        }
       });
 
       if (!user) return null;
 
-      const xpForCurrentLevel = this.calculateXPForLevel(user.level);
-      const xpForNextLevel = this.calculateXPForLevel(user.level + 1);
+      const currentLevel = user.level;
+      const isMaxLevel = currentLevel >= this.MAX_LEVEL;
+      const nextLevel = isMaxLevel ? this.MAX_LEVEL : currentLevel + 1;
+      
+      const xpForCurrentLevel = this.calculateXPForLevel(currentLevel);
+      const xpForNextLevel = isMaxLevel ? this.calculateXPForLevel(this.MAX_LEVEL) : this.calculateXPForLevel(nextLevel);
+      
       const xpProgress = user.totalXp - xpForCurrentLevel;
-      const xpNeededForNext = xpForNextLevel - xpForCurrentLevel;
-      const xpProgressPercent = Math.round((xpProgress / xpNeededForNext) * 100);
+      const xpNeededForNext = isMaxLevel ? 0 : xpForNextLevel - xpForCurrentLevel;
+      
+      let xpProgressPercent = 0;
+      if (!isMaxLevel && xpNeededForNext > 0) {
+        xpProgressPercent = Math.round((xpProgress / xpNeededForNext) * 100);
+      } else if (isMaxLevel) {
+        xpProgressPercent = 100;
+      }
+
+      // Calcular ranking aproximado
+      const rankingPosition = await this.getUserRankingPosition(userId);
 
       const result = {
-        level: user.level,
-        xp: user.xp,
-        totalXp: user.totalXp,
+        level: currentLevel,
+        xp: user.xp || 0,
+        totalXp: user.totalXp || 0,
         xpForCurrentLevel,
         xpForNextLevel,
-        xpProgress,
-        xpProgressPercent
+        xpProgress: Math.max(0, xpProgress),
+        xpProgressPercent: Math.max(0, Math.min(100, xpProgressPercent)),
+        isMaxLevel,
+        prestigeLevel: user.prestigeLevel || 0,
+        rankingPosition,
+        accountAge: Math.floor((Date.now() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24)) // dias
       };
 
       // Cache por 5 minutos
       await this.cache.set(cacheKey, result, 300);
       return result;
     } catch (error) {
-      this.logger.error('Failed to get user XP info:', error);
+      this.logger.error('Failed to get user XP info:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId
+      });
       return null;
+    }
+  }
+
+  /**
+   * Obtém a posição do usuário no ranking de XP
+   */
+  private async getUserRankingPosition(userId: string): Promise<number> {
+    try {
+      const result = await this.prisma.user.findMany({
+        where: {
+          totalXp: {
+            gt: 0
+          }
+        },
+        select: {
+          id: true,
+          totalXp: true
+        },
+        orderBy: {
+          totalXp: 'desc'
+        }
+      });
+
+      const position = result.findIndex(user => user.id === userId) + 1;
+      return position || 0;
+    } catch (error) {
+      this.logger.error('Failed to get user ranking position:', error);
+      return 0;
     }
   }
 
@@ -343,21 +589,44 @@ export class XPService {
     level: number;
     totalXp: number;
     rank: number;
+    prestigeLevel: number;
+    progressPercent: number;
+    isMaxLevel: boolean;
   }>> {
     try {
+      // Validar parâmetros
+      if (limit < 1 || limit > 100) {
+        throw new Error('Limit must be between 1 and 100');
+      }
+
+      if (guildId && typeof guildId !== 'string') {
+        throw new Error('Guild ID must be a string');
+      }
+
       const cacheKey = `xp_leaderboard:${guildId || 'global'}:${limit}`;
       const cached = await this.cache.get(cacheKey);
-      if (cached && typeof cached === 'string') return JSON.parse(cached);
+      
+      if (cached && typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {
+          this.logger.warn(`Failed to parse cached leaderboard:`, parseError);
+          await this.cache.del(cacheKey);
+        }
+      }
 
       // Query base
-      let whereClause = {};
+      const whereClause: any = {
+        totalXp: {
+          gt: 0
+        }
+      };
+
       if (guildId) {
-        whereClause = {
-          guilds: {
-            some: {
-              guildId,
-              isActive: true
-            }
+        whereClause.guilds = {
+          some: {
+            guildId,
+            isActive: true
           }
         };
       }
@@ -368,50 +637,157 @@ export class XPService {
           id: true,
           username: true,
           level: true,
-          totalXp: true
+          totalXp: true,
+          prestigeLevel: true,
+          updatedAt: true
         },
-        orderBy: {
-          totalXp: 'desc'
-        },
+        orderBy: [
+          {
+            totalXp: 'desc'
+          },
+          {
+            level: 'desc'
+          },
+          {
+            updatedAt: 'asc' // Em caso de empate, quem chegou primeiro
+          }
+        ],
         take: limit
       });
 
-      const leaderboard = users.map((user, index) => ({
-        userId: user.id,
-        username: user.username,
-        level: user.level,
-        totalXp: user.totalXp,
-        rank: index + 1
-      }));
+      if (users.length === 0) {
+        return [];
+      }
+
+      const leaderboard = users.map((user, index) => {
+        const currentLevelXP = this.calculateXPForLevel(user.level);
+        const nextLevelXP = user.level < this.MAX_LEVEL ? this.calculateXPForLevel(user.level + 1) : currentLevelXP;
+        const progressPercent = user.level >= this.MAX_LEVEL ? 100 : 
+          Math.floor(((user.totalXp - currentLevelXP) / (nextLevelXP - currentLevelXP)) * 100);
+
+        return {
+          userId: user.id,
+          username: user.username || 'Unknown User',
+          level: user.level,
+          totalXp: user.totalXp,
+          rank: index + 1,
+          prestigeLevel: user.prestigeLevel || 0,
+          progressPercent: Math.max(0, Math.min(100, progressPercent)),
+          isMaxLevel: user.level >= this.MAX_LEVEL
+        };
+      });
 
       // Cache por 10 minutos
       await this.cache.set(cacheKey, leaderboard, 600);
+      
+      this.logger.info(`📊 XP Leaderboard generated:`, {
+        guildId: guildId || 'global',
+        userCount: leaderboard.length,
+        limit
+      });
+
       return leaderboard;
     } catch (error) {
-      this.logger.error('Failed to get XP leaderboard:', error);
+      this.logger.error('Failed to get XP leaderboard:', {
+        error: error instanceof Error ? error.message : String(error),
+        guildId,
+        limit
+      });
       return [];
     }
   }
 
   /**
-   * Adiciona XP por check-in com base no tipo de atividade
+   * Adiciona XP por check-in diário
    */
-  public async addCheckInXP(
-    userId: string,
-    activityType: string,
-    duration?: number // em horas
-  ): Promise<XPGainResult> {
-    return this.addXP(userId, activityType, duration);
+  public async addCheckInXP(userId: string): Promise<XPGainResult> {
+    try {
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
+
+      // Verificar se já fez check-in hoje
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const existingCheckIn = await this.prisma.auditLog.findFirst({
+        where: {
+          userId,
+          action: 'DAILY_CHECKIN',
+          createdAt: {
+            gte: today
+          }
+        }
+      });
+
+      if (existingCheckIn) {
+        throw new Error('Daily check-in already completed today');
+      }
+
+      const result = await this.addXP(userId, 'CHECK_IN');
+      
+      // Registrar atividade
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          action: 'DAILY_CHECKIN',
+          target: 'XP_SYSTEM',
+          metadata: JSON.stringify({ xpGained: result.totalXP })
+        }
+      });
+
+      return result;
+    } catch (error) {
+      this.logger.error('Failed to add check-in XP:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId
+      });
+      throw error;
+    }
   }
 
   /**
-   * Adiciona XP por desafio diário completado
+   * Adiciona XP por completar desafio diário
    */
   public async addDailyChallengeXP(
     userId: string,
-    challengeMultiplier: number = 1
+    difficulty: 'easy' | 'medium' | 'hard' | 'extreme' | 'legendary' = 'medium'
   ): Promise<XPGainResult> {
-    return this.addXP(userId, 'DAILY_CHALLENGE', undefined, challengeMultiplier);
+    try {
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
+
+      if (!['easy', 'medium', 'hard', 'extreme', 'legendary'].includes(difficulty)) {
+        throw new Error('Invalid difficulty level');
+      }
+
+      const multiplier = this.CHALLENGE_DIFFICULTY_MULTIPLIER[difficulty] || 1;
+      const result = await this.addXP(userId, 'DAILY_CHALLENGE', undefined, multiplier);
+      
+      // Registrar atividade
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          action: 'DAILY_CHALLENGE',
+          target: 'XP_SYSTEM',
+          metadata: JSON.stringify({ 
+            difficulty, 
+            multiplier, 
+            xpGained: result.totalXP 
+          })
+        }
+      });
+
+      return result;
+    } catch (error) {
+      this.logger.error('Failed to add daily challenge XP:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId,
+        difficulty
+      });
+      throw error;
+    }
   }
 
   /**
@@ -421,8 +797,41 @@ export class XPService {
     userId: string,
     achievementPoints: number = 100
   ): Promise<XPGainResult> {
-    const multiplier = achievementPoints / 100; // Normalizar baseado em 100 pontos
-    return this.addXP(userId, 'ACHIEVEMENT', undefined, multiplier);
+    try {
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
+
+      if (!Number.isFinite(achievementPoints) || achievementPoints <= 0) {
+        throw new Error('Achievement points must be a positive number');
+      }
+
+      const multiplier = achievementPoints / 100; // Normalizar baseado em 100 pontos
+      const result = await this.addXP(userId, 'ACHIEVEMENT', undefined, multiplier);
+      
+      // Registrar atividade
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          action: 'ACHIEVEMENT',
+          target: 'XP_SYSTEM',
+          metadata: JSON.stringify({ 
+            achievementPoints,
+            multiplier,
+            xpGained: result.totalXP 
+          })
+        }
+      });
+
+      return result;
+    } catch (error) {
+      this.logger.error('Failed to add achievement XP:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId,
+        achievementPoints
+      });
+      throw error;
+    }
   }
 
   /**
@@ -433,11 +842,51 @@ export class XPService {
     difficulty: string,
     baseXP: number = 60
   ): Promise<XPGainResult> {
-    const multiplier = this.CHALLENGE_DIFFICULTY_MULTIPLIER[difficulty] || 1.0;
-    const finalXP = Math.floor(baseXP * multiplier);
-    
-    const challengeBaseXP = this.ACTIVITY_XP.DAILY_CHALLENGE || 1;
-    return this.addXP(userId, 'DAILY_CHALLENGE', undefined, finalXP / challengeBaseXP);
+    try {
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
+
+      if (!difficulty || typeof difficulty !== 'string') {
+        throw new Error('Difficulty is required and must be a string');
+      }
+
+      if (!Number.isFinite(baseXP) || baseXP <= 0) {
+        throw new Error('Base XP must be a positive number');
+      }
+
+      const multiplier = this.CHALLENGE_DIFFICULTY_MULTIPLIER[difficulty] || 1.0;
+      const finalXP = Math.floor(baseXP * multiplier);
+      
+      const challengeBaseXP = this.ACTIVITY_XP.DAILY_CHALLENGE || 1;
+      const result = await this.addXP(userId, 'DAILY_CHALLENGE', undefined, finalXP / challengeBaseXP);
+      
+      // Registrar atividade
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          action: 'CHALLENGE',
+          target: 'XP_SYSTEM',
+          metadata: JSON.stringify({ 
+            difficulty,
+            baseXP,
+            multiplier,
+            finalXP,
+            xpGained: result.totalXP 
+          })
+        }
+      });
+
+      return result;
+    } catch (error) {
+      this.logger.error('Failed to add challenge XP:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId,
+        difficulty,
+        baseXP
+      });
+      throw error;
+    }
   }
 
   /**
@@ -447,8 +896,41 @@ export class XPService {
     userId: string,
     masteryLevel: number = 1
   ): Promise<XPGainResult> {
-    const multiplier = 1 + (masteryLevel * 0.1); // 10% por nível de maestria
-    return this.addXP(userId, 'WEAPON_MASTERY', undefined, multiplier);
+    try {
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
+
+      if (!Number.isInteger(masteryLevel) || masteryLevel < 1 || masteryLevel > 100) {
+        throw new Error('Mastery level must be an integer between 1 and 100');
+      }
+
+      const multiplier = 1 + (masteryLevel * 0.1); // 10% por nível de maestria
+      const result = await this.addXP(userId, 'WEAPON_MASTERY', undefined, multiplier);
+      
+      // Registrar atividade
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          action: 'WEAPON_MASTERY',
+          target: 'XP_SYSTEM',
+          metadata: JSON.stringify({ 
+            masteryLevel,
+            multiplier,
+            xpGained: result.totalXP 
+          })
+        }
+      });
+
+      return result;
+    } catch (error) {
+      this.logger.error('Failed to add weapon mastery XP:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId,
+        masteryLevel
+      });
+      throw error;
+    }
   }
 
   /**
@@ -458,15 +940,49 @@ export class XPService {
     userId: string,
     tournamentTier: 'local' | 'regional' | 'national' | 'international' = 'local'
   ): Promise<XPGainResult> {
-    const tierMultipliers = {
-      'local': 1.0,
-      'regional': 1.5,
-      'national': 2.0,
-      'international': 3.0
-    };
-    
-    const multiplier = tierMultipliers[tournamentTier];
-    return this.addXP(userId, 'TOURNAMENT_WIN', undefined, multiplier);
+    try {
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
+
+      const validTiers = ['local', 'regional', 'national', 'international'];
+      if (!validTiers.includes(tournamentTier)) {
+        throw new Error('Invalid tournament tier');
+      }
+
+      const tierMultipliers = {
+        'local': 1.0,
+        'regional': 1.5,
+        'national': 2.0,
+        'international': 3.0
+      };
+      
+      const multiplier = tierMultipliers[tournamentTier];
+      const result = await this.addXP(userId, 'TOURNAMENT_WIN', undefined, multiplier);
+      
+      // Registrar atividade
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          action: 'TOURNAMENT_WIN',
+          target: 'XP_SYSTEM',
+          metadata: JSON.stringify({ 
+            tournamentTier,
+            multiplier,
+            xpGained: result.totalXP 
+          })
+        }
+      });
+
+      return result;
+    } catch (error) {
+      this.logger.error('Failed to add tournament win XP:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId,
+        tournamentTier
+      });
+      throw error;
+    }
   }
 
   /**
@@ -476,75 +992,217 @@ export class XPService {
     userId: string,
     streakCount: number
   ): Promise<XPGainResult> {
-    const multiplier = Math.min(streakCount * 0.2, 3.0); // Máximo 3x multiplier
-    return this.addXP(userId, 'STREAK_BONUS', undefined, multiplier);
+    try {
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
+
+      if (!Number.isInteger(streakCount) || streakCount < 1) {
+        throw new Error('Streak count must be a positive integer');
+      }
+
+      if (streakCount > 100) {
+        throw new Error('Streak count cannot exceed 100');
+      }
+
+      const multiplier = Math.min(streakCount * 0.2, 3.0); // Máximo 3x multiplier
+      const result = await this.addXP(userId, 'STREAK_BONUS', undefined, multiplier);
+      
+      // Registrar atividade no audit log
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          action: 'STREAK_BONUS',
+          target: 'XP_SYSTEM',
+          metadata: JSON.stringify({ 
+            streakCount,
+            multiplier,
+            xpGained: result.totalXP 
+          })
+        }
+      });
+
+      return result;
+    } catch (error) {
+      this.logger.error('Failed to add streak bonus XP:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId,
+        streakCount
+      });
+      throw error;
+    }
   }
 
   /**
-   * Sistema de prestígio - reseta nível mas mantém bônus
+   * Sistema de prestígio - permite resetar nível em troca de bônus permanente
    */
   public async prestigeUser(userId: string): Promise<{
     success: boolean;
     newPrestigeLevel: number;
     bonusXPPercent: number;
+    message: string;
   }> {
     try {
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId }
-      });
-
-      if (!user || user.level < this.MAX_LEVEL) {
-        return { success: false, newPrestigeLevel: 0, bonusXPPercent: 0 };
+      if (!userId || typeof userId !== 'string') {
+        throw new Error('User ID is required and must be a string');
       }
 
-      const newPrestigeLevel = (user.prestigeLevel || 0) + 1;
-      const bonusXPPercent = newPrestigeLevel * this.PRESTIGE_XP_BONUS * 100;
-
-      await this.prisma.user.update({
+      const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        data: {
-          level: 1,
-          xp: 0,
-          totalXp: user.totalXp, // Mantém XP total para histórico
-          prestigeLevel: newPrestigeLevel,
+        select: {
+          level: true,
+          prestigeLevel: true,
+          totalXp: true,
+          xp: true
         }
       });
 
-      // Limpar cache
-      await this.cache.del(`user_xp:${userId}`);
-      await this.cache.del(`user_level:${userId}`);
+      if (!user) {
+        throw new Error(`User ${userId} not found`);
+      }
 
-      this.logger.info(`User ${userId} prestiged to level ${newPrestigeLevel}`);
+      // Verificar se pode fazer prestígio (nível máximo)
+      if (user.level < this.MAX_LEVEL) {
+        return {
+          success: false,
+          newPrestigeLevel: user.prestigeLevel || 0,
+          bonusXPPercent: this.calculatePrestigeBonusPercent(user.prestigeLevel || 0),
+          message: `Você precisa atingir o nível ${this.MAX_LEVEL} para fazer prestígio. Nível atual: ${user.level}`
+        };
+      }
+
+      const currentPrestigeLevel = user.prestigeLevel || 0;
+      const maxPrestigeLevel = 10; // Limite de prestígio
+
+      if (currentPrestigeLevel >= maxPrestigeLevel) {
+        return {
+          success: false,
+          newPrestigeLevel: currentPrestigeLevel,
+          bonusXPPercent: this.calculatePrestigeBonusPercent(currentPrestigeLevel),
+          message: `Você já atingiu o nível máximo de prestígio (${maxPrestigeLevel})`
+        };
+      }
+
+      const newPrestigeLevel = currentPrestigeLevel + 1;
+      const bonusXPPercent = this.calculatePrestigeBonusPercent(newPrestigeLevel);
+
+      // Usar transação para garantir consistência
+      await this.prisma.$transaction(async (tx) => {
+        // Resetar nível mas manter XP total para histórico
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            level: 1,
+            xp: 0,
+            prestigeLevel: newPrestigeLevel,
+            updatedAt: new Date()
+          }
+        });
+
+        // Registrar evento de prestígio
+        await tx.auditLog.create({
+          data: {
+            userId,
+            action: 'PRESTIGE',
+            target: 'XP_SYSTEM',
+            metadata: JSON.stringify({
+              oldLevel: user.level,
+              oldPrestigeLevel: currentPrestigeLevel,
+              newPrestigeLevel,
+              bonusXPPercent,
+              totalXpKept: user.totalXp
+            })
+          }
+        });
+      });
+
+      // Limpar cache relacionado
+      const cacheKeys = [
+        `user:${userId}`,
+        `user:${userId}:xp`,
+        `user:${userId}:level`,
+        `user:${userId}:xp_info`,
+        `xp_leaderboard:*`
+      ];
+      
+      for (const key of cacheKeys) {
+        if (key.includes('*')) {
+          await this.cache.clearPattern(key);
+        } else {
+          await this.cache.del(key);
+        }
+      }
+
+      this.logger.info(`🌟 User ${userId} prestiged to level ${newPrestigeLevel} with ${bonusXPPercent}% XP bonus`);
 
       return {
         success: true,
         newPrestigeLevel,
-        bonusXPPercent
+        bonusXPPercent,
+        message: `🎉 Parabéns! Você atingiu o Prestígio ${newPrestigeLevel} e agora ganha ${bonusXPPercent}% de bônus de XP!`
       };
     } catch (error) {
-      this.logger.error('Failed to prestige user:', error);
-      return { success: false, newPrestigeLevel: 0, bonusXPPercent: 0 };
+      this.logger.error('Failed to prestige user:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId
+      });
+      throw error;
     }
   }
 
   /**
    * Calcula bônus XP baseado no prestígio
    */
-  private calculatePrestigeBonus(userId: string, baseXP: number): Promise<number> {
-    return new Promise(async (resolve) => {
-      try {
-        const user = await this.prisma.user.findUnique({
-          where: { id: userId },
-          select: { prestigeLevel: true }
-        });
-
-        const prestigeLevel = user?.prestigeLevel || 0;
-        const bonus = baseXP * (prestigeLevel * this.PRESTIGE_XP_BONUS);
-        resolve(Math.floor(bonus));
-      } catch (error) {
-        resolve(0);
+  private async calculatePrestigeBonus(userId: string, baseXP: number): Promise<number> {
+    try {
+      if (!userId || !Number.isFinite(baseXP) || baseXP <= 0) {
+        return 0;
       }
-    });
+
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { prestigeLevel: true }
+      });
+
+      if (!user || !user.prestigeLevel || user.prestigeLevel <= 0) {
+        return 0;
+      }
+
+      const bonusPercent = this.calculatePrestigeBonusPercent(user.prestigeLevel);
+      const bonus = Math.floor(baseXP * (bonusPercent / 100));
+      
+      return Math.max(0, bonus);
+    } catch (error) {
+      this.logger.error('Failed to calculate prestige bonus:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId,
+        baseXP
+      });
+      return 0;
+    }
+  }
+
+  /**
+   * Calcula a porcentagem de bônus baseada no nível de prestígio
+   */
+  private calculatePrestigeBonusPercent(prestigeLevel: number): number {
+    if (!Number.isInteger(prestigeLevel) || prestigeLevel <= 0) {
+      return 0;
+    }
+
+    // Bônus escalonado: 5% para o primeiro, depois aumenta gradualmente
+    if (prestigeLevel === 1) return 5;
+    if (prestigeLevel === 2) return 12;
+    if (prestigeLevel === 3) return 20;
+    if (prestigeLevel === 4) return 30;
+    if (prestigeLevel === 5) return 42;
+    if (prestigeLevel === 6) return 56;
+    if (prestigeLevel === 7) return 72;
+    if (prestigeLevel === 8) return 90;
+    if (prestigeLevel === 9) return 110;
+    if (prestigeLevel >= 10) return 135; // Máximo
+
+    return 0;
   }
 
   /**
@@ -554,30 +1212,146 @@ export class XPService {
     prestigeLevel: number;
     bonusXPPercent: number;
     canPrestige: boolean;
-    nextPrestigeBenefit: string;
+    nextPrestigeBonusPercent: number;
+    maxPrestigeLevel: number;
+    isMaxPrestige: boolean;
   } | null> {
     try {
+      if (!userId || typeof userId !== 'string') {
+        throw new Error('User ID is required and must be a string');
+      }
+
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        select: { level: true, prestigeLevel: true }
+        select: {
+          level: true,
+          prestigeLevel: true
+        }
       });
 
-      if (!user) return null;
+      if (!user) {
+        return null;
+      }
 
       const prestigeLevel = user.prestigeLevel || 0;
-      const bonusXPPercent = prestigeLevel * this.PRESTIGE_XP_BONUS * 100;
-      const canPrestige = user.level >= this.MAX_LEVEL;
-      const nextBonusPercent = (prestigeLevel + 1) * this.PRESTIGE_XP_BONUS * 100;
+      const maxPrestigeLevel = 10;
+      const bonusXPPercent = this.calculatePrestigeBonusPercent(prestigeLevel);
+      const canPrestige = user.level >= this.MAX_LEVEL && prestigeLevel < maxPrestigeLevel;
+      const nextPrestigeBonusPercent = prestigeLevel < maxPrestigeLevel ? 
+        this.calculatePrestigeBonusPercent(prestigeLevel + 1) : bonusXPPercent;
+      const isMaxPrestige = prestigeLevel >= maxPrestigeLevel;
 
       return {
         prestigeLevel,
         bonusXPPercent,
         canPrestige,
-        nextPrestigeBenefit: `+${nextBonusPercent}% XP bonus`
+        nextPrestigeBonusPercent,
+        maxPrestigeLevel,
+        isMaxPrestige
       };
     } catch (error) {
-      this.logger.error('Failed to get prestige info:', error);
+      this.logger.error('Failed to get user prestige info:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId
+      });
       return null;
+    }
+  }
+
+  /**
+   * Limpa cache relacionado ao XP
+   */
+  public async clearXPCache(userId?: string): Promise<void> {
+    try {
+      if (userId) {
+        // Limpar cache específico do usuário
+        const userCacheKeys = [
+          `user:${userId}`,
+          `user:${userId}:xp`,
+          `user:${userId}:level`,
+          `user:${userId}:xp_info`
+        ];
+        
+        for (const key of userCacheKeys) {
+          await this.cache.del(key);
+        }
+      } else {
+        // Limpar todo o cache de XP
+        await this.cache.clearPattern('user:*:xp*');
+        await this.cache.clearPattern('xp_leaderboard:*');
+      }
+
+      this.logger.info(`🧹 XP cache cleared${userId ? ` for user ${userId}` : ' globally'}`);
+    } catch (error) {
+      this.logger.error('Failed to clear XP cache:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId
+      });
+    }
+  }
+
+  /**
+   * Obtém estatísticas do sistema de XP
+   */
+  public async getXPSystemStats(): Promise<{
+    totalUsers: number;
+    averageLevel: number;
+    maxLevel: number;
+    totalPrestigeUsers: number;
+    averagePrestigeLevel: number;
+    topLevel: number;
+    topPrestige: number;
+  }> {
+    try {
+      const stats = await this.prisma.user.aggregate({
+        _count: {
+          id: true
+        },
+        _avg: {
+          level: true,
+          prestigeLevel: true
+        },
+        _max: {
+          level: true,
+          prestigeLevel: true
+        },
+        where: {
+          totalXp: {
+            gt: 0
+          }
+        }
+      });
+
+      const prestigeUsers = await this.prisma.user.count({
+        where: {
+          prestigeLevel: {
+            gt: 0
+          }
+        }
+      });
+
+      return {
+        totalUsers: stats._count.id || 0,
+        averageLevel: Math.round(stats._avg.level || 1),
+        maxLevel: this.MAX_LEVEL,
+        totalPrestigeUsers: prestigeUsers,
+        averagePrestigeLevel: Math.round(stats._avg.prestigeLevel || 0),
+        topLevel: stats._max.level || 1,
+        topPrestige: stats._max.prestigeLevel || 0
+      };
+    } catch (error) {
+      this.logger.error('Failed to get XP system stats:', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return {
+        totalUsers: 0,
+        averageLevel: 1,
+        maxLevel: this.MAX_LEVEL,
+        totalPrestigeUsers: 0,
+        averagePrestigeLevel: 0,
+        topLevel: 1,
+        topPrestige: 0
+      };
     }
   }
 }
