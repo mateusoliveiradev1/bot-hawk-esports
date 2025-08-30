@@ -28,6 +28,7 @@ import { BadgeAuditService } from './services/badge-audit.service';
 import { PresenceEnhancementsService } from './services/presence-enhancements.service';
 import { BadgeOptimizationService } from './services/badge-optimization.service';
 import { ExclusiveBadgeService } from './services/exclusive-badge.service';
+import { DynamicBadgeService } from './services/dynamic-badge.service';
 import { CommandManager } from './commands/index';
 import { MemberEvents } from './events/memberEvents';
 import { MessageEvents } from './events/messageEvents';
@@ -53,6 +54,7 @@ class HawkEsportsBot {
     badge: BadgeService;
     badgeOptimization: BadgeOptimizationService;
     exclusiveBadge: ExclusiveBadgeService;
+    dynamicBadge: DynamicBadgeService;
     challenge: ChallengeService;
     logging: LoggingService;
     music: MusicService;
@@ -123,6 +125,7 @@ class HawkEsportsBot {
       badge: badgeService,
       badgeOptimization: new BadgeOptimizationService(this.client, badgeService, pubgService),
       exclusiveBadge: new ExclusiveBadgeService(this.client, badgeService),
+      dynamicBadge: new DynamicBadgeService(this.client, badgeService, pubgService),
       challenge: new ChallengeService(this.client),
       logging: new LoggingService(this.client, this.db),
       music: new MusicService(this.cache, this.db),
@@ -172,6 +175,9 @@ class HawkEsportsBot {
     
     // Initialize ExclusiveBadgeService
     (this.client as any).exclusiveBadgeService = this.services.exclusiveBadge;
+    
+    // Initialize DynamicBadgeService
+    (this.client as any).dynamicBadgeService = this.services.dynamicBadge;
     
     (this.client as any).roleManagerService = this.services.roleManager;
     (this.client as any).pubgService = this.services.pubg;
