@@ -9,7 +9,7 @@ import {
   getPunishmentConfig,
   calculateEscalatedPenalty,
   shouldEscalatePunishment,
-  formatPunishmentReason
+  formatPunishmentReason,
 } from '../config/punishment.config';
 
 export interface PunishmentOptions {
@@ -45,12 +45,12 @@ export class PunishmentService {
       // const warnings = await this.database.client.userWarning.findMany({
       //   where: { active: true }
       // });
-      
+
       // Load punishments (implement when database schema is ready)
       // const punishments = await this.database.client.punishmentRecord.findMany({
       //   orderBy: { timestamp: 'desc' }
       // });
-      
+
       this.logger.info('Loaded punishment system data');
     } catch (error) {
       this.logger.error('Failed to load punishment data:', error);
@@ -79,11 +79,11 @@ export class PunishmentService {
       // Determine if escalation is needed
       const shouldEscalate = shouldEscalatePunishment(warningCount);
       const penaltyConfig = getPunishmentConfig(type);
-      
+
       let finalPenalty = {
         xp: penaltyConfig.xpPenalty,
         coins: penaltyConfig.coinsPenalty,
-        rankPoints: penaltyConfig.rankPointsPenalty
+        rankPoints: penaltyConfig.rankPointsPenalty,
       };
 
       let punishmentType: PunishmentRecord['type'] = type;
@@ -95,7 +95,7 @@ export class PunishmentService {
         finalPenalty = {
           xp: finalPenalty.xp + escalatedPenalty.xp,
           coins: finalPenalty.coins + escalatedPenalty.coins,
-          rankPoints: finalPenalty.rankPoints + escalatedPenalty.rankPoints
+          rankPoints: finalPenalty.rankPoints + escalatedPenalty.rankPoints,
         };
         punishmentType = 'warning_escalation';
         reason = `${reason} (Escalated: ${warningCount} warnings)`;
@@ -106,9 +106,9 @@ export class PunishmentService {
         where: { id: userId },
         data: {
           xp: { decrement: finalPenalty.xp },
-          coins: { decrement: finalPenalty.coins }
+          coins: { decrement: finalPenalty.coins },
           // rankPoints would need to be added to user schema
-        }
+        },
       });
 
       // Create punishment record
@@ -123,7 +123,7 @@ export class PunishmentService {
         channelId: options.channelId,
         timestamp: new Date(),
         appealable: options.appealable ?? true,
-        appealed: false
+        appealed: false,
       };
 
       // Store punishment record (implement when database schema is ready)
@@ -148,9 +148,10 @@ export class PunishmentService {
       // Send notification
       await this.sendPunishmentNotification(userId, guildId, punishmentRecord);
 
-      this.logger.info(`Applied punishment to user ${userId}: ${type} (${finalPenalty.xp} XP, ${finalPenalty.coins} coins)`);
+      this.logger.info(
+        `Applied punishment to user ${userId}: ${type} (${finalPenalty.xp} XP, ${finalPenalty.coins} coins)`
+      );
       return punishmentRecord;
-
     } catch (error) {
       this.logger.error(`Failed to apply punishment to user ${userId}:`, error);
       return null;
@@ -174,7 +175,7 @@ export class PunishmentService {
       reason,
       issuedAt: new Date(),
       expiresAt: new Date(Date.now() + PUNISHMENT_CONFIG.warnings.warningDuration * 60 * 60 * 1000),
-      active: true
+      active: true,
     };
 
     // Store warning (implement when database schema is ready)
@@ -195,12 +196,10 @@ export class PunishmentService {
   private async getActiveWarnings(userId: string, guildId: string): Promise<UserWarning[]> {
     const now = new Date();
     const userWarnings = this.warnings.get(userId) || [];
-    
+
     // Filter active and non-expired warnings
-    return userWarnings.filter(warning => 
-      warning.active && 
-      warning.guildId === guildId && 
-      warning.expiresAt > now
+    return userWarnings.filter(
+      warning => warning.active && warning.guildId === guildId && warning.expiresAt > now
     );
   }
 
@@ -209,7 +208,7 @@ export class PunishmentService {
    */
   private async clearWarnings(userId: string, guildId: string): Promise<void> {
     const userWarnings = this.warnings.get(userId) || [];
-    
+
     // Mark warnings as inactive
     userWarnings.forEach(warning => {
       if (warning.guildId === guildId) {
@@ -234,26 +233,29 @@ export class PunishmentService {
   ): Promise<void> {
     try {
       const guild = this.client.guilds.cache.get(guildId);
-      if (!guild) return;
+      if (!guild) {
+        return;
+      }
 
       const user = await this.client.users.fetch(userId);
-      if (!user) return;
+      if (!user) {
+        return;
+      }
 
       // Create punishment notification embed
       const embed = new EmbedBuilder()
         .setTitle('⚠️ Penalidade Aplicada')
         .setDescription(
           `Você recebeu uma penalidade no servidor **${guild.name}**.\n\n` +
-          `**Motivo:** ${punishment.reason}\n` +
-          `**Penalidades:**\n` +
-          `• -${punishment.penalty.xp} XP\n` +
-          `• -${punishment.penalty.coins} Moedas\n` +
-          `• -${punishment.penalty.rankPoints} Pontos de Ranking\n\n` +
-          `**Data:** <t:${Math.floor(punishment.timestamp.getTime() / 1000)}:F>\n\n` +
-          (punishment.appealable ? 
-            `💡 **Recurso:** Você pode contestar esta penalidade usando \`/appeal\` dentro de 7 dias.` :
-            `❌ **Esta penalidade não pode ser contestada.**`
-          )
+            `**Motivo:** ${punishment.reason}\n` +
+            '**Penalidades:**\n' +
+            `• -${punishment.penalty.xp} XP\n` +
+            `• -${punishment.penalty.coins} Moedas\n` +
+            `• -${punishment.penalty.rankPoints} Pontos de Ranking\n\n` +
+            `**Data:** <t:${Math.floor(punishment.timestamp.getTime() / 1000)}:F>\n\n` +
+            (punishment.appealable
+              ? '💡 **Recurso:** Você pode contestar esta penalidade usando `/appeal` dentro de 7 dias.'
+              : '❌ **Esta penalidade não pode ser contestada.**')
         )
         .setColor(0xff6b6b)
         .setTimestamp()
@@ -267,11 +269,11 @@ export class PunishmentService {
         const logChannel = guild.channels.cache.find(
           ch => ch.name.includes('log') || ch.name.includes('punish')
         ) as TextChannel;
-        
+
         if (logChannel) {
           await logChannel.send({
             content: `<@${userId}>`,
-            embeds: [embed]
+            embeds: [embed],
           });
         }
       }
@@ -280,23 +282,22 @@ export class PunishmentService {
       const punishmentChannel = guild.channels.cache.find(
         ch => ch.name.includes('punishment') || ch.name.includes('penalidade')
       ) as TextChannel;
-      
+
       if (punishmentChannel) {
         const logEmbed = new EmbedBuilder()
           .setTitle('📋 Log de Penalidade')
           .setDescription(
             `**Usuário:** <@${userId}> (${user.username})\n` +
-            `**Tipo:** ${punishment.type.replace('_', ' ').toUpperCase()}\n` +
-            `**Motivo:** ${punishment.reason}\n` +
-            `**Penalidades:** -${punishment.penalty.xp} XP, -${punishment.penalty.coins} moedas\n` +
-            `**ID:** \`${punishment.id}\``
+              `**Tipo:** ${punishment.type.replace('_', ' ').toUpperCase()}\n` +
+              `**Motivo:** ${punishment.reason}\n` +
+              `**Penalidades:** -${punishment.penalty.xp} XP, -${punishment.penalty.coins} moedas\n` +
+              `**ID:** \`${punishment.id}\``
           )
           .setColor(0xff9500)
           .setTimestamp();
-        
+
         await punishmentChannel.send({ embeds: [logEmbed] });
       }
-
     } catch (error) {
       this.logger.error('Failed to send punishment notification:', error);
     }
@@ -328,12 +329,12 @@ export class PunishmentService {
     const timeoutHours = PUNISHMENT_CONFIG.timeouts.noCheckoutTimeout;
     const timeoutMs = timeoutHours * 60 * 60 * 1000;
     const now = new Date();
-    
+
     if (now.getTime() - sessionStartTime.getTime() > timeoutMs) {
       await this.applyPunishment(userId, guildId, 'no_checkout', {
-          reason: `Não fez check-out após ${timeoutHours} horas`,
-          channelId
-        });
+        reason: `Não fez check-out após ${timeoutHours} horas`,
+        channelId,
+      });
     }
   }
 
@@ -349,17 +350,17 @@ export class PunishmentService {
     const timeoutHours = PUNISHMENT_CONFIG.timeouts.noShowUpTimeout;
     const timeoutMs = timeoutHours * 60 * 60 * 1000;
     const now = new Date();
-    
+
     if (now.getTime() - checkInTime.getTime() > timeoutMs) {
       // Check if user ever joined the voice channel
       const guild = this.client.guilds.cache.get(guildId);
       const voiceChannel = guild?.channels.cache.get(voiceChannelId);
-      
+
       if (voiceChannel && voiceChannel.isVoiceBased() && !voiceChannel.members.has(userId)) {
-          await this.applyPunishment(userId, guildId, 'no_show_up', {
-            reason: `Não compareceu à sessão após ${timeoutHours} hora(s)`,
-            channelId: voiceChannelId
-          });
+        await this.applyPunishment(userId, guildId, 'no_show_up', {
+          reason: `Não compareceu à sessão após ${timeoutHours} hora(s)`,
+          channelId: voiceChannelId,
+        });
       }
     }
   }
@@ -377,12 +378,12 @@ export class PunishmentService {
     const minimumTimeMs = minimumTimeHours * 60 * 60 * 1000;
     const now = new Date();
     const sessionDuration = now.getTime() - sessionStartTime.getTime();
-    
+
     if (sessionDuration < minimumTimeMs) {
       await this.applyPunishment(userId, guildId, 'early_leave', {
-          reason: `Saiu da sessão após apenas ${Math.round(sessionDuration / (60 * 1000))} minutos`,
-          channelId
-        });
+        reason: `Saiu da sessão após apenas ${Math.round(sessionDuration / (60 * 1000))} minutos`,
+        channelId,
+      });
     }
   }
 }

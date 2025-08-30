@@ -112,14 +112,24 @@ export class APIService {
     this.config = {
       port: this.validatePort(process.env.API_PORT || '3001'),
       host: process.env.API_HOST || '0.0.0.0',
-      corsOrigins: this.validateCorsOrigins(process.env.CORS_ORIGINS?.split(',') || [
-        'http://localhost:3000',
-      ]),
+      corsOrigins: this.validateCorsOrigins(
+        process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000']
+      ),
       jwtSecret: process.env.JWT_SECRET || 'your-secret-key',
       jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
-      rateLimitWindowMs: this.validateNumber(process.env.RATE_LIMIT_WINDOW_MS, 900000, 60000, 3600000), // 1min - 1hour
+      rateLimitWindowMs: this.validateNumber(
+        process.env.RATE_LIMIT_WINDOW_MS,
+        900000,
+        60000,
+        3600000
+      ), // 1min - 1hour
       rateLimitMax: this.validateNumber(process.env.RATE_LIMIT_MAX, 100, 10, 1000),
-      uploadMaxSize: this.validateNumber(process.env.UPLOAD_MAX_SIZE, 104857600, 1048576, 1073741824), // 1MB - 1GB
+      uploadMaxSize: this.validateNumber(
+        process.env.UPLOAD_MAX_SIZE,
+        104857600,
+        1048576,
+        1073741824
+      ), // 1MB - 1GB
       uploadDir: process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads'),
     };
 
@@ -138,18 +148,18 @@ export class APIService {
       helmet({
         contentSecurityPolicy: {
           directives: {
-            defaultSrc: ['\'self\''],
-            styleSrc: ['\'self\'', '\'unsafe-inline\''],
-            scriptSrc: ['\'self\''],
-            imgSrc: ['\'self\'', 'data:', 'https:'],
-            connectSrc: ['\'self\''],
-            fontSrc: ['\'self\''],
-            objectSrc: ['\'none\''],
-            mediaSrc: ['\'self\''],
-            frameSrc: ['\'none\''],
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'"],
+            imgSrc: ["'self'", 'data:', 'https:'],
+            connectSrc: ["'self'"],
+            fontSrc: ["'self'"],
+            objectSrc: ["'none'"],
+            mediaSrc: ["'self'"],
+            frameSrc: ["'none'"],
           },
         },
-      }),
+      })
     );
 
     // CORS
@@ -159,20 +169,22 @@ export class APIService {
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-      }),
+      })
     );
 
     // Session middleware
-    this.app.use(session({
-      secret: this.config.jwtSecret,
-      resave: false,
-      saveUninitialized: false,
-      cookie: {
-        secure: process.env.NODE_ENV === 'production',
-        httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
-      }
-    }));
+    this.app.use(
+      session({
+        secret: this.config.jwtSecret,
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+          secure: process.env.NODE_ENV === 'production',
+          httpOnly: true,
+          maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        },
+      })
+    );
 
     // Rate limiting
     const limiter = rateLimit({
@@ -190,16 +202,16 @@ export class APIService {
     // Security middleware for bot detection
     this.app.use('/api/auth/register', (req: Request, res: Response, next: NextFunction) => {
       const securityCheck = this.securityService.analyzeRequest(req);
-      
+
       if (securityCheck.isBot) {
         return res.status(429).json({
           success: false,
           error: 'Suspicious activity detected. Please try again later.',
           requiresCaptcha: true,
-          reasons: securityCheck.reasons
+          reasons: securityCheck.reasons,
         });
       }
-      
+
       // Add security info to request
       (req as any).securityCheck = securityCheck;
       return next();
@@ -223,15 +235,8 @@ export class APIService {
           cb(null, uploadPath);
         },
         filename: (req, file, cb) => {
-          const uniqueSuffix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
-          cb(
-            null,
-            file.fieldname +
-              '-' +
-              uniqueSuffix +
-              path.extname(file.originalname),
-          );
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
         },
       }),
       limits: {
@@ -252,27 +257,27 @@ export class APIService {
     // Request logging
     this.app.use((req: Request, res: Response, next: NextFunction) => {
       const startTime = Date.now();
-      
+
       // Log request
       this.logger.api(req.method, req.path, 0, 0, {
         ip: req.ip,
         userAgent: req.get('User-Agent'),
         contentLength: req.get('Content-Length'),
-        referer: req.get('Referer')
+        referer: req.get('Referer'),
       });
 
       // Override res.json to log response
       const originalJson = res.json;
-      res.json = function(body) {
+      res.json = function (body) {
         const duration = Date.now() - startTime;
         const logger = (req as any).logger || new Logger();
-        
+
         logger.api(req.method, req.path, res.statusCode, duration, {
           ip: req.ip,
           userAgent: req.get('User-Agent'),
-          responseSize: JSON.stringify(body).length
+          responseSize: JSON.stringify(body).length,
         });
-        
+
         return originalJson.call(this, body);
       };
 
@@ -302,25 +307,17 @@ export class APIService {
 
     // API routes
     this.app.use('/api/auth', this.getAuthRoutes());
-    
+
     // Development routes (no auth required)
     if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
       this.app.use('/api/dev', this.getDevRoutes());
     }
-    
+
     this.app.use('/api/users', this.authenticateToken, this.getUserRoutes());
     this.app.use('/api/guilds', this.authenticateToken, this.getGuildRoutes());
-    this.app.use(
-      '/api/rankings',
-      this.authenticateToken,
-      this.getRankingRoutes(),
-    );
+    this.app.use('/api/rankings', this.authenticateToken, this.getRankingRoutes());
     this.app.use('/api/badges', this.authenticateToken, this.getBadgeRoutes());
-    this.app.use(
-      '/api/presence',
-      this.authenticateToken,
-      this.getPresenceRoutes(),
-    );
+    this.app.use('/api/presence', this.authenticateToken, this.getPresenceRoutes());
     this.app.use('/api/music', this.authenticateToken, this.getMusicRoutes());
     this.app.use('/api/games', this.authenticateToken, this.getGameRoutes());
     this.app.use('/api/clips', this.authenticateToken, this.getClipRoutes());
@@ -339,77 +336,75 @@ export class APIService {
    * Setup error handling
    */
   private setupErrorHandling(): void {
-    this.app.use(
-      (error: Error, req: Request, res: Response, next: NextFunction) => {
-        this.logger.error('API Error:', {
-          message: error.message,
-          stack: error.stack,
-          url: req.url,
-          method: req.method,
-          ip: req.ip,
-          userAgent: req.get('User-Agent')
-        });
+    this.app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
+      this.logger.error('API Error:', {
+        message: error.message,
+        stack: error.stack,
+        url: req.url,
+        method: req.method,
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+      });
 
-        // Handle specific error types
-        if (error instanceof multer.MulterError) {
-          switch (error.code) {
-            case 'LIMIT_FILE_SIZE':
-              return res.status(400).json({
-                success: false,
-                error: 'File too large',
-                maxSize: this.config.uploadMaxSize
-              });
-            case 'LIMIT_FILE_COUNT':
-              return res.status(400).json({
-                success: false,
-                error: 'Too many files'
-              });
-            case 'LIMIT_UNEXPECTED_FILE':
-              return res.status(400).json({
-                success: false,
-                error: 'Unexpected file field'
-              });
-            default:
-              return res.status(400).json({
-                success: false,
-                error: 'File upload error'
-              });
-          }
+      // Handle specific error types
+      if (error instanceof multer.MulterError) {
+        switch (error.code) {
+          case 'LIMIT_FILE_SIZE':
+            return res.status(400).json({
+              success: false,
+              error: 'File too large',
+              maxSize: this.config.uploadMaxSize,
+            });
+          case 'LIMIT_FILE_COUNT':
+            return res.status(400).json({
+              success: false,
+              error: 'Too many files',
+            });
+          case 'LIMIT_UNEXPECTED_FILE':
+            return res.status(400).json({
+              success: false,
+              error: 'Unexpected file field',
+            });
+          default:
+            return res.status(400).json({
+              success: false,
+              error: 'File upload error',
+            });
         }
+      }
 
-        // Handle JWT errors
-        if (error.name === 'JsonWebTokenError') {
-          return res.status(401).json({
-            success: false,
-            error: 'Invalid token'
-          });
-        }
-
-        if (error.name === 'TokenExpiredError') {
-          return res.status(401).json({
-            success: false,
-            error: 'Token expired'
-          });
-        }
-
-        // Handle validation errors
-        if (error.name === 'ValidationError') {
-          return res.status(400).json({
-            success: false,
-            error: 'Validation failed',
-            details: error.message
-          });
-        }
-
-        // Don't expose internal errors in production
-        const isDevelopment = process.env.NODE_ENV === 'development';
-        return res.status(500).json({
+      // Handle JWT errors
+      if (error.name === 'JsonWebTokenError') {
+        return res.status(401).json({
           success: false,
-          error: 'Internal server error',
-          ...(isDevelopment && { details: error.message })
+          error: 'Invalid token',
         });
-      },
-    );
+      }
+
+      if (error.name === 'TokenExpiredError') {
+        return res.status(401).json({
+          success: false,
+          error: 'Token expired',
+        });
+      }
+
+      // Handle validation errors
+      if (error.name === 'ValidationError') {
+        return res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: error.message,
+        });
+      }
+
+      // Don't expose internal errors in production
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      return res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        ...(isDevelopment && { details: error.message }),
+      });
+    });
   }
 
   /**
@@ -418,7 +413,7 @@ export class APIService {
   private authenticateToken = async (
     req: AuthenticatedRequest,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ): Promise<void | Response> => {
     try {
       const authHeader = req.headers['authorization'];
@@ -450,21 +445,19 @@ export class APIService {
       }
 
       // Get user from database with timeout
-      const user = await Promise.race([
+      const user = (await Promise.race([
         this.database.client.user.findUnique({
           where: { id: decoded.userId },
           include: {
             guilds: {
               include: {
-                guild: true
-              }
-            }
-          }
+                guild: true,
+              },
+            },
+          },
         }),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Database timeout')), 5000)
-        )
-      ]) as any;
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Database timeout')), 5000)),
+      ])) as any;
 
       if (!user) {
         return res.status(401).json({
@@ -476,12 +469,12 @@ export class APIService {
       // Get Discord user info with fallback
       let discordUser = null;
       try {
-        discordUser = await Promise.race([
+        discordUser = (await Promise.race([
           this.client.users.fetch(user.id),
-          new Promise((_, reject) => 
+          new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Discord API timeout')), 3000)
-          )
-        ]) as any;
+          ),
+        ])) as any;
       } catch (error) {
         this.logger.warn(`Failed to fetch Discord user ${user.id}:`, error);
       }
@@ -489,18 +482,18 @@ export class APIService {
       // Get first active guild from UserGuild relation
       const primaryUserGuild = user.guilds?.find((ug: any) => ug.isActive) || user.guilds?.[0];
       const guildId = primaryUserGuild?.guildId || '';
-      
+
       let member = null;
       if (guildId) {
         const guild = this.client.guilds.cache.get(guildId);
         if (guild) {
           try {
-            member = await Promise.race([
+            member = (await Promise.race([
               guild.members.fetch(user.id),
-              new Promise((_, reject) => 
+              new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Member fetch timeout')), 3000)
-              )
-            ]) as any;
+              ),
+            ])) as any;
           } catch (error) {
             this.logger.warn(`Failed to fetch member ${user.id} from guild ${guildId}:`, error);
           }
@@ -514,20 +507,20 @@ export class APIService {
         discriminator: discordUser?.discriminator || user.discriminator || '0000',
         avatar: discordUser?.avatar || undefined,
         roles: member ? member.roles.cache.map((role: any) => role.id) : [],
-        permissions: member ? member.permissions.toArray() : []
+        permissions: member ? member.permissions.toArray() : [],
       };
 
       next();
     } catch (error: unknown) {
       this.logger.error('Authentication error:', error);
-      
+
       if (error instanceof Error && error.name === 'TokenExpiredError') {
         return res.status(401).json({
           success: false,
           error: 'Token expired',
         });
       }
-      
+
       return res.status(401).json({
         success: false,
         error: 'Authentication failed',
@@ -548,20 +541,20 @@ export class APIService {
         if (!guildId) {
           return res.status(400).json({
             success: false,
-            error: 'Guild ID is required'
+            error: 'Guild ID is required',
           });
         }
         const stats = await this.getGuildStats(guildId);
-        
+
         return res.json({
           success: true,
-          data: stats
+          data: stats,
         });
       } catch (error) {
         this.logger.error('Error fetching dev stats:', error);
         return res.status(500).json({
           success: false,
-          error: 'Internal server error'
+          error: 'Internal server error',
         });
       }
     });
@@ -570,7 +563,7 @@ export class APIService {
     router.get('/guild/:guildId', async (req: Request, res: Response) => {
       try {
         const { guildId } = req.params;
-        
+
         // Get real guild data from database
         const guild = await this.database.client.guild.findUnique({
           where: { id: guildId },
@@ -590,28 +583,28 @@ export class APIService {
                     totalXp: true,
                     coins: true,
                     lastSeen: true,
-                  }
-                }
+                  },
+                },
               },
               orderBy: {
                 user: {
-                  lastSeen: 'desc'
-                }
-              }
-            }
-          }
+                  lastSeen: 'desc',
+                },
+              },
+            },
+          },
         });
 
         if (!guild) {
           return res.status(404).json({
             success: false,
-            error: 'Guild not found'
+            error: 'Guild not found',
           });
         }
 
         // Get member count
         const memberCount = await this.database.client.userGuild.count({
-          where: { guildId, isActive: true }
+          where: { guildId, isActive: true },
         });
 
         const guildData = {
@@ -623,22 +616,22 @@ export class APIService {
           users: guild.users.map(userGuild => ({
             user: {
               ...userGuild.user,
-              joinedAt: userGuild.joinedAt.toISOString()
+              joinedAt: userGuild.joinedAt.toISOString(),
             },
             isActive: userGuild.isActive,
-            joinedAt: userGuild.joinedAt.toISOString()
-          }))
+            joinedAt: userGuild.joinedAt.toISOString(),
+          })),
         };
 
         return res.json({
           success: true,
-          data: guildData
+          data: guildData,
         });
       } catch (error) {
         this.logger.error('Error fetching dev guild:', error);
         return res.status(500).json({
           success: false,
-          error: 'Internal server error'
+          error: 'Internal server error',
         });
       }
     });
@@ -648,7 +641,7 @@ export class APIService {
       try {
         // Get real commands from the bot's command manager
         const commandsData = [];
-        
+
         // If bot client is available, get real command data
         if (this.client?.commands) {
           for (const [name, command] of this.client.commands) {
@@ -656,32 +649,34 @@ export class APIService {
             let usageCount = 0;
             let lastUsed = null;
             let successRate = 100;
-            let avgResponseTime = 150;
-            
+            const avgResponseTime = 150;
+
             try {
               // Try to get real stats from audit logs
               const commandLogs = await this.database.client.auditLog.findMany({
                 where: {
                   action: 'command_executed',
                   metadata: JSON.stringify({
-                    command: name
-                  })
+                    command: name,
+                  }),
                 },
                 orderBy: {
-                  createdAt: 'desc'
+                  createdAt: 'desc',
                 },
-                take: 100
+                take: 100,
               });
-              
+
               usageCount = commandLogs.length;
               if (commandLogs.length > 0 && commandLogs[0]) {
                 lastUsed = commandLogs[0].createdAt;
                 // Calculate success rate based on error logs
-                const errorLogs = commandLogs.filter(log => 
-                  log.metadata && typeof log.metadata === 'object' && 
-                  'error' in log.metadata
+                const errorLogs = commandLogs.filter(
+                  log => log.metadata && typeof log.metadata === 'object' && 'error' in log.metadata
                 );
-                successRate = Math.max(0, ((commandLogs.length - errorLogs.length) / commandLogs.length) * 100);
+                successRate = Math.max(
+                  0,
+                  ((commandLogs.length - errorLogs.length) / commandLogs.length) * 100
+                );
               }
             } catch (dbError) {
               // Use default values if database query fails
@@ -689,11 +684,14 @@ export class APIService {
               lastUsed = new Date();
               successRate = 100;
             }
-            
+
             commandsData.push({
               id: name,
               name: name,
-              description: 'description' in command.data ? command.data.description : 'No description available',
+              description:
+                'description' in command.data
+                  ? command.data.description
+                  : 'No description available',
               category: command.category?.toUpperCase() || 'GENERAL',
               usageCount,
               successRate: Math.round(successRate * 100) / 100,
@@ -701,7 +699,7 @@ export class APIService {
               lastUsed: lastUsed ? lastUsed.toISOString() : new Date().toISOString(),
               enabled: !command.disabled,
               premium: command.premium || false,
-              aliases: command.aliases || []
+              aliases: command.aliases || [],
             });
           }
         } else {
@@ -725,9 +723,13 @@ export class APIService {
             { name: 'queue', description: 'Gerencia fila de música', category: 'MUSIC' },
             // Admin Commands
             { name: 'onboarding', description: 'Sistema de boas-vindas', category: 'ADMIN' },
-            { name: 'bootstrap', description: 'Configuração inicial do servidor', category: 'ADMIN' }
+            {
+              name: 'bootstrap',
+              description: 'Configuração inicial do servidor',
+              category: 'ADMIN',
+            },
           ];
-          
+
           for (const cmd of basicCommands) {
             commandsData.push({
               id: cmd.name,
@@ -740,20 +742,20 @@ export class APIService {
               lastUsed: new Date().toISOString(),
               enabled: true,
               premium: false,
-              aliases: []
+              aliases: [],
             });
           }
         }
 
         res.json({
           success: true,
-          data: commandsData
+          data: commandsData,
         });
       } catch (error) {
         this.logger.error('Error fetching dev commands:', error);
         res.status(500).json({
           success: false,
-          error: 'Internal server error'
+          error: 'Internal server error',
         });
       }
     });
@@ -762,19 +764,19 @@ export class APIService {
     router.get('/captcha', (req: Request, res: Response) => {
       try {
         const captcha = this.securityService.generateCaptcha();
-        
+
         res.json({
           success: true,
           data: {
             id: captcha.id,
-            svg: captcha.svg
-          }
+            svg: captcha.svg,
+          },
         });
       } catch (error) {
         this.logger.error('CAPTCHA generation error:', error);
         res.status(500).json({
           success: false,
-          error: 'Failed to generate CAPTCHA'
+          error: 'Failed to generate CAPTCHA',
         });
       }
     });
@@ -783,128 +785,144 @@ export class APIService {
     router.post('/captcha/verify', (req: Request, res: Response) => {
       try {
         const { captchaId, answer } = req.body;
-        
+
         if (!captchaId || !answer) {
           return res.status(400).json({
             success: false,
-            error: 'CAPTCHA ID and answer are required'
+            error: 'CAPTCHA ID and answer are required',
           });
         }
-        
+
         const isValid = this.securityService.verifyCaptcha(captchaId, answer);
-        
+
         return res.json({
           success: true,
-          data: { valid: isValid }
+          data: { valid: isValid },
         });
       } catch (error) {
         this.logger.error('CAPTCHA verification error:', error);
         return res.status(500).json({
           success: false,
-          error: 'Failed to verify CAPTCHA'
+          error: 'Failed to verify CAPTCHA',
         });
       }
     });
 
     // Setup 2FA
-    router.post('/2fa/setup', this.authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-      try {
-        const setup = await this.securityService.setup2FA(req.user!.id);
-        
-        res.json({
-          success: true,
-          data: {
-            qrCode: setup.qrCode,
-            backupCodes: setup.backupCodes
-          }
-        });
-      } catch (error: unknown) {
-        this.logger.error('2FA setup error:', error);
-        res.status(500).json({
-          success: false,
-          error: 'Failed to setup 2FA'
-        });
+    router.post(
+      '/2fa/setup',
+      this.authenticateToken,
+      async (req: AuthenticatedRequest, res: Response) => {
+        try {
+          const setup = await this.securityService.setup2FA(req.user!.id);
+
+          res.json({
+            success: true,
+            data: {
+              qrCode: setup.qrCode,
+              backupCodes: setup.backupCodes,
+            },
+          });
+        } catch (error: unknown) {
+          this.logger.error('2FA setup error:', error);
+          res.status(500).json({
+            success: false,
+            error: 'Failed to setup 2FA',
+          });
+        }
       }
-    });
+    );
 
     // Enable 2FA
-    router.post('/2fa/enable', this.authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-      try {
-        const { token } = req.body;
-        
-        if (!token) {
-          return res.status(400).json({
+    router.post(
+      '/2fa/enable',
+      this.authenticateToken,
+      async (req: AuthenticatedRequest, res: Response) => {
+        try {
+          const { token } = req.body;
+
+          if (!token) {
+            return res.status(400).json({
+              success: false,
+              error: '2FA token is required',
+            });
+          }
+
+          const success = await this.securityService.enable2FA(req.user!.id, token);
+
+          if (success) {
+            return res.json({
+              success: true,
+              message: '2FA enabled successfully',
+            });
+          } else {
+            return res.status(400).json({
+              success: false,
+              error: 'Invalid 2FA token',
+            });
+          }
+        } catch (error: unknown) {
+          this.logger.error('2FA enable error:', error);
+          return res.status(500).json({
             success: false,
-            error: '2FA token is required'
+            error: 'Failed to enable 2FA',
           });
         }
-        
-        const success = await this.securityService.enable2FA(req.user!.id, token);
-        
-        if (success) {
-          return res.json({
-            success: true,
-            message: '2FA enabled successfully'
-          });
-        } else {
-          return res.status(400).json({
-            success: false,
-            error: 'Invalid 2FA token'
-          });
-        }
-      } catch (error: unknown) {
-        this.logger.error('2FA enable error:', error);
-        return res.status(500).json({
-          success: false,
-          error: 'Failed to enable 2FA'
-        });
       }
-    });
+    );
 
     // Disable 2FA
-    router.post('/2fa/disable', this.authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-      try {
-        await this.securityService.disable2FA(req.user!.id);
-        
-        res.json({
-          success: true,
-          message: '2FA disabled successfully'
-        });
-      } catch (error) {
-        this.logger.error('2FA disable error:', error);
-        res.status(500).json({
-          success: false,
-          error: 'Failed to disable 2FA'
-        });
-      }
-    });
+    router.post(
+      '/2fa/disable',
+      this.authenticateToken,
+      async (req: AuthenticatedRequest, res: Response) => {
+        try {
+          await this.securityService.disable2FA(req.user!.id);
 
-    // Verify 2FA
-    router.post('/2fa/verify', this.authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-      try {
-        const { token } = req.body;
-        
-        if (!token) {
-          return res.status(400).json({
+          res.json({
+            success: true,
+            message: '2FA disabled successfully',
+          });
+        } catch (error) {
+          this.logger.error('2FA disable error:', error);
+          res.status(500).json({
             success: false,
-            error: '2FA token is required'
+            error: 'Failed to disable 2FA',
           });
         }
-        
-        const isValid = await this.securityService.verify2FA(req.user!.id, token);
-        
-        return res.json({
-          success: true,
-          data: { valid: isValid }
-        });
-      } catch (error) {
-        this.logger.error('2FA verification error:', error);
-        return res.status(500).json({
-          success: false,
-          error: 'Failed to verify 2FA'
-        });
       }
-    });
+    );
+
+    // Verify 2FA
+    router.post(
+      '/2fa/verify',
+      this.authenticateToken,
+      async (req: AuthenticatedRequest, res: Response) => {
+        try {
+          const { token } = req.body;
+
+          if (!token) {
+            return res.status(400).json({
+              success: false,
+              error: '2FA token is required',
+            });
+          }
+
+          const isValid = await this.securityService.verify2FA(req.user!.id, token);
+
+          return res.json({
+            success: true,
+            data: { valid: isValid },
+          });
+        } catch (error) {
+          this.logger.error('2FA verification error:', error);
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to verify 2FA',
+          });
+        }
+      }
+    );
 
     return router;
   }
@@ -934,7 +952,7 @@ export class APIService {
           username: 'DevUser',
           discriminator: '0001',
           avatar: null,
-          guildId: guildId
+          guildId: guildId,
         };
 
         // In production, implement proper Discord OAuth flow:
@@ -942,7 +960,7 @@ export class APIService {
         // 2. Get user info from Discord API
         // 3. Check if user has access to the guild
         // 4. Create or update user in database
-        
+
         if (process.env.NODE_ENV === 'production') {
           // Exchange code for access token with Discord
           const discordResponse = await fetch('https://discord.com/api/oauth2/token', {
@@ -954,39 +972,42 @@ export class APIService {
               grant_type: 'authorization_code',
               code: code,
               redirect_uri: process.env.DISCORD_REDIRECT_URI!,
-            })
+            }),
           });
 
           if (!discordResponse.ok) {
             throw new Error('Failed to exchange code for token');
           }
 
-          const tokenData = await discordResponse.json() as any;
+          const tokenData = (await discordResponse.json()) as any;
 
           // Get user info from Discord API
           const userResponse = await fetch('https://discord.com/api/users/@me', {
             headers: {
-              'Authorization': `Bearer ${tokenData.access_token}`
-            }
+              Authorization: `Bearer ${tokenData.access_token}`,
+            },
           });
 
           if (!userResponse.ok) {
             throw new Error('Failed to get user info from Discord');
           }
 
-          const discordUser = await userResponse.json() as any;
+          const discordUser = (await userResponse.json()) as any;
 
           // Check if user has access to the guild
-          const guildMemberResponse = await fetch(`https://discord.com/api/guilds/${guildId}/members/${discordUser.id}`, {
-            headers: {
-              'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`
+          const guildMemberResponse = await fetch(
+            `https://discord.com/api/guilds/${guildId}/members/${discordUser.id}`,
+            {
+              headers: {
+                Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+              },
             }
-          });
+          );
 
           if (!guildMemberResponse.ok) {
             return res.status(403).json({
               success: false,
-              error: 'User is not a member of this guild'
+              error: 'User is not a member of this guild',
             });
           }
 
@@ -996,7 +1017,7 @@ export class APIService {
             username: discordUser.username,
             discriminator: discordUser.discriminator || '0001',
             avatar: discordUser.avatar,
-            guildId: guildId
+            guildId: guildId,
           };
           userId = discordUser.id;
         }
@@ -1007,15 +1028,15 @@ export class APIService {
             where: { id: userId },
             update: {
               username: userData.username,
-              updatedAt: new Date()
+              updatedAt: new Date(),
             },
             create: {
               id: userId,
               username: userData.username,
               discriminator: userData.discriminator,
               createdAt: new Date(),
-              updatedAt: new Date()
-            }
+              updatedAt: new Date(),
+            },
           });
 
           // Create or update user-guild relationship
@@ -1023,18 +1044,18 @@ export class APIService {
             where: {
               userId_guildId: {
                 userId: userId,
-                guildId: guildId
-              }
+                guildId: guildId,
+              },
             },
             update: {
-              isActive: true
+              isActive: true,
             },
             create: {
               userId: userId,
               guildId: guildId,
               isActive: true,
-              joinedAt: new Date()
-            }
+              joinedAt: new Date(),
+            },
           });
         } catch (dbError) {
           this.logger.error('Database error during auth:', dbError);
@@ -1043,25 +1064,25 @@ export class APIService {
 
         // Generate JWT token
         const token = jwt.sign(
-          { 
-            userId: userId, 
+          {
+            userId: userId,
             guildId: guildId,
             username: userData.username,
-            discriminator: userData.discriminator
+            discriminator: userData.discriminator,
           },
           this.config.jwtSecret,
-          { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions,
+          { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions
         );
 
         // Generate refresh token
         const refreshToken = jwt.sign(
-          { 
-            userId: userId, 
+          {
+            userId: userId,
             guildId: guildId,
-            type: 'refresh'
+            type: 'refresh',
           },
           this.config.jwtSecret,
-          { expiresIn: '30d' } as jwt.SignOptions,
+          { expiresIn: '30d' } as jwt.SignOptions
         );
 
         return res.json({
@@ -1070,7 +1091,7 @@ export class APIService {
             token,
             refreshToken,
             expiresIn: this.config.jwtExpiresIn,
-            user: userData
+            user: userData,
           },
         });
       } catch (error) {
@@ -1106,16 +1127,16 @@ export class APIService {
         }
 
         // Get user data from database
-        let userData = {
+        const userData = {
           username: 'DevUser',
-          discriminator: '0001'
+          discriminator: '0001',
         };
 
         try {
           const user = await this.database.client.user.findUnique({
-            where: { id: decoded.userId }
+            where: { id: decoded.userId },
           });
-          
+
           if (user) {
             userData.username = user.username;
             userData.discriminator = user.discriminator || '0001';
@@ -1126,25 +1147,25 @@ export class APIService {
 
         // Generate new access token
         const newToken = jwt.sign(
-          { 
-            userId: decoded.userId, 
+          {
+            userId: decoded.userId,
             guildId: decoded.guildId,
             username: userData.username,
-            discriminator: userData.discriminator
+            discriminator: userData.discriminator,
           },
           this.config.jwtSecret,
-          { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions,
+          { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions
         );
 
         // Generate new refresh token
         const newRefreshToken = jwt.sign(
-          { 
-            userId: decoded.userId, 
+          {
+            userId: decoded.userId,
             guildId: decoded.guildId,
-            type: 'refresh'
+            type: 'refresh',
           },
           this.config.jwtSecret,
-          { expiresIn: '30d' } as jwt.SignOptions,
+          { expiresIn: '30d' } as jwt.SignOptions
         );
 
         return res.json({
@@ -1177,13 +1198,13 @@ export class APIService {
     router.get('/me', async (req: AuthenticatedRequest, res: Response) => {
       try {
         const user = await this.database.client.user.findUnique({
-          where: { id: req.user!.id }
+          where: { id: req.user!.id },
         });
 
         if (!user) {
           return res.status(404).json({
             success: false,
-            error: 'User not found'
+            error: 'User not found',
           });
         }
 
@@ -1191,17 +1212,17 @@ export class APIService {
         const userGuilds = await this.database.client.userGuild.findMany({
           where: {
             userId: user.id,
-            isActive: true
+            isActive: true,
           },
           include: {
             guild: {
               select: {
                 id: true,
                 name: true,
-                icon: true
-              }
-            }
-          }
+                icon: true,
+              },
+            },
+          },
         });
 
         const activeGuilds = userGuilds.map(ug => ({
@@ -1209,7 +1230,7 @@ export class APIService {
           name: ug.guild.name,
           icon: ug.guild.icon,
           joinedAt: ug.joinedAt.toISOString(),
-          isActive: ug.isActive
+          isActive: ug.isActive,
         }));
 
         return res.json({
@@ -1218,8 +1239,8 @@ export class APIService {
             ...user,
             activeGuilds,
             roles: req.user!.roles || [],
-            permissions: req.user!.permissions || []
-          }
+            permissions: req.user!.permissions || [],
+          },
         });
       } catch (error) {
         this.logger.error('Get user error:', error);
@@ -1240,13 +1261,13 @@ export class APIService {
           data: {
             pubgUsername,
             pubgPlatform,
-            updatedAt: new Date()
-          }
+            updatedAt: new Date(),
+          },
         });
 
         res.json({
           success: true,
-          data: updatedUser
+          data: updatedUser,
         });
       } catch (error) {
         this.logger.error('Update user error:', error);
@@ -1258,29 +1279,26 @@ export class APIService {
     });
 
     // Get user stats
-    router.get(
-      '/me/stats',
-      async (req: AuthenticatedRequest, res: Response) => {
-        try {
-          const stats = await this.database.client.userStats.findUnique({
-            where: {
-              userId: req.user!.id
-            }
-          });
+    router.get('/me/stats', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const stats = await this.database.client.userStats.findUnique({
+          where: {
+            userId: req.user!.id,
+          },
+        });
 
-          res.json({
-            success: true,
-            data: stats
-          });
-        } catch (error) {
-          this.logger.error('Get user stats error:', error);
-          res.status(500).json({
-            success: false,
-            error: 'Failed to get user stats',
-          });
-        }
-      },
-    );
+        res.json({
+          success: true,
+          data: stats,
+        });
+      } catch (error) {
+        this.logger.error('Get user stats error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get user stats',
+        });
+      }
+    });
 
     // Get bot activity stats
     router.get('/activity', async (req: AuthenticatedRequest, res: Response) => {
@@ -1291,7 +1309,7 @@ export class APIService {
         // Calculate date range based on period
         const now = new Date();
         let startDate: Date;
-        
+
         switch (period) {
           case '1d':
             startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -1312,18 +1330,18 @@ export class APIService {
             guildId,
             action: 'COMMAND_USED',
             createdAt: {
-              gte: startDate
-            }
+              gte: startDate,
+            },
           },
           select: {
-            metadata: true
-          }
+            metadata: true,
+          },
         });
 
         // Process command usage statistics
         const commandStats = new Map<string, number>();
         let totalCommands = 0;
-        
+
         commandLogs.forEach(log => {
           if (log.metadata && typeof log.metadata === 'object' && 'command' in log.metadata) {
             const commandName = (log.metadata as any).command;
@@ -1334,66 +1352,67 @@ export class APIService {
 
         // Get most used commands
         const mostUsedCommands = Array.from(commandStats.entries())
-          .sort(([,a], [,b]) => b - a)
+          .sort(([, a], [, b]) => b - a)
           .slice(0, 5)
           .map(([name, count]) => ({ name, count }));
 
         // Get user activity data
-        const [newUsersCount, newBadgesCount, completedQuizzesCount, presenceData] = await Promise.all([
-          // New users in period
-          this.database.client.userGuild.count({
-            where: {
-              guildId,
-              joinedAt: {
-                gte: startDate
-              }
-            }
-          }),
-          // New badges earned in period
-          this.database.client.userBadge.count({
-            where: {
-              earnedAt: {
-                gte: startDate
+        const [newUsersCount, newBadgesCount, completedQuizzesCount, presenceData] =
+          await Promise.all([
+            // New users in period
+            this.database.client.userGuild.count({
+              where: {
+                guildId,
+                joinedAt: {
+                  gte: startDate,
+                },
               },
-              user: {
-                guilds: {
-                  some: {
-                    guildId
-                  }
-                }
-              }
-            }
-          }),
-          // Completed quizzes in period
-          this.database.client.gameResult.count({
-            where: {
-              completedAt: {
-                gte: startDate
+            }),
+            // New badges earned in period
+            this.database.client.userBadge.count({
+              where: {
+                earnedAt: {
+                  gte: startDate,
+                },
+                user: {
+                  guilds: {
+                    some: {
+                      guildId,
+                    },
+                  },
+                },
               },
-              user: {
-                guilds: {
-                  some: {
-                    guildId
-                  }
-                }
-              }
-            }
-          }),
-          // Voice activity data
-          this.database.client.presence.findMany({
-            where: {
-              guildId,
-              checkInTime: {
-                gte: startDate
+            }),
+            // Completed quizzes in period
+            this.database.client.gameResult.count({
+              where: {
+                completedAt: {
+                  gte: startDate,
+                },
+                user: {
+                  guilds: {
+                    some: {
+                      guildId,
+                    },
+                  },
+                },
               },
-              type: 'VOICE'
-            },
-            select: {
-              checkInTime: true,
-              checkOutTime: true
-            }
-          })
-        ]);
+            }),
+            // Voice activity data
+            this.database.client.presence.findMany({
+              where: {
+                guildId,
+                checkInTime: {
+                  gte: startDate,
+                },
+                type: 'VOICE',
+              },
+              select: {
+                checkInTime: true,
+                checkOutTime: true,
+              },
+            }),
+          ]);
 
         // Calculate voice minutes
         const voiceMinutes = presenceData.reduce((total, presence) => {
@@ -1448,24 +1467,24 @@ export class APIService {
               guildId,
               action: 'COMMAND_USED',
               createdAt: {
-                gte: oneHourAgo
-              }
-            }
+                gte: oneHourAgo,
+              },
+            },
           }),
           // Active voice presences
           this.database.client.presence.count({
             where: {
               guildId,
               type: 'VOICE',
-              checkOutTime: null // Still active
-            }
+              checkOutTime: null, // Still active
+            },
           }),
           // Total users in guild
           this.database.client.userGuild.count({
             where: {
-              guildId
-            }
-          })
+              guildId,
+            },
+          }),
         ]);
 
         // Get system stats (these would typically come from bot client)
@@ -1511,9 +1530,9 @@ export class APIService {
         // Calculate date ranges
         const now = new Date();
         let startDate: Date;
-        let weekStartDate: Date;
-        let dayStartDate: Date;
-        
+        const weekStartDate: Date = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const dayStartDate: Date = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
         switch (period) {
           case '7d':
             startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -1527,12 +1546,17 @@ export class APIService {
           default:
             startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         }
-        
-        weekStartDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        dayStartDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
         // Get engagement data from database
-        const [activeUsers, dailyActiveUsers, weeklyActiveUsers, clipsUploaded, quizzesCompleted, badgesEarned, presenceData] = await Promise.all([
+        const [
+          activeUsers,
+          dailyActiveUsers,
+          weeklyActiveUsers,
+          clipsUploaded,
+          quizzesCompleted,
+          badgesEarned,
+          presenceData,
+        ] = await Promise.all([
           // Active users in period (users who used commands or earned badges)
           this.database.client.user.count({
             where: {
@@ -1542,22 +1566,22 @@ export class APIService {
                     some: {
                       guildId,
                       createdAt: {
-                        gte: startDate
-                      }
-                    }
-                  }
+                        gte: startDate,
+                      },
+                    },
+                  },
                 },
                 {
                   badges: {
                     some: {
                       earnedAt: {
-                        gte: startDate
-                      }
-                    }
-                  }
-                }
-              ]
-            }
+                        gte: startDate,
+                      },
+                    },
+                  },
+                },
+              ],
+            },
           }),
           // Daily active users
           this.database.client.user.count({
@@ -1568,22 +1592,22 @@ export class APIService {
                     some: {
                       guildId,
                       createdAt: {
-                        gte: dayStartDate
-                      }
-                    }
-                  }
+                        gte: dayStartDate,
+                      },
+                    },
+                  },
                 },
                 {
                   badges: {
                     some: {
                       earnedAt: {
-                        gte: dayStartDate
-                      }
-                    }
-                  }
-                }
-              ]
-            }
+                        gte: dayStartDate,
+                      },
+                    },
+                  },
+                },
+              ],
+            },
           }),
           // Weekly active users
           this.database.client.user.count({
@@ -1594,76 +1618,76 @@ export class APIService {
                     some: {
                       guildId,
                       createdAt: {
-                        gte: weekStartDate
-                      }
-                    }
-                  }
+                        gte: weekStartDate,
+                      },
+                    },
+                  },
                 },
                 {
                   badges: {
                     some: {
                       earnedAt: {
-                        gte: weekStartDate
-                      }
-                    }
-                  }
-                }
-              ]
-            }
+                        gte: weekStartDate,
+                      },
+                    },
+                  },
+                },
+              ],
+            },
           }),
           // Clips uploaded in period
           this.database.client.clip.count({
             where: {
               guildId,
               createdAt: {
-                gte: startDate
-              }
-            }
+                gte: startDate,
+              },
+            },
           }),
           // Quizzes completed in period
           this.database.client.gameResult.count({
             where: {
               completedAt: {
-                gte: startDate
+                gte: startDate,
               },
               user: {
                 guilds: {
                   some: {
-                    guildId
-                  }
-                }
-              }
-            }
+                    guildId,
+                  },
+                },
+              },
+            },
           }),
           // Badges earned in period
           this.database.client.userBadge.count({
             where: {
               earnedAt: {
-                gte: startDate
+                gte: startDate,
               },
               user: {
                 guilds: {
                   some: {
-                    guildId
-                  }
-                }
-              }
-            }
+                    guildId,
+                  },
+                },
+              },
+            },
           }),
           // Presence data for session time calculation
           this.database.client.presence.findMany({
             where: {
               guildId,
               checkInTime: {
-                gte: startDate
-              }
+                gte: startDate,
+              },
             },
             select: {
               checkInTime: true,
               checkOutTime: true,
-              userId: true
-            }
-          })
+              userId: true,
+            },
+          }),
         ]);
 
         // Calculate average session time and returning users
@@ -1675,16 +1699,21 @@ export class APIService {
           if (presence.checkOutTime && presence.checkInTime) {
             const sessionTime = presence.checkOutTime.getTime() - presence.checkInTime.getTime();
             const sessionMinutes = Math.floor(sessionTime / (1000 * 60));
-            
-            userSessions.set(presence.userId, (userSessions.get(presence.userId) || 0) + sessionMinutes);
+
+            userSessions.set(
+              presence.userId,
+              (userSessions.get(presence.userId) || 0) + sessionMinutes
+            );
             totalSessionTime += sessionMinutes;
             sessionCount++;
           }
         });
 
-        const averageSessionTime = sessionCount > 0 ? Math.floor(totalSessionTime / sessionCount) : 0;
+        const averageSessionTime =
+          sessionCount > 0 ? Math.floor(totalSessionTime / sessionCount) : 0;
         const returningUsers = userSessions.size;
-        const engagementRate = activeUsers > 0 ? Math.floor((returningUsers / activeUsers) * 100) : 0;
+        const engagementRate =
+          activeUsers > 0 ? Math.floor((returningUsers / activeUsers) * 100) : 0;
 
         const engagementStats = {
           participation: {
@@ -1727,117 +1756,111 @@ export class APIService {
     const router = express.Router();
 
     // Get guild info
-    router.get(
-      '/:guildId',
-      async (req: AuthenticatedRequest, res: Response) => {
-        try {
-          const { guildId } = req.params;
+    router.get('/:guildId', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { guildId } = req.params;
 
-          if (guildId !== req.user!.guildId) {
-            return res.status(403).json({
-              success: false,
-              error: 'Access denied',
-            });
-          }
-
-          const guild = await this.database.client.guild.findUnique({
-            where: { id: guildId },
-            include: {
-              config: true,
-              users: {
-                where: { isActive: true },
-                take: 10,
-                orderBy: {
-                  joinedAt: 'desc',
-                },
-                include: {
-                  user: {
-                    select: {
-                      id: true,
-                      username: true,
-                      discriminator: true,
-                      avatar: true,
-                      level: true,
-                      totalXp: true,
-                      lastSeen: true
-                    }
-                  }
-                }
-              },
-            },
-          });
-
-          return res.json({
-            success: true,
-            data: guild,
-          });
-        } catch (error) {
-          this.logger.error('Get guild error:', error);
-          return res.status(500).json({
+        if (guildId !== req.user!.guildId) {
+          return res.status(403).json({
             success: false,
-            error: 'Failed to get guild data',
+            error: 'Access denied',
           });
         }
-      },
-    );
 
-    // Get guild members
-    router.get(
-      '/:guildId/members',
-      async (req: AuthenticatedRequest, res: Response) => {
-        try {
-          const { guildId } = req.params;
-          const { page = 1, limit = 20 } = req.query;
-
-          if (guildId !== req.user!.guildId) {
-            return res.status(403).json({
-              success: false,
-              error: 'Access denied',
-            });
-          }
-
-          const skip = (Number(page) - 1) * Number(limit);
-
-          const [members, total] = await Promise.all([
-            this.database.client.userGuild.findMany({
-              where: { guildId },
+        const guild = await this.database.client.guild.findUnique({
+          where: { id: guildId },
+          include: {
+            config: true,
+            users: {
+              where: { isActive: true },
+              take: 10,
+              orderBy: {
+                joinedAt: 'desc',
+              },
               include: {
                 user: {
-                   include: {
-                     stats: true
-                   }
-                 }
+                  select: {
+                    id: true,
+                    username: true,
+                    discriminator: true,
+                    avatar: true,
+                    level: true,
+                    totalXp: true,
+                    lastSeen: true,
+                  },
+                },
               },
-              skip,
-              take: Number(limit),
-              orderBy: {
-                joinedAt: 'desc'
-              }
-            }),
-            this.database.client.userGuild.count({
-              where: { guildId }
-            })
-          ]);
-
-          return res.json({
-            success: true,
-            data: members,
-            pagination: {
-              page: Number(page),
-              limit: Number(limit),
-              total,
-              totalPages: Math.ceil(total / Number(limit)),
             },
-          });
-        } catch (error: unknown) {
-          this.logger.error('Get guild members error:', error);
-          return res.status(500).json({
+          },
+        });
+
+        return res.json({
+          success: true,
+          data: guild,
+        });
+      } catch (error) {
+        this.logger.error('Get guild error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get guild data',
+        });
+      }
+    });
+
+    // Get guild members
+    router.get('/:guildId/members', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { guildId } = req.params;
+        const { page = 1, limit = 20 } = req.query;
+
+        if (guildId !== req.user!.guildId) {
+          return res.status(403).json({
             success: false,
-            error: 'Failed to get guild members',
+            error: 'Access denied',
           });
         }
-      },
-    );
+
+        const skip = (Number(page) - 1) * Number(limit);
+
+        const [members, total] = await Promise.all([
+          this.database.client.userGuild.findMany({
+            where: { guildId },
+            include: {
+              user: {
+                include: {
+                  stats: true,
+                },
+              },
+            },
+            skip,
+            take: Number(limit),
+            orderBy: {
+              joinedAt: 'desc',
+            },
+          }),
+          this.database.client.userGuild.count({
+            where: { guildId },
+          }),
+        ]);
+
+        return res.json({
+          success: true,
+          data: members,
+          pagination: {
+            page: Number(page),
+            limit: Number(limit),
+            total,
+            totalPages: Math.ceil(total / Number(limit)),
+          },
+        });
+      } catch (error: unknown) {
+        this.logger.error('Get guild members error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get guild members',
+        });
+      }
+    });
 
     return router;
   }
@@ -1849,24 +1872,22 @@ export class APIService {
     const router = express.Router();
 
     // Get PUBG rankings
-    router.get(
-      '/pubg/:period',
-      async (req: AuthenticatedRequest, res: Response) => {
-        try {
-          const { period } = req.params;
-          const { limit = 50 } = req.query;
+    router.get('/pubg/:period', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { period } = req.params;
+        const { limit = 50 } = req.query;
 
-          if (!period || !['daily', 'weekly', 'monthly'].includes(period)) {
-            return res.status(400).json({
-              success: false,
-              error: 'Invalid period',
-            });
-          }
+        if (!period || !['daily', 'weekly', 'monthly'].includes(period)) {
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid period',
+          });
+        }
 
-          // Create RankingPeriod object based on period string
-          let rankingPeriod;
-          const now = new Date();
-          switch (period) {
+        // Create RankingPeriod object based on period string
+        let rankingPeriod;
+        const now = new Date();
+        switch (period) {
           case 'daily':
             rankingPeriod = {
               type: 'daily' as const,
@@ -1893,49 +1914,46 @@ export class APIService {
               success: false,
               error: 'Invalid period',
             });
-          }
-
-          const ranking = this.rankingService.getPUBGRanking(
-            req.user!.guildId,
-            rankingPeriod,
-            undefined, // gameMode - use default
-            'rankPoints', // sortBy - use default
-            Number(limit),
-          );
-
-          return res.json({
-            success: true,
-            data: ranking,
-          });
-        } catch (error) {
-          this.logger.error('Get PUBG ranking error:', error);
-          return res.status(500).json({
-            success: false,
-            error: 'Failed to get PUBG ranking',
-          });
         }
-      },
-    );
+
+        const ranking = this.rankingService.getPUBGRanking(
+          req.user!.guildId,
+          rankingPeriod,
+          undefined, // gameMode - use default
+          'rankPoints', // sortBy - use default
+          Number(limit)
+        );
+
+        return res.json({
+          success: true,
+          data: ranking,
+        });
+      } catch (error) {
+        this.logger.error('Get PUBG ranking error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get PUBG ranking',
+        });
+      }
+    });
 
     // Get internal rankings
-    router.get(
-      '/internal/:period',
-      async (req: AuthenticatedRequest, res: Response) => {
-        try {
-          const { period } = req.params;
-          const { limit = 50 } = req.query;
+    router.get('/internal/:period', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { period } = req.params;
+        const { limit = 50 } = req.query;
 
-          if (!period || !['daily', 'weekly', 'monthly'].includes(period)) {
-            return res.status(400).json({
-              success: false,
-              error: 'Invalid period',
-            });
-          }
+        if (!period || !['daily', 'weekly', 'monthly'].includes(period)) {
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid period',
+          });
+        }
 
-          // Create RankingPeriod object based on period string
-          let rankingPeriod;
-          const now = new Date();
-          switch (period) {
+        // Create RankingPeriod object based on period string
+        let rankingPeriod;
+        const now = new Date();
+        switch (period) {
           case 'daily':
             rankingPeriod = {
               type: 'daily' as const,
@@ -1962,28 +1980,27 @@ export class APIService {
               success: false,
               error: 'Invalid period',
             });
-          }
-
-          const ranking = this.rankingService.getInternalRanking(
-            req.user!.guildId,
-            rankingPeriod,
-            'level', // sortBy - use default
-            Number(limit),
-          );
-
-          return res.json({
-            success: true,
-            data: ranking,
-          });
-        } catch (error) {
-          this.logger.error('Get internal ranking error:', error);
-          return res.status(500).json({
-            success: false,
-            error: 'Failed to get internal ranking',
-          });
         }
-      },
-    );
+
+        const ranking = this.rankingService.getInternalRanking(
+          req.user!.guildId,
+          rankingPeriod,
+          'level', // sortBy - use default
+          Number(limit)
+        );
+
+        return res.json({
+          success: true,
+          data: ranking,
+        });
+      } catch (error) {
+        this.logger.error('Get internal ranking error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get internal ranking',
+        });
+      }
+    });
 
     // Get combined leaderboard
     router.get('/leaderboard', async (req: AuthenticatedRequest, res: Response) => {
@@ -2001,27 +2018,27 @@ export class APIService {
         const now = new Date();
         let rankingPeriod;
         switch (period) {
-        case 'daily':
-          rankingPeriod = {
-            type: 'daily' as const,
-            startDate: new Date(now.getTime() - 24 * 60 * 60 * 1000),
-            endDate: now,
-          };
-          break;
-        case 'weekly':
-          rankingPeriod = {
-            type: 'weekly' as const,
-            startDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-            endDate: now,
-          };
-          break;
-        case 'monthly':
-          rankingPeriod = {
-            type: 'monthly' as const,
-            startDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-            endDate: now,
-          };
-          break;
+          case 'daily':
+            rankingPeriod = {
+              type: 'daily' as const,
+              startDate: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+              endDate: now,
+            };
+            break;
+          case 'weekly':
+            rankingPeriod = {
+              type: 'weekly' as const,
+              startDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+              endDate: now,
+            };
+            break;
+          case 'monthly':
+            rankingPeriod = {
+              type: 'monthly' as const,
+              startDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+              endDate: now,
+            };
+            break;
         }
 
         let leaderboard;
@@ -2031,14 +2048,14 @@ export class APIService {
             rankingPeriod!,
             undefined,
             'rankPoints',
-            Number(limit),
+            Number(limit)
           );
         } else if (type === 'internal') {
           leaderboard = this.rankingService.getInternalRanking(
             req.user!.guildId,
             rankingPeriod!,
             'level',
-            Number(limit),
+            Number(limit)
           );
         } else {
           // Combined leaderboard - mix both rankings
@@ -2047,13 +2064,13 @@ export class APIService {
             rankingPeriod!,
             undefined,
             'rankPoints',
-            25,
+            25
           );
           const internalRanking = this.rankingService.getInternalRanking(
             req.user!.guildId,
             rankingPeriod!,
             'level',
-            25,
+            25
           );
 
           leaderboard = {
@@ -2088,16 +2105,16 @@ export class APIService {
               user: {
                 guilds: {
                   some: {
-                    guildId
-                  }
-                }
-              }
+                    guildId,
+                  },
+                },
+              },
             },
             _avg: {
               currentRankPoint: true,
               kills: true,
-              wins: true
-            }
+              wins: true,
+            },
           }),
           // Internal average stats
           this.database.client.userStats.aggregate({
@@ -2105,15 +2122,15 @@ export class APIService {
               user: {
                 guilds: {
                   some: {
-                    guildId
-                  }
-                }
-              }
+                    guildId,
+                  },
+                },
+              },
             },
             _avg: {
               voiceTime: true,
-              commandsUsed: true
-            }
+              commandsUsed: true,
+            },
           }),
           // Total PUBG users
           this.database.client.pUBGStats.count({
@@ -2121,11 +2138,11 @@ export class APIService {
               user: {
                 guilds: {
                   some: {
-                    guildId
-                  }
-                }
-              }
-            }
+                    guildId,
+                  },
+                },
+              },
+            },
           }),
           // Total internal users
           this.database.client.userStats.count({
@@ -2133,12 +2150,12 @@ export class APIService {
               user: {
                 guilds: {
                   some: {
-                    guildId
-                  }
-                }
-              }
-            }
-          })
+                    guildId,
+                  },
+                },
+              },
+            },
+          }),
         ]);
 
         // Get average badge count
@@ -2148,19 +2165,21 @@ export class APIService {
             user: {
               guilds: {
                 some: {
-                  guildId
-                }
-              }
-            }
+                  guildId,
+                },
+              },
+            },
           },
           _count: {
-            badgeId: true
-          }
+            badgeId: true,
+          },
         });
 
-        const averageBadges = avgBadgeCount.length > 0 
-          ? avgBadgeCount.reduce((sum: number, user: any) => sum + user._count.badgeId, 0) / avgBadgeCount.length 
-          : 0;
+        const averageBadges =
+          avgBadgeCount.length > 0
+            ? avgBadgeCount.reduce((sum: number, user: any) => sum + user._count.badgeId, 0) /
+              avgBadgeCount.length
+            : 0;
 
         res.json({
           success: true,
@@ -2203,20 +2222,20 @@ export class APIService {
             userId,
             guildId,
             ...(type === 'pubg' ? { pubgRank: { not: null } } : {}),
-            ...(type === 'internal' ? { internalRank: { not: null } } : {})
+            ...(type === 'internal' ? { internalRank: { not: null } } : {}),
           },
           orderBy: {
-            createdAt: 'desc'
+            createdAt: 'desc',
           },
           take: Number(limit),
           include: {
             user: {
               select: {
                 pubgStats: true,
-                stats: true
-              }
-            }
-          }
+                stats: true,
+              },
+            },
+          },
         });
 
         // If no snapshots exist, get current user data as fallback
@@ -2228,10 +2247,10 @@ export class APIService {
               stats: true,
               badges: {
                 select: {
-                  badgeId: true
-                }
-              }
-            }
+                  badgeId: true,
+                },
+              },
+            },
           });
 
           if (currentUser) {
@@ -2239,17 +2258,23 @@ export class APIService {
               date: new Date(),
               period: 'current',
               pubgRank: type !== 'internal' ? 1 : null, // Default rank if no historical data
-              pubgStats: type !== 'internal' && currentUser.pubgStats && currentUser.pubgStats.length > 0 ? {
-                 rankPoints: currentUser.pubgStats[0]?.currentRankPoint || 0,
-                 kills: currentUser.pubgStats[0]?.kills || 0,
-                 wins: currentUser.pubgStats[0]?.wins || 0,
-               } : null,
+              pubgStats:
+                type !== 'internal' && currentUser.pubgStats && currentUser.pubgStats.length > 0
+                  ? {
+                      rankPoints: currentUser.pubgStats[0]?.currentRankPoint || 0,
+                      kills: currentUser.pubgStats[0]?.kills || 0,
+                      wins: currentUser.pubgStats[0]?.wins || 0,
+                    }
+                  : null,
               internalRank: type !== 'pubg' ? 1 : null, // Default rank if no historical data
-              internalStats: type !== 'pubg' && currentUser.stats ? {
-                level: 1, // TODO: Implement level calculation
-                experience: 0, // TODO: Implement experience from user XP
-                badges: currentUser.badges.length,
-              } : null,
+              internalStats:
+                type !== 'pubg' && currentUser.stats
+                  ? {
+                      level: 1, // TODO: Implement level calculation
+                      experience: 0, // TODO: Implement experience from user XP
+                      badges: currentUser.badges.length,
+                    }
+                  : null,
             };
 
             return res.json({
@@ -2270,17 +2295,23 @@ export class APIService {
           date: snapshot.createdAt,
           period: snapshot.period,
           pubgRank: type !== 'internal' ? snapshot.pubgRank : null,
-          pubgStats: type !== 'internal' && snapshot.user.pubgStats && snapshot.user.pubgStats.length > 0 ? {
-             rankPoints: snapshot.user.pubgStats[0]?.currentRankPoint || 0,
-             kills: snapshot.user.pubgStats[0]?.kills || 0,
-             wins: snapshot.user.pubgStats[0]?.wins || 0,
-           } : null,
+          pubgStats:
+            type !== 'internal' && snapshot.user.pubgStats && snapshot.user.pubgStats.length > 0
+              ? {
+                  rankPoints: snapshot.user.pubgStats[0]?.currentRankPoint || 0,
+                  kills: snapshot.user.pubgStats[0]?.kills || 0,
+                  wins: snapshot.user.pubgStats[0]?.wins || 0,
+                }
+              : null,
           internalRank: type !== 'pubg' ? snapshot.internalRank : null,
-          internalStats: type !== 'pubg' && snapshot.user.stats ? {
-            level: 1, // TODO: Implement level calculation
-            experience: 0, // TODO: Implement experience from user XP
-            badges: snapshot.badgeCount || 0,
-          } : null,
+          internalStats:
+            type !== 'pubg' && snapshot.user.stats
+              ? {
+                  level: 1, // TODO: Implement level calculation
+                  experience: 0, // TODO: Implement experience from user XP
+                  badges: snapshot.badgeCount || 0,
+                }
+              : null,
         }));
 
         return res.json({
@@ -2306,37 +2337,34 @@ export class APIService {
     const router = express.Router();
 
     // Get user badges
-    router.get(
-      '/user/:userId',
-      async (req: AuthenticatedRequest, res: Response) => {
-        try {
-          const { userId } = req.params;
+    router.get('/user/:userId', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { userId } = req.params;
 
-          const badges = await this.database.client.userBadge.findMany({
-            where: {
-              userId,
-            },
-            include: {
-              badge: true,
-            },
-            orderBy: {
-              earnedAt: 'desc',
-            },
-          });
+        const badges = await this.database.client.userBadge.findMany({
+          where: {
+            userId,
+          },
+          include: {
+            badge: true,
+          },
+          orderBy: {
+            earnedAt: 'desc',
+          },
+        });
 
-          res.json({
-            success: true,
-            data: badges,
-          });
-        } catch (error) {
-          this.logger.error('Get user badges error:', error);
-          res.status(500).json({
-            success: false,
-            error: 'Failed to get user badges',
-          });
-        }
-      },
-    );
+        res.json({
+          success: true,
+          data: badges,
+        });
+      } catch (error) {
+        this.logger.error('Get user badges error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get user badges',
+        });
+      }
+    });
 
     // Get all badges
     router.get('/', async (req: AuthenticatedRequest, res: Response) => {
@@ -2435,14 +2463,20 @@ export class APIService {
             totalBadges,
             totalAwarded,
             activeBadges,
-            categoryDistribution: categoryStats.reduce((acc, stat) => {
-              acc[stat.category] = stat._count.id;
-              return acc;
-            }, {} as Record<string, number>),
-            rarityDistribution: rarityStats.reduce((acc, stat) => {
-              acc[stat.rarity] = stat._count.id;
-              return acc;
-            }, {} as Record<string, number>),
+            categoryDistribution: categoryStats.reduce(
+              (acc, stat) => {
+                acc[stat.category] = stat._count.id;
+                return acc;
+              },
+              {} as Record<string, number>
+            ),
+            rarityDistribution: rarityStats.reduce(
+              (acc, stat) => {
+                acc[stat.rarity] = stat._count.id;
+                return acc;
+              },
+              {} as Record<string, number>
+            ),
           },
         });
       } catch (error) {
@@ -2476,7 +2510,7 @@ export class APIService {
         const progress = allBadges.map(badge => {
           const isEarned = earnedBadgeIds.has(badge.id);
           const requirements = JSON.parse(badge.requirements as string);
-          
+
           return {
             badgeId: badge.id,
             name: badge.name,
@@ -2514,87 +2548,69 @@ export class APIService {
     const router = express.Router();
 
     // Check in
-    router.post(
-      '/checkin',
-      async (req: AuthenticatedRequest, res: Response) => {
-        try {
-          const result = await this.presenceService.checkIn(
-            req.user!.guildId,
-            req.user!.id,
-          );
+    router.post('/checkin', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const result = await this.presenceService.checkIn(req.user!.guildId, req.user!.id);
 
-          res.json({
-            success: result.success,
-            message: result.message,
-            data: result.session,
-          });
-        } catch (error) {
-          this.logger.error('Check in error:', error);
-          res.status(500).json({
-            success: false,
-            error: 'Failed to check in',
-          });
-        }
-      },
-    );
+        res.json({
+          success: result.success,
+          message: result.message,
+          data: result.session,
+        });
+      } catch (error) {
+        this.logger.error('Check in error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to check in',
+        });
+      }
+    });
 
     // Check out
-    router.post(
-      '/checkout',
-      async (req: AuthenticatedRequest, res: Response) => {
-        try {
-          const result = await this.presenceService.checkOut(
-            req.user!.guildId,
-            req.user!.id,
-          );
+    router.post('/checkout', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const result = await this.presenceService.checkOut(req.user!.guildId, req.user!.id);
 
-          res.json({
-            success: result.success,
-            message: result.message,
-            data: result.session,
-          });
-        } catch (error) {
-          this.logger.error('Check out error:', error);
-          res.status(500).json({
-            success: false,
-            error: 'Failed to check out',
-          });
-        }
-      },
-    );
+        res.json({
+          success: result.success,
+          message: result.message,
+          data: result.session,
+        });
+      } catch (error) {
+        this.logger.error('Check out error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to check out',
+        });
+      }
+    });
 
     // Get user presence stats
-    router.get(
-      '/stats/:userId',
-      async (req: AuthenticatedRequest, res: Response) => {
-        try {
-          const { userId } = req.params;
+    router.get('/stats/:userId', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { userId } = req.params;
 
-          if (!userId) {
-            return res.status(400).json({
-              success: false,
-              error: 'User ID is required',
-            });
-          }
-
-          const stats = this.presenceService.getUserStats(
-            req.user!.guildId,
-            userId,
-          );
-
-          return res.json({
-            success: true,
-            data: stats,
-          });
-        } catch (error) {
-          this.logger.error('Get presence stats error:', error);
-          return res.status(500).json({
+        if (!userId) {
+          return res.status(400).json({
             success: false,
-            error: 'Failed to get presence stats',
+            error: 'User ID is required',
           });
         }
-      },
-    );
+
+        const stats = this.presenceService.getUserStats(req.user!.guildId, userId);
+
+        return res.json({
+          success: true,
+          data: stats,
+        });
+      } catch (error) {
+        this.logger.error('Get presence stats error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get presence stats',
+        });
+      }
+    });
 
     return router;
   }
@@ -2606,70 +2622,60 @@ export class APIService {
     const router = express.Router();
 
     // Get current queue
-    router.get(
-      '/queue/:guildId',
-      async (req: AuthenticatedRequest, res: Response) => {
-        try {
-          const { guildId } = req.params;
+    router.get('/queue/:guildId', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { guildId } = req.params;
 
-          if (guildId !== req.user!.guildId) {
-            return res.status(403).json({
-              success: false,
-              error: 'Access denied',
-            });
-          }
-
-          const queue = this.musicService.getQueue(guildId);
-
-          return res.json({
-            success: true,
-            data: queue,
-          });
-        } catch (error) {
-          this.logger.error('Get music queue error:', error);
-          return res.status(500).json({
+        if (guildId !== req.user!.guildId) {
+          return res.status(403).json({
             success: false,
-            error: 'Failed to get music queue',
+            error: 'Access denied',
           });
         }
-      },
-    );
+
+        const queue = this.musicService.getQueue(guildId);
+
+        return res.json({
+          success: true,
+          data: queue,
+        });
+      } catch (error) {
+        this.logger.error('Get music queue error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get music queue',
+        });
+      }
+    });
 
     // Add track to queue
-    router.post(
-      '/queue/:guildId/add',
-      async (req: AuthenticatedRequest, res: Response) => {
-        try {
-          const { guildId } = req.params;
-          const { query } = req.body;
+    router.post('/queue/:guildId/add', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { guildId } = req.params;
+        const { query } = req.body;
 
-          if (guildId !== req.user!.guildId) {
-            return res.status(403).json({
-              success: false,
-              error: 'Access denied',
-            });
-          }
-
-          const result = await this.musicService.addTrack(
-            guildId,
-            query,
-            req.user!.id,
-          );
-
-          return res.json({
-            success: result.success,
-            message: result.message,
-            data: result.track,
-          });
-        } catch (error: unknown) {
-          this.logger.error('Add track error:', error);
-          return res.status(500).json({
+        if (guildId !== req.user!.guildId) {
+          return res.status(403).json({
             success: false,
-            error: 'Failed to add track',
+            error: 'Access denied',
           });
         }
-      },
-    );
+
+        const result = await this.musicService.addTrack(guildId, query, req.user!.id);
+
+        return res.json({
+          success: result.success,
+          message: result.message,
+          data: result.track,
+        });
+      } catch (error: unknown) {
+        this.logger.error('Add track error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to add track',
+        });
+      }
+    });
 
     return router;
   }
@@ -2681,34 +2687,31 @@ export class APIService {
     const router = express.Router();
 
     // Get active games
-    router.get(
-      '/active/:guildId',
-      async (req: AuthenticatedRequest, res: Response) => {
-        try {
-          const { guildId } = req.params;
+    router.get('/active/:guildId', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { guildId } = req.params;
 
-          if (guildId !== req.user!.guildId) {
-            return res.status(403).json({
-              success: false,
-              error: 'Access denied',
-            });
-          }
-
-          const games = this.gameService.getActiveChallenges();
-
-          return res.json({
-            success: true,
-            data: games,
-          });
-        } catch (error) {
-          this.logger.error('Get active games error:', error);
-          return res.status(500).json({
+        if (guildId !== req.user!.guildId) {
+          return res.status(403).json({
             success: false,
-            error: 'Failed to get active games',
+            error: 'Access denied',
           });
         }
-      },
-    );
+
+        const games = this.gameService.getActiveChallenges();
+
+        return res.json({
+          success: true,
+          data: games,
+        });
+      } catch (error) {
+        this.logger.error('Get active games error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get active games',
+        });
+      }
+    });
 
     return router;
   }
@@ -2744,7 +2747,7 @@ export class APIService {
             title,
             description,
             gameMode,
-            tags ? JSON.parse(tags) : undefined,
+            tags ? JSON.parse(tags) : undefined
           );
 
           // Clean up uploaded file
@@ -2762,44 +2765,41 @@ export class APIService {
             error: 'Failed to upload clip',
           });
         }
-      },
+      }
     );
 
     // Get clips
-    router.get(
-      '/:guildId',
-      async (req: AuthenticatedRequest, res: Response) => {
-        try {
-          const { guildId } = req.params;
-          const { status, limit = 20, offset = 0 } = req.query;
+    router.get('/:guildId', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { guildId } = req.params;
+        const { status, limit = 20, offset = 0 } = req.query;
 
-          if (guildId !== req.user!.guildId) {
-            return res.status(403).json({
-              success: false,
-              error: 'Access denied',
-            });
-          }
-
-          const clips = this.clipService.getClips(
-            guildId,
-            status as any,
-            Number(limit),
-            Number(offset),
-          );
-
-          return res.json({
-            success: true,
-            data: clips,
-          });
-        } catch (error: unknown) {
-          this.logger.error('Get clips error:', error);
-          return res.status(500).json({
+        if (guildId !== req.user!.guildId) {
+          return res.status(403).json({
             success: false,
-            error: 'Failed to get clips',
+            error: 'Access denied',
           });
         }
-      },
-    );
+
+        const clips = this.clipService.getClips(
+          guildId,
+          status as any,
+          Number(limit),
+          Number(offset)
+        );
+
+        return res.json({
+          success: true,
+          data: clips,
+        });
+      } catch (error: unknown) {
+        this.logger.error('Get clips error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get clips',
+        });
+      }
+    });
 
     return router;
   }
@@ -2811,34 +2811,31 @@ export class APIService {
     const router = express.Router();
 
     // Get guild stats
-    router.get(
-      '/guild/:guildId',
-      async (req: AuthenticatedRequest, res: Response) => {
-        try {
-          const { guildId } = req.params;
+    router.get('/guild/:guildId', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { guildId } = req.params;
 
-          if (guildId !== req.user!.guildId) {
-            return res.status(403).json({
-              success: false,
-              error: 'Access denied',
-            });
-          }
-
-          const stats = await this.getGuildStats(guildId);
-
-          return res.json({
-            success: true,
-            data: stats,
-          });
-        } catch (error) {
-          this.logger.error('Get guild stats error:', error);
-          return res.status(500).json({
+        if (guildId !== req.user!.guildId) {
+          return res.status(403).json({
             success: false,
-            error: 'Failed to get guild stats',
+            error: 'Access denied',
           });
         }
-      },
-    );
+
+        const stats = await this.getGuildStats(guildId);
+
+        return res.json({
+          success: true,
+          data: stats,
+        });
+      } catch (error) {
+        this.logger.error('Get guild stats error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get guild stats',
+        });
+      }
+    });
 
     return router;
   }
@@ -2849,43 +2846,47 @@ export class APIService {
   private async getGuildStats(guildId: string): Promise<any> {
     try {
       // Get real data from database
-      const [userGuilds, totalUsers, totalBadges, totalClips, totalQuizzes, totalPresences] = await Promise.all([
-        this.database.client.userGuild.findMany({
-          where: { guildId, isActive: true },
-          include: {
-            user: {
-              select: {
-                id: true,
-                level: true,
-                totalXp: true,
-                coins: true,
-                lastSeen: true,
-                stats: {
-                  select: {
-                    messagesCount: true,
-                  }
-                }
-              }
-            }
-          }
-        }),
-        this.database.client.user.count(),
-        this.database.client.userBadge.count(),
-        this.database.client.clip.count({ where: { guildId } }),
-        this.database.client.quiz.count({ where: { guildId } }),
-        this.database.client.presence.count({ where: { guildId } })
-      ]);
+      const [userGuilds, totalUsers, totalBadges, totalClips, totalQuizzes, totalPresences] =
+        await Promise.all([
+          this.database.client.userGuild.findMany({
+            where: { guildId, isActive: true },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  level: true,
+                  totalXp: true,
+                  coins: true,
+                  lastSeen: true,
+                  stats: {
+                    select: {
+                      messagesCount: true,
+                    },
+                  },
+                },
+              },
+            },
+          }),
+          this.database.client.user.count(),
+          this.database.client.userBadge.count(),
+          this.database.client.clip.count({ where: { guildId } }),
+          this.database.client.quiz.count({ where: { guildId } }),
+          this.database.client.presence.count({ where: { guildId } }),
+        ]);
 
       // Calculate active users (seen in last 7 days)
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      const activeUsers = userGuilds.filter(ug => 
-        ug.user.lastSeen && new Date(ug.user.lastSeen) > sevenDaysAgo
+      const activeUsers = userGuilds.filter(
+        ug => ug.user.lastSeen && new Date(ug.user.lastSeen) > sevenDaysAgo
       ).length;
 
       // Calculate totals
       const totalXP = userGuilds.reduce((sum, ug) => sum + (ug.user.totalXp || 0), 0);
       const totalCoins = userGuilds.reduce((sum, ug) => sum + (ug.user.coins || 0), 0);
-      const totalMessages = userGuilds.reduce((sum, ug) => sum + (ug.user.stats?.messagesCount || 0), 0);
+      const totalMessages = userGuilds.reduce(
+        (sum, ug) => sum + (ug.user.stats?.messagesCount || 0),
+        0
+      );
 
       return {
         users: {
@@ -2927,58 +2928,50 @@ export class APIService {
         // Ensure upload directory exists
         this.ensureUploadDirectory();
 
-        this.server = this.app.listen(
-          this.config.port,
-          this.config.host,
-          () => {
-            this.logger.info(
-              `🚀 API server started on ${this.config.host}:${this.config.port}`,
-              {
-                environment: process.env.NODE_ENV || 'development',
-                corsOrigins: this.config.corsOrigins,
-                rateLimitMax: this.config.rateLimitMax
-              }
-            );
-            
-            // Setup WebSocket
+        this.server = this.app.listen(this.config.port, this.config.host, () => {
+          this.logger.info(`🚀 API server started on ${this.config.host}:${this.config.port}`, {
+            environment: process.env.NODE_ENV || 'development',
+            corsOrigins: this.config.corsOrigins,
+            rateLimitMax: this.config.rateLimitMax,
+          });
+
+          // Setup WebSocket
+          try {
+            this.setupWebSocket();
+          } catch (wsError) {
+            this.logger.error('Failed to setup WebSocket:', wsError);
+          }
+
+          // Start simulated updates in development
+          if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
             try {
-              this.setupWebSocket();
-            } catch (wsError) {
-              this.logger.error('Failed to setup WebSocket:', wsError);
+              this.startSimulatedUpdates();
+            } catch (updateError) {
+              this.logger.error('Failed to start simulated updates:', updateError);
             }
-              
-            // Start simulated updates in development
-            if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
-              try {
-                this.startSimulatedUpdates();
-              } catch (updateError) {
-                this.logger.error('Failed to start simulated updates:', updateError);
-              }
-            }
-              
-            resolve();
-          },
-        );
+          }
+
+          resolve();
+        });
 
         this.server.on('error', (error: any) => {
           this.logger.error('API server error:', {
             message: error.message,
             code: error.code,
             port: this.config.port,
-            host: this.config.host
+            host: this.config.host,
           });
-          
+
           if (error.code === 'EADDRINUSE') {
             this.logger.error(`Port ${this.config.port} is already in use`);
           }
-          
+
           reject(error);
         });
 
         // Handle graceful shutdown
         process.on('SIGTERM', () => this.handleShutdown('SIGTERM'));
         process.on('SIGINT', () => this.handleShutdown('SIGINT'));
-        
       } catch (error: unknown) {
         this.logger.error('Failed to start API server:', error);
         reject(error);
@@ -2998,18 +2991,18 @@ export class APIService {
     this.io = new SocketIOServer(this.server, {
       cors: {
         origin: this.config.corsOrigins,
-        methods: ['GET', 'POST']
-      }
+        methods: ['GET', 'POST'],
+      },
     });
 
-    this.io.on('connection', (socket) => {
+    this.io.on('connection', socket => {
       this.logger.info(`🔌 WebSocket client connected: ${socket.id}`);
 
       // Handle dashboard subscription
       socket.on('subscribe:dashboard', (guildId: string) => {
         socket.join(`dashboard:${guildId}`);
         this.logger.info(`📊 Client ${socket.id} subscribed to dashboard:${guildId}`);
-        
+
         // Send initial data
         this.sendDashboardUpdate(guildId);
       });
@@ -3031,7 +3024,7 @@ export class APIService {
       const stats = await this.getGuildStats(guildId);
       this.io?.to(`dashboard:${guildId}`).emit('dashboard:update', {
         type: 'stats',
-        data: stats
+        data: stats,
       });
     } catch (error) {
       this.logger.error('Error sending dashboard update:', error);
@@ -3046,7 +3039,7 @@ export class APIService {
       this.io.to(`dashboard:${guildId}`).emit('dashboard:update', {
         type,
         data,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
   }
@@ -3054,18 +3047,21 @@ export class APIService {
   /**
    * Broadcast notification to dashboard
    */
-  public broadcastNotification(guildId: string, notification: {
-    type: 'success' | 'warning' | 'info' | 'error';
-    title: string;
-    message: string;
-    category?: string;
-    autoClose?: boolean;
-  }): void {
+  public broadcastNotification(
+    guildId: string,
+    notification: {
+      type: 'success' | 'warning' | 'info' | 'error';
+      title: string;
+      message: string;
+      category?: string;
+      autoClose?: boolean;
+    }
+  ): void {
     if (this.io) {
       this.io.to(`dashboard:${guildId}`).emit('dashboard:update', {
         type: 'notification',
         data: notification,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
       this.logger.info(`📢 Notification sent to dashboard:${guildId} - ${notification.title}`);
     }
@@ -3075,9 +3071,9 @@ export class APIService {
    * Stop the API server
    */
   public async stop(): Promise<void> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       this.logger.info('🛑 Stopping API server...');
-      
+
       const cleanup = () => {
         this.logger.info('✅ API server stopped gracefully');
         resolve();
@@ -3103,10 +3099,10 @@ export class APIService {
       } else {
         checkComplete();
       }
-      
+
       // Stop HTTP server
       if (this.server) {
-        this.server.close((error) => {
+        this.server.close(error => {
           if (error) {
             this.logger.error('Error stopping HTTP server:', error);
           } else {
@@ -3134,7 +3130,7 @@ export class APIService {
    */
   private startSimulatedUpdates(): void {
     this.logger.info('🔄 Starting real-time updates for development');
-    
+
     // Stats updates every 30 seconds (reduced frequency for database queries)
     setInterval(async () => {
       if (this.io) {
@@ -3152,7 +3148,7 @@ export class APIService {
             users: { total: 0, active: 0, new: 0 },
             economy: { totalXP: 0, totalCoins: 0, transactions: 0 },
             commands: { total: 0, today: 0 },
-            music: { songsPlayed: 0, queueLength: 0 }
+            music: { songsPlayed: 0, queueLength: 0 },
           };
           this.broadcastUpdate('1409723307489755270', 'stats', fallbackStats);
         }
@@ -3163,7 +3159,9 @@ export class APIService {
 
     // Real notifications will be sent by actual bot events
     // No simulated notifications in production
-    this.logger.info('✅ Real-time updates configured - notifications will be sent by actual bot events');
+    this.logger.info(
+      '✅ Real-time updates configured - notifications will be sent by actual bot events'
+    );
   }
 
   /**
@@ -3183,8 +3181,8 @@ export class APIService {
         rateLimitMax: this.config.rateLimitMax,
         rateLimitWindowMs: this.config.rateLimitWindowMs,
         uploadMaxSize: this.config.uploadMaxSize,
-        corsOrigins: this.config.corsOrigins.length
-      }
+        corsOrigins: this.config.corsOrigins.length,
+      },
     };
   }
 
@@ -3218,8 +3216,15 @@ export class APIService {
   /**
    * Validate number with min/max bounds
    */
-  private validateNumber(value: string | undefined, defaultValue: number, min: number, max: number): number {
-    if (!value) return defaultValue;
+  private validateNumber(
+    value: string | undefined,
+    defaultValue: number,
+    min: number,
+    max: number
+  ): number {
+    if (!value) {
+      return defaultValue;
+    }
     const num = parseInt(value);
     if (isNaN(num) || num < min || num > max) {
       this.logger.warn(`Invalid number ${value}, using default ${defaultValue}`);

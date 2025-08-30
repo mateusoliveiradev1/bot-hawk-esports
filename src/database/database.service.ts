@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { Logger } from '../utils/logger';
+import { EmbedBuilder, TextChannel } from 'discord.js';
 
 /**
  * Database service class for managing Prisma client and database operations
@@ -53,11 +54,12 @@ export class DatabaseService {
       try {
         // @ts-ignore - Prisma event types may vary by version
         this.prisma.$on('query', (e: any) => {
-          if (e.duration > 1000) { // Log slow queries (>1s)
+          if (e.duration > 1000) {
+            // Log slow queries (>1s)
             this.logger.warn(`Slow query detected (${e.duration}ms):`, {
               query: e.query?.substring(0, 200) + '...',
               params: e.params,
-              timestamp: new Date().toISOString()
+              timestamp: new Date().toISOString(),
             });
           }
         });
@@ -101,24 +103,24 @@ export class DatabaseService {
    */
   public async connect(maxRetries: number = 3): Promise<void> {
     let lastError: any;
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         await this.prisma.$connect();
         this.isConnected = true;
         this.logger.info('✅ Connected to database successfully');
-        
+
         // Test the connection
         const isHealthy = await this.healthCheck();
         if (!isHealthy) {
           throw new Error('Database health check failed after connection');
         }
-        
+
         return; // Success, exit retry loop
       } catch (error) {
         lastError = error;
         this.logger.warn(`❌ Database connection attempt ${attempt}/${maxRetries} failed:`, error);
-        
+
         if (attempt < maxRetries) {
           const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000); // Exponential backoff, max 10s
           this.logger.info(`Retrying database connection in ${delay}ms...`);
@@ -126,7 +128,7 @@ export class DatabaseService {
         }
       }
     }
-    
+
     this.logger.error('❌ Failed to connect to database after all retries');
     throw lastError;
   }
@@ -258,7 +260,7 @@ export class DatabaseService {
       if (!data.discriminator || typeof data.discriminator !== 'string') {
         throw new Error('Invalid discriminator provided');
       }
-      
+
       try {
         return await this.prisma.user.upsert({
           where: { id: data.id },
@@ -283,7 +285,9 @@ export class DatabaseService {
         });
       } catch (error) {
         this.logger.error(`Failed to upsert user ${data.id}:`, error);
-        throw new Error(`Database operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw new Error(
+          `Database operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
       }
     },
 
@@ -301,15 +305,16 @@ export class DatabaseService {
       if (xpGain < 0) {
         throw new Error('XP gain cannot be negative');
       }
-      if (xpGain > 10000) { // Reasonable limit to prevent abuse
+      if (xpGain > 10000) {
+        // Reasonable limit to prevent abuse
         throw new Error('XP gain exceeds maximum allowed value');
       }
 
       try {
-        return await this.prisma.$transaction(async (prisma) => {
+        return await this.prisma.$transaction(async prisma => {
           const user = await prisma.user.findUnique({
             where: { id: userId },
-            select: { id: true, xp: true, totalXp: true, level: true }
+            select: { id: true, xp: true, totalXp: true, level: true },
           });
 
           if (!user) {
@@ -332,7 +337,9 @@ export class DatabaseService {
         });
       } catch (error) {
         this.logger.error(`Failed to update XP for user ${userId}:`, error);
-        throw new Error(`XP update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw new Error(
+          `XP update failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
       }
     },
 
@@ -340,7 +347,7 @@ export class DatabaseService {
      * Update user coins
      */
     updateCoins: async (userId: string, amount: number, reason: string) => {
-      return this.prisma.$transaction(async (prisma) => {
+      return this.prisma.$transaction(async prisma => {
         const user = await prisma.user.findUnique({
           where: { id: userId },
         });
@@ -381,9 +388,12 @@ export class DatabaseService {
      * Get user leaderboard
      */
     getLeaderboard: async (type: 'xp' | 'level' | 'coins', limit: number = 10) => {
-      const orderBy = type === 'xp' ? { totalXp: 'desc' as const } : 
-        type === 'level' ? { level: 'desc' as const } : 
-          { coins: 'desc' as const };
+      const orderBy =
+        type === 'xp'
+          ? { totalXp: 'desc' as const }
+          : type === 'level'
+            ? { level: 'desc' as const }
+            : { coins: 'desc' as const };
 
       return this.prisma.user.findMany({
         orderBy,
@@ -420,12 +430,7 @@ export class DatabaseService {
     /**
      * Create or update guild
      */
-    upsert: async (data: {
-      id: string;
-      name: string;
-      icon?: string;
-      ownerId: string;
-    }) => {
+    upsert: async (data: { id: string; name: string; icon?: string; ownerId: string }) => {
       return this.prisma.guild.upsert({
         where: { id: data.id },
         update: {
@@ -508,49 +513,161 @@ export class DatabaseService {
      * Update PUBG stats for user
      */
     updateStats: async (userId: string, stats: any) => {
-      return this.prisma.pUBGStats.upsert({
-        where: {
-          userId_seasonId_gameMode: {
-            userId,
-            seasonId: stats.seasonId,
-            gameMode: stats.gameMode,
+      try {
+        const result = await this.prisma.pUBGStats.upsert({
+          where: {
+            userId_seasonId_gameMode: {
+              userId,
+              seasonId: stats.seasonId,
+              gameMode: stats.gameMode,
+            },
           },
-        },
-        update: {
-          ...stats,
-          lastUpdated: new Date(),
-        },
-        create: {
-          userId,
-          ...stats,
-        },
-      });
+          update: {
+            ...stats,
+            lastUpdated: new Date(),
+          },
+          create: {
+            userId,
+            ...stats,
+          },
+        });
+
+        this.logger.info(`PUBG stats updated for user ${userId}:`, {
+          gameMode: stats.gameMode,
+          seasonId: stats.seasonId,
+          rankPoints: stats.currentRankPoint,
+          tier: stats.currentTier,
+        });
+
+        return result;
+      } catch (error) {
+        this.logger.error(`Failed to update PUBG stats for user ${userId}:`, error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get PUBG stats for user
+     */
+    getUserStats: async (userId: string, seasonId?: string, gameMode?: string) => {
+      try {
+        const where: any = { userId };
+        if (seasonId) {
+          where.seasonId = seasonId;
+        }
+        if (gameMode) {
+          where.gameMode = gameMode;
+        }
+
+        return await this.prisma.pUBGStats.findMany({
+          where,
+          orderBy: {
+            lastUpdated: 'desc',
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                pubgUsername: true,
+                pubgPlatform: true,
+              },
+            },
+          },
+        });
+      } catch (error) {
+        this.logger.error(`Failed to get PUBG stats for user ${userId}:`, error);
+        throw error;
+      }
     },
 
     /**
      * Get PUBG leaderboard
      */
     getLeaderboard: async (gameMode: string, seasonId: string, limit: number = 10) => {
-      return this.prisma.pUBGStats.findMany({
-        where: {
-          gameMode,
-          seasonId,
-        },
-        orderBy: {
-          currentRankPoint: 'desc',
-        },
-        take: limit,
-        include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              discriminator: true,
-              avatar: true,
+      try {
+        return await this.prisma.pUBGStats.findMany({
+          where: {
+            gameMode,
+            seasonId,
+          },
+          orderBy: {
+            currentRankPoint: 'desc',
+          },
+          take: limit,
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                discriminator: true,
+                avatar: true,
+                pubgUsername: true,
+                pubgPlatform: true,
+              },
             },
           },
-        },
-      });
+        });
+      } catch (error) {
+        this.logger.error(`Failed to get PUBG leaderboard for ${gameMode}/${seasonId}:`, error);
+        throw error;
+      }
+    },
+
+    /**
+     * Delete old PUBG stats
+     */
+    cleanupOldStats: async (retentionDays: number = 90) => {
+      try {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+
+        const result = await this.prisma.pUBGStats.deleteMany({
+          where: {
+            lastUpdated: {
+              lt: cutoffDate,
+            },
+          },
+        });
+
+        this.logger.info(`Cleaned up ${result.count} old PUBG stats records`);
+        return result;
+      } catch (error) {
+        this.logger.error('Failed to cleanup old PUBG stats:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get PUBG stats summary
+     */
+    getStatsSummary: async () => {
+      try {
+        const [totalStats, uniqueUsers, latestSeason] = await Promise.all([
+          this.prisma.pUBGStats.count(),
+          this.prisma.pUBGStats.groupBy({
+            by: ['userId'],
+            _count: true,
+          }),
+          this.prisma.pUBGStats.findFirst({
+            orderBy: {
+              lastUpdated: 'desc',
+            },
+            select: {
+              seasonId: true,
+            },
+          }),
+        ]);
+
+        return {
+          totalStats,
+          uniqueUsers: uniqueUsers.length,
+          latestSeason: latestSeason?.seasonId,
+        };
+      } catch (error) {
+        this.logger.error('Failed to get PUBG stats summary:', error);
+        throw error;
+      }
     },
   };
 
@@ -566,7 +683,7 @@ export class DatabaseService {
     cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
 
     try {
-      const results = await this.prisma.$transaction(async (prisma) => {
+      const results = await this.prisma.$transaction(async prisma => {
         // Clean up old audit logs
         const auditLogsDeleted = await prisma.auditLog.deleteMany({
           where: {
@@ -587,8 +704,8 @@ export class DatabaseService {
 
         // Clean up old transactions (keep financial records longer)
         const transactionCutoff = new Date();
-        transactionCutoff.setDate(transactionCutoff.getDate() - (retentionDays * 3));
-        
+        transactionCutoff.setDate(transactionCutoff.getDate() - retentionDays * 3);
+
         const transactionsDeleted = await prisma.transaction.deleteMany({
           where: {
             createdAt: {
@@ -604,7 +721,7 @@ export class DatabaseService {
         };
       });
 
-      this.logger.info(`Database cleanup completed:`, {
+      this.logger.info('Database cleanup completed:', {
         auditLogsDeleted: results.auditLogs,
         rankingSnapshotsDeleted: results.rankingSnapshots,
         transactionsDeleted: results.transactions,
@@ -612,7 +729,9 @@ export class DatabaseService {
       });
     } catch (error) {
       this.logger.error('Database cleanup failed:', error);
-      throw new Error(`Cleanup operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Cleanup operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -640,12 +759,14 @@ export class DatabaseService {
         where: {
           badgeId: {
             not: {
-              in: await this.prisma.badge.findMany({ select: { id: true } }).then(badges => badges.map(b => b.id))
-            }
-          }
+              in: await this.prisma.badge
+                .findMany({ select: { id: true } })
+                .then(badges => badges.map(b => b.id)),
+            },
+          },
         },
       });
-      
+
       if (orphanedUserBadges > 0) {
         issues.push(`Found ${orphanedUserBadges} orphaned user badges`);
         isHealthy = false;
@@ -657,7 +778,7 @@ export class DatabaseService {
           stats: null,
         },
       });
-      
+
       if (usersWithoutStats > 0) {
         issues.push(`Found ${usersWithoutStats} users without stats records`);
         isHealthy = false;
@@ -675,7 +796,9 @@ export class DatabaseService {
       this.logger.error('Database integrity check failed:', error);
       return {
         isHealthy: false,
-        issues: [`Integrity check failed: ${error instanceof Error ? error.message : 'Unknown error'}`],
+        issues: [
+          `Integrity check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        ],
         stats: null,
       };
     }
@@ -687,15 +810,75 @@ export class DatabaseService {
   public async shutdown(): Promise<void> {
     try {
       this.logger.info('Initiating database shutdown...');
-      
+
       // Wait for any pending operations to complete
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       await this.disconnect();
       this.logger.info('✅ Database shutdown completed');
     } catch (error) {
       this.logger.error('❌ Error during database shutdown:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Log to Discord channel with formatted embed
+   */
+  private async logToChannel(
+    channel: TextChannel | null,
+    title: string,
+    status: 'success' | 'warning' | 'error',
+    userId?: string,
+    pubgName?: string,
+    playerId?: string,
+    platform?: string,
+    message?: string,
+    details?: string,
+    error?: any
+  ): Promise<void> {
+    if (!channel) {
+      return;
+    }
+
+    try {
+      const colors = {
+        success: 0x00ff00,
+        warning: 0xffaa00,
+        error: 0xff0000,
+      };
+
+      const embed = new EmbedBuilder()
+        .setTitle(`🗃️ Database | ${title}`)
+        .setColor(colors[status])
+        .setTimestamp();
+
+      if (userId) {
+        embed.addFields({ name: '👤 User ID', value: userId, inline: true });
+      }
+      if (pubgName) {
+        embed.addFields({ name: '🎮 PUBG Name', value: pubgName, inline: true });
+      }
+      if (playerId) {
+        embed.addFields({ name: '🆔 Player ID', value: playerId, inline: true });
+      }
+      if (platform) {
+        embed.addFields({ name: '🖥️ Platform', value: platform, inline: true });
+      }
+      if (message) {
+        embed.addFields({ name: '📝 Message', value: message, inline: false });
+      }
+      if (details) {
+        embed.addFields({ name: '📊 Details', value: details, inline: false });
+      }
+      if (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        embed.addFields({ name: '❌ Error', value: errorMsg.substring(0, 1024), inline: false });
+      }
+
+      await channel.send({ embeds: [embed] });
+    } catch (logError) {
+      this.logger.error('Failed to send log to Discord channel:', logError);
     }
   }
 }

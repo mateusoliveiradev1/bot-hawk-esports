@@ -27,10 +27,10 @@ export class ExclusiveBadgeService {
   private logger: Logger;
   private client: ExtendedClient;
   private badgeService: BadgeService;
-  
+
   private exclusiveRules: Map<string, ExclusiveBadgeRule> = new Map();
   private founderConfig: FounderConfig | null = null;
-  
+
   // Cache for performance
   private earlyAdopterCache: Set<string> = new Set();
   private lastEarlyAdopterCheck = 0;
@@ -40,7 +40,7 @@ export class ExclusiveBadgeService {
     this.logger = new Logger();
     this.client = client;
     this.badgeService = badgeService;
-    
+
     this.initializeRules();
     this.loadFounderConfig();
     this.startAutomaticChecks();
@@ -55,10 +55,10 @@ export class ExclusiveBadgeService {
       badgeId: 'founder',
       criteria: {
         type: 'user_id',
-        value: process.env.FOUNDER_USER_ID
+        value: process.env.FOUNDER_USER_ID,
       },
       autoCheck: true,
-      priority: 1
+      priority: 1,
     });
 
     // Early adopter - first 100 members
@@ -66,20 +66,20 @@ export class ExclusiveBadgeService {
       badgeId: 'early_adopter',
       criteria: {
         type: 'member_count',
-        maxCount: 100
+        maxCount: 100,
       },
       autoCheck: true,
-      priority: 2
+      priority: 2,
     });
 
     // Beta tester - manually awarded
     this.exclusiveRules.set('beta_tester', {
       badgeId: 'beta_tester',
       criteria: {
-        type: 'manual'
+        type: 'manual',
       },
       autoCheck: false,
-      priority: 3
+      priority: 3,
     });
   }
 
@@ -95,7 +95,7 @@ export class ExclusiveBadgeService {
       this.founderConfig = {
         userId: founderId,
         guildId: guildId,
-        notificationChannelId: notificationChannelId
+        notificationChannelId: notificationChannelId,
       };
     }
   }
@@ -105,9 +105,12 @@ export class ExclusiveBadgeService {
    */
   private startAutomaticChecks(): void {
     // Check every hour
-    setInterval(async () => {
-      await this.runAutomaticVerification();
-    }, 1000 * 60 * 60);
+    setInterval(
+      async () => {
+        await this.runAutomaticVerification();
+      },
+      1000 * 60 * 60
+    );
 
     // Initial check after 30 seconds
     setTimeout(async () => {
@@ -126,7 +129,7 @@ export class ExclusiveBadgeService {
     const results = {
       checked: 0,
       awarded: 0,
-      errors: [] as string[]
+      errors: [] as string[],
     };
 
     try {
@@ -185,7 +188,7 @@ export class ExclusiveBadgeService {
     }
 
     const founderId = rule.criteria.value;
-    
+
     // Check if founder already has the badge
     if (this.badgeService.hasBadge(founderId, 'founder')) {
       return 0;
@@ -193,7 +196,7 @@ export class ExclusiveBadgeService {
 
     // Award founder badge
     const awarded = await this.badgeService.awardBadge(founderId, 'founder', true);
-    
+
     if (awarded) {
       await this.sendFounderNotification(founderId);
       this.logger.info(`Founder badge awarded to ${founderId}`);
@@ -208,7 +211,7 @@ export class ExclusiveBadgeService {
    */
   private async checkEarlyAdopterBadge(rule: ExclusiveBadgeRule): Promise<number> {
     const now = Date.now();
-    
+
     // Use cache if recent
     if (now - this.lastEarlyAdopterCheck < this.CACHE_DURATION && this.earlyAdopterCache.size > 0) {
       return 0;
@@ -223,7 +226,7 @@ export class ExclusiveBadgeService {
         try {
           // Fetch all members
           const members = await guild.members.fetch();
-          
+
           // Filter and sort by join date
           const eligibleMembers = members
             .filter(member => !member.user.bot)
@@ -237,7 +240,7 @@ export class ExclusiveBadgeService {
               if (awarded) {
                 awardedCount++;
                 this.earlyAdopterCache.add(member.id);
-                
+
                 // Send notification
                 await this.sendEarlyAdopterNotification(member);
               }
@@ -270,7 +273,7 @@ export class ExclusiveBadgeService {
 
       // Award the badge
       const awarded = await this.badgeService.awardBadge(userId, 'beta_tester', true);
-      
+
       if (awarded) {
         // Log the manual award
         await this.logManualAward(userId, 'beta_tester', awardedBy);
@@ -295,17 +298,17 @@ export class ExclusiveBadgeService {
     const results = {
       eligible: [] as string[],
       awarded: [] as string[],
-      errors: [] as string[]
+      errors: [] as string[],
     };
 
     try {
       for (const [badgeId, rule] of this.exclusiveRules) {
         try {
           const isEligible = await this.checkUserEligibility(userId, rule);
-          
+
           if (isEligible) {
             results.eligible.push(badgeId);
-            
+
             if (!this.badgeService.hasBadge(userId, badgeId)) {
               const awarded = await this.badgeService.awardBadge(userId, badgeId, true);
               if (awarded) {
@@ -331,13 +334,15 @@ export class ExclusiveBadgeService {
     switch (rule.criteria.type) {
       case 'user_id':
         return userId === rule.criteria.value;
-      
+
       case 'member_count':
         // Check if user is in the first N members of any guild
         for (const [guildId, guild] of this.client.guilds.cache) {
           try {
             const member = guild.members.cache.get(userId);
-            if (!member) continue;
+            if (!member) {
+              continue;
+            }
 
             const members = await guild.members.fetch();
             const sortedMembers = members
@@ -353,11 +358,11 @@ export class ExclusiveBadgeService {
           }
         }
         return false;
-      
+
       case 'manual':
         // Manual badges are not auto-eligible
         return false;
-      
+
       default:
         return false;
     }
@@ -372,7 +377,9 @@ export class ExclusiveBadgeService {
         return;
       }
 
-      const channel = this.client.channels.cache.get(this.founderConfig.notificationChannelId) as TextChannel;
+      const channel = this.client.channels.cache.get(
+        this.founderConfig.notificationChannelId
+      ) as TextChannel;
       if (!channel) {
         return;
       }
@@ -400,7 +407,7 @@ export class ExclusiveBadgeService {
     try {
       const embed = new EmbedBuilder()
         .setTitle('🌟 Badge Pioneiro Concedida!')
-        .setDescription(`Parabéns! Você está entre os primeiros 100 membros da comunidade!`)
+        .setDescription('Parabéns! Você está entre os primeiros 100 membros da comunidade!')
         .addFields(
           { name: '🎁 Recompensas', value: '2000 XP\n1000 Moedas\nCargo Pioneiro', inline: true },
           { name: '⭐ Raridade', value: 'Lendária', inline: true }
@@ -416,11 +423,11 @@ export class ExclusiveBadgeService {
         const generalChannel = member.guild.channels.cache
           .filter(ch => ch.isTextBased())
           .find(ch => ch.name.includes('geral') || ch.name.includes('general')) as TextChannel;
-        
+
         if (generalChannel) {
-          await generalChannel.send({ 
+          await generalChannel.send({
             content: `<@${member.id}>`,
-            embeds: [embed] 
+            embeds: [embed],
           });
         }
       }
@@ -440,13 +447,13 @@ export class ExclusiveBadgeService {
         if (auditService) {
           await auditService.logBadgeGrant(userId, badgeId, 'manual_exclusive', {
             grantedBy: awardedBy,
-            reason: 'Manual exclusive badge grant'
+            reason: 'Manual exclusive badge grant',
           });
         }
       } catch (error) {
         console.warn('Failed to log badge audit:', error);
       }
-      
+
       // Alternative: create a simple log entry
       /* await this.client.database.client.badgeAudit.create({
         data: {
@@ -477,20 +484,20 @@ export class ExclusiveBadgeService {
         founder: { holders: 0, eligible: 1 },
         earlyAdopter: { holders: 0, maxCount: 100 },
         betaTester: { holders: 0 },
-        totalExclusive: 0
+        totalExclusive: 0,
       };
 
       // Count badge holders
       const founderHolders = await this.client.database.client.userBadge.count({
-        where: { badgeId: 'founder' }
+        where: { badgeId: 'founder' },
       });
-      
+
       const earlyAdopterHolders = await this.client.database.client.userBadge.count({
-        where: { badgeId: 'early_adopter' }
+        where: { badgeId: 'early_adopter' },
       });
-      
+
       const betaTesterHolders = await this.client.database.client.userBadge.count({
-        where: { badgeId: 'beta_tester' }
+        where: { badgeId: 'beta_tester' },
       });
 
       stats.founder.holders = founderHolders;
@@ -505,7 +512,7 @@ export class ExclusiveBadgeService {
         founder: { holders: 0, eligible: 1 },
         earlyAdopter: { holders: 0, maxCount: 100 },
         betaTester: { holders: 0 },
-        totalExclusive: 0
+        totalExclusive: 0,
       };
     }
   }
@@ -519,7 +526,7 @@ export class ExclusiveBadgeService {
   }> {
     const results = {
       removed: 0,
-      errors: [] as string[]
+      errors: [] as string[],
     };
 
     try {
@@ -528,8 +535,8 @@ export class ExclusiveBadgeService {
         const unauthorizedFounders = await this.client.database.client.userBadge.findMany({
           where: {
             badgeId: 'founder',
-            userId: { not: this.founderConfig.userId }
-          }
+            userId: { not: this.founderConfig.userId },
+          },
         });
 
         for (const badge of unauthorizedFounders) {
@@ -538,9 +545,9 @@ export class ExclusiveBadgeService {
               where: {
                 userId_badgeId: {
                   userId: badge.userId,
-                  badgeId: badge.badgeId
-                }
-              }
+                  badgeId: badge.badgeId,
+                },
+              },
             });
             results.removed++;
           } catch (error) {

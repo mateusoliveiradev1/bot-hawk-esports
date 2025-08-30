@@ -17,9 +17,9 @@ export interface DynamicBadgeRule {
     category: 'pubg' | 'achievement' | 'social' | 'special';
     rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
     xpReward?: number;
-          coinReward?: number;
-          roleReward?: string;
-          titleReward?: string;
+    coinReward?: number;
+    roleReward?: string;
+    titleReward?: string;
   };
   cooldown: number; // Minutes between checks
   maxAwards: number; // Max times this can be awarded per user
@@ -56,21 +56,17 @@ export class DynamicBadgeService {
   private database: DatabaseService;
   private cache: CacheService;
   private dynamicRules: Map<string, DynamicBadgeRule> = new Map();
-  private processingInterval: NodeJS.Timeout | null = null;
+  private processingInterval: any | null = null;
   private isProcessing = false;
 
-  constructor(
-    client: ExtendedClient,
-    badgeService: BadgeService,
-    pubgService: PUBGService
-  ) {
+  constructor(client: ExtendedClient, badgeService: BadgeService, pubgService: PUBGService) {
     this.client = client;
     this.logger = new Logger();
     this.badgeService = badgeService;
     this.pubgService = pubgService;
     this.database = (client as any).database;
     this.cache = (client as any).cache;
-    
+
     this.initializeDynamicRules();
     this.startAutomaticProcessing();
   }
@@ -92,13 +88,13 @@ export class DynamicBadgeService {
           category: 'pubg',
           rarity: 'rare',
           xpReward: 300,
-          coinReward: 150
+          coinReward: 150,
         },
         cooldown: 1440, // 24 hours
         maxAwards: 50,
         frequency: 'realtime',
         isActive: true,
-        priority: 'high'
+        priority: 'high',
       },
       {
         id: 'daily_dominator',
@@ -112,13 +108,13 @@ export class DynamicBadgeService {
           category: 'pubg',
           rarity: 'epic',
           xpReward: 500,
-          coinReward: 250
+          coinReward: 250,
         },
         cooldown: 1440, // 24 hours
         maxAwards: 365, // Once per day
         frequency: 'daily',
         isActive: true,
-        priority: 'high'
+        priority: 'high',
       },
       {
         id: 'headshot_machine',
@@ -132,13 +128,13 @@ export class DynamicBadgeService {
           category: 'pubg',
           rarity: 'legendary',
           xpReward: 750,
-          coinReward: 375
+          coinReward: 375,
         },
         cooldown: 720, // 12 hours
         maxAwards: 100,
         frequency: 'realtime',
         isActive: true,
-        priority: 'critical'
+        priority: 'critical',
       },
       {
         id: 'rank_climber',
@@ -153,13 +149,13 @@ export class DynamicBadgeService {
           rarity: 'epic',
           xpReward: 600,
           coinReward: 300,
-          roleReward: 'rank_climber'
+          roleReward: 'rank_climber',
         },
         cooldown: 10080, // 1 week
         maxAwards: 52, // Once per week
         frequency: 'weekly',
         isActive: true,
-        priority: 'high'
+        priority: 'high',
       },
       {
         id: 'weekend_warrior',
@@ -173,13 +169,13 @@ export class DynamicBadgeService {
           category: 'pubg',
           rarity: 'uncommon',
           xpReward: 400,
-          coinReward: 200
+          coinReward: 200,
         },
         cooldown: 10080, // 1 week
         maxAwards: 52,
         frequency: 'weekly',
         isActive: true,
-        priority: 'medium'
+        priority: 'medium',
       },
       {
         id: 'clutch_master',
@@ -194,13 +190,13 @@ export class DynamicBadgeService {
           rarity: 'legendary',
           xpReward: 1000,
           coinReward: 500,
-          titleReward: 'Clutch Master'
+          titleReward: 'Clutch Master',
         },
         cooldown: 2880, // 48 hours
         maxAwards: 25,
         frequency: 'realtime',
         isActive: true,
-        priority: 'critical'
+        priority: 'critical',
       },
       {
         id: 'damage_dealer',
@@ -214,13 +210,13 @@ export class DynamicBadgeService {
           category: 'pubg',
           rarity: 'rare',
           xpReward: 350,
-          coinReward: 175
+          coinReward: 175,
         },
         cooldown: 720, // 12 hours
         maxAwards: 100,
         frequency: 'realtime',
         isActive: true,
-        priority: 'medium'
+        priority: 'medium',
       },
       {
         id: 'survival_expert',
@@ -235,14 +231,14 @@ export class DynamicBadgeService {
           rarity: 'epic',
           xpReward: 500,
           coinReward: 250,
-          roleReward: 'survival_expert'
+          roleReward: 'survival_expert',
         },
         cooldown: 1440, // 24 hours
         maxAwards: 30,
         frequency: 'realtime',
         isActive: true,
-        priority: 'high'
-      }
+        priority: 'high',
+      },
     ];
 
     for (const rule of rules) {
@@ -257,26 +253,36 @@ export class DynamicBadgeService {
    */
   private startAutomaticProcessing(): void {
     // Process realtime badges every 5 minutes
-    this.processingInterval = setInterval(async () => {
-      if (!this.isProcessing) {
-        await this.processRealtimeBadges();
-      }
-    }, 5 * 60 * 1000);
+    this.processingInterval = setInterval(
+      async () => {
+        if (!this.isProcessing) {
+          await this.processRealtimeBadges();
+        }
+      },
+      5 * 60 * 1000
+    );
 
     // Process daily badges every hour
-    setInterval(async () => {
-      if (new Date().getMinutes() === 0) { // On the hour
-        await this.processDailyBadges();
-      }
-    }, 60 * 60 * 1000);
+    setInterval(
+      async () => {
+        if (new Date().getMinutes() === 0) {
+          // On the hour
+          await this.processDailyBadges();
+        }
+      },
+      60 * 60 * 1000
+    );
 
     // Process weekly badges every day at midnight
-    setInterval(async () => {
-      const now = new Date();
-      if (now.getHours() === 0 && now.getMinutes() === 0) {
-        await this.processWeeklyBadges();
-      }
-    }, 60 * 60 * 1000);
+    setInterval(
+      async () => {
+        const now = new Date();
+        if (now.getHours() === 0 && now.getMinutes() === 0) {
+          await this.processWeeklyBadges();
+        }
+      },
+      60 * 60 * 1000
+    );
 
     this.logger.info('Dynamic badge processing started');
   }
@@ -285,15 +291,18 @@ export class DynamicBadgeService {
    * Process realtime dynamic badges
    */
   public async processRealtimeBadges(): Promise<void> {
-    if (this.isProcessing) return;
-    
+    if (this.isProcessing) {
+      return;
+    }
+
     this.isProcessing = true;
     try {
-      const realtimeRules = Array.from(this.dynamicRules.values())
-        .filter(rule => rule.frequency === 'realtime' && rule.isActive);
+      const realtimeRules = Array.from(this.dynamicRules.values()).filter(
+        rule => rule.frequency === 'realtime' && rule.isActive
+      );
 
       const activeUsers = await this.getActiveUsers();
-      
+
       for (const user of activeUsers) {
         try {
           const context = await this.buildStatsContext(user.id);
@@ -316,11 +325,12 @@ export class DynamicBadgeService {
    */
   public async processDailyBadges(): Promise<void> {
     try {
-      const dailyRules = Array.from(this.dynamicRules.values())
-        .filter(rule => rule.frequency === 'daily' && rule.isActive);
+      const dailyRules = Array.from(this.dynamicRules.values()).filter(
+        rule => rule.frequency === 'daily' && rule.isActive
+      );
 
       const activeUsers = await this.getActiveUsers();
-      
+
       for (const user of activeUsers) {
         try {
           const context = await this.buildStatsContext(user.id);
@@ -341,11 +351,12 @@ export class DynamicBadgeService {
    */
   public async processWeeklyBadges(): Promise<void> {
     try {
-      const weeklyRules = Array.from(this.dynamicRules.values())
-        .filter(rule => rule.frequency === 'weekly' && rule.isActive);
+      const weeklyRules = Array.from(this.dynamicRules.values()).filter(
+        rule => rule.frequency === 'weekly' && rule.isActive
+      );
 
       const activeUsers = await this.getActiveUsers();
-      
+
       for (const user of activeUsers) {
         try {
           const context = await this.buildStatsContext(user.id);
@@ -365,8 +376,8 @@ export class DynamicBadgeService {
    * Process badges for a specific user
    */
   private async processUserBadges(
-    userId: string, 
-    rules: DynamicBadgeRule[], 
+    userId: string,
+    rules: DynamicBadgeRule[],
     context: PUBGStatsContext
   ): Promise<string[]> {
     const awardedBadges: string[] = [];
@@ -376,7 +387,10 @@ export class DynamicBadgeService {
         // Check cooldown
         const cooldownKey = `dynamic_badge_${rule.id}_${userId}`;
         const lastAwarded = await this.cache.get(cooldownKey);
-        if (lastAwarded && Date.now() - parseInt(lastAwarded as string) < rule.cooldown * 60 * 1000) {
+        if (
+          lastAwarded &&
+          Date.now() - parseInt(lastAwarded as string) < rule.cooldown * 60 * 1000
+        ) {
           continue;
         }
 
@@ -390,19 +404,19 @@ export class DynamicBadgeService {
         const conditionMet = this.evaluateCondition(rule.condition, context);
         if (conditionMet) {
           const badgeId = `dynamic_${rule.id}`;
-          
+
           // Create or update badge definition
           await this.ensureBadgeExists(badgeId, rule.badgeTemplate);
-          
+
           // Award the badge
           const awarded = await this.badgeService.awardBadge(userId, badgeId);
           if (awarded) {
             awardedBadges.push(rule.badgeTemplate.name);
             await this.cache.set(cooldownKey, Date.now().toString(), rule.cooldown * 60);
-            
+
             // Send notification
             await this.sendBadgeNotification(userId, rule);
-            
+
             this.logger.info(`Awarded dynamic badge '${rule.name}' to user ${userId}`);
           }
         }
@@ -424,8 +438,8 @@ export class DynamicBadgeService {
         where: { id: userId },
         include: {
           pubgStats: true,
-          badges: true
-        }
+          badges: true,
+        },
       });
 
       if (!user || !user.pubgUsername) {
@@ -454,7 +468,7 @@ export class DynamicBadgeService {
         weaponStats: {},
         isWeekend: [0, 6].includes(new Date().getDay()),
         currentHour: new Date().getHours(),
-        timeframe: 'daily'
+        timeframe: 'daily',
       };
     } catch (error) {
       this.logger.error(`Failed to build stats context for user ${userId}:`, error);
@@ -468,7 +482,7 @@ export class DynamicBadgeService {
   private calculateDailyStats(matches: any[]): any {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const todayMatches = matches.filter(match => {
       const matchDate = new Date(match.createdAt);
       return matchDate >= today;
@@ -480,7 +494,7 @@ export class DynamicBadgeService {
       wins: todayMatches.filter(match => match.winPlace === 1).length,
       top10: todayMatches.filter(match => match.winPlace <= 10).length,
       damage: todayMatches.reduce((sum, match) => sum + (match.damageDealt || 0), 0),
-      headshotKills: todayMatches.reduce((sum, match) => sum + (match.headshotKills || 0), 0)
+      headshotKills: todayMatches.reduce((sum, match) => sum + (match.headshotKills || 0), 0),
     };
   }
 
@@ -490,7 +504,7 @@ export class DynamicBadgeService {
   private calculateWeeklyStats(matches: any[]): any {
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
-    
+
     const weekMatches = matches.filter(match => {
       const matchDate = new Date(match.createdAt);
       return matchDate >= weekAgo;
@@ -506,7 +520,7 @@ export class DynamicBadgeService {
       games: weekMatches.length,
       wins: weekMatches.filter(match => match.winPlace === 1).length,
       weekendGames: weekendMatches.length,
-      rankImprovement: this.calculateRankImprovement(weekMatches)
+      rankImprovement: this.calculateRankImprovement(weekMatches),
     };
   }
 
@@ -514,14 +528,16 @@ export class DynamicBadgeService {
    * Calculate rank improvement from matches
    */
   private calculateRankImprovement(matches: any[]): number {
-    if (matches.length < 2) return 0;
-    
+    if (matches.length < 2) {
+      return 0;
+    }
+
     const firstMatch = matches[matches.length - 1];
     const lastMatch = matches[0];
-    
+
     const firstRank = firstMatch.rankPoints || 0;
     const lastRank = lastMatch.rankPoints || 0;
-    
+
     return lastRank - firstRank;
   }
 
@@ -541,7 +557,7 @@ export class DynamicBadgeService {
         weaponStats: context.weaponStats || {},
         isWeekend: context.isWeekend,
         currentHour: context.currentHour,
-        timeframe: context.timeframe
+        timeframe: context.timeframe,
       };
 
       // Use Function constructor for safer evaluation
@@ -558,15 +574,15 @@ export class DynamicBadgeService {
    */
   private async getActiveUsers(): Promise<any[]> {
     return this.database.client.user.findMany({
-        where: {
-          pubgUsername: { not: null },
-          isVerified: true
-        },
-        take: 100, // Limit to avoid overwhelming the system
-        orderBy: {
-          lastSeen: 'desc'
-        }
-      });
+      where: {
+        pubgUsername: { not: null },
+        isVerified: true,
+      },
+      take: 100, // Limit to avoid overwhelming the system
+      orderBy: {
+        lastSeen: 'desc',
+      },
+    });
   }
 
   /**
@@ -577,8 +593,8 @@ export class DynamicBadgeService {
     const count = await this.database.client.userBadge.count({
       where: {
         userId,
-        badgeId
-      }
+        badgeId,
+      },
     });
     return count;
   }
@@ -586,7 +602,10 @@ export class DynamicBadgeService {
   /**
    * Ensure badge exists in the system
    */
-  private async ensureBadgeExists(badgeId: string, template: DynamicBadgeRule['badgeTemplate']): Promise<void> {
+  private async ensureBadgeExists(
+    badgeId: string,
+    template: DynamicBadgeRule['badgeTemplate']
+  ): Promise<void> {
     try {
       await this.database.client.badge.upsert({
         where: { id: badgeId },
@@ -597,7 +616,7 @@ export class DynamicBadgeService {
           category: template.category,
           rarity: template.rarity,
           // Rewards are handled separately in the badge awarding logic
-          isActive: true
+          isActive: true,
         },
         create: {
           id: badgeId,
@@ -607,8 +626,8 @@ export class DynamicBadgeService {
           category: template.category,
           rarity: template.rarity,
           isSecret: false,
-          isActive: true
-        }
+          isActive: true,
+        },
       });
     } catch (error) {
       this.logger.error(`Failed to ensure badge exists ${badgeId}:`, error);
@@ -621,7 +640,9 @@ export class DynamicBadgeService {
   private async sendBadgeNotification(userId: string, rule: DynamicBadgeRule): Promise<void> {
     try {
       const user = await this.client.users.fetch(userId);
-      if (!user) return;
+      if (!user) {
+        return;
+      }
 
       const embed = {
         title: '🏆 Nova Badge Dinâmica Conquistada!',
@@ -630,19 +651,19 @@ export class DynamicBadgeService {
           {
             name: 'Descrição',
             value: rule.badgeTemplate.description,
-            inline: false
+            inline: false,
           },
           {
             name: 'Recompensas',
             value: `XP: ${rule.badgeTemplate.xpReward || 0} | Moedas: ${rule.badgeTemplate.coinReward || 0}`,
-            inline: true
-          }
+            inline: true,
+          },
         ],
         color: this.getRarityColor(rule.badgeTemplate.rarity),
         timestamp: new Date().toISOString(),
         footer: {
-          text: 'Sistema de Badges Dinâmicas'
-        }
+          text: 'Sistema de Badges Dinâmicas',
+        },
       };
 
       await user.send({ embeds: [embed] }).catch(() => {
@@ -659,11 +680,11 @@ export class DynamicBadgeService {
   private getRarityColor(rarity: string): number {
     const colors = {
       common: 0x808080,
-      uncommon: 0x00FF00,
-      rare: 0x0080FF,
-      epic: 0x8000FF,
-      legendary: 0xFF8000,
-      mythic: 0xFF0080
+      uncommon: 0x00ff00,
+      rare: 0x0080ff,
+      epic: 0x8000ff,
+      legendary: 0xff8000,
+      mythic: 0xff0080,
     };
     return colors[rarity as keyof typeof colors] || colors.common;
   }
@@ -718,30 +739,30 @@ export class DynamicBadgeService {
   }> {
     const totalRules = this.dynamicRules.size;
     const activeRules = Array.from(this.dynamicRules.values()).filter(rule => rule.isActive).length;
-    
+
     const dynamicBadgeIds = Array.from(this.dynamicRules.keys()).map(id => `dynamic_${id}`);
-    
+
     const totalAwards = await this.database.client.userBadge.count({
       where: {
-        badgeId: { in: dynamicBadgeIds }
-      }
+        badgeId: { in: dynamicBadgeIds },
+      },
     });
 
     const oneDayAgo = new Date();
     oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-    
+
     const recentAwards = await this.database.client.userBadge.count({
       where: {
         badgeId: { in: dynamicBadgeIds },
-        earnedAt: { gte: oneDayAgo }
-      }
+        earnedAt: { gte: oneDayAgo },
+      },
     });
 
     return {
       totalRules,
       activeRules,
       totalAwards,
-      recentAwards
+      recentAwards,
     };
   }
 

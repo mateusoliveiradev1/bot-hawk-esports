@@ -12,7 +12,7 @@ export enum LogLevel {
   HTTP = 'http',
   VERBOSE = 'verbose',
   DEBUG = 'debug',
-  SILLY = 'silly'
+  SILLY = 'silly',
 }
 
 /**
@@ -47,7 +47,7 @@ export class Logger {
         }),
         winston.format.errors({ stack: true }),
         winston.format.json(),
-        winston.format.prettyPrint(),
+        winston.format.prettyPrint()
       ),
     };
 
@@ -98,20 +98,20 @@ export class Logger {
           }),
           winston.format.printf(({ timestamp, level, message, ...meta }) => {
             let log = `${timestamp} [${level}]: ${message}`;
-            
+
             if (Object.keys(meta).length > 0) {
               try {
                 // Safe JSON stringify to handle circular references
                 log += ` ${JSON.stringify(meta, this.getCircularReplacer(), 2)}`;
               } catch (error) {
-                log += ` [Object with circular reference]`;
+                log += ' [Object with circular reference]';
               }
             }
-            
+
             return log;
-          }),
+          })
         ),
-      }),
+      })
     );
 
     // File transport
@@ -123,7 +123,7 @@ export class Logger {
         maxsize: this.config.maxSize,
         maxFiles: this.config.maxFiles,
         tailable: true,
-      }),
+      })
     );
 
     // Error file transport
@@ -135,7 +135,7 @@ export class Logger {
         maxsize: this.config.maxSize,
         maxFiles: this.config.maxFiles,
         tailable: true,
-      }),
+      })
     );
 
     this.logger = winston.createLogger({
@@ -210,7 +210,13 @@ export class Logger {
   /**
    * Log API request
    */
-  public api(method: string, endpoint: string, statusCode: number, responseTime: number, meta?: any): void {
+  public api(
+    method: string,
+    endpoint: string,
+    statusCode: number,
+    responseTime: number,
+    meta?: any
+  ): void {
     this.http(`API ${method} ${endpoint} - ${statusCode}`, {
       method,
       endpoint,
@@ -302,7 +308,12 @@ export class Logger {
   /**
    * Log security event
    */
-  public security(event: string, userId: string, severity: 'low' | 'medium' | 'high' | 'critical', meta?: any): void {
+  public security(
+    event: string,
+    userId: string,
+    severity: 'low' | 'medium' | 'high' | 'critical',
+    meta?: any
+  ): void {
     const logMethod = severity === 'critical' || severity === 'high' ? 'error' : 'warn';
     this[logMethod](`Security event: ${event}`, {
       event,
@@ -359,7 +370,7 @@ export class Logger {
    * Close logger and flush all transports
    */
   public close(): Promise<void> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       this.logger.end(() => {
         resolve();
       });

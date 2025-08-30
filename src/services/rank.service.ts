@@ -61,7 +61,7 @@ export class RankService {
 
     this.initializeRankMappings();
     this.scheduleUpdates();
-    
+
     this.logger.info('🎖️ RankService initialized successfully');
   }
 
@@ -71,45 +71,261 @@ export class RankService {
   private initializeRankMappings(): void {
     const mappings: RankMapping[] = [
       // Bronze
-      { tier: 'Bronze', subTier: 'V', minRP: 0, maxRP: 1199, roleName: 'Bronze V', roleColor: '#CD7F32', priority: 1 },
-      { tier: 'Bronze', subTier: 'IV', minRP: 1200, maxRP: 1299, roleName: 'Bronze IV', roleColor: '#CD7F32', priority: 2 },
-      { tier: 'Bronze', subTier: 'III', minRP: 1300, maxRP: 1399, roleName: 'Bronze III', roleColor: '#CD7F32', priority: 3 },
-      { tier: 'Bronze', subTier: 'II', minRP: 1400, maxRP: 1499, roleName: 'Bronze II', roleColor: '#CD7F32', priority: 4 },
-      { tier: 'Bronze', subTier: 'I', minRP: 1500, maxRP: 1599, roleName: 'Bronze I', roleColor: '#CD7F32', priority: 5 },
+      {
+        tier: 'Bronze',
+        subTier: 'V',
+        minRP: 0,
+        maxRP: 1199,
+        roleName: 'Bronze V',
+        roleColor: '#CD7F32',
+        priority: 1,
+      },
+      {
+        tier: 'Bronze',
+        subTier: 'IV',
+        minRP: 1200,
+        maxRP: 1299,
+        roleName: 'Bronze IV',
+        roleColor: '#CD7F32',
+        priority: 2,
+      },
+      {
+        tier: 'Bronze',
+        subTier: 'III',
+        minRP: 1300,
+        maxRP: 1399,
+        roleName: 'Bronze III',
+        roleColor: '#CD7F32',
+        priority: 3,
+      },
+      {
+        tier: 'Bronze',
+        subTier: 'II',
+        minRP: 1400,
+        maxRP: 1499,
+        roleName: 'Bronze II',
+        roleColor: '#CD7F32',
+        priority: 4,
+      },
+      {
+        tier: 'Bronze',
+        subTier: 'I',
+        minRP: 1500,
+        maxRP: 1599,
+        roleName: 'Bronze I',
+        roleColor: '#CD7F32',
+        priority: 5,
+      },
 
       // Silver
-      { tier: 'Silver', subTier: 'V', minRP: 1600, maxRP: 1699, roleName: 'Silver V', roleColor: '#C0C0C0', priority: 6 },
-      { tier: 'Silver', subTier: 'IV', minRP: 1700, maxRP: 1799, roleName: 'Silver IV', roleColor: '#C0C0C0', priority: 7 },
-      { tier: 'Silver', subTier: 'III', minRP: 1800, maxRP: 1899, roleName: 'Silver III', roleColor: '#C0C0C0', priority: 8 },
-      { tier: 'Silver', subTier: 'II', minRP: 1900, maxRP: 1999, roleName: 'Silver II', roleColor: '#C0C0C0', priority: 9 },
-      { tier: 'Silver', subTier: 'I', minRP: 2000, maxRP: 2099, roleName: 'Silver I', roleColor: '#C0C0C0', priority: 10 },
+      {
+        tier: 'Silver',
+        subTier: 'V',
+        minRP: 1600,
+        maxRP: 1699,
+        roleName: 'Silver V',
+        roleColor: '#C0C0C0',
+        priority: 6,
+      },
+      {
+        tier: 'Silver',
+        subTier: 'IV',
+        minRP: 1700,
+        maxRP: 1799,
+        roleName: 'Silver IV',
+        roleColor: '#C0C0C0',
+        priority: 7,
+      },
+      {
+        tier: 'Silver',
+        subTier: 'III',
+        minRP: 1800,
+        maxRP: 1899,
+        roleName: 'Silver III',
+        roleColor: '#C0C0C0',
+        priority: 8,
+      },
+      {
+        tier: 'Silver',
+        subTier: 'II',
+        minRP: 1900,
+        maxRP: 1999,
+        roleName: 'Silver II',
+        roleColor: '#C0C0C0',
+        priority: 9,
+      },
+      {
+        tier: 'Silver',
+        subTier: 'I',
+        minRP: 2000,
+        maxRP: 2099,
+        roleName: 'Silver I',
+        roleColor: '#C0C0C0',
+        priority: 10,
+      },
 
       // Gold
-      { tier: 'Gold', subTier: 'V', minRP: 2100, maxRP: 2199, roleName: 'Gold V', roleColor: '#FFD700', priority: 11 },
-      { tier: 'Gold', subTier: 'IV', minRP: 2200, maxRP: 2299, roleName: 'Gold IV', roleColor: '#FFD700', priority: 12 },
-      { tier: 'Gold', subTier: 'III', minRP: 2300, maxRP: 2399, roleName: 'Gold III', roleColor: '#FFD700', priority: 13 },
-      { tier: 'Gold', subTier: 'II', minRP: 2400, maxRP: 2499, roleName: 'Gold II', roleColor: '#FFD700', priority: 14 },
-      { tier: 'Gold', subTier: 'I', minRP: 2500, maxRP: 2599, roleName: 'Gold I', roleColor: '#FFD700', priority: 15 },
+      {
+        tier: 'Gold',
+        subTier: 'V',
+        minRP: 2100,
+        maxRP: 2199,
+        roleName: 'Gold V',
+        roleColor: '#FFD700',
+        priority: 11,
+      },
+      {
+        tier: 'Gold',
+        subTier: 'IV',
+        minRP: 2200,
+        maxRP: 2299,
+        roleName: 'Gold IV',
+        roleColor: '#FFD700',
+        priority: 12,
+      },
+      {
+        tier: 'Gold',
+        subTier: 'III',
+        minRP: 2300,
+        maxRP: 2399,
+        roleName: 'Gold III',
+        roleColor: '#FFD700',
+        priority: 13,
+      },
+      {
+        tier: 'Gold',
+        subTier: 'II',
+        minRP: 2400,
+        maxRP: 2499,
+        roleName: 'Gold II',
+        roleColor: '#FFD700',
+        priority: 14,
+      },
+      {
+        tier: 'Gold',
+        subTier: 'I',
+        minRP: 2500,
+        maxRP: 2599,
+        roleName: 'Gold I',
+        roleColor: '#FFD700',
+        priority: 15,
+      },
 
       // Platinum
-      { tier: 'Platinum', subTier: 'V', minRP: 2600, maxRP: 2699, roleName: 'Platinum V', roleColor: '#E5E4E2', priority: 16 },
-      { tier: 'Platinum', subTier: 'IV', minRP: 2700, maxRP: 2799, roleName: 'Platinum IV', roleColor: '#E5E4E2', priority: 17 },
-      { tier: 'Platinum', subTier: 'III', minRP: 2800, maxRP: 2899, roleName: 'Platinum III', roleColor: '#E5E4E2', priority: 18 },
-      { tier: 'Platinum', subTier: 'II', minRP: 2900, maxRP: 2999, roleName: 'Platinum II', roleColor: '#E5E4E2', priority: 19 },
-      { tier: 'Platinum', subTier: 'I', minRP: 3000, maxRP: 3099, roleName: 'Platinum I', roleColor: '#E5E4E2', priority: 20 },
+      {
+        tier: 'Platinum',
+        subTier: 'V',
+        minRP: 2600,
+        maxRP: 2699,
+        roleName: 'Platinum V',
+        roleColor: '#E5E4E2',
+        priority: 16,
+      },
+      {
+        tier: 'Platinum',
+        subTier: 'IV',
+        minRP: 2700,
+        maxRP: 2799,
+        roleName: 'Platinum IV',
+        roleColor: '#E5E4E2',
+        priority: 17,
+      },
+      {
+        tier: 'Platinum',
+        subTier: 'III',
+        minRP: 2800,
+        maxRP: 2899,
+        roleName: 'Platinum III',
+        roleColor: '#E5E4E2',
+        priority: 18,
+      },
+      {
+        tier: 'Platinum',
+        subTier: 'II',
+        minRP: 2900,
+        maxRP: 2999,
+        roleName: 'Platinum II',
+        roleColor: '#E5E4E2',
+        priority: 19,
+      },
+      {
+        tier: 'Platinum',
+        subTier: 'I',
+        minRP: 3000,
+        maxRP: 3099,
+        roleName: 'Platinum I',
+        roleColor: '#E5E4E2',
+        priority: 20,
+      },
 
       // Diamond
-      { tier: 'Diamond', subTier: 'V', minRP: 3100, maxRP: 3199, roleName: 'Diamond V', roleColor: '#B9F2FF', priority: 21 },
-      { tier: 'Diamond', subTier: 'IV', minRP: 3200, maxRP: 3299, roleName: 'Diamond IV', roleColor: '#B9F2FF', priority: 22 },
-      { tier: 'Diamond', subTier: 'III', minRP: 3300, maxRP: 3399, roleName: 'Diamond III', roleColor: '#B9F2FF', priority: 23 },
-      { tier: 'Diamond', subTier: 'II', minRP: 3400, maxRP: 3499, roleName: 'Diamond II', roleColor: '#B9F2FF', priority: 24 },
-      { tier: 'Diamond', subTier: 'I', minRP: 3500, maxRP: 3599, roleName: 'Diamond I', roleColor: '#B9F2FF', priority: 25 },
+      {
+        tier: 'Diamond',
+        subTier: 'V',
+        minRP: 3100,
+        maxRP: 3199,
+        roleName: 'Diamond V',
+        roleColor: '#B9F2FF',
+        priority: 21,
+      },
+      {
+        tier: 'Diamond',
+        subTier: 'IV',
+        minRP: 3200,
+        maxRP: 3299,
+        roleName: 'Diamond IV',
+        roleColor: '#B9F2FF',
+        priority: 22,
+      },
+      {
+        tier: 'Diamond',
+        subTier: 'III',
+        minRP: 3300,
+        maxRP: 3399,
+        roleName: 'Diamond III',
+        roleColor: '#B9F2FF',
+        priority: 23,
+      },
+      {
+        tier: 'Diamond',
+        subTier: 'II',
+        minRP: 3400,
+        maxRP: 3499,
+        roleName: 'Diamond II',
+        roleColor: '#B9F2FF',
+        priority: 24,
+      },
+      {
+        tier: 'Diamond',
+        subTier: 'I',
+        minRP: 3500,
+        maxRP: 3599,
+        roleName: 'Diamond I',
+        roleColor: '#B9F2FF',
+        priority: 25,
+      },
 
       // Master
-      { tier: 'Master', subTier: '', minRP: 3600, maxRP: 4999, roleName: 'Master', roleColor: '#FF6B6B', priority: 26 },
+      {
+        tier: 'Master',
+        subTier: '',
+        minRP: 3600,
+        maxRP: 4999,
+        roleName: 'Master',
+        roleColor: '#FF6B6B',
+        priority: 26,
+      },
 
       // Conqueror (Top 500)
-      { tier: 'Conqueror', subTier: '', minRP: 5000, maxRP: 999999, roleName: 'Conqueror', roleColor: '#FF0000', priority: 27 },
+      {
+        tier: 'Conqueror',
+        subTier: '',
+        minRP: 5000,
+        maxRP: 999999,
+        roleName: 'Conqueror',
+        roleColor: '#FF0000',
+        priority: 27,
+      },
     ];
 
     mappings.forEach(mapping => {
@@ -125,20 +341,28 @@ export class RankService {
    */
   private scheduleUpdates(): void {
     // Update at 04:00 UTC
-    this.updateJob = cron.schedule('0 4 * * *', async () => {
-      this.logger.info('Starting scheduled rank update (04:00 UTC)');
-      await this.updateAllUserRanks();
-    }, {
-      timezone: 'UTC'
-    });
+    this.updateJob = cron.schedule(
+      '0 4 * * *',
+      async () => {
+        this.logger.info('Starting scheduled rank update (04:00 UTC)');
+        await this.updateAllUserRanks();
+      },
+      {
+        timezone: 'UTC',
+      }
+    );
 
     // Update at 16:00 UTC
-    cron.schedule('0 16 * * *', async () => {
-      this.logger.info('Starting scheduled rank update (16:00 UTC)');
-      await this.updateAllUserRanks();
-    }, {
-      timezone: 'UTC'
-    });
+    cron.schedule(
+      '0 16 * * *',
+      async () => {
+        this.logger.info('Starting scheduled rank update (16:00 UTC)');
+        await this.updateAllUserRanks();
+      },
+      {
+        timezone: 'UTC',
+      }
+    );
 
     this.logger.info('Scheduled rank updates for 04:00 and 16:00 UTC');
   }
@@ -153,7 +377,7 @@ export class RankService {
     duration: number;
   }> {
     const startTime = Date.now();
-    
+
     try {
       this.logger.info('🔄 Starting bulk rank update for all users...');
 
@@ -161,16 +385,16 @@ export class RankService {
       const users = await this.database.client.user.findMany({
         where: {
           pubgUsername: {
-            not: null
+            not: null,
           },
           NOT: {
-            pubgUsername: ''
-          }
+            pubgUsername: '',
+          },
         },
         select: {
           id: true,
-          pubgUsername: true
-        }
+          pubgUsername: true,
+        },
       });
 
       if (users.length === 0) {
@@ -186,12 +410,12 @@ export class RankService {
       // Process users in batches to avoid overwhelming the API
       for (let i = 0; i < users.length; i += batchSize) {
         const batch = users.slice(i, i + batchSize);
-        
+
         const batchPromises = batch.map(async (user, index) => {
           try {
             // Stagger requests within batch
             await new Promise(resolve => setTimeout(resolve, index * 50));
-            
+
             if (user.pubgUsername) {
               const updated = await this.updateUserRank(user.id, user.pubgUsername);
               return updated ? 'updated' : 'skipped';
@@ -200,18 +424,21 @@ export class RankService {
           } catch (error) {
             this.logger.error(`Failed to update rank for user ${user.id}:`, {
               error: error instanceof Error ? error.message : String(error),
-              pubgUsername: user.pubgUsername
+              pubgUsername: user.pubgUsername,
             });
             return 'error';
           }
         });
 
         const batchResults = await Promise.allSettled(batchPromises);
-        
+
         batchResults.forEach(result => {
           if (result.status === 'fulfilled') {
-            if (result.value === 'updated') updatedCount++;
-            else if (result.value === 'error') errorCount++;
+            if (result.value === 'updated') {
+              updatedCount++;
+            } else if (result.value === 'error') {
+              errorCount++;
+            }
           } else {
             errorCount++;
           }
@@ -224,29 +451,37 @@ export class RankService {
 
         // Log progress every 50 users
         if ((i + batchSize) % 50 === 0 || i + batchSize >= users.length) {
-          this.logger.info(`Progress: ${Math.min(i + batchSize, users.length)}/${users.length} users processed`);
+          this.logger.info(
+            `Progress: ${Math.min(i + batchSize, users.length)}/${users.length} users processed`
+          );
         }
       }
 
       const duration = Date.now() - startTime;
-      
-      // Update cache with last update time and stats
-      await this.cache.set('last_rank_update', JSON.stringify({
-        timestamp: new Date().toISOString(),
-        updated: updatedCount,
-        errors: errorCount,
-        total: users.length,
-        duration
-      }), 86400);
 
-      this.logger.info(`✅ Bulk rank update completed in ${duration}ms. Updated: ${updatedCount}, Errors: ${errorCount}, Total: ${users.length}`);
-      
+      // Update cache with last update time and stats
+      await this.cache.set(
+        'last_rank_update',
+        JSON.stringify({
+          timestamp: new Date().toISOString(),
+          updated: updatedCount,
+          errors: errorCount,
+          total: users.length,
+          duration,
+        }),
+        86400
+      );
+
+      this.logger.info(
+        `✅ Bulk rank update completed in ${duration}ms. Updated: ${updatedCount}, Errors: ${errorCount}, Total: ${users.length}`
+      );
+
       return { updated: updatedCount, errors: errorCount, total: users.length, duration };
     } catch (error) {
       const duration = Date.now() - startTime;
       this.logger.error('❌ Failed to update all user ranks:', {
         error: error instanceof Error ? error.message : String(error),
-        duration
+        duration,
       });
       throw error;
     }
@@ -255,13 +490,17 @@ export class RankService {
   /**
    * Update rank for a specific user
    */
-  public async updateUserRank(discordId: string, pubgName: string, forceUpdate: boolean = false): Promise<boolean> {
+  public async updateUserRank(
+    discordId: string,
+    pubgName: string,
+    forceUpdate: boolean = false
+  ): Promise<boolean> {
     try {
       // Input validation
       if (!discordId || typeof discordId !== 'string') {
         throw new Error('Discord ID is required and must be a string');
       }
-      
+
       if (!pubgName || typeof pubgName !== 'string') {
         throw new Error('PUBG name is required and must be a string');
       }
@@ -274,16 +513,16 @@ export class RankService {
 
       // Check cache first (avoid too frequent updates)
       const cacheKey = `user_rank_${discordId}`;
-      
+
       if (!forceUpdate) {
         const cachedData = await this.cache.get<string>(cacheKey);
-        
+
         if (cachedData) {
           try {
             const parsedData = JSON.parse(cachedData);
             const lastUpdate = new Date(parsedData.lastUpdated);
             const timeDiff = Date.now() - lastUpdate.getTime();
-            
+
             // Skip if updated less than 1 hour ago
             if (timeDiff < 3600000) {
               return false;
@@ -299,7 +538,7 @@ export class RankService {
       let pubgStats;
       let retryCount = 0;
       const maxRetries = 3;
-      
+
       while (retryCount < maxRetries) {
         try {
           pubgStats = await this.pubg.getPlayerStats(sanitizedPubgName, PUBGPlatform.STEAM);
@@ -307,14 +546,17 @@ export class RankService {
         } catch (error) {
           retryCount++;
           if (retryCount >= maxRetries) {
-            this.logger.warn(`Failed to get PUBG stats for ${sanitizedPubgName} after ${maxRetries} retries:`, error instanceof Error ? error.message : String(error));
+            this.logger.warn(
+              `Failed to get PUBG stats for ${sanitizedPubgName} after ${maxRetries} retries:`,
+              error instanceof Error ? error.message : String(error)
+            );
             return false;
           }
           // Wait before retry (exponential backoff)
           await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
         }
       }
-      
+
       if (!pubgStats || !pubgStats.gameModeStats) {
         this.logger.warn(`No stats found for player: ${sanitizedPubgName}`);
         return false;
@@ -323,14 +565,14 @@ export class RankService {
       // Get ranked stats from squad mode (most common for ranked)
       const gameModes = ['squad-fpp', 'squad', 'solo-fpp', 'solo', 'duo-fpp', 'duo'];
       let rankedStats = null;
-      
+
       for (const mode of gameModes) {
         if (pubgStats.gameModeStats && (pubgStats.gameModeStats as any)[mode]) {
           rankedStats = (pubgStats.gameModeStats as any)[mode];
           break;
         }
       }
-      
+
       if (!rankedStats && pubgStats.gameModeStats) {
         // Fallback to any available game mode
         const availableModes = Object.keys(pubgStats.gameModeStats);
@@ -341,7 +583,7 @@ export class RankService {
           }
         }
       }
-      
+
       if (!rankedStats) {
         this.logger.warn(`No game mode stats found for player: ${sanitizedPubgName}`);
         return false;
@@ -362,27 +604,29 @@ export class RankService {
       // Find matching rank mapping
       const rankMapping = this.getRankMappingByRP(currentRP);
       if (!rankMapping) {
-        this.logger.warn(`No rank mapping found for RP: ${currentRP} (player: ${sanitizedPubgName})`);
+        this.logger.warn(
+          `No rank mapping found for RP: ${currentRP} (player: ${sanitizedPubgName})`
+        );
         return false;
       }
 
       // Save to database using transaction for consistency
-      await this.database.client.$transaction(async (tx) => {
+      await this.database.client.$transaction(async tx => {
         // Update or create PUBG stats
         await tx.pUBGStats.upsert({
           where: {
             userId_seasonId_gameMode: {
               userId: discordId,
               seasonId: 'current',
-              gameMode: 'squad'
-            }
+              gameMode: 'squad',
+            },
           },
           update: {
             currentTier: currentTier,
             currentSubTier: currentSubTier,
             currentRankPoint: currentRP,
             playerName: sanitizedPubgName,
-            updatedAt: new Date()
+            updatedAt: new Date(),
           },
           create: {
             userId: discordId,
@@ -393,8 +637,8 @@ export class RankService {
             gameMode: 'squad',
             currentTier: currentTier,
             currentSubTier: currentSubTier,
-            currentRankPoint: currentRP
-          }
+            currentRankPoint: currentRP,
+          },
         });
 
         // Update user's PUBG username if different
@@ -402,14 +646,17 @@ export class RankService {
           where: { id: discordId },
           data: {
             pubgUsername: sanitizedPubgName,
-            updatedAt: new Date()
-          }
+            updatedAt: new Date(),
+          },
         });
       });
 
       // Update Discord roles (non-blocking)
       this.updateDiscordRoles(discordId, rankMapping).catch(error => {
-        this.logger.error(`Failed to update Discord roles for user ${discordId}:`, error instanceof Error ? error.message : String(error));
+        this.logger.error(
+          `Failed to update Discord roles for user ${discordId}:`,
+          error instanceof Error ? error.message : String(error)
+        );
       });
 
       // Cache the result
@@ -419,21 +666,23 @@ export class RankService {
         currentTier,
         currentSubTier,
         currentRP,
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       };
-      
+
       await this.cache.set(cacheKey, JSON.stringify(rankData), 7200); // 2 hours
-      
+
       // Clear related cache
       await this.cache.del('rank_leaderboard');
 
-      this.logger.info(`🎖️ Updated rank for ${sanitizedPubgName}: ${rankMapping.roleName} (${currentRP} RP)`);
+      this.logger.info(
+        `🎖️ Updated rank for ${sanitizedPubgName}: ${rankMapping.roleName} (${currentRP} RP)`
+      );
       return true;
     } catch (error) {
       this.logger.error(`❌ Failed to update rank for user ${discordId}:`, {
         error: error instanceof Error ? error.message : String(error),
         pubgName: pubgName,
-        discordId
+        discordId,
       });
       return false;
     }
@@ -448,18 +697,20 @@ export class RankService {
       if (!discordId || typeof discordId !== 'string') {
         throw new Error('Discord ID is required and must be a string');
       }
-      
+
       if (!rankMapping || !rankMapping.roleName) {
         throw new Error('Valid rank mapping is required');
       }
 
       // Get all guilds the bot is in
       const guilds = this.client.guilds.cache;
-      
+
       for (const [, guild] of guilds) {
         try {
           const member = await guild.members.fetch(discordId).catch(() => null);
-          if (!member) continue;
+          if (!member) {
+            continue;
+          }
 
           // Check if member has necessary permissions (not a bot, not owner)
           if (member.user.bot) {
@@ -477,16 +728,21 @@ export class RankService {
 
           // Add new rank role
           await this.addRankRole(member, guild, rankMapping);
-          
-          this.logger.debug(`✅ Updated Discord roles for ${member.user.tag}: ${rankMapping.roleName}`);
+
+          this.logger.debug(
+            `✅ Updated Discord roles for ${member.user.tag}: ${rankMapping.roleName}`
+          );
         } catch (error) {
-          this.logger.error(`Failed to update roles in guild ${guild.name}:`, error instanceof Error ? error.message : String(error));
+          this.logger.error(
+            `Failed to update roles in guild ${guild.name}:`,
+            error instanceof Error ? error.message : String(error)
+          );
         }
       }
     } catch (error) {
       this.logger.error(`❌ Failed to update Discord roles for ${discordId}:`, {
         error: error instanceof Error ? error.message : String(error),
-        rankMapping: rankMapping?.roleName
+        rankMapping: rankMapping?.roleName,
       });
       // Don't throw error to prevent breaking the rank update process
     }
@@ -502,17 +758,18 @@ export class RankService {
       }
 
       const rankRoleNames = Array.from(this.rankMappings.values()).map(mapping => mapping.roleName);
-      
-      const rolesToRemove = member.roles.cache.filter(role => 
-        rankRoleNames.includes(role.name)
-      );
+
+      const rolesToRemove = member.roles.cache.filter(role => rankRoleNames.includes(role.name));
 
       if (rolesToRemove.size > 0) {
         await member.roles.remove(rolesToRemove, 'Rank update - removing old rank roles');
         this.logger.debug(`Removed ${rolesToRemove.size} old rank roles from ${member.user.tag}`);
       }
     } catch (error) {
-      this.logger.error(`Failed to remove old rank roles from ${member?.user?.tag}:`, error instanceof Error ? error.message : String(error));
+      this.logger.error(
+        `Failed to remove old rank roles from ${member?.user?.tag}:`,
+        error instanceof Error ? error.message : String(error)
+      );
       // Don't throw to prevent breaking the process
     }
   }
@@ -520,14 +777,18 @@ export class RankService {
   /**
    * Add rank role to member
    */
-  private async addRankRole(member: GuildMember, guild: Guild, rankMapping: RankMapping): Promise<void> {
+  private async addRankRole(
+    member: GuildMember,
+    guild: Guild,
+    rankMapping: RankMapping
+  ): Promise<void> {
     try {
       if (!member || !guild || !rankMapping) {
         return;
       }
 
       let role = guild.roles.cache.find(r => r.name === rankMapping.roleName);
-      
+
       // Create role if it doesn't exist
       if (!role) {
         try {
@@ -537,12 +798,15 @@ export class RankService {
             reason: 'Auto-created for PUBG rank system',
             position: rankMapping.priority,
             mentionable: false,
-            hoist: false
+            hoist: false,
           });
-          
+
           this.logger.info(`Created new rank role: ${rankMapping.roleName} in guild ${guild.name}`);
         } catch (createError) {
-          this.logger.error(`Failed to create role ${rankMapping.roleName}:`, createError instanceof Error ? createError.message : String(createError));
+          this.logger.error(
+            `Failed to create role ${rankMapping.roleName}:`,
+            createError instanceof Error ? createError.message : String(createError)
+          );
           return;
         }
       }
@@ -553,13 +817,16 @@ export class RankService {
           await member.roles.add(role, `PUBG Rank Update: ${rankMapping.roleName}`);
           this.logger.debug(`Added rank role ${rankMapping.roleName} to ${member.user.tag}`);
         } catch (addError) {
-          this.logger.error(`Failed to add role ${rankMapping.roleName} to ${member.user.tag}:`, addError instanceof Error ? addError.message : String(addError));
+          this.logger.error(
+            `Failed to add role ${rankMapping.roleName} to ${member.user.tag}:`,
+            addError instanceof Error ? addError.message : String(addError)
+          );
         }
       }
     } catch (error) {
       this.logger.error(`Failed to add rank role to ${member?.user?.tag}:`, {
         error: error instanceof Error ? error.message : String(error),
-        roleName: rankMapping?.roleName
+        roleName: rankMapping?.roleName,
       });
     }
   }
@@ -586,12 +853,12 @@ export class RankService {
           }
         }
       }
-      
+
       return null;
     } catch (error) {
       this.logger.error('Error finding rank mapping by RP:', {
         error: error instanceof Error ? error.message : String(error),
-        rp
+        rp,
       });
       return null;
     }
@@ -608,10 +875,10 @@ export class RankService {
       }
 
       const cacheKey = `user_rank_${discordId}`;
-      
+
       try {
         const cachedData = await this.cache.get<string>(cacheKey);
-        
+
         if (cachedData) {
           const parsedData = JSON.parse(cachedData);
           // Validate cached data structure
@@ -622,7 +889,10 @@ export class RankService {
           await this.cache.del(cacheKey);
         }
       } catch (cacheError) {
-        this.logger.warn(`Cache error for user ${discordId}:`, cacheError instanceof Error ? cacheError.message : String(cacheError));
+        this.logger.warn(
+          `Cache error for user ${discordId}:`,
+          cacheError instanceof Error ? cacheError.message : String(cacheError)
+        );
         await this.cache.del(cacheKey);
       }
 
@@ -634,9 +904,9 @@ export class RankService {
           pubgStats: {
             where: { seasonId: 'current' },
             orderBy: { updatedAt: 'desc' },
-            take: 1
-          }
-        }
+            take: 1,
+          },
+        },
       });
 
       if (!user || !user.pubgUsername) {
@@ -645,14 +915,14 @@ export class RankService {
 
       const pubgStats = user.pubgStats[0];
       const currentRP = Math.max(0, pubgStats?.currentRankPoint || 0);
-      
+
       const rankData: UserRankData = {
         userId: discordId,
         pubgName: user.pubgUsername,
         currentTier: pubgStats?.currentTier || 'Unranked',
         currentSubTier: pubgStats?.currentSubTier || '',
         currentRP: currentRP,
-        lastUpdated: pubgStats?.updatedAt || new Date()
+        lastUpdated: pubgStats?.updatedAt || new Date(),
       };
 
       // Cache the result
@@ -662,7 +932,7 @@ export class RankService {
     } catch (error) {
       this.logger.error(`❌ Failed to get rank data for user ${discordId}:`, {
         error: error instanceof Error ? error.message : String(error),
-        discordId
+        discordId,
       });
       return null;
     }
@@ -683,10 +953,10 @@ export class RankService {
       }
 
       const cacheKey = `rank_leaderboard_${limit}_${guildId || 'global'}`;
-      
+
       try {
         const cachedData = await this.cache.get<string>(cacheKey);
-        
+
         if (cachedData) {
           const leaderboard = JSON.parse(cachedData);
           if (Array.isArray(leaderboard)) {
@@ -696,7 +966,10 @@ export class RankService {
           await this.cache.del(cacheKey);
         }
       } catch (cacheError) {
-        this.logger.warn(`Cache error for leaderboard:`, cacheError instanceof Error ? cacheError.message : String(cacheError));
+        this.logger.warn(
+          'Cache error for leaderboard:',
+          cacheError instanceof Error ? cacheError.message : String(cacheError)
+        );
         await this.cache.del(cacheKey);
       }
 
@@ -706,10 +979,10 @@ export class RankService {
           some: {
             seasonId: 'current',
             currentRankPoint: {
-              gt: 0
-            }
-          }
-        }
+              gt: 0,
+            },
+          },
+        },
       };
 
       // Add guild filter if specified
@@ -723,10 +996,10 @@ export class RankService {
         include: {
           pubgStats: {
             where: {
-              seasonId: 'current'
+              seasonId: 'current',
             },
             orderBy: {
-              currentRankPoint: 'desc'
+              currentRankPoint: 'desc',
             },
             take: 1,
             select: {
@@ -734,16 +1007,16 @@ export class RankService {
               currentTier: true,
               currentSubTier: true,
               currentRankPoint: true,
-              updatedAt: true
-            }
-          }
+              updatedAt: true,
+            },
+          },
         },
         orderBy: [
           {
-            updatedAt: 'desc'
-          }
+            updatedAt: 'desc',
+          },
         ],
-        take: limit
+        take: limit,
       });
 
       const leaderboard: UserRankData[] = users
@@ -752,7 +1025,7 @@ export class RankService {
           const pubgStats = user.pubgStats[0];
           const currentRP = Math.max(0, pubgStats?.currentRankPoint || 0);
           const rankMapping = this.getRankMappingByRP(currentRP);
-          
+
           return {
             userId: user.id,
             pubgName: pubgStats?.playerName || user.pubgUsername || '',
@@ -761,20 +1034,20 @@ export class RankService {
             currentRP: currentRP,
             lastUpdated: pubgStats?.updatedAt || new Date(),
             position: index + 1,
-            rankMapping: rankMapping || undefined
+            rankMapping: rankMapping || undefined,
           };
         })
         .filter(data => data.currentRP > 0); // Ensure only users with RP > 0
 
       // Cache for 30 minutes
       await this.cache.set(cacheKey, JSON.stringify(leaderboard), 1800);
-      
+
       return leaderboard;
     } catch (error) {
       this.logger.error('❌ Failed to get rank leaderboard:', {
         error: error instanceof Error ? error.message : String(error),
         limit,
-        guildId
+        guildId,
       });
       return [];
     }
@@ -789,33 +1062,33 @@ export class RankService {
       if (!discordId || typeof discordId !== 'string') {
         throw new Error('Discord ID is required and must be a string');
       }
-      
+
       if (!pubgName || typeof pubgName !== 'string') {
         throw new Error('PUBG name is required and must be a string');
       }
 
       // Clear related cache
-      const cacheKeys = [
-        `user_rank_${discordId}`,
-        'rank_leaderboard',
-        `rank_leaderboard_*`
-      ];
-      
-      await Promise.all(cacheKeys.map(key => 
-        key.includes('*') ? this.cache.clearPattern(key) : this.cache.del(key)
-      ));
-      
+      const cacheKeys = [`user_rank_${discordId}`, 'rank_leaderboard', 'rank_leaderboard_*'];
+
+      await Promise.all(
+        cacheKeys.map(key =>
+          key.includes('*') ? this.cache.clearPattern(key) : this.cache.del(key)
+        )
+      );
+
       // Update rank with force flag
       const result = await this.updateUserRank(discordId, pubgName, true);
-      
-      this.logger.info(`🔄 Force updated rank for user ${discordId}: ${result ? 'success' : 'failed'}`);
-      
+
+      this.logger.info(
+        `🔄 Force updated rank for user ${discordId}: ${result ? 'success' : 'failed'}`
+      );
+
       return result;
     } catch (error) {
       this.logger.error(`❌ Failed to force update rank for user ${discordId}:`, {
         error: error instanceof Error ? error.message : String(error),
         discordId,
-        pubgName
+        pubgName,
       });
       return false;
     }
@@ -835,7 +1108,10 @@ export class RankService {
         .filter(mapping => mapping && typeof mapping.priority === 'number')
         .sort((a, b) => a.priority - b.priority);
     } catch (error) {
-      this.logger.error('Error getting rank mappings:', error instanceof Error ? error.message : String(error));
+      this.logger.error(
+        'Error getting rank mappings:',
+        error instanceof Error ? error.message : String(error)
+      );
       return [];
     }
   }
@@ -852,7 +1128,10 @@ export class RankService {
         this.logger.debug('No scheduled updates to stop');
       }
     } catch (error) {
-      this.logger.error('Error stopping scheduled updates:', error instanceof Error ? error.message : String(error));
+      this.logger.error(
+        'Error stopping scheduled updates:',
+        error instanceof Error ? error.message : String(error)
+      );
     }
   }
 
@@ -864,10 +1143,10 @@ export class RankService {
       const now = new Date();
       const today4AM = new Date(now);
       today4AM.setUTCHours(4, 0, 0, 0);
-      
+
       const today4PM = new Date(now);
       today4PM.setUTCHours(16, 0, 0, 0);
-      
+
       const tomorrow4AM = new Date(today4AM);
       tomorrow4AM.setDate(tomorrow4AM.getDate() + 1);
 
@@ -879,7 +1158,10 @@ export class RankService {
         return tomorrow4AM;
       }
     } catch (error) {
-      this.logger.error('Error calculating next update time:', error instanceof Error ? error.message : String(error));
+      this.logger.error(
+        'Error calculating next update time:',
+        error instanceof Error ? error.message : String(error)
+      );
       // Return a default time (1 hour from now)
       const fallback = new Date();
       fallback.setHours(fallback.getHours() + 1);
@@ -903,19 +1185,19 @@ export class RankService {
         where: {
           seasonId: 'current',
           currentRankPoint: {
-            gt: 0
-          }
+            gt: 0,
+          },
         },
         _count: {
-          userId: true
+          userId: true,
         },
         _avg: {
-          currentRankPoint: true
+          currentRankPoint: true,
         },
         _max: {
           currentRankPoint: true,
-          updatedAt: true
-        }
+          updatedAt: true,
+        },
       });
 
       // Get total users with PUBG usernames
@@ -924,16 +1206,16 @@ export class RankService {
           AND: [
             {
               pubgUsername: {
-                not: null
-              }
+                not: null,
+              },
             },
             {
               pubgUsername: {
-                not: ''
-              }
-            }
-          ]
-        }
+                not: '',
+              },
+            },
+          ],
+        },
       });
 
       // Get rank distribution
@@ -944,9 +1226,9 @@ export class RankService {
             seasonId: 'current',
             currentRankPoint: {
               gte: mapping.minRP,
-              lte: mapping.maxRP
-            }
-          }
+              lte: mapping.maxRP,
+            },
+          },
         });
         rankDistribution[mapping.tier] = count;
       }
@@ -961,17 +1243,20 @@ export class RankService {
         averageRP: Math.round(stats._avg.currentRankPoint || 0),
         topTier: topMapping?.tier || 'Unknown',
         lastUpdate: stats._max.updatedAt,
-        rankDistribution
+        rankDistribution,
       };
     } catch (error) {
-      this.logger.error('❌ Failed to get rank statistics:', error instanceof Error ? error.message : String(error));
+      this.logger.error(
+        '❌ Failed to get rank statistics:',
+        error instanceof Error ? error.message : String(error)
+      );
       return {
         totalUsers: 0,
         rankedUsers: 0,
         averageRP: 0,
         topTier: 'Unknown',
         lastUpdate: null,
-        rankDistribution: {}
+        rankDistribution: {},
       };
     }
   }
@@ -987,19 +1272,15 @@ export class RankService {
         this.logger.debug(`Cleared rank cache for user: ${userId}`);
       } else {
         // Clear all rank-related cache
-        const patterns = [
-          'user_rank_*',
-          'rank_leaderboard*',
-          'last_rank_update'
-        ];
-        
+        const patterns = ['user_rank_*', 'rank_leaderboard*', 'last_rank_update'];
+
         await Promise.all(patterns.map(pattern => this.cache.clearPattern(pattern)));
         this.logger.info('🧹 Cleared all rank cache');
       }
     } catch (error) {
       this.logger.error('❌ Failed to clear rank cache:', {
         error: error instanceof Error ? error.message : String(error),
-        userId
+        userId,
       });
     }
   }
@@ -1016,11 +1297,11 @@ export class RankService {
       const userStats = await this.database.client.pUBGStats.findFirst({
         where: {
           userId: discordId,
-          seasonId: 'current'
+          seasonId: 'current',
         },
         select: {
-          currentRankPoint: true
-        }
+          currentRankPoint: true,
+        },
       });
 
       if (!userStats || !userStats.currentRankPoint) {
@@ -1031,14 +1312,17 @@ export class RankService {
         where: {
           seasonId: 'current',
           currentRankPoint: {
-            gt: userStats.currentRankPoint
-          }
-        }
+            gt: userStats.currentRankPoint,
+          },
+        },
       });
 
       return higherRankedCount + 1;
     } catch (error) {
-      this.logger.error(`❌ Failed to get rank position for user ${discordId}:`, error instanceof Error ? error.message : String(error));
+      this.logger.error(
+        `❌ Failed to get rank position for user ${discordId}:`,
+        error instanceof Error ? error.message : String(error)
+      );
       return null;
     }
   }
@@ -1058,11 +1342,21 @@ export class RankService {
 
       // Check for required fields
       mappings.forEach((mapping, index) => {
-        if (!mapping.tier) errors.push(`Mapping ${index}: missing tier`);
-        if (!mapping.roleName) errors.push(`Mapping ${index}: missing roleName`);
-        if (typeof mapping.minRP !== 'number') errors.push(`Mapping ${index}: invalid minRP`);
-        if (typeof mapping.maxRP !== 'number') errors.push(`Mapping ${index}: invalid maxRP`);
-        if (mapping.minRP >= mapping.maxRP) errors.push(`Mapping ${index}: minRP >= maxRP`);
+        if (!mapping.tier) {
+          errors.push(`Mapping ${index}: missing tier`);
+        }
+        if (!mapping.roleName) {
+          errors.push(`Mapping ${index}: missing roleName`);
+        }
+        if (typeof mapping.minRP !== 'number') {
+          errors.push(`Mapping ${index}: invalid minRP`);
+        }
+        if (typeof mapping.maxRP !== 'number') {
+          errors.push(`Mapping ${index}: invalid maxRP`);
+        }
+        if (mapping.minRP >= mapping.maxRP) {
+          errors.push(`Mapping ${index}: minRP >= maxRP`);
+        }
       });
 
       // Check for overlaps
@@ -1070,8 +1364,8 @@ export class RankService {
         for (let j = i + 1; j < mappings.length; j++) {
           const a = mappings[i];
           const b = mappings[j];
-          
-          if (a && b && (a.minRP <= b.maxRP && a.maxRP >= b.minRP)) {
+
+          if (a && b && a.minRP <= b.maxRP && a.maxRP >= b.minRP) {
             errors.push(`Overlap between ${a.tier} and ${b.tier}`);
           }
         }
@@ -1085,7 +1379,10 @@ export class RankService {
       this.logger.info(`✅ Validated ${mappings.length} rank mappings`);
       return true;
     } catch (error) {
-      this.logger.error('Error validating rank mappings:', error instanceof Error ? error.message : String(error));
+      this.logger.error(
+        'Error validating rank mappings:',
+        error instanceof Error ? error.message : String(error)
+      );
       return false;
     }
   }

@@ -1,15 +1,15 @@
-import { 
-  Guild, 
-  GuildMember, 
-  TextChannel, 
-  VoiceChannel, 
+import {
+  Guild,
+  GuildMember,
+  TextChannel,
+  VoiceChannel,
   CategoryChannel,
   PermissionFlagsBits,
   ChannelType,
   User,
   Role,
   GuildChannel,
-  PermissionsBitField
+  PermissionsBitField,
 } from 'discord.js';
 import { Logger } from './logger';
 
@@ -22,24 +22,15 @@ export class DiscordUtils {
   /**
    * Permission checks
    */
-  static hasPermission(
-    member: GuildMember,
-    permission: bigint
-  ): boolean {
+  static hasPermission(member: GuildMember, permission: bigint): boolean {
     return member.permissions.has(permission);
   }
 
-  static hasAnyPermission(
-    member: GuildMember,
-    permissions: bigint[]
-  ): boolean {
+  static hasAnyPermission(member: GuildMember, permissions: bigint[]): boolean {
     return permissions.some(permission => member.permissions.has(permission));
   }
 
-  static hasAllPermissions(
-    member: GuildMember,
-    permissions: bigint[]
-  ): boolean {
+  static hasAllPermissions(member: GuildMember, permissions: bigint[]): boolean {
     return permissions.every(permission => member.permissions.has(permission));
   }
 
@@ -53,14 +44,14 @@ export class DiscordUtils {
       PermissionFlagsBits.ModerateMembers,
       PermissionFlagsBits.BanMembers,
       PermissionFlagsBits.KickMembers,
-      PermissionFlagsBits.ManageMessages
+      PermissionFlagsBits.ManageMessages,
     ]);
   }
 
   static canManageServer(member: GuildMember): boolean {
     return this.hasAnyPermission(member, [
       PermissionFlagsBits.Administrator,
-      PermissionFlagsBits.ManageGuild
+      PermissionFlagsBits.ManageGuild,
     ]);
   }
 
@@ -75,14 +66,12 @@ export class DiscordUtils {
     try {
       // Try by ID first
       let channel = guild.channels.cache.get(identifier);
-      
+
       if (!channel) {
         // Try by name
-        channel = guild.channels.cache.find(c => 
-          c.name.toLowerCase() === identifier.toLowerCase()
-        );
+        channel = guild.channels.cache.find(c => c.name.toLowerCase() === identifier.toLowerCase());
       }
-      
+
       if (!channel) {
         // Try by mention format
         const mentionMatch = identifier.match(/^<#(\d+)>$/);
@@ -90,39 +79,30 @@ export class DiscordUtils {
           channel = guild.channels.cache.get(mentionMatch[1]);
         }
       }
-      
+
       // Check type if specified
       if (channel && type && channel.type !== type) {
         return null;
       }
-      
-      return (channel && 'guild' in channel) ? channel as GuildChannel : null;
+
+      return channel && 'guild' in channel ? (channel as GuildChannel) : null;
     } catch (error) {
       this.logger.error(`Failed to find channel ${identifier}:`, error);
       return null;
     }
   }
 
-  static async findTextChannel(
-    guild: Guild,
-    identifier: string
-  ): Promise<TextChannel | null> {
+  static async findTextChannel(guild: Guild, identifier: string): Promise<TextChannel | null> {
     const channel = await this.findChannel(guild, identifier, ChannelType.GuildText);
     return channel as TextChannel | null;
   }
 
-  static async findVoiceChannel(
-    guild: Guild,
-    identifier: string
-  ): Promise<VoiceChannel | null> {
+  static async findVoiceChannel(guild: Guild, identifier: string): Promise<VoiceChannel | null> {
     const channel = await this.findChannel(guild, identifier, ChannelType.GuildVoice);
     return channel as VoiceChannel | null;
   }
 
-  static async findCategory(
-    guild: Guild,
-    identifier: string
-  ): Promise<CategoryChannel | null> {
+  static async findCategory(guild: Guild, identifier: string): Promise<CategoryChannel | null> {
     const channel = await this.findChannel(guild, identifier, ChannelType.GuildCategory);
     return channel as CategoryChannel | null;
   }
@@ -130,21 +110,16 @@ export class DiscordUtils {
   /**
    * Role operations
    */
-  static async findRole(
-    guild: Guild,
-    identifier: string
-  ): Promise<Role | null> {
+  static async findRole(guild: Guild, identifier: string): Promise<Role | null> {
     try {
       // Try by ID first
       let role = guild.roles.cache.get(identifier);
-      
+
       if (!role) {
         // Try by name
-        role = guild.roles.cache.find(r => 
-          r.name.toLowerCase() === identifier.toLowerCase()
-        );
+        role = guild.roles.cache.find(r => r.name.toLowerCase() === identifier.toLowerCase());
       }
-      
+
       if (!role) {
         // Try by mention format
         const mentionMatch = identifier.match(/^<@&(\d+)>$/);
@@ -152,7 +127,7 @@ export class DiscordUtils {
           role = guild.roles.cache.get(mentionMatch[1]);
         }
       }
-      
+
       return role || null;
     } catch (error) {
       this.logger.error(`Failed to find role ${identifier}:`, error);
@@ -167,7 +142,7 @@ export class DiscordUtils {
   ): Promise<boolean> {
     try {
       let roleObj: Role | null;
-      
+
       if (typeof role === 'string') {
         roleObj = await this.findRole(member.guild, role);
         if (!roleObj) {
@@ -177,11 +152,11 @@ export class DiscordUtils {
       } else {
         roleObj = role;
       }
-      
+
       if (member.roles.cache.has(roleObj.id)) {
         return true; // Already has role
       }
-      
+
       await member.roles.add(roleObj, reason);
       return true;
     } catch (error) {
@@ -197,7 +172,7 @@ export class DiscordUtils {
   ): Promise<boolean> {
     try {
       let roleObj: Role | null;
-      
+
       if (typeof role === 'string') {
         roleObj = await this.findRole(member.guild, role);
         if (!roleObj) {
@@ -206,11 +181,11 @@ export class DiscordUtils {
       } else {
         roleObj = role;
       }
-      
+
       if (!member.roles.cache.has(roleObj.id)) {
         return true; // Doesn't have role
       }
-      
+
       await member.roles.remove(roleObj, reason);
       return true;
     } catch (error) {
@@ -222,22 +197,20 @@ export class DiscordUtils {
   /**
    * Member operations
    */
-  static async findMember(
-    guild: Guild,
-    identifier: string
-  ): Promise<GuildMember | null> {
+  static async findMember(guild: Guild, identifier: string): Promise<GuildMember | null> {
     try {
       // Try by ID first
       let member = guild.members.cache.get(identifier);
-      
+
       if (!member) {
         // Try by username or display name
-        member = guild.members.cache.find(m => 
-          m.user.username.toLowerCase() === identifier.toLowerCase() ||
-          m.displayName.toLowerCase() === identifier.toLowerCase()
+        member = guild.members.cache.find(
+          m =>
+            m.user.username.toLowerCase() === identifier.toLowerCase() ||
+            m.displayName.toLowerCase() === identifier.toLowerCase()
         );
       }
-      
+
       if (!member) {
         // Try by mention format
         const mentionMatch = identifier.match(/^<@!?(\d+)>$/);
@@ -245,7 +218,7 @@ export class DiscordUtils {
           member = guild.members.cache.get(mentionMatch[1]);
         }
       }
-      
+
       if (!member) {
         // Try to fetch from API
         try {
@@ -254,7 +227,7 @@ export class DiscordUtils {
           // Ignore fetch errors
         }
       }
-      
+
       return member || null;
     } catch (error) {
       this.logger.error(`Failed to find member ${identifier}:`, error);
@@ -262,10 +235,7 @@ export class DiscordUtils {
     }
   }
 
-  static async kickMember(
-    member: GuildMember,
-    reason?: string
-  ): Promise<boolean> {
+  static async kickMember(member: GuildMember, reason?: string): Promise<boolean> {
     try {
       await member.kick(reason);
       return true;
@@ -281,9 +251,9 @@ export class DiscordUtils {
     deleteMessageDays?: number
   ): Promise<boolean> {
     try {
-      await member.ban({ 
+      await member.ban({
         reason,
-        deleteMessageDays: deleteMessageDays || 0
+        deleteMessageDays: deleteMessageDays || 0,
       });
       return true;
     } catch (error) {
@@ -317,24 +287,26 @@ export class DiscordUtils {
     try {
       const messages = await channel.messages.fetch({ limit: amount });
       let messagesToDelete = Array.from(messages.values());
-      
+
       if (filterFn) {
         messagesToDelete = messagesToDelete.filter(filterFn);
       }
-      
+
       // Discord only allows bulk delete for messages younger than 14 days
       const twoWeeksAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
       const bulkDeleteMessages = messagesToDelete.filter(msg => msg.createdTimestamp > twoWeeksAgo);
-      const individualDeleteMessages = messagesToDelete.filter(msg => msg.createdTimestamp <= twoWeeksAgo);
-      
+      const individualDeleteMessages = messagesToDelete.filter(
+        msg => msg.createdTimestamp <= twoWeeksAgo
+      );
+
       let deletedCount = 0;
-      
+
       // Bulk delete newer messages
       if (bulkDeleteMessages.length > 0) {
         const deleted = await channel.bulkDelete(bulkDeleteMessages, true);
         deletedCount += deleted.size;
       }
-      
+
       // Individual delete older messages
       for (const message of individualDeleteMessages) {
         try {
@@ -344,7 +316,7 @@ export class DiscordUtils {
           // Ignore individual delete errors
         }
       }
-      
+
       return deletedCount;
     } catch (error) {
       this.logger.error(`Failed to bulk delete messages in ${channel.id}:`, error);
@@ -360,7 +332,7 @@ export class DiscordUtils {
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
-    
+
     if (days > 0) {
       return `${days}d ${hours % 24}h ${minutes % 60}m`;
     } else if (hours > 0) {
@@ -376,12 +348,14 @@ export class DiscordUtils {
     const regex = /(\d+)([smhd])/g;
     let totalMs = 0;
     let match;
-    
+
     while ((match = regex.exec(duration.toLowerCase())) !== null) {
-      if (!match[1] || !match[2]) continue;
+      if (!match[1] || !match[2]) {
+        continue;
+      }
       const value = parseInt(match[1]);
       const unit = match[2];
-      
+
       switch (unit) {
         case 's':
           totalMs += value * 1000;
@@ -397,7 +371,7 @@ export class DiscordUtils {
           break;
       }
     }
-    
+
     return totalMs > 0 ? totalMs : null;
   }
 

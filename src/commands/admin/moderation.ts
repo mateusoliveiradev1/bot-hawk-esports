@@ -6,7 +6,7 @@ import {
   PermissionFlagsBits,
   User,
   GuildMember,
-  TextChannel
+  TextChannel,
 } from 'discord.js';
 import { Command, CommandCategory } from '@/types/command';
 import { ExtendedClient } from '@/types/client';
@@ -24,16 +24,10 @@ const moderation: Command = {
         .setName('ban')
         .setDescription('Banir um usuário do servidor')
         .addUserOption(option =>
-          option
-            .setName('usuario')
-            .setDescription('Usuário a ser banido')
-            .setRequired(true)
+          option.setName('usuario').setDescription('Usuário a ser banido').setRequired(true)
         )
         .addStringOption(option =>
-          option
-            .setName('motivo')
-            .setDescription('Motivo do banimento')
-            .setRequired(false)
+          option.setName('motivo').setDescription('Motivo do banimento').setRequired(false)
         )
         .addIntegerOption(option =>
           option
@@ -49,16 +43,10 @@ const moderation: Command = {
         .setName('kick')
         .setDescription('Expulsar um usuário do servidor')
         .addUserOption(option =>
-          option
-            .setName('usuario')
-            .setDescription('Usuário a ser expulso')
-            .setRequired(true)
+          option.setName('usuario').setDescription('Usuário a ser expulso').setRequired(true)
         )
         .addStringOption(option =>
-          option
-            .setName('motivo')
-            .setDescription('Motivo da expulsão')
-            .setRequired(false)
+          option.setName('motivo').setDescription('Motivo da expulsão').setRequired(false)
         )
     )
     .addSubcommand(subcommand =>
@@ -66,10 +54,7 @@ const moderation: Command = {
         .setName('mute')
         .setDescription('Silenciar um usuário')
         .addUserOption(option =>
-          option
-            .setName('usuario')
-            .setDescription('Usuário a ser silenciado')
-            .setRequired(true)
+          option.setName('usuario').setDescription('Usuário a ser silenciado').setRequired(true)
         )
         .addStringOption(option =>
           option
@@ -78,10 +63,7 @@ const moderation: Command = {
             .setRequired(true)
         )
         .addStringOption(option =>
-          option
-            .setName('motivo')
-            .setDescription('Motivo do silenciamento')
-            .setRequired(false)
+          option.setName('motivo').setDescription('Motivo do silenciamento').setRequired(false)
         )
     )
     .addSubcommand(subcommand =>
@@ -100,16 +82,10 @@ const moderation: Command = {
         .setName('warn')
         .setDescription('Dar um aviso a um usuário')
         .addUserOption(option =>
-          option
-            .setName('usuario')
-            .setDescription('Usuário a receber o aviso')
-            .setRequired(true)
+          option.setName('usuario').setDescription('Usuário a receber o aviso').setRequired(true)
         )
         .addStringOption(option =>
-          option
-            .setName('motivo')
-            .setDescription('Motivo do aviso')
-            .setRequired(true)
+          option.setName('motivo').setDescription('Motivo do aviso').setRequired(true)
         )
     )
     .addSubcommand(subcommand =>
@@ -117,16 +93,10 @@ const moderation: Command = {
         .setName('unwarn')
         .setDescription('Remover um aviso de um usuário')
         .addUserOption(option =>
-          option
-            .setName('usuario')
-            .setDescription('Usuário para remover o aviso')
-            .setRequired(true)
+          option.setName('usuario').setDescription('Usuário para remover o aviso').setRequired(true)
         )
         .addStringOption(option =>
-          option
-            .setName('aviso_id')
-            .setDescription('ID do aviso a ser removido')
-            .setRequired(false)
+          option.setName('aviso_id').setDescription('ID do aviso a ser removido').setRequired(false)
         )
     )
     .addSubcommand(subcommand =>
@@ -173,11 +143,14 @@ const moderation: Command = {
         )
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers) as SlashCommandBuilder,
-  
+
   category: CommandCategory.ADMIN,
   cooldown: 3,
-  
-  async execute(interaction: CommandInteraction | ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+
+  async execute(
+    interaction: CommandInteraction | ChatInputCommandInteraction,
+    client: ExtendedClient
+  ): Promise<void> {
     const logger = new Logger();
 
     try {
@@ -191,55 +164,54 @@ const moderation: Command = {
         case 'ban':
           await handleBanCommand(interaction as ChatInputCommandInteraction, client, moderator);
           break;
-        
+
         case 'kick':
           await handleKickCommand(interaction as ChatInputCommandInteraction, client, moderator);
           break;
-        
+
         case 'mute':
           await handleMuteCommand(interaction as ChatInputCommandInteraction, client, moderator);
           break;
-        
+
         case 'unmute':
           await handleUnmuteCommand(interaction as ChatInputCommandInteraction, client, moderator);
           break;
-        
+
         case 'warn':
           await handleWarnCommand(interaction as ChatInputCommandInteraction, client, moderator);
           break;
-        
+
         case 'unwarn':
           await handleUnwarnCommand(interaction as ChatInputCommandInteraction, client, moderator);
           break;
-        
+
         case 'clear':
           await handleClearCommand(interaction as ChatInputCommandInteraction, client, moderator);
           break;
-        
+
         case 'logs':
           await handleLogsCommand(interaction as ChatInputCommandInteraction, client);
           break;
-        
+
         default:
           const errorEmbed = new EmbedBuilder()
             .setTitle('❌ Subcomando Inválido')
             .setDescription('Subcomando não reconhecido.')
             .setColor(0xff0000);
-          
+
           await interaction.editReply({ embeds: [errorEmbed] });
       }
-
     } catch (error) {
       logger.error('Error in moderation command:', error);
-      
+
       const errorEmbed = new EmbedBuilder()
         .setTitle('❌ Erro')
         .setDescription('Ocorreu um erro ao executar o comando de moderação.')
         .setColor(0xff0000);
-      
+
       await interaction.editReply({ embeds: [errorEmbed] });
     }
-  }
+  },
 };
 
 /**
@@ -258,7 +230,7 @@ async function handleBanCommand(
   try {
     // Check if user is in guild
     const targetMember = await guild.members.fetch(targetUser.id).catch(() => null);
-    
+
     // Check permissions
     if (targetMember) {
       const moderatorMember = await guild.members.fetch(moderator.id);
@@ -267,7 +239,7 @@ async function handleBanCommand(
           .setTitle('❌ Permissão Insuficiente')
           .setDescription('Você não pode banir este usuário devido à hierarquia de cargos.')
           .setColor(0xff0000);
-        
+
         await interaction.editReply({ embeds: [errorEmbed] });
         return;
       }
@@ -285,7 +257,7 @@ async function handleBanCommand(
         )
         .setColor(0xff0000)
         .setTimestamp();
-      
+
       await targetUser.send({ embeds: [dmEmbed] });
     } catch {
       // User has DMs disabled or blocked the bot
@@ -294,7 +266,7 @@ async function handleBanCommand(
     // Execute ban
     await guild.members.ban(targetUser.id, {
       reason: `${reason} | Moderador: ${moderator.tag}`,
-      deleteMessageDays
+      deleteMessageDays,
     });
 
     // Log the action
@@ -304,7 +276,7 @@ async function handleBanCommand(
       target: targetUser,
       reason,
       duration: null,
-      additional: { deleteMessageDays }
+      additional: { deleteMessageDays },
     });
 
     // Success response
@@ -320,13 +292,12 @@ async function handleBanCommand(
       .setTimestamp();
 
     await interaction.editReply({ embeds: [successEmbed] });
-
   } catch (error) {
     const errorEmbed = new EmbedBuilder()
       .setTitle('❌ Erro ao Banir')
       .setDescription(`Não foi possível banir **${targetUser.tag}**.\n\n**Erro:** ${error}`)
       .setColor(0xff0000);
-    
+
     await interaction.editReply({ embeds: [errorEmbed] });
   }
 }
@@ -353,7 +324,7 @@ async function handleKickCommand(
         .setTitle('❌ Permissão Insuficiente')
         .setDescription('Você não pode expulsar este usuário devido à hierarquia de cargos.')
         .setColor(0xff0000);
-      
+
       await interaction.editReply({ embeds: [errorEmbed] });
       return;
     }
@@ -370,7 +341,7 @@ async function handleKickCommand(
         )
         .setColor(0xffa500)
         .setTimestamp();
-      
+
       await targetUser.send({ embeds: [dmEmbed] });
     } catch {
       // User has DMs disabled or blocked the bot
@@ -385,7 +356,7 @@ async function handleKickCommand(
       moderator,
       target: targetUser,
       reason,
-      duration: null
+      duration: null,
     });
 
     // Success response
@@ -400,13 +371,12 @@ async function handleKickCommand(
       .setTimestamp();
 
     await interaction.editReply({ embeds: [successEmbed] });
-
   } catch (error) {
     const errorEmbed = new EmbedBuilder()
       .setTitle('❌ Erro ao Expulsar')
       .setDescription(`Não foi possível expulsar **${targetUser.tag}**.\n\n**Erro:** ${error}`)
       .setColor(0xff0000);
-    
+
     await interaction.editReply({ embeds: [errorEmbed] });
   }
 }
@@ -434,7 +404,7 @@ async function handleMuteCommand(
         .setTitle('❌ Permissão Insuficiente')
         .setDescription('Você não pode silenciar este usuário devido à hierarquia de cargos.')
         .setColor(0xff0000);
-      
+
       await interaction.editReply({ embeds: [errorEmbed] });
       return;
     }
@@ -446,7 +416,7 @@ async function handleMuteCommand(
         .setTitle('❌ Duração Inválida')
         .setDescription('Formato de duração inválido. Use: 10m, 1h, 1d, etc.')
         .setColor(0xff0000);
-      
+
       await interaction.editReply({ embeds: [errorEmbed] });
       return;
     }
@@ -460,7 +430,7 @@ async function handleMuteCommand(
       moderator,
       target: targetUser,
       reason,
-      duration: duration
+      duration: duration,
     });
 
     // Success response
@@ -476,13 +446,12 @@ async function handleMuteCommand(
       .setTimestamp();
 
     await interaction.editReply({ embeds: [successEmbed] });
-
   } catch (error) {
     const errorEmbed = new EmbedBuilder()
       .setTitle('❌ Erro ao Silenciar')
       .setDescription(`Não foi possível silenciar **${targetUser.tag}**.\n\n**Erro:** ${error}`)
       .setColor(0xff0000);
-    
+
     await interaction.editReply({ embeds: [errorEmbed] });
   }
 }
@@ -510,27 +479,26 @@ async function handleUnmuteCommand(
       moderator,
       target: targetUser,
       reason: 'Silenciamento removido',
-      duration: null
+      duration: null,
     });
 
     // Success response
     const successEmbed = new EmbedBuilder()
       .setTitle('🔊 Silenciamento Removido')
       .setDescription(`**${targetUser.tag}** pode falar novamente.`)
-      .addFields(
-        { name: '👮 Moderador', value: moderator.tag, inline: true }
-      )
+      .addFields({ name: '👮 Moderador', value: moderator.tag, inline: true })
       .setColor(0x00ff00)
       .setTimestamp();
 
     await interaction.editReply({ embeds: [successEmbed] });
-
   } catch (error) {
     const errorEmbed = new EmbedBuilder()
       .setTitle('❌ Erro ao Remover Silenciamento')
-      .setDescription(`Não foi possível remover o silenciamento de **${targetUser.tag}**.\n\n**Erro:** ${error}`)
+      .setDescription(
+        `Não foi possível remover o silenciamento de **${targetUser.tag}**.\n\n**Erro:** ${error}`
+      )
       .setColor(0xff0000);
-    
+
     await interaction.editReply({ embeds: [errorEmbed] });
   }
 }
@@ -567,7 +535,7 @@ async function handleWarnCommand(
         )
         .setColor(0xffff00)
         .setTimestamp();
-      
+
       await targetUser.send({ embeds: [dmEmbed] });
     } catch {
       // User has DMs disabled or blocked the bot
@@ -579,7 +547,7 @@ async function handleWarnCommand(
       moderator,
       target: targetUser,
       reason,
-      duration: null
+      duration: null,
     });
 
     // Success response
@@ -594,13 +562,14 @@ async function handleWarnCommand(
       .setTimestamp();
 
     await interaction.editReply({ embeds: [successEmbed] });
-
   } catch (error) {
     const errorEmbed = new EmbedBuilder()
       .setTitle('❌ Erro ao Aplicar Aviso')
-      .setDescription(`Não foi possível aplicar aviso a **${targetUser.tag}**.\n\n**Erro:** ${error}`)
+      .setDescription(
+        `Não foi possível aplicar aviso a **${targetUser.tag}**.\n\n**Erro:** ${error}`
+      )
       .setColor(0xff0000);
-    
+
     await interaction.editReply({ embeds: [errorEmbed] });
   }
 }
@@ -620,9 +589,7 @@ async function handleUnwarnCommand(
   const successEmbed = new EmbedBuilder()
     .setTitle('✅ Aviso Removido')
     .setDescription(`Aviso removido de **${targetUser.tag}** com sucesso.`)
-    .addFields(
-      { name: '👮 Moderador', value: moderator.tag, inline: true }
-    )
+    .addFields({ name: '👮 Moderador', value: moderator.tag, inline: true })
     .setColor(0x00ff00)
     .setTimestamp();
 
@@ -643,7 +610,7 @@ async function handleClearCommand(
 
   try {
     let messages;
-    
+
     if (targetUser) {
       // Fetch messages and filter by user
       const fetchedMessages = await channel.messages.fetch({ limit: Math.min(amount * 2, 100) });
@@ -659,7 +626,7 @@ async function handleClearCommand(
         .setTitle('❌ Nenhuma Mensagem Encontrada')
         .setDescription('Não foram encontradas mensagens para deletar.')
         .setColor(0xff0000);
-      
+
       await interaction.editReply({ embeds: [errorEmbed] });
       return;
     }
@@ -674,7 +641,7 @@ async function handleClearCommand(
       target: targetUser,
       reason: `Limpeza de ${messages.length} mensagens`,
       duration: null,
-      additional: { amount: messages.length, channel: channel.name }
+      additional: { amount: messages.length, channel: channel.name },
     });
 
     // Success response
@@ -689,13 +656,12 @@ async function handleClearCommand(
       .setTimestamp();
 
     await interaction.editReply({ embeds: [successEmbed] });
-
   } catch (error) {
     const errorEmbed = new EmbedBuilder()
       .setTitle('❌ Erro ao Limpar Mensagens')
       .setDescription(`Não foi possível limpar as mensagens.\n\n**Erro:** ${error}`)
       .setColor(0xff0000);
-    
+
     await interaction.editReply({ embeds: [errorEmbed] });
   }
 }
@@ -732,18 +698,25 @@ async function handleLogsCommand(
 function parseDuration(duration: string): number | null {
   const regex = /^(\d+)([smhd])$/;
   const match = duration.toLowerCase().match(regex);
-  
-  if (!match) return null;
-  
+
+  if (!match) {
+    return null;
+  }
+
   const value = parseInt(match[1]!);
   const unit = match[2];
-  
+
   switch (unit) {
-    case 's': return value * 1000;
-    case 'm': return value * 60 * 1000;
-    case 'h': return value * 60 * 60 * 1000;
-    case 'd': return value * 24 * 60 * 60 * 1000;
-    default: return null;
+    case 's':
+      return value * 1000;
+    case 'm':
+      return value * 60 * 1000;
+    case 'h':
+      return value * 60 * 60 * 1000;
+    case 'd':
+      return value * 24 * 60 * 60 * 1000;
+    default:
+      return null;
   }
 }
 
@@ -765,8 +738,10 @@ async function logModerationAction(
   try {
     // This would integrate with a proper logging system
     const logger = new Logger();
-    logger.info(`Moderation action: ${action.type} by ${action.moderator.tag} on ${action.target?.tag || 'N/A'} - ${action.reason}`);
-    
+    logger.info(
+      `Moderation action: ${action.type} by ${action.moderator.tag} on ${action.target?.tag || 'N/A'} - ${action.reason}`
+    );
+
     // Future: Store in database and send to moderation log channel
   } catch (error) {
     console.error('Failed to log moderation action:', error);

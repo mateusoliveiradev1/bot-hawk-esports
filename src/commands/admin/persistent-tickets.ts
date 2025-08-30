@@ -5,7 +5,7 @@ import {
   EmbedBuilder,
   ChannelType,
   TextChannel,
-  CategoryChannel
+  CategoryChannel,
 } from 'discord.js';
 import { Command } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -93,7 +93,7 @@ export default {
     try {
       const subcommand = interaction.options.getSubcommand();
       const guildId = interaction.guildId!;
-      
+
       // Get or create persistent ticket service
       let persistentTicketService = client.persistentTicketService;
       if (!persistentTicketService) {
@@ -117,14 +117,14 @@ export default {
         default:
           await interaction.reply({
             content: '❌ Subcomando não reconhecido.',
-            ephemeral: true
+            ephemeral: true,
           });
       }
     } catch (error) {
       logger.error('Error in persistent-tickets command:', error);
-      
+
       const errorMessage = '❌ Ocorreu um erro ao executar o comando.';
-      
+
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({ content: errorMessage, ephemeral: true });
       } else if (interaction.deferred) {
@@ -134,7 +134,7 @@ export default {
   },
 
   category: 'admin',
-  cooldown: 5
+  cooldown: 5,
 } as Command;
 
 /**
@@ -157,23 +157,31 @@ async function handleSetup(
 
   // Validate channel permissions
   const botMember = interaction.guild!.members.me!;
-  if (!channel.permissionsFor(botMember).has([
-    PermissionFlagsBits.SendMessages,
-    PermissionFlagsBits.EmbedLinks,
-    PermissionFlagsBits.UseExternalEmojis
-  ])) {
+  if (
+    !channel
+      .permissionsFor(botMember)
+      .has([
+        PermissionFlagsBits.SendMessages,
+        PermissionFlagsBits.EmbedLinks,
+        PermissionFlagsBits.UseExternalEmojis,
+      ])
+  ) {
     await interaction.editReply({
-      content: '❌ O bot não tem permissões suficientes no canal especificado. Necessário: Enviar Mensagens, Incorporar Links, Usar Emojis Externos.'
+      content:
+        '❌ O bot não tem permissões suficientes no canal especificado. Necessário: Enviar Mensagens, Incorporar Links, Usar Emojis Externos.',
     });
     return;
   }
 
-  if (category && !category.permissionsFor(botMember).has([
-    PermissionFlagsBits.ManageChannels,
-    PermissionFlagsBits.ViewChannel
-  ])) {
+  if (
+    category &&
+    !category
+      .permissionsFor(botMember)
+      .has([PermissionFlagsBits.ManageChannels, PermissionFlagsBits.ViewChannel])
+  ) {
     await interaction.editReply({
-      content: '❌ O bot não tem permissões suficientes na categoria especificada. Necessário: Gerenciar Canais, Ver Canal.'
+      content:
+        '❌ O bot não tem permissões suficientes na categoria especificada. Necessário: Gerenciar Canais, Ver Canal.',
     });
     return;
   }
@@ -185,12 +193,12 @@ async function handleSetup(
     logChannelId: logChannel?.id,
     maxTicketsPerUser: maxTickets,
     autoClose,
-    autoCloseHours
+    autoCloseHours,
   });
 
   if (!success) {
     await interaction.editReply({
-      content: '❌ Falha ao configurar o sistema de tickets persistente.'
+      content: '❌ Falha ao configurar o sistema de tickets persistente.',
     });
     return;
   }
@@ -200,11 +208,27 @@ async function handleSetup(
     .setDescription('O sistema foi configurado com sucesso!')
     .addFields(
       { name: '📍 Canal', value: `<#${channel.id}>`, inline: true },
-      { name: '📁 Categoria', value: category ? `<#${category.id}>` : 'Não definida', inline: true },
-      { name: '👥 Cargo de Suporte', value: supportRole ? `<@&${supportRole.id}>` : 'Não definido', inline: true },
-      { name: '📋 Canal de Logs', value: logChannel ? `<#${logChannel.id}>` : 'Não definido', inline: true },
+      {
+        name: '📁 Categoria',
+        value: category ? `<#${category.id}>` : 'Não definida',
+        inline: true,
+      },
+      {
+        name: '👥 Cargo de Suporte',
+        value: supportRole ? `<@&${supportRole.id}>` : 'Não definido',
+        inline: true,
+      },
+      {
+        name: '📋 Canal de Logs',
+        value: logChannel ? `<#${logChannel.id}>` : 'Não definido',
+        inline: true,
+      },
       { name: '🎟️ Max Tickets/Usuário', value: maxTickets.toString(), inline: true },
-      { name: '⏰ Fechamento Automático', value: autoClose ? `${autoCloseHours}h` : 'Desabilitado', inline: true }
+      {
+        name: '⏰ Fechamento Automático',
+        value: autoClose ? `${autoCloseHours}h` : 'Desabilitado',
+        inline: true,
+      }
     )
     .setColor(0x00ff00)
     .setTimestamp();
@@ -225,23 +249,26 @@ async function handleRefresh(
   const config = service.getConfig(guildId);
   if (!config) {
     await interaction.editReply({
-      content: '❌ Sistema de tickets persistente não está configurado neste servidor. Use `/persistent-tickets setup` primeiro.'
+      content:
+        '❌ Sistema de tickets persistente não está configurado neste servidor. Use `/persistent-tickets setup` primeiro.',
     });
     return;
   }
 
   const success = await service.initializeEmbed(guildId);
-  
+
   if (!success) {
     await interaction.editReply({
-      content: '❌ Falha ao atualizar o embed de tickets.'
+      content: '❌ Falha ao atualizar o embed de tickets.',
     });
     return;
   }
 
   const embed = new EmbedBuilder()
     .setTitle('🔄 Embed Atualizado')
-    .setDescription(`O embed de tickets foi atualizado com sucesso no canal <#${config.channelId}>.`)
+    .setDescription(
+      `O embed de tickets foi atualizado com sucesso no canal <#${config.channelId}>.`
+    )
     .setColor(0x0099ff)
     .setTimestamp();
 
@@ -257,11 +284,13 @@ async function handleStatus(
   guildId: string
 ): Promise<void> {
   const config = service.getConfig(guildId);
-  
+
   if (!config) {
     const embed = new EmbedBuilder()
       .setTitle('❌ Sistema Não Configurado')
-      .setDescription('O sistema de tickets persistente não está configurado neste servidor.\n\nUse `/persistent-tickets setup` para configurar.')
+      .setDescription(
+        'O sistema de tickets persistente não está configurado neste servidor.\n\nUse `/persistent-tickets setup` para configurar.'
+      )
       .setColor(0xff0000)
       .setTimestamp();
 
@@ -278,35 +307,47 @@ async function handleStatus(
   const embed = new EmbedBuilder()
     .setTitle('📊 Status do Sistema de Tickets Persistente')
     .addFields(
-      { 
-        name: '📍 Canal', 
-        value: channel ? `<#${channel.id}> ✅` : `ID: ${config.channelId} ❌`, 
-        inline: true 
+      {
+        name: '📍 Canal',
+        value: channel ? `<#${channel.id}> ✅` : `ID: ${config.channelId} ❌`,
+        inline: true,
       },
-      { 
-        name: '📁 Categoria', 
-        value: config.categoryId ? (category ? `<#${category.id}> ✅` : `ID: ${config.categoryId} ❌`) : 'Não definida', 
-        inline: true 
+      {
+        name: '📁 Categoria',
+        value: config.categoryId
+          ? category
+            ? `<#${category.id}> ✅`
+            : `ID: ${config.categoryId} ❌`
+          : 'Não definida',
+        inline: true,
       },
-      { 
-        name: '👥 Cargo de Suporte', 
-        value: config.supportRoleId ? (supportRole ? `<@&${supportRole.id}> ✅` : `ID: ${config.supportRoleId} ❌`) : 'Não definido', 
-        inline: true 
+      {
+        name: '👥 Cargo de Suporte',
+        value: config.supportRoleId
+          ? supportRole
+            ? `<@&${supportRole.id}> ✅`
+            : `ID: ${config.supportRoleId} ❌`
+          : 'Não definido',
+        inline: true,
       },
-      { 
-        name: '📋 Canal de Logs', 
-        value: config.logChannelId ? (logChannel ? `<#${logChannel.id}> ✅` : `ID: ${config.logChannelId} ❌`) : 'Não definido', 
-        inline: true 
+      {
+        name: '📋 Canal de Logs',
+        value: config.logChannelId
+          ? logChannel
+            ? `<#${logChannel.id}> ✅`
+            : `ID: ${config.logChannelId} ❌`
+          : 'Não definido',
+        inline: true,
       },
-      { 
-        name: '🎟️ Max Tickets/Usuário', 
-        value: config.maxTicketsPerUser.toString(), 
-        inline: true 
+      {
+        name: '🎟️ Max Tickets/Usuário',
+        value: config.maxTicketsPerUser.toString(),
+        inline: true,
       },
-      { 
-        name: '⏰ Fechamento Automático', 
-        value: config.autoClose ? `${config.autoCloseHours}h ✅` : 'Desabilitado ❌', 
-        inline: true 
+      {
+        name: '⏰ Fechamento Automático',
+        value: config.autoClose ? `${config.autoCloseHours}h ✅` : 'Desabilitado ❌',
+        inline: true,
       }
     )
     .setColor(0x0099ff)
@@ -328,16 +369,16 @@ async function handleRemove(
   const config = service.getConfig(guildId);
   if (!config) {
     await interaction.editReply({
-      content: '❌ Sistema de tickets persistente não está configurado neste servidor.'
+      content: '❌ Sistema de tickets persistente não está configurado neste servidor.',
     });
     return;
   }
 
   const success = await service.removeConfig(guildId);
-  
+
   if (!success) {
     await interaction.editReply({
-      content: '❌ Falha ao remover a configuração do sistema de tickets persistente.'
+      content: '❌ Falha ao remover a configuração do sistema de tickets persistente.',
     });
     return;
   }

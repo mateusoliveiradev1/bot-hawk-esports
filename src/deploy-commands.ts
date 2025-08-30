@@ -28,43 +28,51 @@ export class CommandDeployer {
   private async loadAllCommands(): Promise<any[]> {
     const commands: any[] = [];
     const commandsPath = path.join(__dirname, 'commands');
-    
+
     logger.info(`Loading commands from: ${commandsPath}`);
-    
+
     try {
       if (!fs.existsSync(commandsPath)) {
         logger.error(`Commands directory does not exist: ${commandsPath}`);
         return commands;
       }
-      
-      const commandFolders = fs.readdirSync(commandsPath).filter(folder => 
-        fs.statSync(path.join(commandsPath, folder)).isDirectory()
-      );
-      
+
+      const commandFolders = fs
+        .readdirSync(commandsPath)
+        .filter(folder => fs.statSync(path.join(commandsPath, folder)).isDirectory());
+
       logger.info(`Found ${commandFolders.length} command folders: ${commandFolders.join(', ')}`);
 
       for (const folder of commandFolders) {
         const folderPath = path.join(commandsPath, folder);
-        const commandFiles = fs.readdirSync(folderPath).filter(file => 
-          (file.endsWith('.ts') || file.endsWith('.js')) && !file.endsWith('.d.ts')
+        const commandFiles = fs
+          .readdirSync(folderPath)
+          .filter(
+            file => (file.endsWith('.ts') || file.endsWith('.js')) && !file.endsWith('.d.ts')
+          );
+
+        logger.info(
+          `Found ${commandFiles.length} command files in ${folder}: ${commandFiles.join(', ')}`
         );
-        
-        logger.info(`Found ${commandFiles.length} command files in ${folder}: ${commandFiles.join(', ')}`);
 
         for (const file of commandFiles) {
           const filePath = path.join(folderPath, file);
-          
+
           try {
             logger.debug(`Loading command from: ${filePath}`);
             // Use require for CommonJS modules in compiled JavaScript
             delete require.cache[require.resolve(filePath)];
             const commandModule = require(filePath);
-            
+
             // Try different export patterns
             let command: Command | ContextMenuCommand | null = null;
-            
+
             // First try default export
-            if (commandModule.default && commandModule.default.data && commandModule.default.execute) {
+            if (
+              commandModule.default &&
+              commandModule.default.data &&
+              commandModule.default.execute
+            ) {
               command = commandModule.default;
             } else if (commandModule.default) {
               // Sometimes default export might be wrapped
@@ -80,7 +88,7 @@ export class CommandDeployer {
                 }
               }
             }
-            
+
             if (command && command.data) {
               commands.push(command.data.toJSON());
               logger.info(`✅ Loaded command: ${command.data.name}`);
@@ -96,7 +104,7 @@ export class CommandDeployer {
       logger.error('Failed to load commands:', error);
       throw error;
     }
-    
+
     logger.info(`Total commands loaded: ${commands.length}`);
     return commands;
   }
@@ -107,13 +115,12 @@ export class CommandDeployer {
   public async deployGlobal(): Promise<void> {
     try {
       logger.info('Started refreshing application (/) commands globally.');
-      
+
       const commands = await this.loadAllCommands();
-      
-      const data = await this.rest.put(
-        Routes.applicationCommands(this.clientId),
-        { body: commands },
-      ) as any[];
+
+      const data = (await this.rest.put(Routes.applicationCommands(this.clientId), {
+        body: commands,
+      })) as any[];
 
       logger.info(`Successfully reloaded ${data.length} application (/) commands globally.`);
     } catch (error) {
@@ -128,15 +135,16 @@ export class CommandDeployer {
   public async deployGuild(guildId: string): Promise<void> {
     try {
       logger.info(`Started refreshing application (/) commands for guild ${guildId}.`);
-      
-      const commands = await this.loadAllCommands();
-      
-      const data = await this.rest.put(
-        Routes.applicationGuildCommands(this.clientId, guildId),
-        { body: commands },
-      ) as any[];
 
-      logger.info(`Successfully reloaded ${data.length} application (/) commands for guild ${guildId}.`);
+      const commands = await this.loadAllCommands();
+
+      const data = (await this.rest.put(Routes.applicationGuildCommands(this.clientId, guildId), {
+        body: commands,
+      })) as any[];
+
+      logger.info(
+        `Successfully reloaded ${data.length} application (/) commands for guild ${guildId}.`
+      );
     } catch (error) {
       logger.error(`Failed to deploy guild commands for ${guildId}:`, error);
       throw error;
@@ -149,11 +157,8 @@ export class CommandDeployer {
   public async clearGlobal(): Promise<void> {
     try {
       logger.info('Clearing all global application (/) commands.');
-      
-      await this.rest.put(
-        Routes.applicationCommands(this.clientId),
-        { body: [] },
-      );
+
+      await this.rest.put(Routes.applicationCommands(this.clientId), { body: [] });
 
       logger.info('Successfully cleared all global application (/) commands.');
     } catch (error) {
@@ -168,11 +173,8 @@ export class CommandDeployer {
   public async clearGuild(guildId: string): Promise<void> {
     try {
       logger.info(`Clearing all application (/) commands for guild ${guildId}.`);
-      
-      await this.rest.put(
-        Routes.applicationGuildCommands(this.clientId, guildId),
-        { body: [] },
-      );
+
+      await this.rest.put(Routes.applicationGuildCommands(this.clientId, guildId), { body: [] });
 
       logger.info(`Successfully cleared all application (/) commands for guild ${guildId}.`);
     } catch (error) {
@@ -227,7 +229,9 @@ if (require.main === module) {
           logger.info('Usage: npm run deploy-commands <global|guild|clear-global|clear-guild>');
           logger.info('Available commands:');
           logger.info('  global       - Deploy commands globally (slower, affects all servers)');
-          logger.info('  guild        - Deploy commands to specific guild (faster, for development)');
+          logger.info(
+            '  guild        - Deploy commands to specific guild (faster, for development)'
+          );
           logger.info('  clear-global - Clear all global commands');
           logger.info('  clear-guild  - Clear all guild commands');
           break;

@@ -1,4 +1,9 @@
-import { Collection, ChatInputCommandInteraction, ContextMenuCommandInteraction, AutocompleteInteraction } from 'discord.js';
+import {
+  Collection,
+  ChatInputCommandInteraction,
+  ContextMenuCommandInteraction,
+  AutocompleteInteraction,
+} from 'discord.js';
 import { Command, ContextMenuCommand } from '../types/command';
 import { ExtendedClient } from '../types/client';
 import { Logger } from '../utils/logger';
@@ -32,26 +37,28 @@ export class CommandManager {
     try {
       const commandsPath = path.join(__dirname);
       this.logger.debug(`Loading commands from: ${commandsPath}`);
-      
-      const commandFolders = fs.readdirSync(commandsPath).filter(folder => 
-        fs.statSync(path.join(commandsPath, folder)).isDirectory(),
-      );
-      
+
+      const commandFolders = fs
+        .readdirSync(commandsPath)
+        .filter(folder => fs.statSync(path.join(commandsPath, folder)).isDirectory());
+
       this.logger.debug(`Found command folders: ${commandFolders.join(', ')}`);
 
       for (const folder of commandFolders) {
         const folderPath = path.join(commandsPath, folder);
-        const commandFiles = fs.readdirSync(folderPath).filter(file => 
-          file.endsWith('.ts') || file.endsWith('.js'),
+        const commandFiles = fs
+          .readdirSync(folderPath)
+          .filter(file => file.endsWith('.ts') || file.endsWith('.js'));
+
+        this.logger.debug(
+          `Found ${commandFiles.length} command files in ${folder}: ${commandFiles.join(', ')}`
         );
-        
-        this.logger.debug(`Found ${commandFiles.length} command files in ${folder}: ${commandFiles.join(', ')}`);
 
         for (const file of commandFiles) {
           const filePath = path.join(folderPath, file);
           this.logger.debug(`Loading command from: ${filePath}`);
           const command = await this.loadCommand(filePath);
-          
+
           if (command) {
             this.registerCommand(command);
             this.logger.debug(`Successfully loaded command: ${command.data.name}`);
@@ -61,7 +68,9 @@ export class CommandManager {
         }
       }
 
-      this.logger.info(`Loaded ${this.commands.size} slash commands and ${this.contextMenus.size} context menu commands`);
+      this.logger.info(
+        `Loaded ${this.commands.size} slash commands and ${this.contextMenus.size} context menu commands`
+      );
     } catch (error) {
       this.logger.error('Error loading commands:', error);
     }
@@ -109,14 +118,14 @@ export class CommandManager {
         // Slash command
         const slashCommand = command as Command;
         this.commands.set(slashCommand.data.name, slashCommand);
-        
+
         // Register aliases if any
         if (slashCommand.aliases) {
           for (const alias of slashCommand.aliases) {
             this.aliases.set(alias, slashCommand.data.name);
           }
         }
-        
+
         this.logger.debug(`Registered slash command: ${slashCommand.data.name}`);
       }
     } catch (error) {
@@ -141,7 +150,10 @@ export class CommandManager {
   /**
    * Check if user is on cooldown
    */
-  public isOnCooldown(commandName: string, userId: string): { onCooldown: boolean; timeLeft?: number } {
+  public isOnCooldown(
+    commandName: string,
+    userId: string
+  ): { onCooldown: boolean; timeLeft?: number } {
     if (!this.cooldowns.has(commandName)) {
       this.cooldowns.set(commandName, new Collection());
     }
@@ -149,7 +161,7 @@ export class CommandManager {
     const now = Date.now();
     const timestamps = this.cooldowns.get(commandName)!;
     const command = this.commands.get(commandName);
-    
+
     if (!command || !command.cooldown) {
       return { onCooldown: false };
     }
@@ -167,7 +179,7 @@ export class CommandManager {
 
     timestamps.set(userId, now);
     setTimeout(() => timestamps.delete(userId), cooldownAmount);
-    
+
     return { onCooldown: false };
   }
 
@@ -183,7 +195,7 @@ export class CommandManager {
    */
   public getStats(): any {
     const categories = new Map<string, number>();
-    
+
     this.commands.forEach(command => {
       const category = command.category || 'uncategorized';
       categories.set(category, (categories.get(category) || 0) + 1);
@@ -218,22 +230,22 @@ export class CommandManager {
 
       // Find and reload the command file
       const commandsPath = path.join(__dirname);
-      const commandFolders = fs.readdirSync(commandsPath).filter(folder => 
-        fs.statSync(path.join(commandsPath, folder)).isDirectory(),
-      );
+      const commandFolders = fs
+        .readdirSync(commandsPath)
+        .filter(folder => fs.statSync(path.join(commandsPath, folder)).isDirectory());
 
       for (const folder of commandFolders) {
         const folderPath = path.join(commandsPath, folder);
-        const commandFiles = fs.readdirSync(folderPath).filter(file => 
-          file.endsWith('.ts') || file.endsWith('.js'),
-        );
+        const commandFiles = fs
+          .readdirSync(folderPath)
+          .filter(file => file.endsWith('.ts') || file.endsWith('.js'));
 
         for (const file of commandFiles) {
           const filePath = path.join(folderPath, file);
-          
+
           // Clear require cache
           delete require.cache[require.resolve(filePath)];
-          
+
           const reloadedCommand = await this.loadCommand(filePath);
           if (reloadedCommand && reloadedCommand.data.name === commandName) {
             this.registerCommand(reloadedCommand);
@@ -258,7 +270,7 @@ export class CommandManager {
     this.contextMenus.clear();
     this.aliases.clear();
     this.cooldowns.clear();
-    
+
     await this.loadCommands();
     this.logger.info('All commands reloaded');
   }
@@ -266,7 +278,10 @@ export class CommandManager {
   /**
    * Handle slash command interactions
    */
-  public async handleSlashCommand(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+  public async handleSlashCommand(
+    interaction: ChatInputCommandInteraction,
+    client: ExtendedClient
+  ): Promise<void> {
     const command = this.getCommand(interaction.commandName);
     if (!command) {
       return;
@@ -285,7 +300,7 @@ export class CommandManager {
       await command.execute(interaction, client);
     } catch (error) {
       this.logger.error(`Error executing command ${command.data.name}:`, error);
-      
+
       const errorMessage = 'Ocorreu um erro ao executar este comando!';
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp({ content: errorMessage, ephemeral: true });
@@ -298,7 +313,10 @@ export class CommandManager {
   /**
    * Handle context menu command interactions
    */
-  public async handleContextCommand(interaction: ContextMenuCommandInteraction, client: ExtendedClient): Promise<void> {
+  public async handleContextCommand(
+    interaction: ContextMenuCommandInteraction,
+    client: ExtendedClient
+  ): Promise<void> {
     const command = this.getContextMenu(interaction.commandName);
     if (!command) {
       return;
@@ -308,7 +326,7 @@ export class CommandManager {
       await command.execute(interaction as any, client);
     } catch (error) {
       this.logger.error(`Error executing context menu ${command.data.name}:`, error);
-      
+
       const errorMessage = 'Ocorreu um erro ao executar este comando!';
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp({ content: errorMessage, ephemeral: true });
@@ -321,7 +339,10 @@ export class CommandManager {
   /**
    * Handle autocomplete interactions
    */
-  public async handleAutocomplete(interaction: AutocompleteInteraction, client: ExtendedClient): Promise<void> {
+  public async handleAutocomplete(
+    interaction: AutocompleteInteraction,
+    client: ExtendedClient
+  ): Promise<void> {
     const command = this.getCommand(interaction.commandName);
     if (!command || !command.autocomplete) {
       return;

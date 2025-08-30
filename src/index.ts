@@ -1,4 +1,12 @@
-import { Client, GatewayIntentBits, Partials, ActivityType, EmbedBuilder, ChannelType, TextChannel } from 'discord.js';
+import {
+  Client,
+  GatewayIntentBits,
+  Partials,
+  ActivityType,
+  EmbedBuilder,
+  ChannelType,
+  TextChannel,
+} from 'discord.js';
 import { ExtendedClient } from '@/types/client';
 import { Logger } from '@/utils/logger';
 import { DatabaseService } from '@/database/database.service';
@@ -74,11 +82,11 @@ class HawkEsportsBot {
 
   constructor() {
     this.logger = new Logger();
-    
+
     // Initialize database and cache first
     this.db = new DatabaseService();
     this.cache = new CacheService();
-    
+
     // Create Discord client with required intents
     this.client = new Client({
       intents: [
@@ -107,17 +115,17 @@ class HawkEsportsBot {
     this.client.db = this.db;
     this.client.cache = this.cache;
     this.client.logger = this.logger;
-    
+
     // Initialize services with proper dependencies
     const ticketService = new TicketService(this.client);
     const punishmentService = new PunishmentService(this.client, this.db);
     const roleManagerService = new RoleManagerService();
     const pubgService = new PUBGService(this.cache);
-    
+
     // Initialize XPService first as it's needed by other services
     const xpService = new XPService(this.client);
     const badgeService = new BadgeService(this.client, xpService);
-    
+
     this.services = {
       api: new APIService(this.client),
       automod: new AutoModerationService(this.client, this.db, punishmentService),
@@ -138,9 +146,9 @@ class HawkEsportsBot {
       roleManager: roleManagerService,
       scheduler: new SchedulerService(this.client),
       weaponMastery: new WeaponMasteryService(this.client),
-      clip: new ClipService(this.client)
+      clip: new ClipService(this.client),
     } as any;
-    
+
     // Attach individual services to client for direct access
     this.client.musicService = this.services.music;
     this.client.badgeService = this.services.badge;
@@ -153,32 +161,32 @@ class HawkEsportsBot {
     (this.client as any).automodService = this.services.automod;
     (this.client as any).ticketService = ticketService;
     (this.client as any).weaponMasteryService = this.services.weaponMastery;
-    
+
     // Initialize PersistentTicketService
     (this.client as any).persistentTicketService = new PersistentTicketService(this.client);
-    
+
     // Initialize PresenceFixesService
     (this.client as any).presenceFixesService = new PresenceFixesService(this.client);
-    
+
     // Initialize BadgeAuditService
     (this.client as any).badgeAuditService = new BadgeAuditService(
       this.client,
       this.services.badge,
       this.db
     );
-    
+
     // Initialize PresenceEnhancementsService
     (this.client as any).presenceEnhancementsService = this.services.presenceEnhancements;
-    
+
     // Initialize BadgeOptimizationService
     (this.client as any).badgeOptimizationService = this.services.badgeOptimization;
-    
+
     // Initialize ExclusiveBadgeService
     (this.client as any).exclusiveBadgeService = this.services.exclusiveBadge;
-    
+
     // Initialize DynamicBadgeService
     (this.client as any).dynamicBadgeService = this.services.dynamicBadge;
-    
+
     (this.client as any).roleManagerService = this.services.roleManager;
     (this.client as any).pubgService = this.services.pubg;
     (this.client as any).challengeService = this.services.challenge;
@@ -187,10 +195,10 @@ class HawkEsportsBot {
     (this.client as any).badgeService = this.services.badge;
     // rankingService is not implemented yet
     (this.client as any).presenceService = this.services.presence;
-    
+
     // Initialize command manager
     this.commands = new CommandManager(this.client);
-    
+
     // Attach services to client
     this.client.services = this.services as any;
 
@@ -224,7 +232,6 @@ class HawkEsportsBot {
 
       // Login to Discord
       await this.client.login(process.env.DISCORD_TOKEN);
-
     } catch (error) {
       this.logger.error('Failed to start bot:', error);
       process.exit(1);
@@ -235,14 +242,10 @@ class HawkEsportsBot {
    * Validate required environment variables
    */
   private validateEnvironment(): void {
-    const required = [
-      'DISCORD_TOKEN',
-      'DATABASE_URL',
-      'PUBG_API_KEY',
-    ];
+    const required = ['DISCORD_TOKEN', 'DATABASE_URL', 'PUBG_API_KEY'];
 
     const missing = required.filter(key => !process.env[key]);
-    
+
     if (missing.length > 0) {
       throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
     }
@@ -261,7 +264,7 @@ class HawkEsportsBot {
   private async initializeDatabase(): Promise<void> {
     try {
       await this.db.connect();
-      
+
       // Run health check
       const isHealthy = await this.db.healthCheck();
       if (!isHealthy) {
@@ -281,12 +284,12 @@ class HawkEsportsBot {
   private async initializeCache(): Promise<void> {
     try {
       await this.cache.connect();
-      
+
       // Test cache connection if Redis is available
       if (this.cache.isRedisConnected()) {
         await this.cache.set('bot:startup', Date.now().toString(), 60);
         const testValue = await this.cache.get('bot:startup');
-        
+
         if (!testValue) {
           this.logger.warn('⚠️ Cache test failed, but continuing with fallback');
         } else {
@@ -308,7 +311,7 @@ class HawkEsportsBot {
     try {
       // Services are initialized in their constructors
       this.logger.info('All services initialized');
-      
+
       // Start API service
       await this.services.api.start();
 
@@ -325,9 +328,11 @@ class HawkEsportsBot {
   private async loadCommands(): Promise<void> {
     try {
       await this.commands.loadCommands();
-      
+
       const stats = this.commands.getStats();
-      this.logger.info(`✅ Loaded ${stats.total} commands (${stats.slash} slash, ${stats.context} context)`);
+      this.logger.info(
+        `✅ Loaded ${stats.total} commands (${stats.slash} slash, ${stats.context} context)`
+      );
     } catch (error) {
       this.logger.error('Command loading failed:', error);
       throw error;
@@ -345,7 +350,9 @@ class HawkEsportsBot {
       }
 
       this.logger.info(`🤖 Bot logged in as ${this.client.user.tag}`);
-      this.logger.info(`📊 Serving ${this.client.guilds.cache.size} guilds with ${this.client.users.cache.size} users`);
+      this.logger.info(
+        `📊 Serving ${this.client.guilds.cache.size} guilds with ${this.client.users.cache.size} users`
+      );
 
       // Set bot activity
       this.client.user.setActivity({
@@ -356,13 +363,16 @@ class HawkEsportsBot {
       // Register slash commands with Discord API
       try {
         const { CommandDeployer } = await import('./deploy-commands');
-        const deployer = new CommandDeployer(process.env.DISCORD_TOKEN!, process.env.DISCORD_CLIENT_ID!);
-        
+        const deployer = new CommandDeployer(
+          process.env.DISCORD_TOKEN!,
+          process.env.DISCORD_CLIENT_ID!
+        );
+
         // Deploy commands to all guilds the bot is in
         for (const guild of this.client.guilds.cache.values()) {
           await deployer.deployGuild(guild.id);
         }
-        
+
         this.logger.info('✅ Slash commands registered with Discord API');
       } catch (error) {
         this.logger.error('Failed to register slash commands with Discord API:', error);
@@ -370,7 +380,8 @@ class HawkEsportsBot {
 
       // Initialize persistent ticket service for all guilds
       try {
-        const persistentTicketService = (this.client as any).persistentTicketService as PersistentTicketService;
+        const persistentTicketService = (this.client as any)
+          .persistentTicketService as PersistentTicketService;
         if (persistentTicketService) {
           for (const guild of this.client.guilds.cache.values()) {
             await persistentTicketService.initializeEmbed(guild.id);
@@ -385,7 +396,7 @@ class HawkEsportsBot {
     });
 
     // Interaction handling
-    this.client.on('interactionCreate', async (interaction) => {
+    this.client.on('interactionCreate', async interaction => {
       try {
         if (interaction.isChatInputCommand()) {
           await this.commands.handleSlashCommand(interaction, this.client);
@@ -395,16 +406,22 @@ class HawkEsportsBot {
           await this.commands.handleAutocomplete(interaction, this.client);
         } else if (interaction.isButton()) {
           // Handle registration button interactions
-          if (interaction.customId === 'start_server_registration' || 
-              interaction.customId === 'registration_help' || 
-              interaction.customId === 'view_rules' ||
-              interaction.customId === 'register_pubg_prompt') {
+          if (
+            interaction.customId === 'start_server_registration' ||
+            interaction.customId === 'registration_help' ||
+            interaction.customId === 'view_rules' ||
+            interaction.customId === 'register_pubg_prompt'
+          ) {
             if (this.services.onboarding) {
               await this.services.onboarding.handleRegistrationButton(interaction);
             }
           }
           // Handle ticket-related button interactions
-          else if (interaction.customId.includes('ticket') || interaction.customId.includes('priority') || interaction.customId === 'create_ticket_panel') {
+          else if (
+            interaction.customId.includes('ticket') ||
+            interaction.customId.includes('priority') ||
+            interaction.customId === 'create_ticket_panel'
+          ) {
             await handleTicketButtonInteraction(interaction, this.client);
           }
         } else if (interaction.isModalSubmit()) {
@@ -419,9 +436,9 @@ class HawkEsportsBot {
     });
 
     // Guild events
-    this.client.on('guildCreate', async (guild) => {
+    this.client.on('guildCreate', async guild => {
       this.logger.info(`📥 Joined new guild: ${guild.name} (${guild.id})`);
-      
+
       try {
         // Initialize guild in database
         await this.db.client.guild.upsert({
@@ -446,32 +463,36 @@ class HawkEsportsBot {
 
         // Initialize persistent ticket service for new guild
         try {
-          const persistentTicketService = (this.client as any).persistentTicketService as PersistentTicketService;
+          const persistentTicketService = (this.client as any)
+            .persistentTicketService as PersistentTicketService;
           if (persistentTicketService) {
             await persistentTicketService.initializeEmbed(guild.id);
             this.logger.info(`✅ Initialized persistent ticket service for guild: ${guild.name}`);
           }
         } catch (error) {
-          this.logger.error(`Failed to initialize persistent ticket service for guild ${guild.name}:`, error);
+          this.logger.error(
+            `Failed to initialize persistent ticket service for guild ${guild.name}:`,
+            error
+          );
         }
       } catch (error) {
         this.logger.error('Failed to initialize new guild:', error);
       }
     });
 
-    this.client.on('guildDelete', async (guild) => {
+    this.client.on('guildDelete', async guild => {
       this.logger.info(`📤 Left guild: ${guild.name} (${guild.id})`);
     });
 
     // Initialize event handlers
     new MemberEvents(this.client);
     new MessageEvents(this.client);
-    
+
     // Import and initialize new event handlers
     try {
       const { VoiceEvents } = await import('./events/voiceEvents');
       const { GuildEvents } = await import('./events/guildEvents');
-      
+
       new VoiceEvents(this.client);
       new GuildEvents(this.client);
     } catch (error) {
@@ -486,11 +507,11 @@ class HawkEsportsBot {
           // User left a voice channel
           const leftChannel = oldState.channel;
           const userId = oldState.member?.id;
-          
+
           if (userId && leftChannel.name.includes('🎮')) {
             // Check if this is a session channel created by check-in
             const isSessionChannel = leftChannel.name.match(/🎮.*(?:MM|Scrim|Campeonato|Ranked)/i);
-            
+
             if (isSessionChannel) {
               // Auto check-out logic
               const member = oldState.member;
@@ -501,33 +522,37 @@ class HawkEsportsBot {
                   const textChannel = category?.children.cache.find(
                     ch => ch.type === ChannelType.GuildText && ch.name.includes('chat')
                   ) as TextChannel;
-                  
+
                   // Send auto check-out notification
                   if (textChannel) {
                     const autoCheckoutEmbed = new EmbedBuilder()
                       .setTitle('🚪 Auto Check-out')
                       .setDescription(
                         `${member.displayName} saiu do canal de voz e foi automaticamente removido da sessão.\n\n` +
-                        `⏰ **Saída detectada em:** <t:${Math.floor(Date.now() / 1000)}:F>\n` +
-                        `🔊 **Canal:** ${leftChannel.name}\n\n` +
-                        `💡 **Dica:** Use \`/checkin\` novamente para criar uma nova sessão!`
+                          `⏰ **Saída detectada em:** <t:${Math.floor(Date.now() / 1000)}:F>\n` +
+                          `🔊 **Canal:** ${leftChannel.name}\n\n` +
+                          '💡 **Dica:** Use `/checkin` novamente para criar uma nova sessão!'
                       )
                       .setColor(0xffa500)
                       .setThumbnail(member.displayAvatarURL())
                       .setTimestamp();
-                    
+
                     await textChannel.send({ embeds: [autoCheckoutEmbed] });
                   }
-                  
+
                   // Update presence service if available
                   if (this.services.presence) {
-                    await this.services.presence.checkOut(userId, oldState.guild.id, 'Auto check-out - left voice channel');
+                    await this.services.presence.checkOut(
+                      userId,
+                      oldState.guild.id,
+                      'Auto check-out - left voice channel'
+                    );
                   }
-                  
+
                   // Check for early leave punishment
                   if (this.services.punishment) {
                     // Estimate session start time (this could be improved by storing actual session data)
-                    const estimatedSessionStart = new Date(Date.now() - (30 * 60 * 1000)); // Assume session started 30 min ago as minimum
+                    const estimatedSessionStart = new Date(Date.now() - 30 * 60 * 1000); // Assume session started 30 min ago as minimum
                     await this.services.punishment.checkEarlyLeavePunishment(
                       userId,
                       oldState.guild.id,
@@ -535,8 +560,10 @@ class HawkEsportsBot {
                       leftChannel.id
                     );
                   }
-                  
-                  this.logger.info(`Auto check-out performed for user ${userId} from channel ${leftChannel.name}`);
+
+                  this.logger.info(
+                    `Auto check-out performed for user ${userId} from channel ${leftChannel.name}`
+                  );
                 } catch (autoCheckoutError) {
                   this.logger.error('Auto check-out error:', autoCheckoutError);
                 }
@@ -544,7 +571,7 @@ class HawkEsportsBot {
             }
           }
         }
-        
+
         // Voice state updates are also handled internally by MusicService
         // No additional handler needed for music functionality
       } catch (error) {
@@ -553,7 +580,7 @@ class HawkEsportsBot {
     });
 
     // Message events for activity tracking
-    this.client.on('messageCreate', async (message) => {
+    this.client.on('messageCreate', async message => {
       if (message.author.bot || !message.guild) {
         return;
       }
@@ -564,7 +591,7 @@ class HawkEsportsBot {
           where: { id: message.author.id },
           update: {
             lastSeen: new Date(),
-            messagesCount: { increment: 1 }
+            messagesCount: { increment: 1 },
           },
           create: {
             id: message.author.id,
@@ -572,8 +599,8 @@ class HawkEsportsBot {
             discriminator: message.author.discriminator || '0',
             avatar: message.author.avatar,
             lastSeen: new Date(),
-            messagesCount: 1
-          }
+            messagesCount: 1,
+          },
         });
 
         // Check for badge progress
@@ -584,11 +611,11 @@ class HawkEsportsBot {
     });
 
     // Error handling
-    this.client.on('error', (error) => {
+    this.client.on('error', error => {
       this.logger.error('Discord client error:', error);
     });
 
-    this.client.on('warn', (warning) => {
+    this.client.on('warn', warning => {
       this.logger.warn('Discord client warning:', warning);
     });
 
@@ -598,7 +625,7 @@ class HawkEsportsBot {
     process.on('unhandledRejection', (reason, promise) => {
       this.logger.error('Unhandled Promise Rejection:', { reason, promise });
     });
-    process.on('uncaughtException', (error) => {
+    process.on('uncaughtException', error => {
       this.logger.error('Uncaught Exception:', error);
       this.shutdown('UNCAUGHT_EXCEPTION');
     });
@@ -661,7 +688,7 @@ class HawkEsportsBot {
 // Start the bot
 if (require.main === module) {
   const bot = new HawkEsportsBot();
-  bot.start().catch((error) => {
+  bot.start().catch(error => {
     console.error('Failed to start bot:', error);
     process.exit(1);
   });

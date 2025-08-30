@@ -138,34 +138,38 @@ export class ClipService {
 
   constructor(client: ExtendedClient) {
     this.logger = new Logger();
-    
+
     try {
       // Validate client instance
       if (!client || typeof client !== 'object') {
         throw new Error('ExtendedClient instance is required');
       }
       this.client = client;
-      
+
       // Validate and initialize cache service
       if (!client.cache) {
         throw new Error('CacheService is not available on client');
       }
       this.cache = client.cache;
-      
+
       // Validate and initialize database service
       if (!client.database) {
         throw new Error('DatabaseService is not available on client');
       }
       this.database = client.database;
-      
+
       // Initialize badge service with fallback
       try {
-        this.badgeService = (client as any).services?.badge || new BadgeService(client, (client as any).services?.xp);
+        this.badgeService =
+          (client as any).services?.badge || new BadgeService(client, (client as any).services?.xp);
       } catch (badgeError) {
-        this.logger.warn('Failed to initialize BadgeService, creating fallback instance:', badgeError);
+        this.logger.warn(
+          'Failed to initialize BadgeService, creating fallback instance:',
+          badgeError
+        );
         this.badgeService = new BadgeService(client, (client as any).services?.xp);
       }
-      
+
       // Initialize directories and data
       try {
         this.ensureDirectories();
@@ -173,33 +177,29 @@ export class ClipService {
         this.logger.error('Failed to ensure directories:', dirError);
         throw new Error('Failed to create required directories');
       }
-      
+
       // Load data asynchronously with error handling
       this.initializeAsync().catch(error => {
         this.logger.error('Failed to initialize ClipService data:', error);
       });
-      
+
       this.logger.info('ClipService initialized successfully');
     } catch (error) {
       this.logger.error('Failed to initialize ClipService:', error);
       throw error;
     }
   }
-  
+
   /**
    * Initialize async operations
    */
   private async initializeAsync(): Promise<void> {
     try {
-      await Promise.all([
-        this.loadClips(),
-        this.loadVotes(),
-        this.loadGuildSettings(),
-      ]);
-      
+      await Promise.all([this.loadClips(), this.loadVotes(), this.loadGuildSettings()]);
+
       this.startRankingUpdater();
       this.startCleanupScheduler();
-      
+
       this.logger.info('ClipService async initialization completed');
     } catch (error) {
       this.logger.error('Failed during async initialization:', error);
@@ -416,31 +416,33 @@ export class ClipService {
       if (!guildId || typeof guildId !== 'string') {
         return { success: false, message: 'ID da guilda é obrigatório.' };
       }
-      
+
       if (!userId || typeof userId !== 'string') {
         return { success: false, message: 'ID do usuário é obrigatório.' };
       }
-      
+
       if (!file || !Buffer.isBuffer(file) || file.length === 0) {
         return { success: false, message: 'Arquivo é obrigatório e deve ser válido.' };
       }
-      
+
       if (!fileName || typeof fileName !== 'string' || fileName.trim().length === 0) {
         return { success: false, message: 'Nome do arquivo é obrigatório.' };
       }
-      
+
       if (!title || typeof title !== 'string' || title.trim().length === 0) {
         return { success: false, message: 'Título é obrigatório.' };
       }
-      
+
       // Sanitize inputs
       const sanitizedTitle = title.trim().substring(0, 100);
       const sanitizedDescription = description?.trim().substring(0, 500);
       const sanitizedGameMode = gameMode?.trim().substring(0, 50);
-      const sanitizedTags = tags?.filter(tag => tag && typeof tag === 'string' && tag.trim().length > 0)
-        .map(tag => tag.trim().substring(0, 30))
-        .slice(0, 10) || [];
-      
+      const sanitizedTags =
+        tags
+          ?.filter(tag => tag && typeof tag === 'string' && tag.trim().length > 0)
+          .map(tag => tag.trim().substring(0, 30))
+          .slice(0, 10) || [];
+
       const settings = this.guildSettings.get(guildId);
       if (!settings || !settings.enabled) {
         return {
@@ -599,19 +601,19 @@ export class ClipService {
       if (!guildId || typeof guildId !== 'string') {
         return { success: false, message: 'ID da guilda é obrigatório.' };
       }
-      
+
       if (!clipId || typeof clipId !== 'string') {
         return { success: false, message: 'ID do clip é obrigatório.' };
       }
-      
+
       if (!userId || typeof userId !== 'string') {
         return { success: false, message: 'ID do usuário é obrigatório.' };
       }
-      
+
       if (!voteType || !['like', 'dislike'].includes(voteType)) {
         return { success: false, message: 'Tipo de voto inválido.' };
       }
-      
+
       const settings = this.guildSettings.get(guildId);
       if (!settings || !settings.allowVoting) {
         return {
@@ -627,7 +629,7 @@ export class ClipService {
           message: 'Clip não encontrado.',
         };
       }
-      
+
       // Check if clip is approved
       if (clip.status !== 'approved' && clip.status !== 'featured') {
         return {
@@ -635,7 +637,7 @@ export class ClipService {
           message: 'Não é possível votar em clips não aprovados.',
         };
       }
-      
+
       // Prevent self-voting
       if (clip.userId === userId) {
         return {
@@ -801,22 +803,22 @@ export class ClipService {
       if (!guildId || typeof guildId !== 'string') {
         return { success: false, message: 'ID da guilda é obrigatório.' };
       }
-      
+
       if (!clipId || typeof clipId !== 'string') {
         return { success: false, message: 'ID do clip é obrigatório.' };
       }
-      
+
       if (!moderatorId || typeof moderatorId !== 'string') {
         return { success: false, message: 'ID do moderador é obrigatório.' };
       }
-      
+
       if (!action || !['approve', 'reject', 'feature'].includes(action)) {
         return { success: false, message: 'Ação de moderação inválida.' };
       }
-      
+
       // Sanitize note if provided
       const sanitizedNote = note?.trim().substring(0, 500);
-      
+
       const clip = this.getClip(guildId, clipId);
       if (!clip) {
         return {
@@ -824,7 +826,7 @@ export class ClipService {
           message: 'Clip não encontrado.',
         };
       }
-      
+
       // Check if clip can be moderated
       if (action === 'approve' && clip.status === 'approved') {
         return {
@@ -832,14 +834,14 @@ export class ClipService {
           message: 'Clip já está aprovado.',
         };
       }
-      
+
       if (action === 'reject' && clip.status === 'rejected') {
         return {
           success: false,
           message: 'Clip já está rejeitado.',
         };
       }
-      
+
       if (action === 'feature' && clip.status === 'featured') {
         return {
           success: false,
@@ -1637,65 +1639,65 @@ export class ClipService {
     try {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-      
-      let cleanupStats = {
+
+      const cleanupStats = {
         deletedRejectedClips: 0,
         deletedOldClips: 0,
         deletedFiles: 0,
-        errors: 0
+        errors: 0,
       };
-      
+
       // Find old rejected clips (older than 30 days)
       const rejectedClips = await this.database.client.clip.findMany({
         where: {
           isApproved: false,
           isFeatured: false,
           createdAt: {
-            lt: thirtyDaysAgo
-          }
+            lt: thirtyDaysAgo,
+          },
         },
         select: {
           id: true,
           guildId: true,
           url: true,
           thumbnail: true,
-          title: true
-        }
+          title: true,
+        },
       });
-      
+
       // Find very old clips (older than 90 days) regardless of status
       const veryOldClips = await this.database.client.clip.findMany({
         where: {
           createdAt: {
-            lt: ninetyDaysAgo
-          }
+            lt: ninetyDaysAgo,
+          },
         },
         select: {
           id: true,
           guildId: true,
           url: true,
           thumbnail: true,
-          title: true
-        }
+          title: true,
+        },
       });
-      
+
       // Cleanup rejected clips
       for (const clip of rejectedClips) {
         try {
           await this.deleteClipFiles(clip);
-          
+
           // Delete from database
           await this.database.client.clipVote.deleteMany({
-            where: { clipId: clip.id }
+            where: { clipId: clip.id },
           });
-          
+
           await this.database.client.clip.delete({
-            where: { id: clip.id }
+            where: { id: clip.id },
           });
-          
+
           // Remove from memory
           this.clips.get(clip.guildId)?.delete(clip.id);
-          
+
           cleanupStats.deletedRejectedClips++;
           this.logger.info(`Cleaned up rejected clip: ${clip.title} (${clip.id})`);
         } catch (error) {
@@ -1703,24 +1705,24 @@ export class ClipService {
           this.logger.error(`Failed to cleanup rejected clip ${clip.id}:`, error);
         }
       }
-      
+
       // Cleanup very old clips
       for (const clip of veryOldClips) {
         try {
           await this.deleteClipFiles(clip);
-          
+
           // Delete from database
           await this.database.client.clipVote.deleteMany({
-            where: { clipId: clip.id }
+            where: { clipId: clip.id },
           });
-          
+
           await this.database.client.clip.delete({
-            where: { id: clip.id }
+            where: { id: clip.id },
           });
-          
+
           // Remove from memory
           this.clips.get(clip.guildId)?.delete(clip.id);
-          
+
           cleanupStats.deletedOldClips++;
           this.logger.info(`Cleaned up old clip: ${clip.title} (${clip.id})`);
         } catch (error) {
@@ -1728,20 +1730,20 @@ export class ClipService {
           this.logger.error(`Failed to cleanup old clip ${clip.id}:`, error);
         }
       }
-      
+
       this.logger.info('Clip cleanup completed', cleanupStats);
     } catch (error) {
       this.logger.error('Failed to cleanup old files:', error);
     }
   }
-  
+
   /**
    * Delete clip files from filesystem
    */
   private async deleteClipFiles(clip: { url: string; thumbnail?: string | null }): Promise<void> {
     const fs = await import('fs');
     const path = await import('path');
-    
+
     try {
       // Delete main video file
       if (clip.url) {
@@ -1752,13 +1754,13 @@ export class ClipService {
           const fileName = path.basename(clip.url);
           filePath = path.join(this.uploadDir, fileName);
         }
-        
+
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
           this.logger.debug(`Deleted clip file: ${filePath}`);
         }
       }
-      
+
       // Delete thumbnail if exists
       if (clip.thumbnail) {
         let thumbnailPath = clip.thumbnail;
@@ -1766,7 +1768,7 @@ export class ClipService {
           const fileName = path.basename(clip.thumbnail);
           thumbnailPath = path.join(this.thumbnailDir, fileName);
         }
-        
+
         if (fs.existsSync(thumbnailPath)) {
           fs.unlinkSync(thumbnailPath);
           this.logger.debug(`Deleted thumbnail: ${thumbnailPath}`);
@@ -1791,44 +1793,44 @@ export class ClipService {
           guildId: true,
           url: true,
           thumbnail: true,
-          title: true
-        }
+          title: true,
+        },
       });
-      
+
       if (!clip) {
         return {
           success: false,
-          message: 'Clip não encontrado.'
+          message: 'Clip não encontrado.',
         };
       }
-      
+
       // Delete files from filesystem
       await this.deleteClipFiles(clip);
-      
+
       // Delete votes from database
       await this.database.client.clipVote.deleteMany({
-        where: { clipId: clip.id }
+        where: { clipId: clip.id },
       });
-      
+
       // Delete clip from database
       await this.database.client.clip.delete({
-        where: { id: clip.id }
+        where: { id: clip.id },
       });
-      
+
       // Remove from memory
       this.clips.get(clip.guildId)?.delete(clip.id);
-      
+
       this.logger.info(`Deleted clip: ${clip.title} (${clip.id})`);
-      
+
       return {
         success: true,
-        message: 'Clip deletado com sucesso.'
+        message: 'Clip deletado com sucesso.',
       };
     } catch (error) {
       this.logger.error(`Failed to delete clip ${clipId}:`, error);
       return {
         success: false,
-        message: 'Erro ao deletar o clip.'
+        message: 'Erro ao deletar o clip.',
       };
     }
   }

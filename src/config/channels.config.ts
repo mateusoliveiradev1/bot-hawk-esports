@@ -21,26 +21,26 @@ export const CHANNEL_CONFIGS: Record<string, ChannelConfig> = {
     cleanupTime: 4 * 60 * 60 * 1000, // 4 hours
     maxUsers: 10,
     createTextChannel: true,
-    categoryPattern: '🎮 Matchmaking'
+    categoryPattern: '🎮 Matchmaking',
   },
   scrim: {
     cleanupTime: 6 * 60 * 60 * 1000, // 6 hours
     maxUsers: 10,
     createTextChannel: true,
-    categoryPattern: '⚔️ Scrims'
+    categoryPattern: '⚔️ Scrims',
   },
   campeonato: {
     cleanupTime: 12 * 60 * 60 * 1000, // 12 hours
     maxUsers: 20,
     createTextChannel: true,
-    categoryPattern: '🏆 Campeonatos'
+    categoryPattern: '🏆 Campeonatos',
   },
   ranked: {
     cleanupTime: 8 * 60 * 60 * 1000, // 8 hours
     maxUsers: 10,
     createTextChannel: true,
-    categoryPattern: '🎯 Ranked'
-  }
+    categoryPattern: '🎯 Ranked',
+  },
 };
 
 /**
@@ -50,14 +50,16 @@ export const DEFAULT_CHANNEL_CONFIG: ChannelConfig = {
   cleanupTime: 4 * 60 * 60 * 1000, // 4 hours
   maxUsers: 10,
   createTextChannel: true,
-  categoryPattern: '🎮 Sessões'
+  categoryPattern: '🎮 Sessões',
 };
 
 /**
  * Get configuration for a specific session type
  */
 export function getChannelConfig(sessionType?: string): ChannelConfig {
-  if (!sessionType) return DEFAULT_CHANNEL_CONFIG;
+  if (!sessionType) {
+    return DEFAULT_CHANNEL_CONFIG;
+  }
   return CHANNEL_CONFIGS[sessionType.toLowerCase()] || DEFAULT_CHANNEL_CONFIG;
 }
 
@@ -67,7 +69,7 @@ export function getChannelConfig(sessionType?: string): ChannelConfig {
 export function formatCleanupTime(milliseconds: number): string {
   const hours = Math.floor(milliseconds / (60 * 60 * 1000));
   const minutes = Math.floor((milliseconds % (60 * 60 * 1000)) / (60 * 1000));
-  
+
   if (hours > 0 && minutes > 0) {
     return `${hours}h ${minutes}m`;
   } else if (hours > 0) {

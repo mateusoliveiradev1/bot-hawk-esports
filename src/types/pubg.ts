@@ -6,7 +6,7 @@ export enum PUBGPlatform {
   XBOX = 'xbox',
   PSN = 'psn',
   STADIA = 'stadia',
-  KAKAO = 'kakao'
+  KAKAO = 'kakao',
 }
 
 /**
@@ -18,7 +18,7 @@ export enum PUBGGameMode {
   SQUAD = 'squad',
   SOLO_FPP = 'solo-fpp',
   DUO_FPP = 'duo-fpp',
-  SQUAD_FPP = 'squad-fpp'
+  SQUAD_FPP = 'squad-fpp',
 }
 
 /**
@@ -26,7 +26,7 @@ export enum PUBGGameMode {
  */
 export enum PUBGSeasonType {
   DIVISION = 'division',
-  BATTLEROYALE = 'battleroyale'
+  BATTLEROYALE = 'battleroyale',
 }
 
 /**
@@ -39,7 +39,7 @@ export enum PUBGRankTier {
   PLATINUM = 'Platinum',
   DIAMOND = 'Diamond',
   MASTER = 'Master',
-  GRANDMASTER = 'Grandmaster'
+  GRANDMASTER = 'Grandmaster',
 }
 
 /**
@@ -309,7 +309,7 @@ export enum RankingPeriod {
   DAILY = 'daily',
   WEEKLY = 'weekly',
   MONTHLY = 'monthly',
-  ALL_TIME = 'all_time'
+  ALL_TIME = 'all_time',
 }
 
 /**
@@ -324,7 +324,7 @@ export enum RankingType {
   KDA = 'kda',
   XP = 'xp',
   LEVEL = 'level',
-  COINS = 'coins'
+  COINS = 'coins',
 }
 
 /**

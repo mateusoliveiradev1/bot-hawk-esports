@@ -28,9 +28,7 @@ export default {
         )
     )
     .addSubcommand(subcommand =>
-      subcommand
-        .setName('sync')
-        .setDescription('Sincronizar maestria de armas com a API PUBG')
+      subcommand.setName('sync').setDescription('Sincronizar maestria de armas com a API PUBG')
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -46,9 +44,7 @@ export default {
         )
     )
     .addSubcommand(subcommand =>
-      subcommand
-        .setName('stats')
-        .setDescription('Ver estatísticas gerais de maestria de armas')
+      subcommand.setName('stats').setDescription('Ver estatísticas gerais de maestria de armas')
     ),
 
   async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
@@ -76,13 +72,32 @@ export default {
       }
     } catch (error) {
       console.error('Error in weapon-mastery command:', error);
-      
-      const errorMessage = '❌ Ocorreu um erro ao executar o comando. Tente novamente mais tarde.';
-      
+
+      // Log detalhado para o canal de logs da API
+      if (client.services?.pubg) {
+        await client.services.pubg.logToChannel(
+          '❌ Erro no Comando Weapon Mastery',
+          `**Usuário:** ${interaction.user.tag}\n**Subcomando:** ${subcommand}\n**Erro:** ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+          'error'
+        );
+      }
+
+      const errorEmbed = new EmbedBuilder()
+        .setTitle('❌ Erro no comando')
+        .setDescription('Ocorreu um erro ao executar o comando de maestria de armas.')
+        .setColor('#FF0000')
+        .addFields({
+          name: '💡 Dicas',
+          value:
+            '• Verifique se sua conta PUBG está vinculada\n• Tente novamente em alguns minutos\n• Use `/register` se ainda não se registrou',
+          inline: false,
+        })
+        .setFooter({ text: 'Se o problema persistir, contate um administrador' });
+
       if (interaction.replied || interaction.deferred) {
-        await interaction.followUp({ content: errorMessage, ephemeral: true });
+        await interaction.followUp({ embeds: [errorEmbed], ephemeral: true });
       } else {
-        await interaction.reply({ content: errorMessage, ephemeral: true });
+        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
       }
     }
   },
@@ -141,7 +156,7 @@ async function handleViewCommand(
     await displayWeaponMastery(interaction, masteryData, targetUser);
   } catch (error) {
     console.error('Error in view command:', error);
-    
+
     const embed = new EmbedBuilder()
       .setColor('#ff6b6b')
       .setTitle('❌ Erro')
@@ -173,15 +188,22 @@ async function handleSyncCommand(
       const embed = new EmbedBuilder()
         .setColor('#ff6b6b')
         .setTitle('❌ Conta não vinculada')
-        .setDescription('Você precisa vincular sua conta PUBG primeiro. Use `/pubg link` para vincular.')
+        .setDescription(
+          'Você precisa vincular sua conta PUBG primeiro. Use `/pubg link` para vincular.'
+        )
         .setTimestamp();
 
       await interaction.editReply({ embeds: [embed] });
       return;
     }
 
+    // Verificar se o serviço de maestria de armas está disponível
+    if (!client.services?.weaponMastery) {
+      throw new Error('Weapon mastery service not available');
+    }
+
     // Force sync weapon mastery
-    const synced = await (client as any).weaponMasteryService.forceSyncUserWeaponMastery(
+    const synced = await client.services.weaponMastery.forceSyncUserWeaponMastery(
       userId,
       user.pubgUsername
     );
@@ -192,7 +214,7 @@ async function handleSyncCommand(
         .setTitle('✅ Sincronização concluída')
         .setDescription(
           `Dados de maestria de armas sincronizados com sucesso para **${user.pubgUsername}**.\n\n` +
-          'Use `/weapon-mastery view` para visualizar seus dados atualizados.'
+            'Use `/weapon-mastery view` para visualizar seus dados atualizados.'
         )
         .setTimestamp();
 
@@ -203,10 +225,10 @@ async function handleSyncCommand(
         .setTitle('⚠️ Sincronização falhou')
         .setDescription(
           'Não foi possível sincronizar os dados de maestria de armas. Possíveis causas:\n\n' +
-          '• Jogador não encontrado na API PUBG\n' +
-          '• Dados de maestria não disponíveis\n' +
-          '• Erro temporário da API\n\n' +
-          'Tente novamente em alguns minutos.'
+            '• Jogador não encontrado na API PUBG\n' +
+            '• Dados de maestria não disponíveis\n' +
+            '• Erro temporário da API\n\n' +
+            'Tente novamente em alguns minutos.'
         )
         .setTimestamp();
 
@@ -214,7 +236,7 @@ async function handleSyncCommand(
     }
   } catch (error) {
     console.error('Error in sync command:', error);
-    
+
     const embed = new EmbedBuilder()
       .setColor('#ff6b6b')
       .setTitle('❌ Erro na sincronização')
@@ -237,7 +259,12 @@ async function handleLeaderboardCommand(
   await interaction.deferReply();
 
   try {
-    const leaderboard = await (client as any).weaponMasteryService.getWeaponMasteryLeaderboard(limit);
+    // Verificar se o serviço de maestria de armas está disponível
+    if (!client.services?.weaponMastery) {
+      throw new Error('Weapon mastery service not available');
+    }
+
+    const leaderboard = await client.services.weaponMastery.getWeaponMasteryLeaderboard(limit);
 
     if (leaderboard.length === 0) {
       const embed = new EmbedBuilder()
@@ -262,12 +289,12 @@ async function handleLeaderboardCommand(
     for (let i = 0; i < leaderboard.length; i++) {
       const player = leaderboard[i];
       const medal = medals[i] || `**${i + 1}.**`;
-      
-      description += `${medal} **${player.pubgName}**\n`;
-      description += `├ Nível Total: **${player.totalLevel}**\n`;
-      description += `├ XP Total: **${player.totalXP.toLocaleString()}**\n`;
-      description += `├ Armas: **${player.weaponCount}**\n`;
-      description += `└ Favorita: **${player.favoriteWeapon}**\n\n`;
+
+      description += `${medal} **${player?.pubgName || 'N/A'}**\n`;
+      description += `├ Nível Total: **${player?.totalLevel || 0}**\n`;
+      description += `├ XP Total: **${player?.totalXP?.toLocaleString() || '0'}**\n`;
+      description += `├ Armas: **${player?.weaponCount || 0}**\n`;
+      description += `└ Favorita: **${player?.favoriteWeapon || 'N/A'}**\n\n`;
     }
 
     embed.setDescription(description);
@@ -275,7 +302,7 @@ async function handleLeaderboardCommand(
     await interaction.editReply({ embeds: [embed] });
   } catch (error) {
     console.error('Error in leaderboard command:', error);
-    
+
     const embed = new EmbedBuilder()
       .setColor('#ff6b6b')
       .setTitle('❌ Erro')
@@ -314,9 +341,14 @@ async function handleStatsCommand(
         },
         {
           name: '🔫 Armas Populares',
-          value: stats.topWeapons.slice(0, 5).map((weapon: any, index: number) => 
-            `**${index + 1}.** ${weapon.name} (${weapon.users} usuários)`
-          ).join('\n') || 'Nenhuma arma registrada',
+          value:
+            stats.topWeapons
+              .slice(0, 5)
+              .map(
+                (weapon: any, index: number) =>
+                  `**${index + 1}.** ${weapon.name} (${weapon.users} usuários)`
+              )
+              .join('\n') || 'Nenhuma arma registrada',
           inline: false,
         }
       )
@@ -325,7 +357,7 @@ async function handleStatsCommand(
     await interaction.editReply({ embeds: [embed] });
   } catch (error) {
     console.error('Error in stats command:', error);
-    
+
     const embed = new EmbedBuilder()
       .setColor('#ff6b6b')
       .setTitle('❌ Erro')
@@ -357,18 +389,15 @@ async function displayWeaponMastery(
       .setColor('#4caf50')
       .setTitle(`🔫 Maestria de Armas - ${masteryData.pubgName}`)
       .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
-      .addFields(
-        {
-          name: '📊 Resumo Geral',
-          value: (
-            `**Nível Total:** ${masteryData.totalLevel}\n` +
-            `**XP Total:** ${masteryData.totalXP.toLocaleString()}\n` +
-            `**Armas Dominadas:** ${masteryData.weapons.length}\n` +
-            `**Arma Favorita:** ${masteryData.favoriteWeapon}`
-          ),
-          inline: false,
-        }
-      )
+      .addFields({
+        name: '📊 Resumo Geral',
+        value:
+          `**Nível Total:** ${masteryData.totalLevel}\n` +
+          `**XP Total:** ${masteryData.totalXP.toLocaleString()}\n` +
+          `**Armas Dominadas:** ${masteryData.weapons.length}\n` +
+          `**Arma Favorita:** ${masteryData.favoriteWeapon}`,
+        inline: false,
+      })
       .setFooter({
         text: `Página ${page + 1} de ${totalPages} • Última sincronização: ${masteryData.lastSyncAt.toLocaleDateString('pt-BR')}`,
       })
@@ -378,15 +407,14 @@ async function displayWeaponMastery(
     for (const weapon of weaponsOnPage) {
       const progressBar = createProgressBar(weapon.level, 100);
       const medalCount = weapon.medals.length;
-      
+
       embed.addFields({
         name: `${getWeaponEmoji(weapon.weaponName)} ${weapon.weaponName}`,
-        value: (
+        value:
           `**Nível:** ${weapon.level} ${progressBar}\n` +
           `**XP:** ${weapon.xp.toLocaleString()}\n` +
           `**Tier:** ${weapon.tier}\n` +
-          `**Medalhas:** ${medalCount} 🏅`
-        ),
+          `**Medalhas:** ${medalCount} 🏅`,
         inline: true,
       });
     }
@@ -422,7 +450,9 @@ async function displayWeaponMastery(
     components: totalPages > 1 ? [buttons] : [],
   });
 
-  if (totalPages <= 1) return;
+  if (totalPages <= 1) {
+    return;
+  }
 
   // Handle button interactions
   const collector = message.createMessageComponentCollector({
@@ -466,9 +496,7 @@ async function displayWeaponMastery(
   collector.on('end', async () => {
     try {
       const disabledButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        ...buttons.components.map(button => 
-          ButtonBuilder.from(button).setDisabled(true)
-        )
+        ...buttons.components.map(button => ButtonBuilder.from(button).setDisabled(true))
       );
 
       await interaction.editReply({
@@ -516,7 +544,8 @@ async function handleSyncFromButton(
 
     if (synced) {
       await buttonInteraction.followUp({
-        content: '✅ Dados sincronizados com sucesso! Use o comando novamente para ver as atualizações.',
+        content:
+          '✅ Dados sincronizados com sucesso! Use o comando novamente para ver as atualizações.',
         ephemeral: true,
       });
     } else {
@@ -527,7 +556,7 @@ async function handleSyncFromButton(
     }
   } catch (error) {
     console.error('Error in sync from button:', error);
-    
+
     await buttonInteraction.followUp({
       content: '❌ Erro durante a sincronização.',
       ephemeral: true,
@@ -542,7 +571,7 @@ function createProgressBar(current: number, max: number, length: number = 10): s
   const percentage = Math.min(current / max, 1);
   const filled = Math.round(length * percentage);
   const empty = length - filled;
-  
+
   return `[${'█'.repeat(filled)}${'░'.repeat(empty)}] ${current}/${max}`;
 }
 
@@ -551,31 +580,31 @@ function createProgressBar(current: number, max: number, length: number = 10): s
  */
 function getWeaponEmoji(weaponName: string): string {
   const weaponEmojis: Record<string, string> = {
-    'AKM': '🔫',
-    'M416': '🔫',
+    AKM: '🔫',
+    M416: '🔫',
     'SCAR-L': '🔫',
-    'M16A4': '🔫',
-    'Kar98k': '🎯',
-    'M24': '🎯',
-    'AWM': '🎯',
-    'VSS': '🎯',
-    'UMP45': '🔫',
-    'Vector': '🔫',
+    M16A4: '🔫',
+    Kar98k: '🎯',
+    M24: '🎯',
+    AWM: '🎯',
+    VSS: '🎯',
+    UMP45: '🔫',
+    Vector: '🔫',
     'Tommy Gun': '🔫',
-    'S12K': '💥',
-    'S1897': '💥',
-    'S686': '💥',
-    'DBS': '💥',
-    'P92': '🔫',
-    'P1911': '🔫',
-    'P18C': '🔫',
-    'R1895': '🔫',
-    'Crossbow': '🏹',
-    'Pan': '🍳',
-    'Machete': '🔪',
-    'Sickle': '🔪',
-    'Crowbar': '🔧',
+    S12K: '💥',
+    S1897: '💥',
+    S686: '💥',
+    DBS: '💥',
+    P92: '🔫',
+    P1911: '🔫',
+    P18C: '🔫',
+    R1895: '🔫',
+    Crossbow: '🏹',
+    Pan: '🍳',
+    Machete: '🔪',
+    Sickle: '🔪',
+    Crowbar: '🔧',
   };
-  
+
   return weaponEmojis[weaponName] || '🔫';
 }

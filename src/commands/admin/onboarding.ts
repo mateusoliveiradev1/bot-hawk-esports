@@ -1,4 +1,12 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, CommandInteraction, PermissionFlagsBits, EmbedBuilder, ChannelType, TextChannel } from 'discord.js';
+import {
+  SlashCommandBuilder,
+  ChatInputCommandInteraction,
+  CommandInteraction,
+  PermissionFlagsBits,
+  EmbedBuilder,
+  ChannelType,
+  TextChannel,
+} from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
 
@@ -16,14 +24,16 @@ export const onboarding: Command = {
             .setName('canal')
             .setDescription('Canal para enviar mensagens de boas-vindas')
             .addChannelTypes(ChannelType.GuildText)
-            .setRequired(true),
+            .setRequired(true)
         )
         .addStringOption(option =>
           option
             .setName('mensagem')
-            .setDescription('Mensagem personalizada de boas-vindas (use {user} para mencionar o usuário)')
-            .setRequired(false),
-        ),
+            .setDescription(
+              'Mensagem personalizada de boas-vindas (use {user} para mencionar o usuário)'
+            )
+            .setRequired(false)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -33,23 +43,22 @@ export const onboarding: Command = {
           option
             .setName('ativo')
             .setDescription('Ativar ou desativar o onboarding')
-            .setRequired(true),
-        ),
+            .setRequired(true)
+        )
     )
     .addSubcommand(subcommand =>
-      subcommand
-        .setName('stats')
-        .setDescription('Ver estatísticas de boas-vindas do servidor'),
+      subcommand.setName('stats').setDescription('Ver estatísticas de boas-vindas do servidor')
     )
     .addSubcommand(subcommand =>
-      subcommand
-        .setName('test')
-        .setDescription('Testar mensagem de boas-vindas'),
+      subcommand.setName('test').setDescription('Testar mensagem de boas-vindas')
     ),
 
   category: CommandCategory.ADMIN,
 
-  async execute(interaction: ChatInputCommandInteraction | CommandInteraction, client: ExtendedClient) {
+  async execute(
+    interaction: ChatInputCommandInteraction | CommandInteraction,
+    client: ExtendedClient
+  ) {
     if (!interaction.guild) {
       await interaction.reply({
         content: '❌ Este comando só pode ser usado em servidores!',
@@ -70,23 +79,23 @@ export const onboarding: Command = {
 
     try {
       switch (subcommand) {
-      case 'setup':
-        await handleSetup(interaction, client);
-        break;
-      case 'toggle':
-        await handleToggle(interaction, client);
-        break;
-      case 'stats':
-        await handleStats(interaction, client);
-        break;
-      case 'test':
-        await handleTest(interaction, client);
-        break;
-      default:
-        await interaction.reply({
-          content: '❌ Subcomando não reconhecido!',
-          ephemeral: true,
-        });
+        case 'setup':
+          await handleSetup(interaction, client);
+          break;
+        case 'toggle':
+          await handleToggle(interaction, client);
+          break;
+        case 'stats':
+          await handleStats(interaction, client);
+          break;
+        case 'test':
+          await handleTest(interaction, client);
+          break;
+        default:
+          await interaction.reply({
+            content: '❌ Subcomando não reconhecido!',
+            ephemeral: true,
+          });
       }
     } catch (error) {
       console.error('Error in onboarding command:', error);
@@ -132,7 +141,7 @@ async function handleSetup(interaction: ChatInputCommandInteraction, client: Ext
     .setDescription('Sistema de boas-vindas configurado com sucesso!')
     .addFields(
       { name: '📢 Canal', value: `${channel}`, inline: true },
-      { name: '💬 Mensagem', value: customMessage || 'Mensagem padrão', inline: true },
+      { name: '💬 Mensagem', value: customMessage || 'Mensagem padrão', inline: true }
     )
     .setColor(0x00ff00)
     .setTimestamp();
@@ -194,9 +203,21 @@ async function handleStats(interaction: ChatInputCommandInteraction, client: Ext
       { name: '👥 Total de Membros', value: stats.totalMembers.toString(), inline: true },
       { name: '✅ Membros Verificados', value: stats.verifiedMembers.toString(), inline: true },
       { name: '👋 Novos Membros', value: stats.newMembers.toString(), inline: true },
-      { name: '📈 Taxa de Verificação', value: `${stats.verificationRate.toFixed(1)}%`, inline: true },
-      { name: '🔧 Status do Sistema', value: config.onboardingEnabled ? '✅ Ativo' : '❌ Inativo', inline: true },
-      { name: '📢 Canal de Boas-vindas', value: config.welcomeChannelId ? `<#${config.welcomeChannelId}>` : 'Não configurado', inline: true },
+      {
+        name: '📈 Taxa de Verificação',
+        value: `${stats.verificationRate.toFixed(1)}%`,
+        inline: true,
+      },
+      {
+        name: '🔧 Status do Sistema',
+        value: config.onboardingEnabled ? '✅ Ativo' : '❌ Inativo',
+        inline: true,
+      },
+      {
+        name: '📢 Canal de Boas-vindas',
+        value: config.welcomeChannelId ? `<#${config.welcomeChannelId}>` : 'Não configurado',
+        inline: true,
+      }
     )
     .setColor(0x0099ff)
     .setTimestamp()
@@ -215,7 +236,7 @@ async function handleTest(interaction: ChatInputCommandInteraction, client: Exte
   }
 
   const config = await client.services.onboarding.getGuildConfig(interaction.guild!.id);
-  
+
   if (!config.welcomeChannelId) {
     await interaction.reply({
       content: '❌ Canal de boas-vindas não configurado! Use `/onboarding setup` primeiro.',
@@ -224,8 +245,10 @@ async function handleTest(interaction: ChatInputCommandInteraction, client: Exte
     return;
   }
 
-  const welcomeChannel = interaction.guild!.channels.cache.get(config.welcomeChannelId) as TextChannel;
-  
+  const welcomeChannel = interaction.guild!.channels.cache.get(
+    config.welcomeChannelId
+  ) as TextChannel;
+
   if (!welcomeChannel) {
     await interaction.reply({
       content: '❌ Canal de boas-vindas não encontrado!',
@@ -235,11 +258,12 @@ async function handleTest(interaction: ChatInputCommandInteraction, client: Exte
   }
 
   // Create test welcome message
-  const welcomeMessage = config.welcomeMessage || 
+  const welcomeMessage =
+    config.welcomeMessage ||
     '🎉 Bem-vindo(a) ao **{guild}**, {user}!\n\n' +
-    '📋 Para ter acesso completo ao servidor, você precisa se registrar com seu nick do PUBG.\n' +
-    '🎮 Use o comando `/register` para começar!\n\n' +
-    '📖 Leia as regras e divirta-se! 🚀';
+      '📋 Para ter acesso completo ao servidor, você precisa se registrar com seu nick do PUBG.\n' +
+      '🎮 Use o comando `/register` para começar!\n\n' +
+      '📖 Leia as regras e divirta-se! 🚀';
 
   const formattedMessage = welcomeMessage
     .replace(/{user}/g, interaction.user.toString())
@@ -254,7 +278,7 @@ async function handleTest(interaction: ChatInputCommandInteraction, client: Exte
     .setFooter({ text: 'Esta é uma mensagem de teste' });
 
   await welcomeChannel.send({ embeds: [embed] });
-  
+
   await interaction.reply({
     content: `✅ Mensagem de teste enviada em ${welcomeChannel}!`,
     ephemeral: true,

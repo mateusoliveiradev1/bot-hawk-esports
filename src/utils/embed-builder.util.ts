@@ -6,25 +6,23 @@ import { EmbedBuilder, ColorResolvable } from 'discord.js';
 export class EmbedUtils {
   // Standard colors
   private static readonly COLORS = {
-    ERROR: 0xFF0000,
-    SUCCESS: 0x00FF00,
-    WARNING: 0xFFFF00,
-    INFO: 0x0099FF,
-    PRIMARY: 0x5865F2
+    ERROR: 0xff0000,
+    SUCCESS: 0x00ff00,
+    WARNING: 0xffff00,
+    INFO: 0x0099ff,
+    PRIMARY: 0x5865f2,
   } as const;
 
   /**
    * Create a standardized error embed
    */
   static createErrorEmbed(title: string, description?: string): EmbedBuilder {
-    const embed = new EmbedBuilder()
-      .setColor(this.COLORS.ERROR)
-      .setTitle(`❌ ${title}`);
-    
+    const embed = new EmbedBuilder().setColor(this.COLORS.ERROR).setTitle(`❌ ${title}`);
+
     if (description) {
       embed.setDescription(description);
     }
-    
+
     return embed;
   }
 
@@ -32,14 +30,12 @@ export class EmbedUtils {
    * Create a standardized success embed
    */
   static createSuccessEmbed(title: string, description?: string): EmbedBuilder {
-    const embed = new EmbedBuilder()
-      .setColor(this.COLORS.SUCCESS)
-      .setTitle(`✅ ${title}`);
-    
+    const embed = new EmbedBuilder().setColor(this.COLORS.SUCCESS).setTitle(`✅ ${title}`);
+
     if (description) {
       embed.setDescription(description);
     }
-    
+
     return embed;
   }
 
@@ -47,14 +43,12 @@ export class EmbedUtils {
    * Create a standardized warning embed
    */
   static createWarningEmbed(title: string, description?: string): EmbedBuilder {
-    const embed = new EmbedBuilder()
-      .setColor(this.COLORS.WARNING)
-      .setTitle(`⚠️ ${title}`);
-    
+    const embed = new EmbedBuilder().setColor(this.COLORS.WARNING).setTitle(`⚠️ ${title}`);
+
     if (description) {
       embed.setDescription(description);
     }
-    
+
     return embed;
   }
 
@@ -62,29 +56,29 @@ export class EmbedUtils {
    * Create a standardized info embed
    */
   static createInfoEmbed(title: string, description?: string): EmbedBuilder {
-    const embed = new EmbedBuilder()
-      .setColor(this.COLORS.INFO)
-      .setTitle(`ℹ️ ${title}`);
-    
+    const embed = new EmbedBuilder().setColor(this.COLORS.INFO).setTitle(`ℹ️ ${title}`);
+
     if (description) {
       embed.setDescription(description);
     }
-    
+
     return embed;
   }
 
   /**
    * Create a custom embed with specified color
    */
-  static createCustomEmbed(title: string, color: ColorResolvable, description?: string): EmbedBuilder {
-    const embed = new EmbedBuilder()
-      .setColor(color)
-      .setTitle(title);
-    
+  static createCustomEmbed(
+    title: string,
+    color: ColorResolvable,
+    description?: string
+  ): EmbedBuilder {
+    const embed = new EmbedBuilder().setColor(color).setTitle(title);
+
     if (description) {
       embed.setDescription(description);
     }
-    
+
     return embed;
   }
 
@@ -99,7 +93,7 @@ export class EmbedUtils {
     INVALID_PARAMETERS: 'Parâmetros Inválidos',
     SERVICE_UNAVAILABLE: 'Serviço Indisponível',
     NOT_FOUND: 'Não Encontrado',
-    ACCESS_DENIED: 'Acesso Negado'
+    ACCESS_DENIED: 'Acesso Negado',
   } as const;
 
   /**
@@ -109,7 +103,7 @@ export class EmbedUtils {
     OPERATION_COMPLETED: 'Operação Concluída',
     CONFIGURATION_UPDATED: 'Configuração Atualizada',
     DATA_SAVED: 'Dados Salvos',
-    PROCESS_COMPLETED: 'Processo Concluído'
+    PROCESS_COMPLETED: 'Processo Concluído',
   } as const;
 
   /**

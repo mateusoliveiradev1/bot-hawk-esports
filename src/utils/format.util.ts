@@ -10,35 +10,28 @@ export class FormatUtils {
   }
 
   static formatCurrency(
-    amount: number, 
-    currency: string = 'BRL', 
+    amount: number,
+    currency: string = 'BRL',
     locale: string = 'pt-BR'
   ): string {
     return new Intl.NumberFormat(locale, {
       style: 'currency',
-      currency: currency
+      currency: currency,
     }).format(amount);
   }
 
-  static formatPercentage(
-    value: number, 
-    decimals: number = 1,
-    locale: string = 'pt-BR'
-  ): string {
+  static formatPercentage(value: number, decimals: number = 1, locale: string = 'pt-BR'): string {
     return new Intl.NumberFormat(locale, {
       style: 'percent',
       minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals
+      maximumFractionDigits: decimals,
     }).format(value / 100);
   }
 
-  static formatCompactNumber(
-    num: number,
-    locale: string = 'pt-BR'
-  ): string {
+  static formatCompactNumber(num: number, locale: string = 'pt-BR'): string {
     return new Intl.NumberFormat(locale, {
       notation: 'compact',
-      compactDisplay: 'short'
+      compactDisplay: 'short',
     }).format(num);
   }
 
@@ -46,7 +39,7 @@ export class FormatUtils {
     if (locale === 'pt-BR') {
       return `${num}º`;
     }
-    
+
     const pr = new Intl.PluralRules(locale, { type: 'ordinal' });
     const suffixes = new Map([
       ['one', 'st'],
@@ -69,7 +62,7 @@ export class FormatUtils {
   ): string {
     const dateObj = new Date(date);
     return new Intl.DateTimeFormat(locale, {
-      dateStyle: format
+      dateStyle: format,
     }).format(dateObj);
   }
 
@@ -80,7 +73,7 @@ export class FormatUtils {
   ): string {
     const dateObj = new Date(date);
     return new Intl.DateTimeFormat(locale, {
-      timeStyle: format
+      timeStyle: format,
     }).format(dateObj);
   }
 
@@ -93,20 +86,17 @@ export class FormatUtils {
     const dateObj = new Date(date);
     return new Intl.DateTimeFormat(locale, {
       dateStyle: dateFormat,
-      timeStyle: timeFormat
+      timeStyle: timeFormat,
     }).format(dateObj);
   }
 
-  static formatRelativeTime(
-    date: Date | string | number,
-    locale: string = 'pt-BR'
-  ): string {
+  static formatRelativeTime(date: Date | string | number, locale: string = 'pt-BR'): string {
     const dateObj = new Date(date);
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - dateObj.getTime()) / 1000);
-    
+
     const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
-    
+
     if (Math.abs(diffInSeconds) < 60) {
       return rtf.format(-diffInSeconds, 'second');
     } else if (Math.abs(diffInSeconds) < 3600) {
@@ -127,14 +117,22 @@ export class FormatUtils {
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
-    
+
     const parts: string[] = [];
-    
-    if (days > 0) parts.push(`${days}d`);
-    if (hours % 24 > 0) parts.push(`${hours % 24}h`);
-    if (minutes % 60 > 0) parts.push(`${minutes % 60}m`);
-    if (seconds % 60 > 0) parts.push(`${seconds % 60}s`);
-    
+
+    if (days > 0) {
+      parts.push(`${days}d`);
+    }
+    if (hours % 24 > 0) {
+      parts.push(`${hours % 24}h`);
+    }
+    if (minutes % 60 > 0) {
+      parts.push(`${minutes % 60}m`);
+    }
+    if (seconds % 60 > 0) {
+      parts.push(`${seconds % 60}s`);
+    }
+
     return parts.join(' ') || '0s';
   }
 
@@ -143,7 +141,7 @@ export class FormatUtils {
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
-    
+
     if (days > 0) {
       return `${days}d ${hours % 24}h ${minutes % 60}m`;
     } else if (hours > 0) {
@@ -161,14 +159,12 @@ export class FormatUtils {
   }
 
   static titleCase(text: string): string {
-    return text.replace(/\w\S*/g, (txt) => 
-      txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
-    );
+    return text.replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
   }
 
   static camelCase(text: string): string {
     return text
-      .replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) => 
+      .replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) =>
         index === 0 ? word.toLowerCase() : word.toUpperCase()
       )
       .replace(/\s+/g, '');
@@ -223,14 +219,18 @@ export class FormatUtils {
     locale: string = 'pt-BR',
     type: 'conjunction' | 'disjunction' = 'conjunction'
   ): string {
-    if (items.length === 0) return '';
-    if (items.length === 1) return items[0] || '';
-    
+    if (items.length === 0) {
+      return '';
+    }
+    if (items.length === 1) {
+      return items[0] || '';
+    }
+
     const formatter = new Intl.ListFormat(locale, {
       style: 'long',
-      type: type
+      type: type,
     });
-    
+
     return formatter.format(items);
   }
 
@@ -255,7 +255,7 @@ export class FormatUtils {
     const percentage = Math.max(0, Math.min(1, current / total));
     const filledLength = Math.round(length * percentage);
     const emptyLength = length - filledLength;
-    
+
     return filledChar.repeat(filledLength) + emptyChar.repeat(emptyLength);
   }
 
@@ -278,17 +278,17 @@ export class FormatUtils {
         offline: '⚫ Offline',
         idle: '🟡 Ausente',
         dnd: '🔴 Não Perturbe',
-        invisible: '⚫ Invisível'
+        invisible: '⚫ Invisível',
       },
       'en-US': {
         online: '🟢 Online',
         offline: '⚫ Offline',
         idle: '🟡 Idle',
         dnd: '🔴 Do Not Disturb',
-        invisible: '⚫ Invisible'
-      }
+        invisible: '⚫ Invisible',
+      },
     };
-    
+
     return statusMap[locale as keyof typeof statusMap]?.[status] || status;
   }
 
@@ -296,14 +296,16 @@ export class FormatUtils {
    * File size formatting
    */
   static formatFileSize(bytes: number, decimals: number = 2): string {
-    if (bytes === 0) return '0 Bytes';
-    
+    if (bytes === 0) {
+      return '0 Bytes';
+    }
+
     const k = 1024;
     const dm = decimals < 0 ? 0 : decimals;
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-    
+
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   }
 
@@ -312,18 +314,25 @@ export class FormatUtils {
    */
   static hexToRgb(hex: string): { r: number; g: number; b: number } | null {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result && result[1] && result[2] && result[3] ? {
-      r: parseInt(result[1], 16),
-      g: parseInt(result[2], 16),
-      b: parseInt(result[3], 16)
-    } : null;
+    return result && result[1] && result[2] && result[3]
+      ? {
+          r: parseInt(result[1], 16),
+          g: parseInt(result[2], 16),
+          b: parseInt(result[3], 16),
+        }
+      : null;
   }
 
   static rgbToHex(r: number, g: number, b: number): string {
-    return '#' + [r, g, b].map(x => {
-      const hex = x.toString(16);
-      return hex.length === 1 ? '0' + hex : hex;
-    }).join('');
+    return (
+      '#' +
+      [r, g, b]
+        .map(x => {
+          const hex = x.toString(16);
+          return hex.length === 1 ? '0' + hex : hex;
+        })
+        .join('')
+    );
   }
 
   /**
@@ -337,10 +346,7 @@ export class FormatUtils {
     return `<t:${timestamp}:${style}>`;
   }
 
-  static formatDiscordMention(
-    type: 'user' | 'channel' | 'role',
-    id: string
-  ): string {
+  static formatDiscordMention(type: 'user' | 'channel' | 'role', id: string): string {
     switch (type) {
       case 'user':
         return `<@${id}>`;

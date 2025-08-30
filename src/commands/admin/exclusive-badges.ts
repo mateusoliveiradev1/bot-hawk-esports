@@ -1,4 +1,10 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, User } from 'discord.js';
+import {
+  ChatInputCommandInteraction,
+  SlashCommandBuilder,
+  EmbedBuilder,
+  PermissionFlagsBits,
+  User,
+} from 'discord.js';
 import { ExtendedClient } from '../../types/client';
 import { Command, CommandCategory } from '../../types/command';
 import { BadgeOptimizationService } from '../../services/badge-optimization.service';
@@ -11,16 +17,15 @@ export const exclusiveBadges: Command = {
     .setDescription('Gerenciar badges exclusivas e fundador')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(subcommand =>
-      subcommand
-        .setName('create-founder')
-        .setDescription('Criar todas as badges fundador')
+      subcommand.setName('create-founder').setDescription('Criar todas as badges fundador')
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('award-founder')
         .setDescription('Conceder badge fundador a um usuário')
         .addUserOption(option =>
-          option.setName('usuario')
+          option
+            .setName('usuario')
             .setDescription('Usuário para receber a badge fundador')
             .setRequired(true)
         )
@@ -30,7 +35,8 @@ export const exclusiveBadges: Command = {
         .setName('award-early-adopter')
         .setDescription('Conceder badge pioneiro a um usuário')
         .addUserOption(option =>
-          option.setName('usuario')
+          option
+            .setName('usuario')
             .setDescription('Usuário para receber a badge pioneiro')
             .setRequired(true)
         )
@@ -40,7 +46,8 @@ export const exclusiveBadges: Command = {
         .setName('award-beta-tester')
         .setDescription('Conceder badge beta tester a um usuário')
         .addUserOption(option =>
-          option.setName('usuario')
+          option
+            .setName('usuario')
             .setDescription('Usuário para receber a badge beta tester')
             .setRequired(true)
         )
@@ -65,14 +72,14 @@ export const exclusiveBadges: Command = {
     // Client is now passed as parameter
     const badgeOptimizationService = client.services?.badgeOptimization;
     const badgeService = client.services?.badge;
-    
+
     if (!badgeOptimizationService || !badgeService) {
-       await interaction.reply({
-         content: '❌ Serviços não disponíveis no momento.',
-         ephemeral: true
-       });
-       return;
-     }
+      await interaction.reply({
+        content: '❌ Serviços não disponíveis no momento.',
+        ephemeral: true,
+      });
+      return;
+    }
     const subcommand = interaction.options.getSubcommand();
 
     if (!badgeOptimizationService || !badgeService) {
@@ -108,14 +115,17 @@ export const exclusiveBadges: Command = {
       default:
         await interaction.reply({
           content: '❌ Subcomando não reconhecido.',
-          ephemeral: true
+          ephemeral: true,
         });
         break;
     }
   },
 };
 
-async function handleCreateFounder(interaction: ChatInputCommandInteraction, service: BadgeOptimizationService) {
+async function handleCreateFounder(
+  interaction: ChatInputCommandInteraction,
+  service: BadgeOptimizationService
+) {
   await interaction.deferReply({ ephemeral: true });
 
   try {
@@ -141,7 +151,11 @@ async function handleCreateFounder(interaction: ChatInputCommandInteraction, ser
   }
 }
 
-async function handleAwardFounder(interaction: ChatInputCommandInteraction, optimizationService: BadgeOptimizationService, badgeService: BadgeService) {
+async function handleAwardFounder(
+  interaction: ChatInputCommandInteraction,
+  optimizationService: BadgeOptimizationService,
+  badgeService: BadgeService
+) {
   await interaction.deferReply({ ephemeral: true });
 
   const user = interaction.options.getUser('usuario', true);
@@ -175,7 +189,10 @@ async function handleAwardFounder(interaction: ChatInputCommandInteraction, opti
   }
 }
 
-async function handleAwardEarlyAdopter(interaction: ChatInputCommandInteraction, badgeService: BadgeService) {
+async function handleAwardEarlyAdopter(
+  interaction: ChatInputCommandInteraction,
+  badgeService: BadgeService
+) {
   await interaction.deferReply({ ephemeral: true });
 
   const user = interaction.options.getUser('usuario', true);
@@ -209,7 +226,10 @@ async function handleAwardEarlyAdopter(interaction: ChatInputCommandInteraction,
   }
 }
 
-async function handleAwardBetaTester(interaction: ChatInputCommandInteraction, badgeService: BadgeService) {
+async function handleAwardBetaTester(
+  interaction: ChatInputCommandInteraction,
+  badgeService: BadgeService
+) {
   await interaction.deferReply({ ephemeral: true });
 
   const user = interaction.options.getUser('usuario', true);
@@ -243,7 +263,10 @@ async function handleAwardBetaTester(interaction: ChatInputCommandInteraction, b
   }
 }
 
-async function handleListExclusive(interaction: ChatInputCommandInteraction, badgeService: BadgeService) {
+async function handleListExclusive(
+  interaction: ChatInputCommandInteraction,
+  badgeService: BadgeService
+) {
   await interaction.deferReply({ ephemeral: true });
 
   try {
@@ -259,19 +282,20 @@ async function handleListExclusive(interaction: ChatInputCommandInteraction, bad
       const client = interaction.client as ExtendedClient;
       const userBadges = await client.database.client.userBadge.findMany({
         where: { badgeId },
-        include: { user: true }
+        include: { user: true },
       });
 
       const badgeInfo = badgeService.getAvailableBadges(true).find(b => b.id === badgeId);
       if (badgeInfo) {
-        const holders = userBadges.length > 0 
-          ? userBadges.map(ub => `<@${ub.userId}>`).join(', ')
-          : 'Nenhum portador';
-        
+        const holders =
+          userBadges.length > 0
+            ? userBadges.map(ub => `<@${ub.userId}>`).join(', ')
+            : 'Nenhum portador';
+
         embed.addFields({
           name: `${badgeInfo.icon} ${badgeInfo.name}`,
           value: `**Portadores (${userBadges.length}):** ${holders}`,
-          inline: false
+          inline: false,
         });
       }
     }
@@ -285,13 +309,16 @@ async function handleListExclusive(interaction: ChatInputCommandInteraction, bad
   }
 }
 
-async function handleVerifyFounder(interaction: ChatInputCommandInteraction, badgeService: BadgeService) {
+async function handleVerifyFounder(
+  interaction: ChatInputCommandInteraction,
+  badgeService: BadgeService
+) {
   await interaction.deferReply({ ephemeral: true });
 
   try {
     const client = interaction.client as ExtendedClient;
     const founderUserId = process.env.FOUNDER_USER_ID;
-    
+
     if (!founderUserId) {
       await interaction.editReply({
         content: '❌ ID do fundador não configurado na variável FOUNDER_USER_ID.',
@@ -303,16 +330,16 @@ async function handleVerifyFounder(interaction: ChatInputCommandInteraction, bad
     const founderBadge = await client.database.client.userBadge.findFirst({
       where: {
         userId: founderUserId,
-        badgeId: 'founder'
-      }
+        badgeId: 'founder',
+      },
     });
 
     // Check for unauthorized founder badges
     const unauthorizedFounders = await client.database.client.userBadge.findMany({
       where: {
         badgeId: 'founder',
-        userId: { not: founderUserId }
-      }
+        userId: { not: founderUserId },
+      },
     });
 
     const embed = new EmbedBuilder()
@@ -324,13 +351,13 @@ async function handleVerifyFounder(interaction: ChatInputCommandInteraction, bad
       embed.addFields({
         name: '✅ Fundador Verificado',
         value: `<@${founderUserId}> possui a badge fundador corretamente.`,
-        inline: false
+        inline: false,
       });
     } else {
       embed.addFields({
         name: '❌ Fundador Sem Badge',
         value: `<@${founderUserId}> não possui a badge fundador!`,
-        inline: false
+        inline: false,
       });
     }
 
@@ -339,13 +366,13 @@ async function handleVerifyFounder(interaction: ChatInputCommandInteraction, bad
       embed.addFields({
         name: '⚠️ Badges Não Autorizadas',
         value: `${unauthorizedFounders.length} usuários possuem badge fundador indevidamente:\n${unauthorizedList}`,
-        inline: false
+        inline: false,
       });
     } else {
       embed.addFields({
         name: '✅ Verificação Completa',
         value: 'Nenhuma badge fundador não autorizada encontrada.',
-        inline: false
+        inline: false,
       });
     }
 
@@ -358,7 +385,11 @@ async function handleVerifyFounder(interaction: ChatInputCommandInteraction, bad
   }
 }
 
-async function handleAutoAward(interaction: ChatInputCommandInteraction, client: ExtendedClient, badgeService: BadgeService) {
+async function handleAutoAward(
+  interaction: ChatInputCommandInteraction,
+  client: ExtendedClient,
+  badgeService: BadgeService
+) {
   await interaction.deferReply({ ephemeral: true });
 
   try {
@@ -378,8 +409,8 @@ async function handleAutoAward(interaction: ChatInputCommandInteraction, client:
         const hasEarlyAdopter = await client.database.client.userBadge.findFirst({
           where: {
             userId: member.id,
-            badgeId: 'early_adopter'
-          }
+            badgeId: 'early_adopter',
+          },
         });
 
         if (!hasEarlyAdopter) {
@@ -394,24 +425,26 @@ async function handleAutoAward(interaction: ChatInputCommandInteraction, client:
 
     const embed = new EmbedBuilder()
       .setTitle('🤖 Concessão Automática de Badges')
-      .setDescription(`Processo concluído! ${awardedCount} badges foram concedidas automaticamente.`)
+      .setDescription(
+        `Processo concluído! ${awardedCount} badges foram concedidas automaticamente.`
+      )
       .setColor('#00CED1')
       .setTimestamp();
 
     if (results.length > 0) {
       const resultText = results.slice(0, 10).join('\n');
       const remaining = results.length > 10 ? `\n... e mais ${results.length - 10} badges` : '';
-      
+
       embed.addFields({
         name: '🎁 Badges Concedidas',
         value: resultText + remaining,
-        inline: false
+        inline: false,
       });
     } else {
       embed.addFields({
         name: '📋 Resultado',
         value: 'Nenhuma nova badge foi concedida. Todos os critérios já foram atendidos.',
-        inline: false
+        inline: false,
       });
     }
 

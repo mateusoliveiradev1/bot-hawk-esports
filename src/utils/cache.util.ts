@@ -22,17 +22,17 @@ export class CacheUtils {
     PUBG_STATS: (userId: string) => `pubg:${userId}:stats`,
     WEAPON_MASTERY: (userId: string) => `weapon:${userId}:mastery`,
     TICKET_CONFIG: (guildId: string) => `ticket:${guildId}:config`,
-    MUSIC_QUEUE: (guildId: string) => `music:${guildId}:queue`
+    MUSIC_QUEUE: (guildId: string) => `music:${guildId}:queue`,
   } as const;
 
   /**
    * Cache TTL constants (in seconds)
    */
   static readonly TTL = {
-    SHORT: 300,      // 5 minutes
-    MEDIUM: 1800,    // 30 minutes
-    LONG: 3600,      // 1 hour
-    VERY_LONG: 86400 // 24 hours
+    SHORT: 300, // 5 minutes
+    MEDIUM: 1800, // 30 minutes
+    LONG: 3600, // 1 hour
+    VERY_LONG: 86400, // 24 hours
   } as const;
 
   /**
@@ -65,10 +65,7 @@ export class CacheUtils {
   /**
    * Invalidate related cache keys
    */
-  static async invalidatePattern(
-    cache: CacheService,
-    pattern: string
-  ): Promise<void> {
+  static async invalidatePattern(cache: CacheService, pattern: string): Promise<void> {
     try {
       await cache.del(pattern);
       this.logger.info(`Invalidated cache pattern: ${pattern}`);
@@ -90,11 +87,8 @@ export class CacheUtils {
     try {
       const userKey = this.KEYS.USER(discordId);
       const userGuildKey = this.KEYS.USER_GUILD(discordId, guildId);
-      
-      await Promise.all([
-        cache.set(userKey, data, ttl),
-        cache.set(userGuildKey, data, ttl)
-      ]);
+
+      await Promise.all([cache.set(userKey, data, ttl), cache.set(userGuildKey, data, ttl)]);
     } catch (error) {
       this.logger.error(`Failed to cache user data for ${discordId}:`, error);
     }
@@ -113,7 +107,7 @@ export class CacheUtils {
         this.KEYS.USER(discordId),
         this.KEYS.BADGE_PROGRESS(discordId),
         this.KEYS.PUBG_STATS(discordId),
-        this.KEYS.WEAPON_MASTERY(discordId)
+        this.KEYS.WEAPON_MASTERY(discordId),
       ];
 
       if (guildId) {
@@ -125,9 +119,7 @@ export class CacheUtils {
         );
       }
 
-      await Promise.all(
-        keysToInvalidate.map(key => cache.del(key))
-      );
+      await Promise.all(keysToInvalidate.map(key => cache.del(key)));
     } catch (error) {
       this.logger.error(`Failed to invalidate user cache for ${discordId}:`, error);
     }
@@ -188,10 +180,7 @@ export class CacheUtils {
   /**
    * Get cached guild settings
    */
-  static async getCachedGuildSettings<T>(
-    cache: CacheService,
-    guildId: string
-  ): Promise<T | null> {
+  static async getCachedGuildSettings<T>(cache: CacheService, guildId: string): Promise<T | null> {
     try {
       const key = this.KEYS.GUILD_SETTINGS(guildId);
       return await cache.get<T>(key);
@@ -214,9 +203,7 @@ export class CacheUtils {
   ): Promise<void> {
     try {
       await Promise.all(
-        operations.map(op => 
-          cache.set(op.key, op.value, op.ttl || CacheUtils.TTL.MEDIUM)
-        )
+        operations.map(op => cache.set(op.key, op.value, op.ttl || CacheUtils.TTL.MEDIUM))
       );
     } catch (error) {
       this.logger.error('Failed to perform batch cache set:', error);
@@ -226,14 +213,9 @@ export class CacheUtils {
   /**
    * Batch cache invalidation
    */
-  static async batchInvalidate(
-    cache: CacheService,
-    keys: string[]
-  ): Promise<void> {
+  static async batchInvalidate(cache: CacheService, keys: string[]): Promise<void> {
     try {
-      await Promise.all(
-        keys.map(key => cache.del(key))
-      );
+      await Promise.all(keys.map(key => cache.del(key)));
     } catch (error) {
       this.logger.error('Failed to perform batch cache invalidation:', error);
     }
@@ -251,39 +233,49 @@ export class CacheUtils {
   ): Promise<T> {
     try {
       const cached = await cache.get<{ data: T; timestamp: number }>(key);
-      
+
       if (cached) {
         const age = Date.now() - cached.timestamp;
         const maxAge = ttl * 1000; // Convert to milliseconds
-        
+
         // If data is still fresh, return it
         if (age < maxAge * refreshThreshold) {
           return cached.data;
         }
-        
+
         // If data is getting old, refresh in background but return current data
         if (age < maxAge) {
           // Refresh in background
-          refreshFn().then(newData => {
-            cache.set(key, {
-              data: newData,
-              timestamp: Date.now()
-            }, ttl);
-          }).catch(error => {
-            this.logger.error(`Background refresh failed for key ${key}:`, error);
-          });
-          
+          refreshFn()
+            .then(newData => {
+              cache.set(
+                key,
+                {
+                  data: newData,
+                  timestamp: Date.now(),
+                },
+                ttl
+              );
+            })
+            .catch(error => {
+              this.logger.error(`Background refresh failed for key ${key}:`, error);
+            });
+
           return cached.data;
         }
       }
-      
+
       // Data is expired or doesn't exist, fetch fresh data
       const freshData = await refreshFn();
-      await cache.set(key, {
-        data: freshData,
-        timestamp: Date.now()
-      }, ttl);
-      
+      await cache.set(
+        key,
+        {
+          data: freshData,
+          timestamp: Date.now(),
+        },
+        ttl
+      );
+
       return freshData;
     } catch (error) {
       this.logger.error(`Cache with refresh failed for key ${key}:`, error);
@@ -306,13 +298,13 @@ export class CacheUtils {
       // For now, return a placeholder
       return {
         totalKeys: 0,
-        patternCounts: {}
+        patternCounts: {},
       };
     } catch (error) {
       this.logger.error('Failed to get cache stats:', error);
       return {
         totalKeys: 0,
-        patternCounts: {}
+        patternCounts: {},
       };
     }
   }

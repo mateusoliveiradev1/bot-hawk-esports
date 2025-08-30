@@ -14,13 +14,13 @@ export class CacheService {
 
   constructor() {
     this.logger = new Logger();
-    
+
     // Only initialize Redis client if REDIS_URL is provided
     if (process.env.REDIS_URL) {
       this.client = createClient({
         url: process.env.REDIS_URL,
         socket: {
-          reconnectStrategy: (retries) => {
+          reconnectStrategy: retries => {
             if (retries > 10) {
               this.logger.error('Redis reconnection failed after 10 attempts');
               return new Error('Redis reconnection failed');
@@ -44,7 +44,7 @@ export class CacheService {
     if (!this.client) {
       return;
     }
-    
+
     this.client.on('connect', () => {
       this.logger.info('Redis client connected');
     });
@@ -54,7 +54,7 @@ export class CacheService {
       this.isConnected = true;
     });
 
-    this.client.on('error', (error) => {
+    this.client.on('error', error => {
       this.logger.error('Redis client error:', error);
       this.isConnected = false;
     });
@@ -78,13 +78,16 @@ export class CacheService {
       this.logger.info('✅ Cache service initialized with memory fallback only');
       return;
     }
-    
+
     try {
       await this.client.connect();
       this.logger.info('✅ Connected to Redis successfully');
       this.useMemoryFallback = false;
     } catch (error) {
-      this.logger.warn('⚠️ Redis not available, using in-memory cache fallback:', error instanceof Error ? error.message : String(error));
+      this.logger.warn(
+        '⚠️ Redis not available, using in-memory cache fallback:',
+        error instanceof Error ? error.message : String(error)
+      );
       this.useMemoryFallback = true;
       this.isConnected = false;
       // Don't throw error, continue with memory fallback
@@ -98,7 +101,7 @@ export class CacheService {
     if (!this.client) {
       return;
     }
-    
+
     try {
       await this.client.disconnect();
       this.isConnected = false;
@@ -124,13 +127,13 @@ export class CacheService {
       this.logger.warn(`Redis not connected, skipping cache set for key: ${key}`);
       return;
     }
-    
+
     try {
       const serializedValue = JSON.stringify(value);
       const expiration = ttl || this.defaultTTL;
-      
+
       await this.client.setEx(key, expiration, serializedValue);
-      
+
       this.logger.cache('set', key, false, {
         ttl: expiration,
         size: serializedValue.length,
@@ -150,10 +153,10 @@ export class CacheService {
       this.logger.warn(`Redis not connected, skipping cache get for key: ${key}`);
       return null;
     }
-    
+
     try {
       const value = await this.client.get(key);
-      
+
       if (value === null) {
         this.logger.cache('get', key, false);
         return null;
@@ -176,7 +179,7 @@ export class CacheService {
     if (!this.client || !this.isConnected) {
       return false;
     }
-    
+
     try {
       const result = await this.client.del(key);
       this.logger.cache('del', key, result > 0);
@@ -194,7 +197,7 @@ export class CacheService {
     if (!this.client || !this.isConnected) {
       return false;
     }
-    
+
     try {
       const result = await this.client.exists(key);
       return result === 1;
@@ -211,7 +214,7 @@ export class CacheService {
     if (!this.client || !this.isConnected) {
       return false;
     }
-    
+
     try {
       const result = await this.client.expire(key, ttl);
       return result;
@@ -228,7 +231,7 @@ export class CacheService {
     if (!this.client || !this.isConnected) {
       return -1;
     }
-    
+
     try {
       return await this.client.ttl(key);
     } catch (error) {
@@ -244,7 +247,7 @@ export class CacheService {
     if (!this.client || !this.isConnected) {
       throw new Error('Redis not available');
     }
-    
+
     try {
       return await this.client.incr(key);
     } catch (error) {
@@ -260,7 +263,7 @@ export class CacheService {
     if (!this.client || !this.isConnected) {
       throw new Error('Redis not available');
     }
-    
+
     try {
       return await this.client.decr(key);
     } catch (error) {
@@ -276,7 +279,7 @@ export class CacheService {
     if (!this.client || !this.isConnected) {
       return keys.map(() => null);
     }
-    
+
     try {
       const values = await this.client.mGet(keys);
       return values.map(value => {
@@ -302,10 +305,10 @@ export class CacheService {
     if (!this.client || !this.isConnected) {
       return;
     }
-    
+
     try {
       const serializedPairs: string[] = [];
-      
+
       for (const [key, value] of Object.entries(keyValuePairs)) {
         serializedPairs.push(key, JSON.stringify(value));
       }
@@ -314,9 +317,7 @@ export class CacheService {
 
       // Set TTL for all keys if specified
       if (ttl) {
-        const promises = Object.keys(keyValuePairs).map(key => 
-          this.client!.expire(key, ttl),
-        );
+        const promises = Object.keys(keyValuePairs).map(key => this.client!.expire(key, ttl));
         await Promise.all(promises);
       }
     } catch (error) {
@@ -332,7 +333,7 @@ export class CacheService {
     if (!this.client || !this.isConnected) {
       return [];
     }
-    
+
     try {
       return await this.client.keys(pattern);
     } catch (error) {
@@ -348,13 +349,13 @@ export class CacheService {
     if (!this.client || !this.isConnected) {
       return 0;
     }
-    
+
     try {
       const keys = await this.keys(pattern);
       if (keys.length === 0) {
         return 0;
       }
-      
+
       const result = await this.client.del(keys);
       this.logger.info(`Cleared ${result} cache keys matching pattern: ${pattern}`);
       return result;
@@ -371,7 +372,7 @@ export class CacheService {
     if (!this.client || !this.isConnected) {
       return;
     }
-    
+
     try {
       await this.client.flushAll();
       this.logger.warn('All cache data has been flushed');
@@ -394,12 +395,12 @@ export class CacheService {
       // Clear expired keys patterns
       const patterns = ['temp:*', 'session:*', 'cooldown:*'];
       let totalDeleted = 0;
-      
+
       for (const pattern of patterns) {
         const deleted = await this.clearPattern(pattern);
         totalDeleted += deleted;
       }
-      
+
       this.logger.info(`Cache cleanup completed, deleted ${totalDeleted} expired keys`);
     } catch (error) {
       this.logger.error('Error during cache cleanup:', error);
@@ -426,11 +427,11 @@ export class CacheService {
         hitRate: '0%',
       };
     }
-    
+
     try {
       const info = await this.client.info('stats');
       const keyspace = await this.client.info('keyspace');
-      
+
       // Parse info string to extract statistics
       const stats = {
         keys: 0,
@@ -449,7 +450,7 @@ export class CacheService {
       // Extract hit/miss statistics
       const hitsMatch = info.match(/keyspace_hits:(\d+)/);
       const missesMatch = info.match(/keyspace_misses:(\d+)/);
-      
+
       if (hitsMatch && hitsMatch[1]) {
         stats.hits = hitsMatch[1];
       }
@@ -461,7 +462,7 @@ export class CacheService {
       const hits = parseInt(stats.hits);
       const misses = parseInt(stats.misses);
       const total = hits + misses;
-      
+
       if (total > 0) {
         stats.hitRate = `${((hits / total) * 100).toFixed(2)}%`;
       }
@@ -486,14 +487,13 @@ export class CacheService {
     user: (userId: string) => `user:${userId}`,
     guild: (guildId: string) => `guild:${guildId}`,
     pubgPlayer: (playerId: string) => `pubg:player:${playerId}`,
-    pubgStats: (playerId: string, seasonId: string, gameMode: string) => 
+    pubgStats: (playerId: string, seasonId: string, gameMode: string) =>
       `pubg:stats:${playerId}:${seasonId}:${gameMode}`,
-    ranking: (type: string, period: string, guildId?: string) => 
+    ranking: (type: string, period: string, guildId?: string) =>
       guildId ? `ranking:${type}:${period}:${guildId}` : `ranking:${type}:${period}`,
-    leaderboard: (type: string, guildId?: string) => 
+    leaderboard: (type: string, guildId?: string) =>
       guildId ? `leaderboard:${type}:${guildId}` : `leaderboard:${type}`,
-    cooldown: (userId: string, commandName: string) => 
-      `cooldown:${userId}:${commandName}`,
+    cooldown: (userId: string, commandName: string) => `cooldown:${userId}:${commandName}`,
     session: (sessionId: string) => `session:${sessionId}`,
     musicQueue: (guildId: string) => `music:queue:${guildId}`,
     quiz: (quizId: string) => `quiz:${quizId}`,

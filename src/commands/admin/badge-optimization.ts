@@ -1,4 +1,9 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import {
+  ChatInputCommandInteraction,
+  SlashCommandBuilder,
+  EmbedBuilder,
+  PermissionFlagsBits,
+} from 'discord.js';
 import { ExtendedClient } from '../../types/client';
 import { Command, CommandCategory } from '../../types/command';
 import { BadgeOptimizationService } from '../../services/badge-optimization.service';
@@ -10,14 +15,10 @@ export const badgeOptimization: Command = {
     .setDescription('Gerenciar sistema de badges otimizado com integração PUBG')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(subcommand =>
-      subcommand
-        .setName('sync')
-        .setDescription('Sincronizar todas as badges com dados PUBG')
+      subcommand.setName('sync').setDescription('Sincronizar todas as badges com dados PUBG')
     )
     .addSubcommand(subcommand =>
-      subcommand
-        .setName('collections')
-        .setDescription('Visualizar coleções de badges disponíveis')
+      subcommand.setName('collections').setDescription('Visualizar coleções de badges disponíveis')
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -52,14 +53,10 @@ export const badgeOptimization: Command = {
         )
     )
     .addSubcommand(subcommand =>
-      subcommand
-        .setName('stats')
-        .setDescription('Visualizar estatísticas do sistema de badges')
+      subcommand.setName('stats').setDescription('Visualizar estatísticas do sistema de badges')
     )
     .addSubcommand(subcommand =>
-      subcommand
-        .setName('optimize')
-        .setDescription('Executar otimização automática do sistema')
+      subcommand.setName('optimize').setDescription('Executar otimização automática do sistema')
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
@@ -69,7 +66,7 @@ export const badgeOptimization: Command = {
     if (!badgeOptimizationService) {
       await interaction.reply({
         content: '❌ Serviço de otimização de badges não está disponível.',
-        ephemeral: true
+        ephemeral: true,
       });
       return;
     }
@@ -99,7 +96,7 @@ export const badgeOptimization: Command = {
         default:
           await interaction.reply({
             content: '❌ Subcomando não reconhecido.',
-            ephemeral: true
+            ephemeral: true,
           });
           break;
       }
@@ -107,20 +104,23 @@ export const badgeOptimization: Command = {
       console.error('Erro no comando badge-optimization:', error);
       await interaction.reply({
         content: '❌ Erro interno do servidor. Tente novamente mais tarde.',
-        ephemeral: true
+        ephemeral: true,
       });
     }
 
     return;
-  }
+  },
 };
 
-async function handleSync(interaction: ChatInputCommandInteraction, service: BadgeOptimizationService) {
+async function handleSync(
+  interaction: ChatInputCommandInteraction,
+  service: BadgeOptimizationService
+) {
   await interaction.deferReply({ ephemeral: true });
 
   try {
     const result = await service.syncAllBadges();
-    
+
     const embed = new EmbedBuilder()
       .setTitle('🔄 Sincronização de Badges Concluída')
       .setColor('#00FF00')
@@ -136,35 +136,43 @@ async function handleSync(interaction: ChatInputCommandInteraction, service: Bad
   } catch (error) {
     console.error('Erro na sincronização:', error);
     await interaction.editReply({
-      content: '❌ Erro durante a sincronização de badges.'
+      content: '❌ Erro durante a sincronização de badges.',
     });
   }
 }
 
-async function handleCollections(interaction: ChatInputCommandInteraction, service: BadgeOptimizationService) {
+async function handleCollections(
+  interaction: ChatInputCommandInteraction,
+  service: BadgeOptimizationService
+) {
   await interaction.deferReply({ ephemeral: true });
 
   try {
     const collections = await service.getBadgeCollections();
-    
+
     const embed = new EmbedBuilder()
       .setTitle('📚 Coleções de Badges Disponíveis')
       .setColor('#4A90E2')
       .setTimestamp();
 
     for (const [name, collection] of Object.entries(collections)) {
-      const rarityCount = Object.entries(collection.badges.reduce((acc, badge) => {
-        const badgeObj = badge as any;
-        acc[badgeObj.rarity] = (acc[badgeObj.rarity] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>))
+      const rarityCount = Object.entries(
+        collection.badges.reduce(
+          (acc, badge) => {
+            const badgeObj = badge as any;
+            acc[badgeObj.rarity] = (acc[badgeObj.rarity] || 0) + 1;
+            return acc;
+          },
+          {} as Record<string, number>
+        )
+      )
         .map(([rarity, count]) => `${rarity}: ${count}`)
         .join(', ');
 
       embed.addFields({
         name: `🏆 ${collection.name}`,
         value: `**Descrição:** ${collection.description}\n**Total:** ${collection.badges.length} badges\n**Raridades:** ${rarityCount}`,
-        inline: false
+        inline: false,
       });
     }
 
@@ -172,12 +180,15 @@ async function handleCollections(interaction: ChatInputCommandInteraction, servi
   } catch (error) {
     console.error('Erro ao buscar coleções:', error);
     await interaction.editReply({
-      content: '❌ Erro ao buscar coleções de badges.'
+      content: '❌ Erro ao buscar coleções de badges.',
     });
   }
 }
 
-async function handleDynamic(interaction: ChatInputCommandInteraction, service: BadgeOptimizationService) {
+async function handleDynamic(
+  interaction: ChatInputCommandInteraction,
+  service: BadgeOptimizationService
+) {
   const action = interaction.options.get('action')?.value as string;
   await interaction.deferReply({ ephemeral: true });
 
@@ -194,7 +205,7 @@ async function handleDynamic(interaction: ChatInputCommandInteraction, service: 
           embed.addFields({
             name: `${rule.name} ${rule.isActive ? '🟢' : '🔴'}`,
             value: `**Condição:** ${rule.condition}\n**Frequência:** ${rule.frequency}\n**Última execução:** ${rule.lastExecuted ? new Date(rule.lastExecuted).toLocaleString('pt-BR') : 'Nunca'}`,
-            inline: false
+            inline: false,
           });
         });
 
@@ -204,26 +215,29 @@ async function handleDynamic(interaction: ChatInputCommandInteraction, service: 
       case 'enable':
         await service.enableDynamicProcessing();
         await interaction.editReply({
-          content: '✅ Processamento de badges dinâmicas ativado.'
+          content: '✅ Processamento de badges dinâmicas ativado.',
         });
         break;
 
       case 'disable':
         await service.disableDynamicProcessing();
         await interaction.editReply({
-          content: '⏸️ Processamento de badges dinâmicas desativado.'
+          content: '⏸️ Processamento de badges dinâmicas desativado.',
         });
         break;
     }
   } catch (error) {
     console.error('Erro no gerenciamento dinâmico:', error);
     await interaction.editReply({
-      content: '❌ Erro no gerenciamento de badges dinâmicas.'
+      content: '❌ Erro no gerenciamento de badges dinâmicas.',
     });
   }
 }
 
-async function handleSeasonal(interaction: ChatInputCommandInteraction, service: BadgeOptimizationService) {
+async function handleSeasonal(
+  interaction: ChatInputCommandInteraction,
+  service: BadgeOptimizationService
+) {
   const action = interaction.options.get('action')?.value as string;
   await interaction.deferReply({ ephemeral: true });
 
@@ -238,14 +252,15 @@ async function handleSeasonal(interaction: ChatInputCommandInteraction, service:
 
         seasonalBadges.forEach(badge => {
           const status = badge.isActive ? '🟢 Ativa' : '🔴 Inativa';
-          const period = badge.startDate && badge.endDate 
-            ? `${new Date(badge.startDate).toLocaleDateString('pt-BR')} - ${new Date(badge.endDate).toLocaleDateString('pt-BR')}`
-            : 'Período não definido';
+          const period =
+            badge.startDate && badge.endDate
+              ? `${new Date(badge.startDate).toLocaleDateString('pt-BR')} - ${new Date(badge.endDate).toLocaleDateString('pt-BR')}`
+              : 'Período não definido';
 
           embed.addFields({
             name: `${badge.icon} ${badge.name} (${status})`,
             value: `**Descrição:** ${badge.description}\n**Período:** ${period}\n**Raridade:** ${badge.rarity}`,
-            inline: false
+            inline: false,
           });
         });
 
@@ -255,31 +270,34 @@ async function handleSeasonal(interaction: ChatInputCommandInteraction, service:
       case 'activate':
         await service.activateSeasonalBadges();
         await interaction.editReply({
-          content: '🎉 Badges sazonais ativadas para a temporada atual.'
+          content: '🎉 Badges sazonais ativadas para a temporada atual.',
         });
         break;
 
       case 'end':
         await service.endSeasonalBadges();
         await interaction.editReply({
-          content: '🏁 Temporada de badges sazonais finalizada.'
+          content: '🏁 Temporada de badges sazonais finalizada.',
         });
         break;
     }
   } catch (error) {
     console.error('Erro no gerenciamento sazonal:', error);
     await interaction.editReply({
-      content: '❌ Erro no gerenciamento de badges sazonais.'
+      content: '❌ Erro no gerenciamento de badges sazonais.',
     });
   }
 }
 
-async function handleStats(interaction: ChatInputCommandInteraction, service: BadgeOptimizationService) {
+async function handleStats(
+  interaction: ChatInputCommandInteraction,
+  service: BadgeOptimizationService
+) {
   await interaction.deferReply({ ephemeral: true });
 
   try {
     const stats = await service.getBadgeSystemStats();
-    
+
     const embed = new EmbedBuilder()
       .setTitle('📊 Estatísticas do Sistema de Badges')
       .setColor('#3498DB')
@@ -288,7 +306,11 @@ async function handleStats(interaction: ChatInputCommandInteraction, service: Ba
         { name: '👥 Usuários com Badges', value: stats.usersWithBadges.toString(), inline: true },
         { name: '⭐ Badge Mais Rara', value: stats.rarest || 'N/A', inline: true },
         { name: '🔥 Badge Mais Popular', value: stats.mostPopular || 'N/A', inline: true },
-        { name: '📈 Badges Concedidas (24h)', value: stats.badgesGrantedToday.toString(), inline: true },
+        {
+          name: '📈 Badges Concedidas (24h)',
+          value: stats.badgesGrantedToday.toString(),
+          inline: true,
+        },
         { name: '🎯 Taxa de Conquista', value: `${stats.completionRate.toFixed(1)}%`, inline: true }
       )
       .setTimestamp();
@@ -297,11 +319,11 @@ async function handleStats(interaction: ChatInputCommandInteraction, service: Ba
       const distribution = Object.entries(stats.rarityDistribution)
         .map(([rarity, count]) => `${rarity}: ${count}`)
         .join('\n');
-      
+
       embed.addFields({
         name: '🎨 Distribuição por Raridade',
         value: distribution,
-        inline: false
+        inline: false,
       });
     }
 
@@ -309,17 +331,20 @@ async function handleStats(interaction: ChatInputCommandInteraction, service: Ba
   } catch (error) {
     console.error('Erro ao buscar estatísticas:', error);
     await interaction.editReply({
-      content: '❌ Erro ao buscar estatísticas do sistema.'
+      content: '❌ Erro ao buscar estatísticas do sistema.',
     });
   }
 }
 
-async function handleOptimize(interaction: ChatInputCommandInteraction, service: BadgeOptimizationService) {
+async function handleOptimize(
+  interaction: ChatInputCommandInteraction,
+  service: BadgeOptimizationService
+) {
   await interaction.deferReply({ ephemeral: true });
 
   try {
     const result = await service.runOptimization();
-    
+
     const embed = new EmbedBuilder()
       .setTitle('⚡ Otimização do Sistema Concluída')
       .setColor('#E74C3C')
@@ -343,7 +368,7 @@ async function handleOptimize(interaction: ChatInputCommandInteraction, service:
   } catch (error) {
     console.error('Erro na otimização:', error);
     await interaction.editReply({
-      content: '❌ Erro durante a otimização do sistema.'
+      content: '❌ Erro durante a otimização do sistema.',
     });
   }
 }

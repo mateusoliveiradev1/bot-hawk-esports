@@ -26,17 +26,20 @@ export class VoiceEvents {
   private async handleVoiceStateUpdate(oldState: VoiceState, newState: VoiceState): Promise<void> {
     try {
       // Skip if user is a bot
-      if (newState.member?.user.bot) return;
+      if (newState.member?.user.bot) {
+        return;
+      }
 
       // Determine the type of voice event
       const eventType = this.determineVoiceEventType(oldState, newState);
-      if (!eventType) return;
+      if (!eventType) {
+        return;
+      }
 
       // Log the voice event
       if (this.client.services?.logging) {
         await this.logVoiceEvent(oldState, newState, eventType);
       }
-
     } catch (error) {
       this.logger.error('Failed to handle voice state update:', error);
     }
@@ -100,8 +103,14 @@ export class VoiceEvents {
   /**
    * Log voice event
    */
-  private async logVoiceEvent(oldState: VoiceState, newState: VoiceState, eventType: string): Promise<void> {
-    if (!this.client.services?.logging || !newState.member) return;
+  private async logVoiceEvent(
+    oldState: VoiceState,
+    newState: VoiceState,
+    eventType: string
+  ): Promise<void> {
+    if (!this.client.services?.logging || !newState.member) {
+      return;
+    }
 
     const data: any = {
       user: {
@@ -109,9 +118,9 @@ export class VoiceEvents {
         tag: newState.member.user.tag,
         username: newState.member.user.username,
         discriminator: newState.member.user.discriminator,
-        avatar: newState.member.user.displayAvatarURL()
+        avatar: newState.member.user.displayAvatarURL(),
       },
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     // Add channel information based on event type
@@ -121,7 +130,7 @@ export class VoiceEvents {
           id: newState.channel!.id,
           name: newState.channel!.name,
           type: newState.channel!.type,
-          memberCount: newState.channel!.members.size
+          memberCount: newState.channel!.members.size,
         };
         break;
 
@@ -130,7 +139,7 @@ export class VoiceEvents {
           id: oldState.channel!.id,
           name: oldState.channel!.name,
           type: oldState.channel!.type,
-          memberCount: oldState.channel!.members.size - 1 // Subtract 1 as user is leaving
+          memberCount: oldState.channel!.members.size - 1, // Subtract 1 as user is leaving
         };
         break;
 
@@ -139,13 +148,13 @@ export class VoiceEvents {
           id: oldState.channel!.id,
           name: oldState.channel!.name,
           type: oldState.channel!.type,
-          memberCount: oldState.channel!.members.size - 1
+          memberCount: oldState.channel!.members.size - 1,
         };
         data.newChannel = {
           id: newState.channel!.id,
           name: newState.channel!.name,
           type: newState.channel!.type,
-          memberCount: newState.channel!.members.size
+          memberCount: newState.channel!.members.size,
         };
         break;
 
@@ -156,10 +165,10 @@ export class VoiceEvents {
             id: newState.channel.id,
             name: newState.channel.name,
             type: newState.channel.type,
-            memberCount: newState.channel.members.size
+            memberCount: newState.channel.members.size,
           };
         }
-        
+
         // Add state information
         data.voiceState = {
           selfMute: newState.selfMute,
@@ -167,7 +176,7 @@ export class VoiceEvents {
           serverMute: newState.serverMute,
           serverDeaf: newState.serverDeaf,
           streaming: newState.streaming,
-          selfVideo: newState.selfVideo
+          selfVideo: newState.selfVideo,
         };
         break;
     }

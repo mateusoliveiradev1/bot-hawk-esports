@@ -9,7 +9,7 @@ import {
   TextInputBuilder,
   TextInputStyle,
   PermissionFlagsBits,
-  ComponentType
+  ComponentType,
 } from 'discord.js';
 import { Command } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -74,10 +74,7 @@ export default {
         .setName('close')
         .setDescription('Fechar um ticket')
         .addStringOption(option =>
-          option
-            .setName('ticket_id')
-            .setDescription('ID do ticket para fechar')
-            .setRequired(true)
+          option.setName('ticket_id').setDescription('ID do ticket para fechar').setRequired(true)
         )
         .addStringOption(option =>
           option
@@ -88,14 +85,10 @@ export default {
         )
     )
     .addSubcommand(subcommand =>
-      subcommand
-        .setName('panel')
-        .setDescription('Criar painel de tickets (Admin apenas)')
+      subcommand.setName('panel').setDescription('Criar painel de tickets (Admin apenas)')
     )
     .addSubcommand(subcommand =>
-      subcommand
-        .setName('stats')
-        .setDescription('Estatísticas de tickets (Admin apenas)')
+      subcommand.setName('stats').setDescription('Estatísticas de tickets (Admin apenas)')
     ),
 
   async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
@@ -108,7 +101,7 @@ export default {
           .setTitle('❌ Erro')
           .setDescription('Serviço de tickets não está disponível.')
           .setColor('#FF0000');
-        
+
         await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
         return;
       }
@@ -134,12 +127,12 @@ export default {
       }
     } catch (error) {
       logger.error('Error in ticket command:', error);
-      
+
       const errorEmbed = new EmbedBuilder()
         .setTitle('❌ Erro')
         .setDescription('Ocorreu um erro ao processar o comando.')
         .setColor('#FF0000');
-      
+
       if (interaction.replied || interaction.deferred) {
         await interaction.editReply({ embeds: [errorEmbed] });
       } else {
@@ -155,7 +148,9 @@ export default {
 async function handleCreateTicket(interaction: ChatInputCommandInteraction, ticketService: any) {
   const assunto = interaction.options.getString('assunto', true);
   const descricao = interaction.options.getString('descricao', true);
-  const prioridade = interaction.options.getString('prioridade') as 'low' | 'medium' | 'high' | 'urgent' || 'medium';
+  const prioridade =
+    (interaction.options.getString('prioridade') as 'low' | 'medium' | 'high' | 'urgent') ||
+    'medium';
 
   await interaction.deferReply({ ephemeral: true });
 
@@ -170,7 +165,9 @@ async function handleCreateTicket(interaction: ChatInputCommandInteraction, tick
   if (result.success) {
     const successEmbed = new EmbedBuilder()
       .setTitle('✅ Ticket Criado!')
-      .setDescription(`Seu ticket foi criado com sucesso!\n\n**Canal:** ${result.channel}\n**ID:** #${result.ticket!.id.slice(-8)}`)
+      .setDescription(
+        `Seu ticket foi criado com sucesso!\n\n**Canal:** ${result.channel}\n**ID:** #${result.ticket!.id.slice(-8)}`
+      )
       .setColor('#00FF00')
       .addFields(
         { name: '📝 Assunto', value: assunto, inline: true },
@@ -194,7 +191,11 @@ async function handleCreateTicket(interaction: ChatInputCommandInteraction, tick
  * Handle list tickets subcommand
  */
 async function handleListTickets(interaction: ChatInputCommandInteraction, ticketService: any) {
-  const status = interaction.options.getString('status') as 'open' | 'in_progress' | 'closed' | null;
+  const status = interaction.options.getString('status') as
+    | 'open'
+    | 'in_progress'
+    | 'closed'
+    | null;
 
   await interaction.deferReply({ ephemeral: true });
 
@@ -208,7 +209,9 @@ async function handleListTickets(interaction: ChatInputCommandInteraction, ticke
   if (filteredTickets.length === 0) {
     const noTicketsEmbed = new EmbedBuilder()
       .setTitle('📋 Seus Tickets')
-      .setDescription(status ? `Você não possui tickets com status "${status}".` : 'Você não possui tickets.')
+      .setDescription(
+        status ? `Você não possui tickets com status "${status}".` : 'Você não possui tickets.'
+      )
       .setColor('#FFA500')
       .setFooter({ text: 'Use /ticket create para criar um novo ticket' });
 
@@ -219,25 +222,29 @@ async function handleListTickets(interaction: ChatInputCommandInteraction, ticke
   const statusEmojis = {
     open: '🟢',
     in_progress: '🟡',
-    closed: '🔴'
+    closed: '🔴',
   };
 
   const priorityEmojis = {
     low: '🟢',
     medium: '🟡',
     high: '🟠',
-    urgent: '🔴'
+    urgent: '🔴',
   };
 
-  const ticketList = filteredTickets.map((ticket: any) => {
-    const statusEmoji = statusEmojis[ticket.status as keyof typeof statusEmojis];
-    const priorityEmoji = priorityEmojis[ticket.priority as keyof typeof priorityEmojis];
-    const channelMention = ticket.channelId ? `<#${ticket.channelId}>` : 'Canal removido';
-    
-    return `${statusEmoji} **#${ticket.id.slice(-8)}** - ${ticket.title}\n` +
-           `${priorityEmoji} ${ticket.priority.toUpperCase()} | ${channelMention}\n` +
-           `📅 <t:${Math.floor(ticket.createdAt.getTime() / 1000)}:R>`;
-  }).join('\n\n');
+  const ticketList = filteredTickets
+    .map((ticket: any) => {
+      const statusEmoji = statusEmojis[ticket.status as keyof typeof statusEmojis];
+      const priorityEmoji = priorityEmojis[ticket.priority as keyof typeof priorityEmojis];
+      const channelMention = ticket.channelId ? `<#${ticket.channelId}>` : 'Canal removido';
+
+      return (
+        `${statusEmoji} **#${ticket.id.slice(-8)}** - ${ticket.title}\n` +
+        `${priorityEmoji} ${ticket.priority.toUpperCase()} | ${channelMention}\n` +
+        `📅 <t:${Math.floor(ticket.createdAt.getTime() / 1000)}:R>`
+      );
+    })
+    .join('\n\n');
 
   const listEmbed = new EmbedBuilder()
     .setTitle('📋 Seus Tickets')
@@ -271,13 +278,19 @@ async function handleCloseTicket(interaction: ChatInputCommandInteraction, ticke
 
   // Check permissions
   const member = interaction.member;
-  const canClose = ticket.userId === interaction.user.id || 
-                  (member && 'permissions' in member && typeof member.permissions !== 'string' && member.permissions.has(PermissionFlagsBits.ManageMessages));
+  const canClose =
+    ticket.userId === interaction.user.id ||
+    (member &&
+      'permissions' in member &&
+      typeof member.permissions !== 'string' &&
+      member.permissions.has(PermissionFlagsBits.ManageMessages));
 
   if (!canClose) {
     const errorEmbed = new EmbedBuilder()
       .setTitle('❌ Sem Permissão')
-      .setDescription('Você só pode fechar seus próprios tickets ou precisa ter permissão de moderação.')
+      .setDescription(
+        'Você só pode fechar seus próprios tickets ou precisa ter permissão de moderação.'
+      )
       .setColor('#FF0000');
 
     await interaction.editReply({ embeds: [errorEmbed] });
@@ -319,10 +332,17 @@ async function handleCloseTicket(interaction: ChatInputCommandInteraction, ticke
 async function handleCreatePanel(interaction: ChatInputCommandInteraction, ticketService: any) {
   // Check permissions
   const member = interaction.member;
-  if (!member || !('permissions' in member) || typeof member.permissions === 'string' || !member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+  if (
+    !member ||
+    !('permissions' in member) ||
+    typeof member.permissions === 'string' ||
+    !member.permissions.has(PermissionFlagsBits.ManageGuild)
+  ) {
     const errorEmbed = new EmbedBuilder()
       .setTitle('❌ Sem Permissão')
-      .setDescription('Você precisa ter permissão de "Gerenciar Servidor" para criar painéis de ticket.')
+      .setDescription(
+        'Você precisa ter permissão de "Gerenciar Servidor" para criar painéis de ticket.'
+      )
       .setColor('#FF0000');
 
     await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
@@ -333,29 +353,28 @@ async function handleCreatePanel(interaction: ChatInputCommandInteraction, ticke
     .setTitle('🎫 Sistema de Tickets')
     .setDescription(
       '**Precisa de ajuda?** Crie um ticket e nossa equipe irá atendê-lo!\n\n' +
-      '**Como funciona:**\n' +
-      '• Clique no botão abaixo para criar um ticket\n' +
-      '• Descreva seu problema ou dúvida\n' +
-      '• Nossa equipe irá responder em breve\n' +
-      '• O ticket será fechado quando resolvido\n\n' +
-      '**Tipos de suporte:**\n' +
-      '🟢 **Dúvidas gerais** - Perguntas sobre o servidor\n' +
-      '🟡 **Problemas técnicos** - Bugs ou erros\n' +
-      '🟠 **Denúncias** - Reportar comportamento inadequado\n' +
-      '🔴 **Urgente** - Problemas críticos que precisam de atenção imediata'
+        '**Como funciona:**\n' +
+        '• Clique no botão abaixo para criar um ticket\n' +
+        '• Descreva seu problema ou dúvida\n' +
+        '• Nossa equipe irá responder em breve\n' +
+        '• O ticket será fechado quando resolvido\n\n' +
+        '**Tipos de suporte:**\n' +
+        '🟢 **Dúvidas gerais** - Perguntas sobre o servidor\n' +
+        '🟡 **Problemas técnicos** - Bugs ou erros\n' +
+        '🟠 **Denúncias** - Reportar comportamento inadequado\n' +
+        '🔴 **Urgente** - Problemas críticos que precisam de atenção imediata'
     )
     .setColor('#0099FF')
     .setThumbnail(interaction.guild?.iconURL() || null)
     .setFooter({ text: 'Clique no botão abaixo para criar um ticket' });
 
-  const row = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
-      new ButtonBuilder()
-        .setCustomId('create_ticket_panel')
-        .setLabel('Criar Ticket')
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji('🎫')
-    );
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId('create_ticket_panel')
+      .setLabel('Criar Ticket')
+      .setStyle(ButtonStyle.Primary)
+      .setEmoji('🎫')
+  );
 
   await interaction.reply({ embeds: [panelEmbed], components: [row] });
 }
@@ -366,7 +385,12 @@ async function handleCreatePanel(interaction: ChatInputCommandInteraction, ticke
 async function handleTicketStats(interaction: ChatInputCommandInteraction, ticketService: any) {
   // Check permissions
   const member = interaction.member;
-  if (!member || !('permissions' in member) || typeof member.permissions === 'string' || !member.permissions.has(PermissionFlagsBits.ManageMessages)) {
+  if (
+    !member ||
+    !('permissions' in member) ||
+    typeof member.permissions === 'string' ||
+    !member.permissions.has(PermissionFlagsBits.ManageMessages)
+  ) {
     const errorEmbed = new EmbedBuilder()
       .setTitle('❌ Sem Permissão')
       .setDescription('Você precisa ter permissão de moderação para ver estatísticas de tickets.')

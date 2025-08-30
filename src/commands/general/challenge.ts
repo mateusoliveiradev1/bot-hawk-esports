@@ -1,4 +1,12 @@
-import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, ChatInputCommandInteraction } from 'discord.js';
+import {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ComponentType,
+  ChatInputCommandInteraction,
+} from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
 import { Logger } from '../../utils/logger';
@@ -13,31 +21,33 @@ const challenge: Command = {
     .setName('challenge')
     .setDescription('🏅 Visualiza e gerencia desafios diários, semanais e mensais')
     .addStringOption(option =>
-      option.setName('action')
+      option
+        .setName('action')
         .setDescription('Ação a ser executada')
         .setRequired(false)
         .addChoices(
           { name: '📋 Ver Desafios Ativos', value: 'list' },
           { name: '📊 Meu Progresso', value: 'progress' },
           { name: '🎁 Resgatar Recompensas', value: 'claim' },
-          { name: '📈 Estatísticas', value: 'stats' },
-        ),
+          { name: '📈 Estatísticas', value: 'stats' }
+        )
     )
     .addStringOption(option =>
-      option.setName('type')
+      option
+        .setName('type')
         .setDescription('Filtrar por tipo de desafio')
         .setRequired(false)
         .addChoices(
           { name: '📅 Diários', value: 'daily' },
           { name: '📆 Semanais', value: 'weekly' },
           { name: '🗓️ Mensais', value: 'monthly' },
-          { name: '⭐ Especiais', value: 'special' },
-        ),
+          { name: '⭐ Especiais', value: 'special' }
+        )
     ) as SlashCommandBuilder,
-  
+
   category: CommandCategory.GENERAL,
   cooldown: 10,
-  
+
   async execute(interaction: any, client: ExtendedClient) {
     const logger = new Logger();
     const gameService = new GameService(client);
@@ -52,7 +62,9 @@ const challenge: Command = {
       if (!user) {
         const embed = new EmbedBuilder()
           .setTitle('❌ Usuário Não Registrado')
-          .setDescription('Você precisa se registrar primeiro usando `/register` para acessar desafios!')
+          .setDescription(
+            'Você precisa se registrar primeiro usando `/register` para acessar desafios!'
+          )
           .setColor(0xff0000)
           .setTimestamp();
 
@@ -63,25 +75,24 @@ const challenge: Command = {
       const type = interaction.options.getString('type');
 
       switch (action) {
-      case 'list':
-        await showActiveChallenges(interaction, gameService, type);
-        break;
-      case 'progress':
-        await showUserProgress(interaction, gameService, user.id, type);
-        break;
-      case 'claim':
-        await showClaimableRewards(interaction, gameService, user.id);
-        break;
-      case 'stats':
-        await showChallengeStats(interaction, gameService, database, user.id);
-        break;
-      default:
-        await showActiveChallenges(interaction, gameService, type);
+        case 'list':
+          await showActiveChallenges(interaction, gameService, type);
+          break;
+        case 'progress':
+          await showUserProgress(interaction, gameService, user.id, type);
+          break;
+        case 'claim':
+          await showClaimableRewards(interaction, gameService, user.id);
+          break;
+        case 'stats':
+          await showChallengeStats(interaction, gameService, database, user.id);
+          break;
+        default:
+          await showActiveChallenges(interaction, gameService, type);
       }
-
     } catch (error) {
       logger.error('Error in challenge command:', error);
-      
+
       const errorEmbed = new EmbedBuilder()
         .setTitle('❌ Erro')
         .setDescription('Ocorreu um erro ao acessar os desafios. Tente novamente.')
@@ -103,10 +114,10 @@ const challenge: Command = {
 async function showActiveChallenges(
   interaction: ChatInputCommandInteraction,
   gameService: GameService,
-  typeFilter?: string | null,
+  typeFilter?: string | null
 ) {
   const challenges = gameService.getActiveChallenges();
-  
+
   let filteredChallenges = challenges;
   if (typeFilter) {
     filteredChallenges = challenges.filter(c => c.type === typeFilter);
@@ -116,9 +127,9 @@ async function showActiveChallenges(
     const embed = new EmbedBuilder()
       .setTitle('🏅 Desafios Ativos')
       .setDescription(
-        typeFilter 
+        typeFilter
           ? `Não há desafios ${getChallengeTypeName(typeFilter)} ativos no momento.`
-          : 'Não há desafios ativos no momento. Novos desafios são criados automaticamente!',
+          : 'Não há desafios ativos no momento. Novos desafios são criados automaticamente!'
       )
       .setColor(0xffa500)
       .setTimestamp();
@@ -127,52 +138,62 @@ async function showActiveChallenges(
   }
 
   // Group challenges by type
-  const challengesByType = filteredChallenges.reduce((acc, challenge) => {
-    if (!acc[challenge.type]) {
-      acc[challenge.type] = [];
-    }
-    acc[challenge.type]!.push(challenge);
-    return acc;
-  }, {} as Record<string, Challenge[]>);
+  const challengesByType = filteredChallenges.reduce(
+    (acc, challenge) => {
+      if (!acc[challenge.type]) {
+        acc[challenge.type] = [];
+      }
+      acc[challenge.type]!.push(challenge);
+      return acc;
+    },
+    {} as Record<string, Challenge[]>
+  );
 
   const embed = new EmbedBuilder()
     .setTitle('🏅 Desafios Ativos')
     .setDescription(
-      Object.entries(challengesByType).map(([type, challenges]) => {
-        const typeEmoji = getChallengeTypeEmoji(type);
-        const typeName = getChallengeTypeName(type);
-        
-        return `**${typeEmoji} ${typeName}**\n` +
-          challenges.map(challenge => {
-            const timeLeft = getTimeLeft(challenge.endDate);
-            const difficultyEmoji = getCategoryEmoji(challenge.category);
-            
-            return `${difficultyEmoji} **${challenge.name}**\n` +
-                   `${challenge.description}\n` +
-                   `🎁 ${challenge.rewards.xp} XP + ${challenge.rewards.coins} moedas\n` +
-                   `⏰ ${timeLeft}`;
-          }).join('\n\n');
-      }).join('\n\n'),
+      Object.entries(challengesByType)
+        .map(([type, challenges]) => {
+          const typeEmoji = getChallengeTypeEmoji(type);
+          const typeName = getChallengeTypeName(type);
+
+          return (
+            `**${typeEmoji} ${typeName}**\n` +
+            challenges
+              .map(challenge => {
+                const timeLeft = getTimeLeft(challenge.endDate);
+                const difficultyEmoji = getCategoryEmoji(challenge.category);
+
+                return (
+                  `${difficultyEmoji} **${challenge.name}**\n` +
+                  `${challenge.description}\n` +
+                  `🎁 ${challenge.rewards.xp} XP + ${challenge.rewards.coins} moedas\n` +
+                  `⏰ ${timeLeft}`
+                );
+              })
+              .join('\n\n')
+          );
+        })
+        .join('\n\n')
     )
     .setColor(0x0099ff)
     .setFooter({ text: 'Use /challenge progress para ver seu progresso!' })
     .setTimestamp();
 
-  const actionButtons = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
-      new ButtonBuilder()
-        .setCustomId('challenge_progress')
-        .setLabel('📊 Meu Progresso')
-        .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
-        .setCustomId('challenge_claim')
-        .setLabel('🎁 Resgatar')
-        .setStyle(ButtonStyle.Success),
-      new ButtonBuilder()
-        .setCustomId('challenge_stats')
-        .setLabel('📈 Estatísticas')
-        .setStyle(ButtonStyle.Secondary),
-    );
+  const actionButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId('challenge_progress')
+      .setLabel('📊 Meu Progresso')
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId('challenge_claim')
+      .setLabel('🎁 Resgatar')
+      .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+      .setCustomId('challenge_stats')
+      .setLabel('📈 Estatísticas')
+      .setStyle(ButtonStyle.Secondary)
+  );
 
   const response = await interaction.reply({
     embeds: [embed],
@@ -197,16 +218,16 @@ async function showActiveChallenges(
     await buttonInteraction.deferUpdate();
 
     switch (buttonInteraction.customId) {
-    case 'challenge_progress':
-      await showUserProgress(buttonInteraction, gameService, interaction.user.id);
-      break;
-    case 'challenge_claim':
-      await showClaimableRewards(buttonInteraction, gameService, interaction.user.id);
-      break;
-    case 'challenge_stats':
-      const database = new DatabaseService();
-      await showChallengeStats(buttonInteraction, gameService, database, interaction.user.id);
-      break;
+      case 'challenge_progress':
+        await showUserProgress(buttonInteraction, gameService, interaction.user.id);
+        break;
+      case 'challenge_claim':
+        await showClaimableRewards(buttonInteraction, gameService, interaction.user.id);
+        break;
+      case 'challenge_stats':
+        const database = new DatabaseService();
+        await showChallengeStats(buttonInteraction, gameService, database, interaction.user.id);
+        break;
     }
   });
 
@@ -228,11 +249,11 @@ async function showUserProgress(
   interaction: any,
   gameService: GameService,
   userId: string,
-  typeFilter?: string | null,
+  typeFilter?: string | null
 ) {
   const userProgress = gameService.getUserChallengeProgress(userId);
   const activeChallenges = gameService.getActiveChallenges();
-  
+
   let filteredChallenges = activeChallenges;
   if (typeFilter) {
     filteredChallenges = activeChallenges.filter(c => c.type === typeFilter);
@@ -253,30 +274,40 @@ async function showUserProgress(
     const progress = userProgress.get(challenge.id);
     const isCompleted = progress?.completed || false;
     const isClaimed = progress?.claimed || false;
-    
+
     let progressText = '';
     if (progress) {
-      progressText = challenge.requirements.map(req => {
-        const current = progress.progress.get(req.type) || 0;
-        const percentage = Math.min((current / req.target) * 100, 100);
-        const progressBar = createProgressBar(percentage);
-        
-        return `${getRequirementEmoji(req.type)} ${getRequirementName(req.type)}: ${current}/${req.target}\n${progressBar} ${percentage.toFixed(1)}%`;
-      }).join('\n');
+      progressText = challenge.requirements
+        .map(req => {
+          const current = progress.progress.get(req.type) || 0;
+          const percentage = Math.min((current / req.target) * 100, 100);
+          const progressBar = createProgressBar(percentage);
+
+          return `${getRequirementEmoji(req.type)} ${getRequirementName(req.type)}: ${current}/${req.target}\n${progressBar} ${percentage.toFixed(1)}%`;
+        })
+        .join('\n');
     } else {
-      progressText = challenge.requirements.map(req => {
-        const progressBar = createProgressBar(0);
-        return `${getRequirementEmoji(req.type)} ${getRequirementName(req.type)}: 0/${req.target}\n${progressBar} 0%`;
-      }).join('\n');
+      progressText = challenge.requirements
+        .map(req => {
+          const progressBar = createProgressBar(0);
+          return `${getRequirementEmoji(req.type)} ${getRequirementName(req.type)}: 0/${req.target}\n${progressBar} 0%`;
+        })
+        .join('\n');
     }
 
     const statusEmoji = isClaimed ? '✅' : isCompleted ? '🎁' : '⏳';
-    const statusText = isClaimed ? 'Resgatado' : isCompleted ? 'Completo - Resgatar!' : 'Em Progresso';
-    
-    return `${statusEmoji} **${challenge.name}**\n` +
-           `${progressText}\n` +
-           `📊 Status: ${statusText}\n` +
-           `🎁 Recompensa: ${challenge.rewards.xp} XP + ${challenge.rewards.coins} moedas`;
+    const statusText = isClaimed
+      ? 'Resgatado'
+      : isCompleted
+        ? 'Completo - Resgatar!'
+        : 'Em Progresso';
+
+    return (
+      `${statusEmoji} **${challenge.name}**\n` +
+      `${progressText}\n` +
+      `📊 Status: ${statusText}\n` +
+      `🎁 Recompensa: ${challenge.rewards.xp} XP + ${challenge.rewards.coins} moedas`
+    );
   });
 
   const embed = new EmbedBuilder()
@@ -293,14 +324,10 @@ async function showUserProgress(
 /**
  * Show claimable rewards
  */
-async function showClaimableRewards(
-  interaction: any,
-  gameService: GameService,
-  userId: string,
-) {
+async function showClaimableRewards(interaction: any, gameService: GameService, userId: string) {
   const userProgress = gameService.getUserChallengeProgress(userId);
   const activeChallenges = gameService.getActiveChallenges();
-  
+
   const claimableChallenges = activeChallenges.filter(challenge => {
     const progress = userProgress.get(challenge.id);
     return progress?.completed && !progress?.claimed;
@@ -311,7 +338,7 @@ async function showClaimableRewards(
       .setTitle('🎁 Recompensas Disponíveis')
       .setDescription(
         'Você não tem recompensas para resgatar no momento.\n\n' +
-        'Complete desafios para ganhar XP, moedas e badges!',
+          'Complete desafios para ganhar XP, moedas e badges!'
       )
       .setColor(0xffa500)
       .setTimestamp();
@@ -320,39 +347,45 @@ async function showClaimableRewards(
     return editMethod.call(interaction, { embeds: [embed], ephemeral: true });
   }
 
-  const totalRewards = claimableChallenges.reduce((acc, challenge) => {
-    acc.xp += challenge.rewards.xp;
-    acc.coins += challenge.rewards.coins;
-    return acc;
-  }, { xp: 0, coins: 0 });
+  const totalRewards = claimableChallenges.reduce(
+    (acc, challenge) => {
+      acc.xp += challenge.rewards.xp;
+      acc.coins += challenge.rewards.coins;
+      return acc;
+    },
+    { xp: 0, coins: 0 }
+  );
 
   const embed = new EmbedBuilder()
     .setTitle('🎁 Recompensas Disponíveis')
     .setDescription(
       `**Desafios Completados:** ${claimableChallenges.length}\n\n` +
-      claimableChallenges.map(challenge => {
-        const typeEmoji = getChallengeTypeEmoji(challenge.type);
-        return `${typeEmoji} **${challenge.name}**\n` +
-               `🎁 ${challenge.rewards.xp} XP + ${challenge.rewards.coins} moedas`;
-      }).join('\n\n') +
-      '\n\n**📊 Total das Recompensas:**\n' +
-      `⭐ ${totalRewards.xp} XP\n` +
-      `💰 ${totalRewards.coins} moedas`,
+        claimableChallenges
+          .map(challenge => {
+            const typeEmoji = getChallengeTypeEmoji(challenge.type);
+            return (
+              `${typeEmoji} **${challenge.name}**\n` +
+              `🎁 ${challenge.rewards.xp} XP + ${challenge.rewards.coins} moedas`
+            );
+          })
+          .join('\n\n') +
+        '\n\n**📊 Total das Recompensas:**\n' +
+        `⭐ ${totalRewards.xp} XP\n` +
+        `💰 ${totalRewards.coins} moedas`
     )
     .setColor(0x00ff00)
     .setTimestamp();
 
-  const claimButtons = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
-      new ButtonBuilder()
-        .setCustomId('claim_all_rewards')
-        .setLabel(`🎁 Resgatar Tudo (${claimableChallenges.length})`)
-        .setStyle(ButtonStyle.Success),
-      new ButtonBuilder()
-        .setCustomId('claim_individual')
-        .setLabel('📋 Resgatar Individual')
-        .setStyle(ButtonStyle.Primary),
-    );
+  const claimButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId('claim_all_rewards')
+      .setLabel(`🎁 Resgatar Tudo (${claimableChallenges.length})`)
+      .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+      .setCustomId('claim_individual')
+      .setLabel('📋 Resgatar Individual')
+      .setStyle(ButtonStyle.Primary)
+  );
 
   const editMethod = interaction.editReply || interaction.reply;
   const response = await editMethod.call(interaction, {
@@ -380,7 +413,7 @@ async function showClaimableRewards(
     if (buttonInteraction.customId === 'claim_all_rewards') {
       const totalClaimed = { xp: 0, coins: 0 };
       let claimedCount = 0;
-      
+
       for (const challenge of claimableChallenges) {
         const success = await gameService.claimChallengeRewards(userId, challenge.id);
         if (success) {
@@ -394,10 +427,10 @@ async function showClaimableRewards(
         .setTitle('✅ Recompensas Resgatadas!')
         .setDescription(
           `**Desafios resgatados:** ${claimedCount}/${claimableChallenges.length}\n\n` +
-          '**Recompensas recebidas:**\n' +
-          `⭐ +${totalClaimed.xp} XP\n` +
-          `💰 +${totalClaimed.coins} moedas\n\n` +
-          'Parabéns pelo seu progresso! 🎉',
+            '**Recompensas recebidas:**\n' +
+            `⭐ +${totalClaimed.xp} XP\n` +
+            `💰 +${totalClaimed.coins} moedas\n\n` +
+            'Parabéns pelo seu progresso! 🎉'
         )
         .setColor(0x00ff00)
         .setTimestamp();
@@ -416,33 +449,38 @@ async function showIndividualClaimMenu(
   interaction: any,
   gameService: GameService,
   userId: string,
-  claimableChallenges: Challenge[],
+  claimableChallenges: Challenge[]
 ) {
   const embed = new EmbedBuilder()
     .setTitle('📋 Resgatar Recompensas Individuais')
     .setDescription(
       'Selecione quais desafios você deseja resgatar:\n\n' +
-      claimableChallenges.map((challenge: any, index: number) => {
-        const typeEmoji = getChallengeTypeEmoji(challenge.type);
-        return `**${index + 1}.** ${typeEmoji} ${challenge.name}\n` +
-               `🎁 ${challenge.rewards.xp} XP + ${challenge.rewards.coins} moedas`;
-      }).join('\n\n'),
+        claimableChallenges
+          .map((challenge: any, index: number) => {
+            const typeEmoji = getChallengeTypeEmoji(challenge.type);
+            return (
+              `**${index + 1}.** ${typeEmoji} ${challenge.name}\n` +
+              `🎁 ${challenge.rewards.xp} XP + ${challenge.rewards.coins} moedas`
+            );
+          })
+          .join('\n\n')
     )
     .setColor(0x0099ff)
     .setTimestamp();
 
-  const claimButtons = claimableChallenges.slice(0, 5).map((challenge: any, index: number) => 
+  const claimButtons = claimableChallenges.slice(0, 5).map((challenge: any, index: number) =>
     new ButtonBuilder()
       .setCustomId(`claim_individual_${challenge.id}`)
-      .setLabel(`${index + 1}. ${challenge.name.substring(0, 20)}${challenge.name.length > 20 ? '...' : ''}`)
-      .setStyle(ButtonStyle.Secondary),
+      .setLabel(
+        `${index + 1}. ${challenge.name.substring(0, 20)}${challenge.name.length > 20 ? '...' : ''}`
+      )
+      .setStyle(ButtonStyle.Secondary)
   );
 
   const buttonRows = [];
   for (let i = 0; i < claimButtons.length; i += 5) {
     buttonRows.push(
-      new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(claimButtons.slice(i, i + 5)),
+      new ActionRowBuilder<ButtonBuilder>().addComponents(claimButtons.slice(i, i + 5))
     );
   }
 
@@ -468,7 +506,7 @@ async function showIndividualClaimMenu(
 
     const challengeId = buttonInteraction.customId.replace('claim_individual_', '');
     const challenge = claimableChallenges.find(c => c.id === challengeId);
-    
+
     if (!challenge) {
       await buttonInteraction.reply({
         content: '❌ Desafio não encontrado!',
@@ -478,7 +516,7 @@ async function showIndividualClaimMenu(
     }
 
     const success = await gameService.claimChallengeRewards(userId, challengeId);
-    
+
     if (success) {
       await buttonInteraction.reply({
         content: `✅ **${challenge.name}** resgatado!\n🎁 +${challenge.rewards.xp} XP + ${challenge.rewards.coins} moedas`,
@@ -500,7 +538,7 @@ async function showChallengeStats(
   interaction: any,
   gameService: GameService,
   database: DatabaseService,
-  userId: string,
+  userId: string
 ) {
   try {
     // Get user stats from database
@@ -524,57 +562,60 @@ async function showChallengeStats(
 
     const userProgress = gameService.getUserChallengeProgress(userId);
     const activeChallenges = gameService.getActiveChallenges();
-    
+
     const completedChallenges = Array.from(userProgress.values()).filter(p => p.completed).length;
     const claimedChallenges = Array.from(userProgress.values()).filter(p => p.claimed).length;
     const totalChallenges = activeChallenges.length;
-    
+
     const completionRate = totalChallenges > 0 ? (completedChallenges / totalChallenges) * 100 : 0;
-    
+
     // Calculate challenge type stats
-    const typeStats = activeChallenges.reduce((acc, challenge) => {
-      const progress = userProgress.get(challenge.id);
-      if (!acc[challenge.type]) {
-        acc[challenge.type] = { total: 0, completed: 0, claimed: 0 };
-      }
-      if (acc[challenge.type]) {
-        acc[challenge.type]!.total++;
-        if (progress?.completed) {
-acc[challenge.type]!.completed++;
+    const typeStats = activeChallenges.reduce(
+      (acc, challenge) => {
+        const progress = userProgress.get(challenge.id);
+        if (!acc[challenge.type]) {
+          acc[challenge.type] = { total: 0, completed: 0, claimed: 0 };
         }
-        if (progress?.claimed) {
-acc[challenge.type]!.claimed++;
+        if (acc[challenge.type]) {
+          acc[challenge.type]!.total++;
+          if (progress?.completed) {
+            acc[challenge.type]!.completed++;
+          }
+          if (progress?.claimed) {
+            acc[challenge.type]!.claimed++;
+          }
         }
-      }
-      return acc;
-    }, {} as Record<string, { total: number; completed: number; claimed: number }>);
+        return acc;
+      },
+      {} as Record<string, { total: number; completed: number; claimed: number }>
+    );
 
     const embed = new EmbedBuilder()
       .setTitle('📈 Estatísticas de Desafios')
       .setDescription(
         '**📊 Resumo Geral:**\n' +
-        `• Desafios ativos: ${totalChallenges}\n` +
-        `• Completados: ${completedChallenges}\n` +
-        `• Resgatados: ${claimedChallenges}\n` +
-        `• Taxa de conclusão: ${completionRate.toFixed(1)}%\n\n` +
-        
-        '**📋 Por Tipo:**\n' +
-        Object.entries(typeStats).map(([type, stats]) => {
-          const typeEmoji = getChallengeTypeEmoji(type);
-          const typeName = getChallengeTypeName(type);
-          const rate = stats.total > 0 ? (stats.completed / stats.total) * 100 : 0;
-          return `${typeEmoji} **${typeName}:** ${stats.completed}/${stats.total} (${rate.toFixed(1)}%)`;
-        }).join('\n') +
-        
-        '\n\n**🎮 Atividade Geral:**\n' +
-        `• Level: ${user.level}\n` +
-        `• XP Total: ${user.xp.toLocaleString()}\n` +
-        `• Moedas: ${user.coins.toLocaleString()}\n` +
-        `• Comandos usados: ${user.stats?.commandsUsed || 0}\n` +
-        `• Mensagens enviadas: ${user.stats?.messagesCount || 0}\n` +
-        `• Tempo em voz: ${formatVoiceTime(user.stats?.voiceTime || 0)}\n` +
-        `• Jogos jogados: ${user.stats?.gamesPlayed || 0}\n` +
-        `• Quizzes completados: ${user.stats?.quizzesCompleted || 0}`,
+          `• Desafios ativos: ${totalChallenges}\n` +
+          `• Completados: ${completedChallenges}\n` +
+          `• Resgatados: ${claimedChallenges}\n` +
+          `• Taxa de conclusão: ${completionRate.toFixed(1)}%\n\n` +
+          '**📋 Por Tipo:**\n' +
+          Object.entries(typeStats)
+            .map(([type, stats]) => {
+              const typeEmoji = getChallengeTypeEmoji(type);
+              const typeName = getChallengeTypeName(type);
+              const rate = stats.total > 0 ? (stats.completed / stats.total) * 100 : 0;
+              return `${typeEmoji} **${typeName}:** ${stats.completed}/${stats.total} (${rate.toFixed(1)}%)`;
+            })
+            .join('\n') +
+          '\n\n**🎮 Atividade Geral:**\n' +
+          `• Level: ${user.level}\n` +
+          `• XP Total: ${user.xp.toLocaleString()}\n` +
+          `• Moedas: ${user.coins.toLocaleString()}\n` +
+          `• Comandos usados: ${user.stats?.commandsUsed || 0}\n` +
+          `• Mensagens enviadas: ${user.stats?.messagesCount || 0}\n` +
+          `• Tempo em voz: ${formatVoiceTime(user.stats?.voiceTime || 0)}\n` +
+          `• Jogos jogados: ${user.stats?.gamesPlayed || 0}\n` +
+          `• Quizzes completados: ${user.stats?.quizzesCompleted || 0}`
       )
       .setColor(0x9b59b6)
       .setFooter({ text: `Membro desde: ${user.createdAt.toLocaleDateString('pt-BR')}` })
@@ -582,10 +623,9 @@ acc[challenge.type]!.claimed++;
 
     const editMethod = interaction.editReply || interaction.reply;
     await editMethod.call(interaction, { embeds: [embed] });
-
   } catch (error) {
     console.error('Error showing challenge stats:', error);
-    
+
     const errorEmbed = new EmbedBuilder()
       .setTitle('❌ Erro')
       .setDescription('Não foi possível carregar as estatísticas.')
@@ -602,56 +642,56 @@ acc[challenge.type]!.claimed++;
  */
 function getChallengeTypeEmoji(type: string): string {
   const emojis = {
-    'daily': '📅',
-    'weekly': '📆',
-    'monthly': '🗓️',
-    'special': '⭐',
+    daily: '📅',
+    weekly: '📆',
+    monthly: '🗓️',
+    special: '⭐',
   };
   return emojis[type as keyof typeof emojis] || '🏅';
 }
 
 function getChallengeTypeName(type: string): string {
   const names = {
-    'daily': 'Diários',
-    'weekly': 'Semanais',
-    'monthly': 'Mensais',
-    'special': 'Especiais',
+    daily: 'Diários',
+    weekly: 'Semanais',
+    monthly: 'Mensais',
+    special: 'Especiais',
   };
   return names[type as keyof typeof names] || 'Desconhecido';
 }
 
 function getCategoryEmoji(category: string): string {
   const emojis = {
-    'pubg': '🎮',
-    'social': '💬',
-    'gaming': '🎯',
-    'participation': '🤝',
+    pubg: '🎮',
+    social: '💬',
+    gaming: '🎯',
+    participation: '🤝',
   };
   return emojis[category as keyof typeof emojis] || '🏅';
 }
 
 function getRequirementEmoji(type: string): string {
   const emojis = {
-    'kills': '💀',
-    'wins': '🏆',
-    'games': '🎮',
-    'messages': '💬',
-    'voice_time': '🎤',
-    'quiz_score': '🧠',
-    'mini_game_wins': '🎯',
+    kills: '💀',
+    wins: '🏆',
+    games: '🎮',
+    messages: '💬',
+    voice_time: '🎤',
+    quiz_score: '🧠',
+    mini_game_wins: '🎯',
   };
   return emojis[type as keyof typeof emojis] || '📊';
 }
 
 function getRequirementName(type: string): string {
   const names = {
-    'kills': 'Kills',
-    'wins': 'Vitórias',
-    'games': 'Partidas',
-    'messages': 'Mensagens',
-    'voice_time': 'Tempo em Voz',
-    'quiz_score': 'Pontos em Quiz',
-    'mini_game_wins': 'Vitórias em Mini-Games',
+    kills: 'Kills',
+    wins: 'Vitórias',
+    games: 'Partidas',
+    messages: 'Mensagens',
+    voice_time: 'Tempo em Voz',
+    quiz_score: 'Pontos em Quiz',
+    mini_game_wins: 'Vitórias em Mini-Games',
   };
   return names[type as keyof typeof names] || 'Desconhecido';
 }
@@ -665,15 +705,15 @@ function createProgressBar(percentage: number, length: number = 10): string {
 function getTimeLeft(endDate: Date): string {
   const now = new Date();
   const diff = endDate.getTime() - now.getTime();
-  
+
   if (diff <= 0) {
     return 'Expirado';
   }
-  
+
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  
+
   if (days > 0) {
     return `${days}d ${hours}h`;
   }
@@ -686,7 +726,7 @@ function getTimeLeft(endDate: Date): string {
 function formatVoiceTime(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  
+
   if (hours > 0) {
     return `${hours}h ${minutes}m`;
   }

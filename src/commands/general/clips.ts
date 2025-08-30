@@ -1,4 +1,12 @@
-import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, CommandInteraction } from 'discord.js';
+import {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ChatInputCommandInteraction,
+  CommandInteraction,
+} from 'discord.js';
 import { PrismaClient } from '@prisma/client';
 import { BadgeService } from '../../services/badge.service';
 import { DatabaseService } from '../../database/database.service';
@@ -16,24 +24,17 @@ const data = new SlashCommandBuilder()
       .setName('upload')
       .setDescription('Fazer upload de um clip')
       .addAttachmentOption(option =>
-        option
-          .setName('video')
-          .setDescription('Arquivo de vídeo do clip')
-          .setRequired(true),
+        option.setName('video').setDescription('Arquivo de vídeo do clip').setRequired(true)
       )
       .addStringOption(option =>
-        option
-          .setName('title')
-          .setDescription('Título do clip')
-          .setRequired(true)
-          .setMaxLength(100),
+        option.setName('title').setDescription('Título do clip').setRequired(true).setMaxLength(100)
       )
       .addStringOption(option =>
         option
           .setName('description')
           .setDescription('Descrição do clip')
           .setRequired(false)
-          .setMaxLength(500),
+          .setMaxLength(500)
       )
       .addStringOption(option =>
         option
@@ -46,16 +47,16 @@ const data = new SlashCommandBuilder()
             { name: 'CS2', value: 'cs2' },
             { name: 'Apex Legends', value: 'apex' },
             { name: 'Fortnite', value: 'fortnite' },
-            { name: 'Outros', value: 'outros' },
-          ),
+            { name: 'Outros', value: 'outros' }
+          )
       )
       .addStringOption(option =>
         option
           .setName('tags')
           .setDescription('Tags do clip (separadas por vírgula)')
           .setRequired(false)
-          .setMaxLength(200),
-      ),
+          .setMaxLength(200)
+      )
   )
   .addSubcommand(subcommand =>
     subcommand
@@ -71,8 +72,8 @@ const data = new SlashCommandBuilder()
             { name: 'Mais curtidos', value: 'top' },
             { name: 'Recentes', value: 'recent' },
             { name: 'Em destaque', value: 'featured' },
-            { name: 'Por jogo', value: 'game' },
-          ),
+            { name: 'Por jogo', value: 'game' }
+          )
       )
       .addStringOption(option =>
         option
@@ -85,19 +86,16 @@ const data = new SlashCommandBuilder()
             { name: 'CS2', value: 'cs2' },
             { name: 'Apex Legends', value: 'apex' },
             { name: 'Fortnite', value: 'fortnite' },
-            { name: 'Outros', value: 'outros' },
-          ),
-      ),
+            { name: 'Outros', value: 'outros' }
+          )
+      )
   )
   .addSubcommand(subcommand =>
     subcommand
       .setName('vote')
       .setDescription('Votar em um clip')
       .addStringOption(option =>
-        option
-          .setName('clip_id')
-          .setDescription('ID do clip')
-          .setRequired(true),
+        option.setName('clip_id').setDescription('ID do clip').setRequired(true)
       )
       .addStringOption(option =>
         option
@@ -106,65 +104,62 @@ const data = new SlashCommandBuilder()
           .setRequired(true)
           .addChoices(
             { name: '👍 Curtir', value: 'like' },
-            { name: '👎 Não curtir', value: 'dislike' },
-          ),
-      ),
+            { name: '👎 Não curtir', value: 'dislike' }
+          )
+      )
   )
   .addSubcommand(subcommand =>
     subcommand
       .setName('info')
       .setDescription('Ver informações detalhadas de um clip')
       .addStringOption(option =>
-        option
-          .setName('clip_id')
-          .setDescription('ID do clip')
-          .setRequired(true),
-      ),
+        option.setName('clip_id').setDescription('ID do clip').setRequired(true)
+      )
   )
   .addSubcommand(subcommand =>
     subcommand
       .setName('delete')
       .setDescription('Deletar um clip (apenas o autor ou moderadores)')
       .addStringOption(option =>
-        option
-          .setName('clip_id')
-          .setDescription('ID do clip')
-          .setRequired(true),
-      ),
+        option.setName('clip_id').setDescription('ID do clip').setRequired(true)
+      )
   );
 
-async function execute(interaction: CommandInteraction | ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+async function execute(
+  interaction: CommandInteraction | ChatInputCommandInteraction,
+  client: ExtendedClient
+): Promise<void> {
   const subcommand = (interaction as ChatInputCommandInteraction).options.getSubcommand();
   const xpService = (client as any).xpService;
-    const badgeService = (client as any).badgeService;
+  const badgeService = (client as any).badgeService;
 
   try {
     switch (subcommand) {
-    case 'upload':
-      await handleUpload(interaction as ChatInputCommandInteraction, badgeService);
-      break;
-    case 'list':
-      await handleList(interaction as ChatInputCommandInteraction);
-      break;
-    case 'vote':
-      await handleVote(interaction as ChatInputCommandInteraction, badgeService);
-      break;
-    case 'info':
-      await handleInfo(interaction as ChatInputCommandInteraction);
-      break;
-    case 'delete':
-      await handleDelete(interaction as ChatInputCommandInteraction);
-      break;
-    default:
-      await interaction.reply({
-        content: '❌ Subcomando não reconhecido.',
-        ephemeral: true,
-      });
+      case 'upload':
+        await handleUpload(interaction as ChatInputCommandInteraction, badgeService);
+        break;
+      case 'list':
+        await handleList(interaction as ChatInputCommandInteraction);
+        break;
+      case 'vote':
+        await handleVote(interaction as ChatInputCommandInteraction, badgeService);
+        break;
+      case 'info':
+        await handleInfo(interaction as ChatInputCommandInteraction);
+        break;
+      case 'delete':
+        await handleDelete(interaction as ChatInputCommandInteraction);
+        break;
+      default:
+        await interaction.reply({
+          content: '❌ Subcomando não reconhecido.',
+          ephemeral: true,
+        });
     }
   } catch (error) {
     console.error('Erro no comando clips:', error);
     const errorMessage = '❌ Ocorreu um erro ao processar o comando.';
-    
+
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp({ content: errorMessage, ephemeral: true });
     } else {
@@ -181,7 +176,10 @@ async function handleUpload(interaction: ChatInputCommandInteraction, badgeServi
   const description = interaction.options.getString('description') || '';
   const gameType = interaction.options.getString('game') || 'outros';
   const tagsInput = interaction.options.getString('tags') || '';
-  const tags = tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+  const tags = tagsInput
+    .split(',')
+    .map(tag => tag.trim())
+    .filter(tag => tag.length > 0);
 
   if (!attachment) {
     await interaction.editReply('❌ Nenhum arquivo foi anexado.');
@@ -191,7 +189,9 @@ async function handleUpload(interaction: ChatInputCommandInteraction, badgeServi
   // Verificar se é um arquivo de vídeo
   const allowedTypes = ['video/mp4', 'video/webm', 'video/mov', 'video/avi', 'video/quicktime'];
   if (!allowedTypes.includes(attachment.contentType || '')) {
-    await interaction.editReply('❌ Apenas arquivos de vídeo são permitidos (MP4, WebM, MOV, AVI).');
+    await interaction.editReply(
+      '❌ Apenas arquivos de vídeo são permitidos (MP4, WebM, MOV, AVI).'
+    );
     return;
   }
 
@@ -247,39 +247,48 @@ async function handleUpload(interaction: ChatInputCommandInteraction, badgeServi
       .setTitle('🎬 Clip Enviado com Sucesso!')
       .setDescription(`**${title}**\n${description}`)
       .addFields(
-        { name: '🎮 Jogo', value: getGameEmoji(gameType) + ' ' + gameType.toUpperCase(), inline: true },
+        {
+          name: '🎮 Jogo',
+          value: getGameEmoji(gameType) + ' ' + gameType.toUpperCase(),
+          inline: true,
+        },
         { name: '🆔 ID do Clip', value: `\`${clip.id}\``, inline: true },
-        { name: '📊 Votos', value: '👍 0 | 👎 0', inline: true },
+        { name: '📊 Votos', value: '👍 0 | 👎 0', inline: true }
       )
       .setColor(0x00ff00)
       .setTimestamp()
-      .setFooter({ text: `Enviado por ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() });
+      .setFooter({
+        text: `Enviado por ${interaction.user.username}`,
+        iconURL: interaction.user.displayAvatarURL(),
+      });
 
     if (tags.length > 0) {
-      embed.addFields({ name: '🏷️ Tags', value: tags.map(tag => `\`${tag}\``).join(' '), inline: false });
+      embed.addFields({
+        name: '🏷️ Tags',
+        value: tags.map(tag => `\`${tag}\``).join(' '),
+        inline: false,
+      });
     }
 
-    const row = new ActionRowBuilder<ButtonBuilder>()
-      .addComponents(
-        new ButtonBuilder()
-          .setCustomId(`clip_like_${clip.id}`)
-          .setLabel('👍 Curtir')
-          .setStyle(ButtonStyle.Success),
-        new ButtonBuilder()
-          .setCustomId(`clip_dislike_${clip.id}`)
-          .setLabel('👎')
-          .setStyle(ButtonStyle.Danger),
-        new ButtonBuilder()
-          .setCustomId(`clip_info_${clip.id}`)
-          .setLabel('ℹ️ Info')
-          .setStyle(ButtonStyle.Secondary),
-      );
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`clip_like_${clip.id}`)
+        .setLabel('👍 Curtir')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(`clip_dislike_${clip.id}`)
+        .setLabel('👎')
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId(`clip_info_${clip.id}`)
+        .setLabel('ℹ️ Info')
+        .setStyle(ButtonStyle.Secondary)
+    );
 
     await interaction.editReply({
       embeds: [embed],
       components: [row],
     });
-
   } catch (error) {
     console.error('Erro ao salvar clip:', error);
     await interaction.editReply('❌ Erro ao salvar o clip. Tente novamente.');
@@ -298,20 +307,20 @@ async function handleList(interaction: ChatInputCommandInteraction) {
   let orderBy: any = { createdAt: 'desc' };
 
   switch (filter) {
-  case 'my':
-    whereClause.userId = interaction.user.id;
-    break;
-  case 'top':
-    orderBy = { likes: 'desc' };
-    break;
-  case 'featured':
-    whereClause.isFeatured = true;
-    break;
-  case 'game':
-    if (gameType) {
-      whereClause.gameType = gameType;
-    }
-    break;
+    case 'my':
+      whereClause.userId = interaction.user.id;
+      break;
+    case 'top':
+      orderBy = { likes: 'desc' };
+      break;
+    case 'featured':
+      whereClause.isFeatured = true;
+      break;
+    case 'game':
+      if (gameType) {
+        whereClause.gameType = gameType;
+      }
+      break;
   }
 
   try {
@@ -346,33 +355,32 @@ async function handleList(interaction: ChatInputCommandInteraction) {
       const votes = `👍 ${clip.likes} | 👎 ${clip.dislikes}`;
       const gameEmoji = getGameEmoji(clip.gameType || 'outros');
       const featured = clip.isFeatured ? '⭐ ' : '';
-      
+
       embed.addFields({
         name: `${index + 1}. ${featured}${clip.title}`,
-        value: `${gameEmoji} **${(clip.gameType || 'outros').toUpperCase()}** | ${votes} | 👁️ ${clip.views}\n` +
-               `📤 Por: ${username} | 🆔 \`${clip.id}\`\n` +
-               `${clip.description ? clip.description.substring(0, 100) + (clip.description.length > 100 ? '...' : '') : 'Sem descrição'}`,
+        value:
+          `${gameEmoji} **${(clip.gameType || 'outros').toUpperCase()}** | ${votes} | 👁️ ${clip.views}\n` +
+          `📤 Por: ${username} | 🆔 \`${clip.id}\`\n` +
+          `${clip.description ? clip.description.substring(0, 100) + (clip.description.length > 100 ? '...' : '') : 'Sem descrição'}`,
         inline: false,
       });
     });
 
-    const row = new ActionRowBuilder<ButtonBuilder>()
-      .addComponents(
-        new ButtonBuilder()
-          .setCustomId('clips_refresh')
-          .setLabel('🔄 Atualizar')
-          .setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder()
-          .setCustomId('clips_filter')
-          .setLabel('🔍 Filtrar')
-          .setStyle(ButtonStyle.Primary),
-      );
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId('clips_refresh')
+        .setLabel('🔄 Atualizar')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('clips_filter')
+        .setLabel('🔍 Filtrar')
+        .setStyle(ButtonStyle.Primary)
+    );
 
     await interaction.editReply({
       embeds: [embed],
       components: [row],
     });
-
   } catch (error) {
     console.error('Erro ao listar clips:', error);
     await interaction.editReply('❌ Erro ao carregar a lista de clips.');
@@ -424,16 +432,15 @@ async function handleVote(interaction: ChatInputCommandInteraction, badgeService
         });
         return;
       }
-      
+
       // Remover voto anterior e atualizar contadores
       await prisma.clipVote.delete({
         where: { id: existingVote.id },
       });
-      
-      const oldVoteUpdate = existingVote.type === 'like' 
-        ? { likes: { decrement: 1 } }
-        : { dislikes: { decrement: 1 } };
-      
+
+      const oldVoteUpdate =
+        existingVote.type === 'like' ? { likes: { decrement: 1 } } : { dislikes: { decrement: 1 } };
+
       await prisma.clip.update({
         where: { id: clipId },
         data: oldVoteUpdate,
@@ -459,9 +466,8 @@ async function handleVote(interaction: ChatInputCommandInteraction, badgeService
     });
 
     // Atualizar contadores do clip
-    const updateData = voteType === 'like' 
-      ? { likes: { increment: 1 } }
-      : { dislikes: { increment: 1 } };
+    const updateData =
+      voteType === 'like' ? { likes: { increment: 1 } } : { dislikes: { increment: 1 } };
 
     const updatedClip = await prisma.clip.update({
       where: { id: clipId },
@@ -482,7 +488,7 @@ async function handleVote(interaction: ChatInputCommandInteraction, badgeService
           xp: 2,
         },
       });
-      
+
       // Atualizar progresso de badges
       try {
         await badgeService.updateProgress(clip.userId, 'clips_votes', 1);
@@ -495,11 +501,11 @@ async function handleVote(interaction: ChatInputCommandInteraction, badgeService
     const voteText = voteType === 'like' ? 'curtiu' : 'não curtiu';
 
     await interaction.reply({
-      content: `${voteEmoji} Você ${voteText} o clip "**${clip.title}**"!\n` +
-               `📊 Votos atuais: 👍 ${updatedClip.likes} | 👎 ${updatedClip.dislikes}`,
+      content:
+        `${voteEmoji} Você ${voteText} o clip "**${clip.title}**"!\n` +
+        `📊 Votos atuais: 👍 ${updatedClip.likes} | 👎 ${updatedClip.dislikes}`,
       ephemeral: true,
     });
-
   } catch (error) {
     console.error('Erro ao votar no clip:', error);
     await interaction.reply({
@@ -554,45 +560,63 @@ async function handleInfo(interaction: ChatInputCommandInteraction) {
       .setDescription(clip.description || 'Sem descrição')
       .addFields(
         { name: '👤 Autor', value: clip.user?.username || 'Desconhecido', inline: true },
-        { name: '🎮 Jogo', value: getGameEmoji(clip.gameType || 'outros') + ' ' + (clip.gameType || 'outros').toUpperCase(), inline: true },
-        { name: '📊 Estatísticas', value: `👍 ${clip.likes} | 👎 ${clip.dislikes} | 👁️ ${clip.views + 1}`, inline: true },
-        { name: '📅 Enviado em', value: `<t:${Math.floor(clip.createdAt.getTime() / 1000)}:F>`, inline: true },
-        { name: '📁 Tamanho', value: clip.fileSize ? formatFileSize(clip.fileSize) : 'Desconhecido', inline: true },
-        { name: '🆔 ID', value: `\`${clip.id}\``, inline: true },
+        {
+          name: '🎮 Jogo',
+          value:
+            getGameEmoji(clip.gameType || 'outros') +
+            ' ' +
+            (clip.gameType || 'outros').toUpperCase(),
+          inline: true,
+        },
+        {
+          name: '📊 Estatísticas',
+          value: `👍 ${clip.likes} | 👎 ${clip.dislikes} | 👁️ ${clip.views + 1}`,
+          inline: true,
+        },
+        {
+          name: '📅 Enviado em',
+          value: `<t:${Math.floor(clip.createdAt.getTime() / 1000)}:F>`,
+          inline: true,
+        },
+        {
+          name: '📁 Tamanho',
+          value: clip.fileSize ? formatFileSize(clip.fileSize) : 'Desconhecido',
+          inline: true,
+        },
+        { name: '🆔 ID', value: `\`${clip.id}\``, inline: true }
       )
       .setColor(clip.isFeatured ? 0xffd700 : 0x0099ff)
       .setTimestamp();
 
     const tags = clip.tags ? JSON.parse(clip.tags) : [];
     if (tags && tags.length > 0) {
-      embed.addFields({ name: '🏷️ Tags', value: tags.map((tag: string) => `\`${tag}\``).join(' '), inline: false });
+      embed.addFields({
+        name: '🏷️ Tags',
+        value: tags.map((tag: string) => `\`${tag}\``).join(' '),
+        inline: false,
+      });
     }
 
     if (clip.isFeatured) {
       embed.setFooter({ text: '⭐ Clip em destaque' });
     }
 
-    const row = new ActionRowBuilder<ButtonBuilder>()
-      .addComponents(
-        new ButtonBuilder()
-          .setCustomId(`clip_like_${clip.id}`)
-          .setLabel('👍 Curtir')
-          .setStyle(ButtonStyle.Success),
-        new ButtonBuilder()
-          .setCustomId(`clip_dislike_${clip.id}`)
-          .setLabel('👎')
-          .setStyle(ButtonStyle.Danger),
-        new ButtonBuilder()
-          .setLabel('🔗 Ver Clip')
-          .setStyle(ButtonStyle.Link)
-          .setURL(clip.url),
-      );
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`clip_like_${clip.id}`)
+        .setLabel('👍 Curtir')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(`clip_dislike_${clip.id}`)
+        .setLabel('👎')
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setLabel('🔗 Ver Clip').setStyle(ButtonStyle.Link).setURL(clip.url)
+    );
 
     await interaction.reply({
       embeds: [embed],
       components: [row],
     });
-
   } catch (error) {
     console.error('Erro ao buscar informações do clip:', error);
     await interaction.reply({
@@ -645,7 +669,6 @@ async function handleDelete(interaction: ChatInputCommandInteraction) {
       content: `✅ Clip "**${clip.title}**" foi deletado com sucesso.`,
       ephemeral: true,
     });
-
   } catch (error) {
     console.error('Erro ao deletar clip:', error);
     await interaction.reply({
@@ -669,18 +692,20 @@ function getGameEmoji(gameType: string): string {
 
 function getFilterDescription(filter: string, gameType?: string | null): string {
   switch (filter) {
-  case 'my':
-    return 'Mostrando seus clips';
-  case 'top':
-    return 'Mostrando clips mais curtidos';
-  case 'featured':
-    return 'Mostrando clips em destaque';
-  case 'game':
-    return gameType ? `Mostrando clips de: ${gameType.toUpperCase()}` : 'Mostrando todos os clips';
-  case 'recent':
-    return 'Mostrando clips mais recentes';
-  default:
-    return 'Mostrando clips mais recentes';
+    case 'my':
+      return 'Mostrando seus clips';
+    case 'top':
+      return 'Mostrando clips mais curtidos';
+    case 'featured':
+      return 'Mostrando clips em destaque';
+    case 'game':
+      return gameType
+        ? `Mostrando clips de: ${gameType.toUpperCase()}`
+        : 'Mostrando todos os clips';
+    case 'recent':
+      return 'Mostrando clips mais recentes';
+    default:
+      return 'Mostrando clips mais recentes';
   }
 }
 
@@ -690,14 +715,14 @@ function formatFileSize(bytes: number): string {
     return '0 Bytes';
   }
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i];
 }
 
 const clips: Command = {
   data,
   category: CommandCategory.CLIPS,
   cooldown: 5,
-  execute
+  execute,
 };
 
 export default clips;

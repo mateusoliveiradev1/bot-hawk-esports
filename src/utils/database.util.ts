@@ -26,9 +26,9 @@ export class DatabaseUtils {
         where: { id: discordId },
         include: {
           guilds: {
-            where: { guildId }
-          }
-        }
+            where: { guildId },
+          },
+        },
       });
 
       // If user doesn't exist, create them
@@ -42,15 +42,15 @@ export class DatabaseUtils {
             guilds: {
               create: {
                 guildId,
-                joinedAt: new Date()
-              }
-            }
+                joinedAt: new Date(),
+              },
+            },
           },
           include: {
             guilds: {
-              where: { guildId }
-            }
-          }
+              where: { guildId },
+            },
+          },
         });
         this.logger.info(`Created new user: ${discordId} in guild: ${guildId}`);
       } else if (user.guilds.length === 0) {
@@ -59,18 +59,18 @@ export class DatabaseUtils {
           data: {
             userId: user.id,
             guildId,
-            joinedAt: new Date()
-          }
+            joinedAt: new Date(),
+          },
         });
-        
+
         // Refetch user with guild data
         user = await database.client.user.findUnique({
           where: { id: discordId },
           include: {
             guilds: {
-              where: { guildId }
-            }
-          }
+              where: { guildId },
+            },
+          },
         });
         this.logger.info(`Added existing user: ${discordId} to guild: ${guildId}`);
       }
@@ -103,11 +103,13 @@ export class DatabaseUtils {
           ...(updates.xp !== undefined && { xp: { increment: updates.xp } }),
           ...(updates.level !== undefined && { level: updates.level }),
           ...(updates.coins !== undefined && { coins: { increment: updates.coins } }),
-          ...(updates.commandsUsed !== undefined && { commandsUsed: { increment: updates.commandsUsed } }),
-          ...(updates.lastActive && { lastActive: updates.lastActive })
-        }
+          ...(updates.commandsUsed !== undefined && {
+            commandsUsed: { increment: updates.commandsUsed },
+          }),
+          ...(updates.lastActive && { lastActive: updates.lastActive }),
+        },
       });
-      
+
       return user;
     } catch (error) {
       this.logger.error(`Failed to update user stats for ${userId}:`, error);
@@ -130,9 +132,9 @@ export class DatabaseUtils {
         where: {
           userId_badgeId: {
             userId,
-            badgeId
-          }
-        }
+            badgeId,
+          },
+        },
       });
 
       if (existingBadge) {
@@ -146,11 +148,11 @@ export class DatabaseUtils {
           userId,
           badgeId,
           metadata,
-          earnedAt: new Date()
+          earnedAt: new Date(),
         },
         include: {
-          badge: true
-        }
+          badge: true,
+        },
       });
 
       this.logger.info(`Awarded badge ${badgeId} to user ${userId}`);
@@ -176,14 +178,14 @@ export class DatabaseUtils {
   ) {
     try {
       await database.client.auditLog.create({
-          data: {
-            userId,
-            guildId,
-            action: activity.type,
-            reason: activity.description,
-            metadata: activity.metadata ? JSON.stringify(activity.metadata) : null
-          }
-        });
+        data: {
+          userId,
+          guildId,
+          action: activity.type,
+          reason: activity.description,
+          metadata: activity.metadata ? JSON.stringify(activity.metadata) : null,
+        },
+      });
     } catch (error) {
       this.logger.error(`Failed to log activity for user ${userId}:`, error);
       // Don't throw error for logging failures
@@ -193,25 +195,21 @@ export class DatabaseUtils {
   /**
    * Get user with guild data
    */
-  static async getUserWithGuild(
-    database: DatabaseService,
-    discordId: string,
-    guildId: string
-  ) {
+  static async getUserWithGuild(database: DatabaseService, discordId: string, guildId: string) {
     try {
       return await database.client.user.findUnique({
         where: { id: discordId },
         include: {
           guilds: {
-            where: { guildId }
+            where: { guildId },
           },
           badges: {
             include: {
-              badge: true
-            }
+              badge: true,
+            },
           },
-          pubgStats: true
-        }
+          pubgStats: true,
+        },
       });
     } catch (error) {
       this.logger.error(`Failed to get user ${discordId} for guild ${guildId}:`, error);
@@ -231,10 +229,10 @@ export class DatabaseUtils {
   ) {
     try {
       const results = await Promise.allSettled(
-        updates.map(update => 
+        updates.map(update =>
           database.client.user.update({
             where: { id: update.userId },
-            data: update.data
+            data: update.data,
           })
         )
       );
@@ -243,7 +241,7 @@ export class DatabaseUtils {
       const failed = results.filter(r => r.status === 'rejected').length;
 
       this.logger.info(`Batch update completed: ${successful} successful, ${failed} failed`);
-      
+
       return { successful, failed, results };
     } catch (error) {
       this.logger.error('Failed to batch update users:', error);
@@ -267,9 +265,9 @@ export class DatabaseUtils {
       const result = await (database.client as any)[table].deleteMany({
         where: {
           [dateField]: {
-            lt: cutoffDate
-          }
-        }
+            lt: cutoffDate,
+          },
+        },
       });
 
       this.logger.info(`Cleaned up ${result.count} old records from ${table}`);
@@ -291,19 +289,19 @@ export class DatabaseUtils {
     try {
       const skip = (page - 1) * limit;
       const take = limit + 1; // Get one extra to check if there are more
-      
+
       const results = await queryFn(skip, take);
       const hasMore = results.length > limit;
-      
+
       if (hasMore) {
         results.pop(); // Remove the extra item
       }
-      
+
       return {
         data: results,
         page,
         limit,
-        hasMore
+        hasMore,
       };
     } catch (error) {
       this.logger.error('Failed to get paginated results:', error);

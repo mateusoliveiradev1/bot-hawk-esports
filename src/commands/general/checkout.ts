@@ -10,7 +10,7 @@ import {
   VoiceChannel,
   TextChannel,
   CategoryChannel,
-  ComponentType
+  ComponentType,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -27,11 +27,14 @@ const checkout: Command = {
   data: new SlashCommandBuilder()
     .setName('checkout')
     .setDescription('🚪 Fazer check-out para finalizar sua sessão de presença ativa'),
-  
+
   category: CommandCategory.GENERAL,
   cooldown: 5, // 5 seconds cooldown
-  
-  async execute(interaction: CommandInteraction | ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+
+  async execute(
+    interaction: CommandInteraction | ChatInputCommandInteraction,
+    client: ExtendedClient
+  ): Promise<void> {
     const logger = new Logger();
     const database = client.database;
     const presenceService = (client as any).presenceService;
@@ -48,13 +51,15 @@ const checkout: Command = {
       // Check if user is registered
       const user = await database.client.user.findUnique({
         where: { id: userId },
-        include: { stats: true }
+        include: { stats: true },
       });
 
       if (!user) {
         const registerEmbed = new EmbedBuilder()
           .setTitle('❌ Usuário Não Registrado')
-          .setDescription('Você precisa se registrar primeiro usando `/register` para fazer check-out!')
+          .setDescription(
+            'Você precisa se registrar primeiro usando `/register` para fazer check-out!'
+          )
           .setColor(0xff0000)
           .setTimestamp();
 
@@ -68,12 +73,14 @@ const checkout: Command = {
       if (!userSession) {
         const noSessionEmbed = new EmbedBuilder()
           .setTitle('❌ Nenhuma Sessão Ativa')
-          .setDescription('Você não possui uma sessão ativa para fazer check-out.\n\nUse `/checkin` para iniciar uma nova sessão!')
+          .setDescription(
+            'Você não possui uma sessão ativa para fazer check-out.\n\nUse `/checkin` para iniciar uma nova sessão!'
+          )
           .setColor(0xff0000)
           .addFields({
             name: '💡 Dica',
             value: 'Você pode verificar suas sessões recentes usando `/profile`',
-            inline: false
+            inline: false,
           })
           .setTimestamp();
 
@@ -99,7 +106,10 @@ const checkout: Command = {
             'Check-out via comando /checkout'
           );
         } catch (error) {
-          logger.warn('PresenceEnhancementsService checkout failed, falling back to PresenceService:', error);
+          logger.warn(
+            'PresenceEnhancementsService checkout failed, falling back to PresenceService:',
+            error
+          );
           checkOutResult = await presenceService.checkOut(
             guildId,
             userId,
@@ -134,84 +144,87 @@ const checkout: Command = {
       const updatedUser = await database.client.user.update({
         where: { id: userId },
         data: {
-          xp: { increment: totalXP }
+          xp: { increment: totalXP },
         },
-        include: { stats: true }
+        include: { stats: true },
       });
 
       // Update user stats separately
       await database.client.userStats.upsert({
         where: { userId },
         update: {
-          voiceTime: { increment: durationMinutes * 60 } // Convert to seconds
+          voiceTime: { increment: durationMinutes * 60 }, // Convert to seconds
         },
         create: {
           userId,
-          voiceTime: durationMinutes * 60
-        }
+          voiceTime: durationMinutes * 60,
+        },
       });
 
       // Check for session-based badges
       await checkSessionBadges(badgeService, userId, durationMinutes, 0); // TODO: Implement sessions count
 
       // Handle channel cleanup
-      const channelCleanup = await cleanupSessionChannels(interaction as ChatInputCommandInteraction, userSession.location || '');
+      const channelCleanup = await cleanupSessionChannels(
+        interaction as ChatInputCommandInteraction,
+        userSession.location || ''
+      );
 
       // Create success embed
       const successEmbed = new EmbedBuilder()
         .setTitle('✅ Check-out Realizado!')
-        .setDescription(`Sessão finalizada com sucesso! Obrigado por jogar conosco! 🎮`)
+        .setDescription('Sessão finalizada com sucesso! Obrigado por jogar conosco! 🎮')
         .setColor(0x00ff00)
         .addFields(
           {
             name: '👤 Usuário',
             value: interaction.user.displayName,
-            inline: true
+            inline: true,
           },
           {
             name: '⏰ Início da Sessão',
             value: `<t:${Math.floor(sessionStart.getTime() / 1000)}:F>`,
-            inline: true
+            inline: true,
           },
           {
             name: '🏁 Fim da Sessão',
             value: `<t:${Math.floor(sessionEnd.getTime() / 1000)}:F>`,
-            inline: true
+            inline: true,
           },
           {
             name: '⏱️ Duração Total',
             value: formatDuration(durationHours, remainingMinutes),
-            inline: true
+            inline: true,
           },
           {
             name: '🎯 XP da Sessão',
             value: `+${sessionXP} XP`,
-            inline: true
+            inline: true,
           },
           {
             name: '🎁 Bônus de Tempo',
             value: bonusXP > 0 ? `+${bonusXP} XP` : 'Nenhum',
-            inline: true
+            inline: true,
           },
           {
             name: '🏆 XP Total Ganho',
             value: `**+${totalXP} XP**`,
-            inline: false
+            inline: false,
           },
           {
             name: '📊 XP Total',
             value: `${updatedUser.xp.toLocaleString()} XP`,
-            inline: true
+            inline: true,
           },
           {
             name: '🎮 Sessões Completadas',
-            value: `0`, // TODO: Implement sessions count
-            inline: true
+            value: '0', // TODO: Implement sessions count
+            inline: true,
           },
           {
             name: '⏰ Tempo Total de Jogo',
             value: formatTotalPlayTime(updatedUser.stats?.voiceTime || 0),
-            inline: true
+            inline: true,
           }
         )
         .setThumbnail(interaction.user.displayAvatarURL())
@@ -222,7 +235,7 @@ const checkout: Command = {
         successEmbed.addFields({
           name: '📍 Sessão',
           value: userSession.location,
-          inline: false
+          inline: false,
         });
       }
 
@@ -231,43 +244,43 @@ const checkout: Command = {
         successEmbed.addFields({
           name: '🧹 Limpeza de Canais',
           value: `${channelCleanup.channelsRemoved} canal(is) removido(s) automaticamente`,
-          inline: false
+          inline: false,
         });
       }
 
       // Create action buttons
-      const actionButtons = new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId(`new_checkin_${userId}`)
-            .setLabel('🎮 Novo Check-in')
-            .setStyle(ButtonStyle.Success),
-          new ButtonBuilder()
-            .setCustomId(`ranking_presence`)
-            .setLabel('🏆 Ver Ranking')
-            .setStyle(ButtonStyle.Primary),
-          new ButtonBuilder()
-            .setCustomId(`profile_${userId}`)
-            .setLabel('👤 Meu Perfil')
-            .setStyle(ButtonStyle.Secondary)
-        );
+      const actionButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`new_checkin_${userId}`)
+          .setLabel('🎮 Novo Check-in')
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId('ranking_presence')
+          .setLabel('🏆 Ver Ranking')
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId(`profile_${userId}`)
+          .setLabel('👤 Meu Perfil')
+          .setStyle(ButtonStyle.Secondary)
+      );
 
       const response = await interaction.editReply({
         embeds: [successEmbed],
-        components: [actionButtons]
+        components: [actionButtons],
       });
 
       // Setup button collector
       setupButtonCollector(response, interaction as ChatInputCommandInteraction, userId);
 
       logger.info(`User ${userId} checked out successfully after ${durationMinutes} minutes`);
-
     } catch (error) {
       logger.error('Error in checkout command:', error);
-      
+
       const errorEmbed = new EmbedBuilder()
         .setTitle('❌ Erro Interno')
-        .setDescription('Ocorreu um erro ao processar seu check-out. Tente novamente em alguns instantes.')
+        .setDescription(
+          'Ocorreu um erro ao processar seu check-out. Tente novamente em alguns instantes.'
+        )
         .setColor(0xff0000)
         .setTimestamp();
 
@@ -289,16 +302,16 @@ function calculateSessionXP(durationMinutes: number, sessionLocation: string): n
 
   // Determine session type from location
   const sessionType = getSessionTypeFromLocation(sessionLocation);
-  
+
   const typeMultipliers: Record<string, number> = {
     mm: 1.0,
     scrim: 1.5,
     campeonato: 2.0,
-    ranked: 1.8
+    ranked: 1.8,
   };
 
   multiplier = typeMultipliers[sessionType] || 1.0;
-  
+
   return Math.floor(durationMinutes * baseXPPerMinute * multiplier);
 }
 
@@ -306,11 +319,14 @@ function calculateSessionXP(durationMinutes: number, sessionLocation: string): n
  * Calculate bonus XP for long sessions
  */
 function calculateBonusXP(durationMinutes: number): number {
-  if (durationMinutes >= 180) { // 3+ hours
+  if (durationMinutes >= 180) {
+    // 3+ hours
     return 100;
-  } else if (durationMinutes >= 120) { // 2+ hours
+  } else if (durationMinutes >= 120) {
+    // 2+ hours
     return 50;
-  } else if (durationMinutes >= 60) { // 1+ hour
+  } else if (durationMinutes >= 60) {
+    // 1+ hour
     return 25;
   }
   return 0;
@@ -321,10 +337,18 @@ function calculateBonusXP(durationMinutes: number): number {
  */
 function getSessionTypeFromLocation(location: string): string {
   const lowerLocation = location.toLowerCase();
-  if (lowerLocation.includes('mm') || lowerLocation.includes('matchmaking')) return 'mm';
-  if (lowerLocation.includes('scrim')) return 'scrim';
-  if (lowerLocation.includes('campeonato') || lowerLocation.includes('tournament')) return 'campeonato';
-  if (lowerLocation.includes('ranked')) return 'ranked';
+  if (lowerLocation.includes('mm') || lowerLocation.includes('matchmaking')) {
+    return 'mm';
+  }
+  if (lowerLocation.includes('scrim')) {
+    return 'scrim';
+  }
+  if (lowerLocation.includes('campeonato') || lowerLocation.includes('tournament')) {
+    return 'campeonato';
+  }
+  if (lowerLocation.includes('ranked')) {
+    return 'ranked';
+  }
   return 'mm'; // default
 }
 
@@ -344,7 +368,7 @@ function formatDuration(hours: number, minutes: number): string {
 function formatTotalPlayTime(totalMinutes: number): string {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  
+
   if (hours > 24) {
     const days = Math.floor(hours / 24);
     const remainingHours = hours % 24;
@@ -372,12 +396,16 @@ async function cleanupSessionChannels(
         const channelName = channel.name.toLowerCase();
         const sessionName = sessionLocation.toLowerCase();
         const userName = interaction.user.displayName.toLowerCase();
-        
+
         // Check if channel name contains session info, user name, or was created by this user
-        return channelName.includes(sessionName) || 
-               channelName.includes(userName) ||
-               (channelName.startsWith('🔊') && channelName.includes(userName)) ||
-               (channelName.startsWith('💬') && sessionName && channelName.includes(sessionName.replace(/\s+/g, '-')));
+        return (
+          channelName.includes(sessionName) ||
+          channelName.includes(userName) ||
+          (channelName.startsWith('🔊') && channelName.includes(userName)) ||
+          (channelName.startsWith('💬') &&
+            sessionName &&
+            channelName.includes(sessionName.replace(/\s+/g, '-')))
+        );
       }
       return false;
     });
@@ -396,13 +424,14 @@ async function cleanupSessionChannels(
           // For text channels, check if they were created recently (within last 24 hours) and have minimal activity
           const channelAge = Date.now() - textChannel.createdTimestamp;
           const isRecentChannel = channelAge < 24 * 60 * 60 * 1000; // 24 hours
-          
+
           if (isRecentChannel) {
             const messages = await textChannel.messages.fetch({ limit: 10 });
             const userMessages = messages.filter((msg: any) => !msg.author.bot);
-            
+
             // Remove if no user messages or only system messages
-            if (userMessages.size <= 1) { // Allow for welcome message
+            if (userMessages.size <= 1) {
+              // Allow for welcome message
               await textChannel.delete('Sessão finalizada - canal temporário');
               channelsRemoved++;
             }
@@ -419,30 +448,34 @@ async function cleanupSessionChannels(
         const categoryName = channel.name.toLowerCase();
         const sessionName = sessionLocation.toLowerCase();
         const userName = interaction.user.displayName.toLowerCase();
-        
+
         // Check if category is related to this session or user
-        return categoryName.includes(sessionName) || 
-               categoryName.includes(userName) ||
-               categoryName.includes('sessão') ||
-               categoryName.includes('session') ||
-               categoryName.includes('🎮') ||
-               categoryName.includes('🏆');
+        return (
+          categoryName.includes(sessionName) ||
+          categoryName.includes(userName) ||
+          categoryName.includes('sessão') ||
+          categoryName.includes('session') ||
+          categoryName.includes('🎮') ||
+          categoryName.includes('🏆')
+        );
       }
       return false;
     });
 
     for (const category of Array.from(categories.values())) {
       const categoryChannel = category as CategoryChannel;
-      
+
       // Check if category is empty or only has bot-managed channels
       const activeChannels = categoryChannel.children.cache.filter((child: any) => {
         // Don't count channels that are about to be deleted or are system channels
         const childName = child.name.toLowerCase();
-        return !childName.includes('logs') && 
-               !childName.includes('audit') &&
-               !childName.includes('sistema');
+        return (
+          !childName.includes('logs') &&
+          !childName.includes('audit') &&
+          !childName.includes('sistema')
+        );
       });
-      
+
       if (activeChannels.size === 0) {
         try {
           await categoryChannel.delete('Categoria vazia após finalização da sessão');
@@ -454,7 +487,6 @@ async function cleanupSessionChannels(
     }
 
     return { channelsRemoved };
-
   } catch (error) {
     console.error('Error in channel cleanup:', error);
     return { channelsRemoved: 0 };
@@ -465,18 +497,21 @@ async function cleanupSessionChannels(
  * Check and award session-based badges
  */
 async function checkSessionBadges(
-  badgeService: BadgeService, 
-  userId: string, 
-  durationMinutes: number, 
+  badgeService: BadgeService,
+  userId: string,
+  durationMinutes: number,
   totalSessions: number
 ): Promise<void> {
   try {
     // Award duration-based badges
-    if (durationMinutes >= 180) { // 3+ hours
+    if (durationMinutes >= 180) {
+      // 3+ hours
       await badgeService.awardBadge(userId, 'marathon_gamer', false);
-    } else if (durationMinutes >= 120) { // 2+ hours
+    } else if (durationMinutes >= 120) {
+      // 2+ hours
       await badgeService.awardBadge(userId, 'dedicated_player', false);
-    } else if (durationMinutes >= 60) { // 1+ hour
+    } else if (durationMinutes >= 60) {
+      // 1+ hour
       await badgeService.awardBadge(userId, 'committed_gamer', false);
     }
 
@@ -488,7 +523,6 @@ async function checkSessionBadges(
     } else if (totalSessions >= 10) {
       await badgeService.awardBadge(userId, 'regular_player', false);
     }
-
   } catch (error) {
     console.error('Error checking session badges:', error);
   }
@@ -519,7 +553,8 @@ function setupButtonCollector(
     try {
       if (buttonInteraction.customId === `new_checkin_${userId}`) {
         await buttonInteraction.reply({
-          content: '🎮 Use o comando `/checkin` para iniciar uma nova sessão!\n\nEscolha o tipo de sessão e, se necessário, informe o nome da partida/evento.',
+          content:
+            '🎮 Use o comando `/checkin` para iniciar uma nova sessão!\n\nEscolha o tipo de sessão e, se necessário, informe o nome da partida/evento.',
           ephemeral: true,
         });
       } else if (buttonInteraction.customId === 'ranking_presence') {
@@ -545,15 +580,14 @@ function setupButtonCollector(
   collector.on('end', async () => {
     try {
       // Disable buttons after collector expires
-      const expiredButtons = new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId('expired')
-            .setLabel('⏰ Botões Expirados')
-            .setStyle(ButtonStyle.Secondary)
-            .setDisabled(true)
-        );
-      
+      const expiredButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId('expired')
+          .setLabel('⏰ Botões Expirados')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true)
+      );
+
       await response.edit({ components: [expiredButtons] });
     } catch (error) {
       // Ignore errors when editing expired messages

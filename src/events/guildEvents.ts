@@ -1,12 +1,12 @@
-import { 
-  Guild, 
-  GuildBan, 
-  Role, 
-  GuildChannel, 
+import {
+  Guild,
+  GuildBan,
+  Role,
+  GuildChannel,
   Invite,
   GuildEmoji,
   Sticker,
-  NonThreadGuildBasedChannel
+  NonThreadGuildBasedChannel,
 } from 'discord.js';
 import { ExtendedClient } from '../types/client';
 import { Logger } from '../utils/logger';
@@ -28,31 +28,31 @@ export class GuildEvents {
     // Guild ban events
     this.client.on('guildBanAdd', this.handleGuildBanAdd.bind(this));
     this.client.on('guildBanRemove', this.handleGuildBanRemove.bind(this));
-    
+
     // Role events
     this.client.on('roleCreate', this.handleRoleCreate.bind(this));
     this.client.on('roleDelete', this.handleRoleDelete.bind(this));
     this.client.on('roleUpdate', this.handleRoleUpdate.bind(this));
-    
+
     // Channel events
     this.client.on('channelCreate', this.handleChannelCreate.bind(this));
     this.client.on('channelDelete', this.handleChannelDelete.bind(this));
     this.client.on('channelUpdate', this.handleChannelUpdate.bind(this));
-    
+
     // Invite events
     this.client.on('inviteCreate', this.handleInviteCreate.bind(this));
     this.client.on('inviteDelete', this.handleInviteDelete.bind(this));
-    
+
     // Emoji events
     this.client.on('emojiCreate', this.handleEmojiCreate.bind(this));
     this.client.on('emojiDelete', this.handleEmojiDelete.bind(this));
     this.client.on('emojiUpdate', this.handleEmojiUpdate.bind(this));
-    
+
     // Sticker events
     this.client.on('stickerCreate', this.handleStickerCreate.bind(this));
     this.client.on('stickerDelete', this.handleStickerDelete.bind(this));
     this.client.on('stickerUpdate', this.handleStickerUpdate.bind(this));
-    
+
     // Guild update events
     this.client.on('guildUpdate', this.handleGuildUpdate.bind(this));
   }
@@ -106,7 +106,9 @@ export class GuildEvents {
    */
   private async handleRoleUpdate(oldRole: Role, newRole: Role): Promise<void> {
     try {
-      if (!this.client.services?.logging) return;
+      if (!this.client.services?.logging) {
+        return;
+      }
 
       const changes: any = {};
 
@@ -133,7 +135,7 @@ export class GuildEvents {
       if (!oldRole.permissions.equals(newRole.permissions)) {
         changes.permissions = {
           old: oldRole.permissions.toArray(),
-          new: newRole.permissions.toArray()
+          new: newRole.permissions.toArray(),
         };
       }
 
@@ -149,9 +151,13 @@ export class GuildEvents {
    * Handle channel creation
    */
   private async handleChannelCreate(channel: any): Promise<void> {
-    if (!channel.guild) return;
+    if (!channel.guild) {
+      return;
+    }
     try {
-      if (!this.client.services?.logging) return;
+      if (!this.client.services?.logging) {
+        return;
+      }
 
       // Logging is handled automatically by LoggingService
     } catch (error) {
@@ -163,7 +169,9 @@ export class GuildEvents {
    * Handle channel deletion
    */
   private async handleChannelDelete(channel: any): Promise<void> {
-    if (!channel.guild) return;
+    if (!channel.guild) {
+      return;
+    }
     try {
       // Logging is handled automatically by LoggingService
     } catch (error) {
@@ -175,9 +183,13 @@ export class GuildEvents {
    * Handle channel updates
    */
   private async handleChannelUpdate(oldChannel: any, newChannel: any): Promise<void> {
-    if (!oldChannel.guild || !newChannel.guild) return;
+    if (!oldChannel.guild || !newChannel.guild) {
+      return;
+    }
     try {
-      if (!this.client.services?.logging) return;
+      if (!this.client.services?.logging) {
+        return;
+      }
 
       const changes: any = {};
 
@@ -204,12 +216,20 @@ export class GuildEvents {
       }
 
       // Check bitrate for voice channels
-      if ('bitrate' in oldChannel && 'bitrate' in newChannel && oldChannel.bitrate !== newChannel.bitrate) {
+      if (
+        'bitrate' in oldChannel &&
+        'bitrate' in newChannel &&
+        oldChannel.bitrate !== newChannel.bitrate
+      ) {
         changes.bitrate = { old: oldChannel.bitrate, new: newChannel.bitrate };
       }
 
       // Check user limit for voice channels
-      if ('userLimit' in oldChannel && 'userLimit' in newChannel && oldChannel.userLimit !== newChannel.userLimit) {
+      if (
+        'userLimit' in oldChannel &&
+        'userLimit' in newChannel &&
+        oldChannel.userLimit !== newChannel.userLimit
+      ) {
         changes.userLimit = { old: oldChannel.userLimit, new: newChannel.userLimit };
       }
 
@@ -226,7 +246,9 @@ export class GuildEvents {
    */
   private async handleInviteCreate(invite: Invite): Promise<void> {
     try {
-      if (!this.client.services?.logging || !invite.guild) return;
+      if (!this.client.services?.logging || !invite.guild) {
+        return;
+      }
 
       // Logging is handled automatically by LoggingService
     } catch (error) {
@@ -250,7 +272,9 @@ export class GuildEvents {
    */
   private async handleEmojiCreate(emoji: GuildEmoji): Promise<void> {
     try {
-      if (!this.client.services?.logging) return;
+      if (!this.client.services?.logging) {
+        return;
+      }
 
       // Logging is handled automatically by LoggingService
     } catch (error) {
@@ -274,7 +298,9 @@ export class GuildEvents {
    */
   private async handleEmojiUpdate(oldEmoji: GuildEmoji, newEmoji: GuildEmoji): Promise<void> {
     try {
-      if (!this.client.services?.logging) return;
+      if (!this.client.services?.logging) {
+        return;
+      }
 
       const changes: any = {};
 
@@ -295,7 +321,9 @@ export class GuildEvents {
    */
   private async handleStickerCreate(sticker: Sticker): Promise<void> {
     try {
-      if (!this.client.services?.logging || !sticker.guild) return;
+      if (!this.client.services?.logging || !sticker.guild) {
+        return;
+      }
 
       // Logging is handled automatically by LoggingService
     } catch (error) {
@@ -319,7 +347,9 @@ export class GuildEvents {
    */
   private async handleStickerUpdate(oldSticker: Sticker, newSticker: Sticker): Promise<void> {
     try {
-      if (!this.client.services?.logging || !newSticker.guild) return;
+      if (!this.client.services?.logging || !newSticker.guild) {
+        return;
+      }
 
       const changes: any = {};
 
@@ -348,7 +378,9 @@ export class GuildEvents {
    */
   private async handleGuildUpdate(oldGuild: Guild, newGuild: Guild): Promise<void> {
     try {
-      if (!this.client.services?.logging) return;
+      if (!this.client.services?.logging) {
+        return;
+      }
 
       const changes: any = {};
 
@@ -373,20 +405,23 @@ export class GuildEvents {
       }
 
       if (oldGuild.verificationLevel !== newGuild.verificationLevel) {
-        changes.verificationLevel = { old: oldGuild.verificationLevel, new: newGuild.verificationLevel };
+        changes.verificationLevel = {
+          old: oldGuild.verificationLevel,
+          new: newGuild.verificationLevel,
+        };
       }
 
       if (oldGuild.defaultMessageNotifications !== newGuild.defaultMessageNotifications) {
-        changes.defaultMessageNotifications = { 
-          old: oldGuild.defaultMessageNotifications, 
-          new: newGuild.defaultMessageNotifications 
+        changes.defaultMessageNotifications = {
+          old: oldGuild.defaultMessageNotifications,
+          new: newGuild.defaultMessageNotifications,
         };
       }
 
       if (oldGuild.explicitContentFilter !== newGuild.explicitContentFilter) {
-        changes.explicitContentFilter = { 
-          old: oldGuild.explicitContentFilter, 
-          new: newGuild.explicitContentFilter 
+        changes.explicitContentFilter = {
+          old: oldGuild.explicitContentFilter,
+          new: newGuild.explicitContentFilter,
         };
       }
 

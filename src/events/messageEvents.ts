@@ -32,7 +32,7 @@ export class MessageEvents {
         if (newMessage.partial) {
           await newMessage.fetch();
         }
-        
+
         await this.handleMessageUpdate(oldMessage as Message, newMessage as Message);
       } catch (error) {
         this.logger.error('Error handling message update:', error);
@@ -40,10 +40,12 @@ export class MessageEvents {
     });
 
     // Message delete event for logging
-    this.client.on('messageDelete', async (message) => {
+    this.client.on('messageDelete', async message => {
       try {
-        if (message.partial) return;
-        
+        if (message.partial) {
+          return;
+        }
+
         await this.handleMessageDelete(message as Message);
       } catch (error) {
         this.logger.error('Error handling message delete:', error);
@@ -51,7 +53,7 @@ export class MessageEvents {
     });
 
     // Bulk message delete event
-    this.client.on('messageDeleteBulk', async (messages) => {
+    this.client.on('messageDeleteBulk', async messages => {
       try {
         await this.handleBulkMessageDelete(messages);
       } catch (error) {
@@ -65,7 +67,9 @@ export class MessageEvents {
    */
   private async handleMessageCreate(message: Message): Promise<void> {
     // Skip bot messages and DMs
-    if (message.author.bot || !message.guild) return;
+    if (message.author.bot || !message.guild) {
+      return;
+    }
 
     // Update ticket activity if message is in a ticket channel
     await this.updateTicketActivity(message);
@@ -85,10 +89,14 @@ export class MessageEvents {
    */
   private async handleMessageUpdate(oldMessage: Message, newMessage: Message): Promise<void> {
     // Skip bot messages and DMs
-    if (newMessage.author.bot || !newMessage.guild) return;
+    if (newMessage.author.bot || !newMessage.guild) {
+      return;
+    }
 
     // Only process if content actually changed
-    if (oldMessage.content === newMessage.content) return;
+    if (oldMessage.content === newMessage.content) {
+      return;
+    }
 
     // Process edited message through auto moderation
     if (this.client.services?.automod) {
@@ -104,7 +112,9 @@ export class MessageEvents {
    */
   private async handleMessageDelete(message: Message): Promise<void> {
     // Skip bot messages and DMs
-    if (message.author.bot || !message.guild) return;
+    if (message.author.bot || !message.guild) {
+      return;
+    }
 
     // Log message deletion if logging is enabled
     await this.logMessageDelete(message);
@@ -137,24 +147,32 @@ export class MessageEvents {
    */
   private async updateTicketActivity(message: Message): Promise<void> {
     try {
-      if (!message.guild || !this.client.services?.ticket) return;
+      if (!message.guild || !this.client.services?.ticket) {
+        return;
+      }
 
       // Check if the channel is a text channel with a name property
-      if (!('name' in message.channel) || !message.channel.name) return;
+      if (!('name' in message.channel) || !message.channel.name) {
+        return;
+      }
 
       // Check if the channel is a ticket channel by looking for ticket pattern
       const channelName = message.channel.name;
-      if (!channelName.startsWith('ticket-')) return;
+      if (!channelName.startsWith('ticket-')) {
+        return;
+      }
 
       // Extract ticket ID from channel name (format: ticket-{ticketId})
       const ticketIdMatch = channelName.match(/^ticket-(.+)$/);
-      if (!ticketIdMatch || !ticketIdMatch[1]) return;
+      if (!ticketIdMatch || !ticketIdMatch[1]) {
+        return;
+      }
 
       const ticketId = ticketIdMatch[1];
-      
+
       // Update ticket activity timestamp
       await this.client.services.ticket.updateTicketActivity(message.guild.id, ticketId);
-      
+
       this.logger.debug(`Updated activity for ticket ${ticketId} in guild ${message.guild.id}`);
     } catch (error) {
       this.logger.error('Error updating ticket activity:', error);

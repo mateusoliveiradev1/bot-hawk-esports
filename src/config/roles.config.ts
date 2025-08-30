@@ -26,11 +26,11 @@ export const DEFAULT_ROLES: Record<string, RoleConfig> = {
       PermissionFlagsBits.UseExternalEmojis,
       PermissionFlagsBits.AddReactions,
       PermissionFlagsBits.Connect,
-      PermissionFlagsBits.Speak
+      PermissionFlagsBits.Speak,
     ],
     hoist: false,
     mentionable: false,
-    position: 1
+    position: 1,
   },
   VERIFIED_MEMBER: {
     name: '✅ Verificado',
@@ -45,11 +45,11 @@ export const DEFAULT_ROLES: Record<string, RoleConfig> = {
       PermissionFlagsBits.Speak,
       PermissionFlagsBits.UseVAD,
       PermissionFlagsBits.EmbedLinks,
-      PermissionFlagsBits.AttachFiles
+      PermissionFlagsBits.AttachFiles,
     ],
     hoist: false,
     mentionable: false,
-    position: 2
+    position: 2,
   },
   BASIC_MEMBER: {
     name: '👤 Membro',
@@ -65,12 +65,12 @@ export const DEFAULT_ROLES: Record<string, RoleConfig> = {
       PermissionFlagsBits.UseVAD,
       PermissionFlagsBits.EmbedLinks,
       PermissionFlagsBits.AttachFiles,
-      PermissionFlagsBits.UseApplicationCommands
+      PermissionFlagsBits.UseApplicationCommands,
     ],
     hoist: false,
     mentionable: true,
-    position: 3
-  }
+    position: 3,
+  },
 };
 
 /**
@@ -84,20 +84,20 @@ export const CHANNEL_PERMISSIONS = {
     AddReactions: true,
     UseExternalEmojis: true,
     EmbedLinks: false,
-    AttachFiles: false
+    AttachFiles: false,
   },
   WELCOME: {
     ViewChannel: true,
     SendMessages: false,
     ReadMessageHistory: true,
-    AddReactions: true
+    AddReactions: true,
   },
   RULES: {
     ViewChannel: true,
     SendMessages: false,
     ReadMessageHistory: true,
-    AddReactions: false
-  }
+    AddReactions: false,
+  },
 };
 
 /**

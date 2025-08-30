@@ -1,4 +1,16 @@
-import { Client, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, PermissionFlagsBits, TextChannel, CategoryChannel, User, GuildMember } from 'discord.js';
+import {
+  Client,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ChannelType,
+  PermissionFlagsBits,
+  TextChannel,
+  CategoryChannel,
+  User,
+  GuildMember,
+} from 'discord.js';
 import { Logger } from '../utils/logger';
 import { DatabaseService } from '../database/database.service';
 import { LoggingService } from './logging.service';
@@ -46,7 +58,7 @@ export class TicketService {
   private loggingService: LoggingService;
   private ticketSettings: Map<string, TicketSettings> = new Map();
   private activeTickets: Map<string, Map<string, TicketData>> = new Map(); // guildId -> userId -> ticket
-  private inactivityInterval?: NodeJS.Timeout;
+  private inactivityInterval?: any;
   private readonly MAX_TICKETS_PER_GUILD = 100;
   private readonly DEFAULT_INACTIVITY_HOURS = 72;
 
@@ -63,7 +75,7 @@ export class TicketService {
     this.database = client.database;
     this.client = client;
     this.loggingService = new LoggingService(client, client.database);
-    
+
     try {
       this.loadTicketSettings();
       this.loadActiveTickets();
@@ -86,7 +98,7 @@ export class TicketService {
       }
 
       const settings = await this.database.client.ticketSettings.findMany();
-      
+
       for (const setting of settings) {
         try {
           // Validate setting data
@@ -96,7 +108,7 @@ export class TicketService {
           }
 
           const parsedNotifications = this.parseNotificationSettings(setting.notificationSettings);
-          
+
           this.ticketSettings.set(setting.guildId, {
             guildId: setting.guildId,
             enabled: Boolean(setting.enabled),
@@ -107,14 +119,20 @@ export class TicketService {
             autoAssign: Boolean(setting.autoAssign),
             requireReason: Boolean(setting.requireReason),
             allowAnonymous: Boolean(setting.allowAnonymous),
-            closeAfterInactivity: Math.max(0, setting.closeAfterInactivity || this.DEFAULT_INACTIVITY_HOURS),
-            notificationSettings: parsedNotifications
+            closeAfterInactivity: Math.max(
+              0,
+              setting.closeAfterInactivity || this.DEFAULT_INACTIVITY_HOURS
+            ),
+            notificationSettings: parsedNotifications,
           });
         } catch (settingError) {
-          this.logger.error(`Error processing ticket setting for guild ${setting.guildId}:`, settingError);
+          this.logger.error(
+            `Error processing ticket setting for guild ${setting.guildId}:`,
+            settingError
+          );
         }
       }
-      
+
       this.logger.info(`Loaded ${settings.length} ticket settings`);
     } catch (error) {
       this.logger.error('Failed to load ticket settings:', error);
@@ -134,9 +152,9 @@ export class TicketService {
       const tickets = await this.database.client.ticket.findMany({
         where: {
           status: {
-            in: ['open', 'in_progress']
-          }
-        }
+            in: ['open', 'in_progress'],
+          },
+        },
       });
 
       let loadedCount = 0;
@@ -154,14 +172,16 @@ export class TicketService {
           if (!this.activeTickets.has(ticket.guildId)) {
             this.activeTickets.set(ticket.guildId, new Map());
           }
-          
+
           const guildTickets = this.activeTickets.get(ticket.guildId)!;
-          
+
           // Check for duplicate tickets per user
           if (guildTickets.has(ticket.userId)) {
-            this.logger.warn(`Duplicate active ticket found for user ${ticket.userId} in guild ${ticket.guildId}`);
+            this.logger.warn(
+              `Duplicate active ticket found for user ${ticket.userId} in guild ${ticket.guildId}`
+            );
           }
-          
+
           guildTickets.set(ticket.userId, {
             id: ticket.id,
             userId: ticket.userId,
@@ -175,9 +195,9 @@ export class TicketService {
             tags: ticket.tags || undefined,
             metadata: this.parseTicketMetadata(ticket.metadata),
             createdAt: ticket.createdAt,
-            updatedAt: ticket.updatedAt
+            updatedAt: ticket.updatedAt,
           });
-          
+
           loadedCount++;
         } catch (ticketError) {
           this.logger.error(`Error processing ticket ${ticket.id}:`, ticketError);
@@ -185,7 +205,9 @@ export class TicketService {
         }
       }
 
-      this.logger.info(`Loaded ${loadedCount} active tickets (${skippedCount} skipped due to errors)`);
+      this.logger.info(
+        `Loaded ${loadedCount} active tickets (${skippedCount} skipped due to errors)`
+      );
     } catch (error) {
       this.logger.error('Failed to load active tickets:', error);
     }
@@ -194,7 +216,9 @@ export class TicketService {
   /**
    * Parse notification settings safely
    */
-  private parseNotificationSettings(notificationSettings: any): TicketSettings['notificationSettings'] {
+  private parseNotificationSettings(
+    notificationSettings: any
+  ): TicketSettings['notificationSettings'] {
     try {
       if (typeof notificationSettings === 'string') {
         const parsed = JSON.parse(notificationSettings);
@@ -202,27 +226,27 @@ export class TicketService {
           onCreate: Boolean(parsed.onCreate ?? true),
           onAssign: Boolean(parsed.onAssign ?? true),
           onClose: Boolean(parsed.onClose ?? true),
-          onReopen: Boolean(parsed.onReopen ?? true)
+          onReopen: Boolean(parsed.onReopen ?? true),
         };
       }
-      
+
       if (typeof notificationSettings === 'object' && notificationSettings !== null) {
         return {
           onCreate: Boolean(notificationSettings.onCreate ?? true),
           onAssign: Boolean(notificationSettings.onAssign ?? true),
           onClose: Boolean(notificationSettings.onClose ?? true),
-          onReopen: Boolean(notificationSettings.onReopen ?? true)
+          onReopen: Boolean(notificationSettings.onReopen ?? true),
         };
       }
     } catch (error) {
       this.logger.warn('Failed to parse notification settings, using defaults:', error);
     }
-    
+
     return {
       onCreate: true,
       onAssign: true,
       onClose: true,
-      onReopen: true
+      onReopen: true,
     };
   }
 
@@ -274,15 +298,18 @@ export class TicketService {
     if (this.inactivityInterval) {
       clearInterval(this.inactivityInterval);
     }
-    
-    this.inactivityInterval = setInterval(async () => {
-      try {
-        await this.checkInactiveTickets();
-      } catch (error) {
-        this.logger.error('Error in inactivity checker:', error);
-      }
-    }, 60 * 60 * 1000); // Check every hour
-    
+
+    this.inactivityInterval = setInterval(
+      async () => {
+        try {
+          await this.checkInactiveTickets();
+        } catch (error) {
+          this.logger.error('Error in inactivity checker:', error);
+        }
+      },
+      60 * 60 * 1000
+    ); // Check every hour
+
     this.logger.debug('Ticket inactivity checker started');
   }
 
@@ -293,13 +320,19 @@ export class TicketService {
     try {
       let closedCount = 0;
       let warningsSent = 0;
-      
+
       for (const [guildId, guildTickets] of this.activeTickets) {
         const settings = this.getTicketSettings(guildId);
-        if (!settings.enabled || settings.closeAfterInactivity <= 0) continue;
+        if (!settings.enabled || settings.closeAfterInactivity <= 0) {
+          continue;
+        }
 
-        const inactivityThreshold = new Date(Date.now() - settings.closeAfterInactivity * 60 * 60 * 1000);
-        const warningThreshold = new Date(Date.now() - (settings.closeAfterInactivity - 2) * 60 * 60 * 1000); // 2 hours before closing
+        const inactivityThreshold = new Date(
+          Date.now() - settings.closeAfterInactivity * 60 * 60 * 1000
+        );
+        const warningThreshold = new Date(
+          Date.now() - (settings.closeAfterInactivity - 2) * 60 * 60 * 1000
+        ); // 2 hours before closing
         const ticketsToClose: TicketData[] = [];
         const ticketsToWarn: TicketData[] = [];
 
@@ -307,7 +340,11 @@ export class TicketService {
         for (const [userId, ticket] of guildTickets) {
           if (ticket.updatedAt < inactivityThreshold) {
             ticketsToClose.push(ticket);
-          } else if (settings.closeAfterInactivity > 2 && ticket.updatedAt < warningThreshold && !ticket.metadata?.warningsent) {
+          } else if (
+            settings.closeAfterInactivity > 2 &&
+            ticket.updatedAt < warningThreshold &&
+            !ticket.metadata?.warningsent
+          ) {
             ticketsToWarn.push(ticket);
           }
         }
@@ -316,16 +353,18 @@ export class TicketService {
         for (const ticket of ticketsToWarn) {
           try {
             await this.sendInactivityWarning(guildId, ticket);
-            
+
             // Mark warning as sent
             ticket.metadata = { ...ticket.metadata, warningSent: true };
             await this.database.client.ticket.update({
               where: { id: ticket.id },
-              data: { metadata: ticket.metadata }
+              data: { metadata: ticket.metadata },
             });
-            
+
             warningsSent++;
-            this.logger.info(`Sent inactivity warning for ticket: ${ticket.id} in guild ${guildId}`);
+            this.logger.info(
+              `Sent inactivity warning for ticket: ${ticket.id} in guild ${guildId}`
+            );
           } catch (error) {
             this.logger.error(`Error sending warning for ticket ${ticket.id}:`, error);
           }
@@ -335,12 +374,12 @@ export class TicketService {
         for (const ticket of ticketsToClose) {
           try {
             const result = await this.closeTicket(
-              guildId, 
-              ticket.id, 
-              'system', 
+              guildId,
+              ticket.id,
+              'system',
               `Fechado automaticamente por inatividade (${settings.closeAfterInactivity}h sem atividade)`
             );
-            
+
             if (result.success) {
               closedCount++;
               this.logger.info(`Auto-closed inactive ticket: ${ticket.id} in guild ${guildId}`);
@@ -352,9 +391,11 @@ export class TicketService {
           }
         }
       }
-      
+
       if (closedCount > 0 || warningsSent > 0) {
-        this.logger.info(`Inactivity check completed: ${closedCount} tickets closed, ${warningsSent} warnings sent`);
+        this.logger.info(
+          `Inactivity check completed: ${closedCount} tickets closed, ${warningsSent} warnings sent`
+        );
       }
     } catch (error) {
       this.logger.error('Error checking inactive tickets:', error);
@@ -369,7 +410,7 @@ export class TicketService {
       // Update in database
       await this.database.client.ticket.update({
         where: { id: ticketId },
-        data: { updatedAt: new Date() }
+        data: { updatedAt: new Date() },
       });
 
       // Update in cache
@@ -383,7 +424,7 @@ export class TicketService {
               ticket.metadata = { ...ticket.metadata, warningSent: false };
               await this.database.client.ticket.update({
                 where: { id: ticketId },
-                data: { metadata: ticket.metadata }
+                data: { metadata: ticket.metadata },
               });
             }
             break;
@@ -400,13 +441,19 @@ export class TicketService {
    */
   private async sendInactivityWarning(guildId: string, ticket: TicketData): Promise<void> {
     try {
-      if (!ticket.channelId) return;
+      if (!ticket.channelId) {
+        return;
+      }
 
       const guild = this.client.guilds.cache.get(guildId);
-      if (!guild) return;
+      if (!guild) {
+        return;
+      }
 
       const channel = guild.channels.cache.get(ticket.channelId) as TextChannel;
-      if (!channel) return;
+      if (!channel) {
+        return;
+      }
 
       const settings = this.getTicketSettings(guildId);
       const hoursRemaining = 2; // Warning is sent 2 hours before closure
@@ -415,36 +462,43 @@ export class TicketService {
         .setTitle('⚠️ Aviso de Inatividade')
         .setDescription(
           `Este ticket será fechado automaticamente em **${hoursRemaining} horas** devido à inatividade.\n\n` +
-          `Para manter o ticket aberto, envie uma mensagem neste canal.\n\n` +
-          `**Configuração atual:** Fechamento após ${settings.closeAfterInactivity} horas de inatividade.`
+            'Para manter o ticket aberto, envie uma mensagem neste canal.\n\n' +
+            `**Configuração atual:** Fechamento após ${settings.closeAfterInactivity} horas de inatividade.`
         )
         .setColor('#FFA500')
         .addFields(
           { name: '🆔 Ticket ID', value: `#${ticket.id.slice(-8)}`, inline: true },
-          { name: '📅 Criado em', value: `<t:${Math.floor(ticket.createdAt.getTime() / 1000)}:R>`, inline: true },
-          { name: '📝 Última atividade', value: `<t:${Math.floor(ticket.updatedAt.getTime() / 1000)}:R>`, inline: true }
+          {
+            name: '📅 Criado em',
+            value: `<t:${Math.floor(ticket.createdAt.getTime() / 1000)}:R>`,
+            inline: true,
+          },
+          {
+            name: '📝 Última atividade',
+            value: `<t:${Math.floor(ticket.updatedAt.getTime() / 1000)}:R>`,
+            inline: true,
+          }
         )
         .setTimestamp()
         .setFooter({ text: 'Sistema de Tickets Automático' });
 
-      const actionRow = new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId(`ticket_keep_open_${ticket.id}`)
-            .setLabel('Manter Aberto')
-            .setStyle(ButtonStyle.Success)
-            .setEmoji('✅'),
-          new ButtonBuilder()
-            .setCustomId(`ticket_close_${ticket.id}`)
-            .setLabel('Fechar Agora')
-            .setStyle(ButtonStyle.Danger)
-            .setEmoji('🔒')
-        );
+      const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`ticket_keep_open_${ticket.id}`)
+          .setLabel('Manter Aberto')
+          .setStyle(ButtonStyle.Success)
+          .setEmoji('✅'),
+        new ButtonBuilder()
+          .setCustomId(`ticket_close_${ticket.id}`)
+          .setLabel('Fechar Agora')
+          .setStyle(ButtonStyle.Danger)
+          .setEmoji('🔒')
+      );
 
-      await channel.send({ 
-        content: `<@${ticket.userId}>`, 
-        embeds: [warningEmbed], 
-        components: [actionRow] 
+      await channel.send({
+        content: `<@${ticket.userId}>`,
+        embeds: [warningEmbed],
+        components: [actionRow],
       });
 
       this.logger.info(`Inactivity warning sent for ticket ${ticket.id} in guild ${guildId}`);
@@ -473,7 +527,7 @@ export class TicketService {
       const defaultSettings = this.getDefaultTicketSettings(guildId);
       this.ticketSettings.set(guildId, defaultSettings);
       this.logger.debug(`Created default ticket settings for guild ${guildId}`);
-      
+
       return defaultSettings;
     } catch (error) {
       this.logger.error('Error getting ticket settings:', error);
@@ -497,8 +551,8 @@ export class TicketService {
         onCreate: true,
         onAssign: true,
         onClose: true,
-        onReopen: true
-      }
+        onReopen: true,
+      },
     };
   }
 
@@ -558,7 +612,10 @@ export class TicketService {
       // Check if user has reached max tickets
       const userTickets = this.getUserTickets(guildId, userId);
       if (userTickets.length >= settings.maxTicketsPerUser) {
-        return { success: false, message: `Você já possui ${settings.maxTicketsPerUser} tickets abertos. Feche um ticket antes de criar outro.` };
+        return {
+          success: false,
+          message: `Você já possui ${settings.maxTicketsPerUser} tickets abertos. Feche um ticket antes de criar outro.`,
+        };
       }
 
       const guild = this.client.guilds.cache.get(guildId);
@@ -567,7 +624,7 @@ export class TicketService {
         return { success: false, message: 'Servidor não encontrado.' };
       }
 
-      const user = await guild.members.fetch(userId).catch((error) => {
+      const user = await guild.members.fetch(userId).catch(error => {
         this.logger.warn(`Failed to fetch user ${userId} in guild ${guildId}:`, error);
         return null;
       });
@@ -586,8 +643,8 @@ export class TicketService {
             description,
             priority,
             status: 'open',
-            metadata: JSON.stringify({})
-          }
+            metadata: JSON.stringify({}),
+          },
         });
         this.logger.debug(`Ticket created in database: ${ticketData.id}`);
       } catch (error) {
@@ -612,7 +669,7 @@ export class TicketService {
       try {
         await this.database.client.ticket.update({
           where: { id: ticketData.id },
-          data: { channelId: channel.id }
+          data: { channelId: channel.id },
         });
         this.logger.debug(`Updated ticket ${ticketData.id} with channel ID: ${channel.id}`);
       } catch (error) {
@@ -639,7 +696,7 @@ export class TicketService {
         tags: ticketData.tags || undefined,
         metadata: this.parseTicketMetadata(ticketData.metadata),
         createdAt: ticketData.createdAt,
-        updatedAt: ticketData.updatedAt
+        updatedAt: ticketData.updatedAt,
       };
 
       // Add to active tickets cache
@@ -667,7 +724,9 @@ export class TicketService {
             if (assignResult.success) {
               this.logger.debug(`Auto-assigned ticket ${ticket.id} to ${assignee.id}`);
             } else {
-              this.logger.warn(`Failed to auto-assign ticket ${ticket.id}: ${assignResult.message}`);
+              this.logger.warn(
+                `Failed to auto-assign ticket ${ticket.id}: ${assignResult.message}`
+              );
             }
           } else {
             this.logger.debug(`No available assignee found for ticket ${ticket.id}`);
@@ -699,7 +758,7 @@ export class TicketService {
             title: ticket.title,
             description: ticket.description,
             priority: ticket.priority,
-            createdAt: ticket.createdAt
+            createdAt: ticket.createdAt,
           });
           this.logger.debug(`Logged ticket creation for ${ticket.id}`);
         }
@@ -750,7 +809,7 @@ export class TicketService {
       const requiredPermissions = [
         PermissionFlagsBits.ManageChannels,
         PermissionFlagsBits.ViewChannel,
-        PermissionFlagsBits.SendMessages
+        PermissionFlagsBits.SendMessages,
       ];
 
       if (!botMember.permissions.has(requiredPermissions)) {
@@ -773,22 +832,22 @@ export class TicketService {
           this.logger.warn('Error accessing configured category:', error);
         }
       }
-      
+
       if (!category) {
         // Find existing tickets category
         try {
-          category = guild.channels.cache.find((c: any) => 
-            c.type === ChannelType.GuildCategory && 
-            c.name.toLowerCase().includes('ticket')
+          category = guild.channels.cache.find(
+            (c: any) =>
+              c.type === ChannelType.GuildCategory && c.name.toLowerCase().includes('ticket')
           ) as CategoryChannel;
-          
+
           if (category) {
             this.logger.debug(`Found existing tickets category: ${category.name}`);
           }
         } catch (error) {
           this.logger.warn('Error finding existing tickets category:', error);
         }
-        
+
         if (!category) {
           // Create new tickets category
           try {
@@ -798,9 +857,9 @@ export class TicketService {
               permissionOverwrites: [
                 {
                   id: guild.roles.everyone.id,
-                  deny: [PermissionFlagsBits.ViewChannel]
-                }
-              ]
+                  deny: [PermissionFlagsBits.ViewChannel],
+                },
+              ],
             });
             this.logger.info(`Created new tickets category: ${category?.name || 'Unknown'}`);
           } catch (error) {
@@ -814,7 +873,7 @@ export class TicketService {
       const permissionOverwrites = [
         {
           id: guild.roles.everyone.id,
-          deny: [PermissionFlagsBits.ViewChannel]
+          deny: [PermissionFlagsBits.ViewChannel],
         },
         {
           id: user.id,
@@ -823,8 +882,8 @@ export class TicketService {
             PermissionFlagsBits.SendMessages,
             PermissionFlagsBits.ReadMessageHistory,
             PermissionFlagsBits.AttachFiles,
-            PermissionFlagsBits.EmbedLinks
-          ]
+            PermissionFlagsBits.EmbedLinks,
+          ],
         },
         {
           id: botMember.id,
@@ -835,9 +894,9 @@ export class TicketService {
             PermissionFlagsBits.AttachFiles,
             PermissionFlagsBits.EmbedLinks,
             PermissionFlagsBits.ManageMessages,
-            PermissionFlagsBits.ManageChannels
-          ]
-        }
+            PermissionFlagsBits.ManageChannels,
+          ],
+        },
       ];
 
       // Add support role permissions if configured and valid
@@ -852,8 +911,8 @@ export class TicketService {
               PermissionFlagsBits.ReadMessageHistory,
               PermissionFlagsBits.AttachFiles,
               PermissionFlagsBits.EmbedLinks,
-              PermissionFlagsBits.ManageMessages
-            ]
+              PermissionFlagsBits.ManageMessages,
+            ],
           });
           this.logger.debug(`Added support role permissions: ${supportRole.name}`);
         } else {
@@ -869,7 +928,7 @@ export class TicketService {
           type: ChannelType.GuildText,
           parent: category?.id,
           topic: `Ticket: ${title.slice(0, 50)} | Usuário: ${user.tag} | ID: ${ticketId}`,
-          permissionOverwrites
+          permissionOverwrites,
         };
 
         channel = await guild.channels.create(channelOptions);
@@ -888,7 +947,10 @@ export class TicketService {
       // Verify bot can access the channel
       try {
         const botPermissions = channel.permissionsFor(botMember);
-        if (!botPermissions || !botPermissions.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
+        if (
+          !botPermissions ||
+          !botPermissions.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])
+        ) {
           this.logger.error('Bot cannot access created ticket channel');
           // Try to delete the problematic channel
           try {
@@ -922,7 +984,7 @@ export class TicketService {
         low: '🟢',
         medium: '🟡',
         high: '🟠',
-        urgent: '🔴'
+        urgent: '🔴',
       };
 
       const embed = new EmbedBuilder()
@@ -931,33 +993,42 @@ export class TicketService {
         .setColor('#0099FF')
         .addFields(
           { name: '👤 Usuário', value: `${user}`, inline: true },
-          { name: '📊 Prioridade', value: `${priorityEmojis[ticket.priority]} ${ticket.priority.toUpperCase()}`, inline: true },
-          { name: '📅 Criado em', value: `<t:${Math.floor(ticket.createdAt.getTime() / 1000)}:F>`, inline: true }
+          {
+            name: '📊 Prioridade',
+            value: `${priorityEmojis[ticket.priority]} ${ticket.priority.toUpperCase()}`,
+            inline: true,
+          },
+          {
+            name: '📅 Criado em',
+            value: `<t:${Math.floor(ticket.createdAt.getTime() / 1000)}:F>`,
+            inline: true,
+          }
         )
         .setThumbnail(user.displayAvatarURL())
         .setFooter({ text: 'Use os botões abaixo para gerenciar este ticket' });
 
-      const row = new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId(`ticket_claim_${ticket.id}`)
-            .setLabel('Assumir Ticket')
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji('👋'),
-          new ButtonBuilder()
-            .setCustomId(`ticket_priority_${ticket.id}`)
-            .setLabel('Alterar Prioridade')
-            .setStyle(ButtonStyle.Secondary)
-            .setEmoji('📊'),
-          new ButtonBuilder()
-            .setCustomId(`ticket_close_${ticket.id}`)
-            .setLabel('Fechar Ticket')
-            .setStyle(ButtonStyle.Danger)
-            .setEmoji('🔒')
-        );
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`ticket_claim_${ticket.id}`)
+          .setLabel('Assumir Ticket')
+          .setStyle(ButtonStyle.Primary)
+          .setEmoji('👋'),
+        new ButtonBuilder()
+          .setCustomId(`ticket_priority_${ticket.id}`)
+          .setLabel('Alterar Prioridade')
+          .setStyle(ButtonStyle.Secondary)
+          .setEmoji('📊'),
+        new ButtonBuilder()
+          .setCustomId(`ticket_close_${ticket.id}`)
+          .setLabel('Fechar Ticket')
+          .setStyle(ButtonStyle.Danger)
+          .setEmoji('🔒')
+      );
 
       await channel.send({ embeds: [embed], components: [row] });
-      await channel.send(`${user}, seu ticket foi criado! Nossa equipe de suporte irá atendê-lo em breve.`);
+      await channel.send(
+        `${user}, seu ticket foi criado! Nossa equipe de suporte irá atendê-lo em breve.`
+      );
     } catch (error) {
       this.logger.error('Error sending ticket welcome message:', error);
     }
@@ -969,24 +1040,32 @@ export class TicketService {
   private async findAvailableAssignee(guildId: string): Promise<{ id: string } | null> {
     try {
       const settings = this.getTicketSettings(guildId);
-      if (!settings.supportRoleId) return null;
+      if (!settings.supportRoleId) {
+        return null;
+      }
 
       const guild = this.client.guilds.cache.get(guildId);
-      if (!guild) return null;
+      if (!guild) {
+        return null;
+      }
 
       const supportRole = guild.roles.cache.get(settings.supportRoleId);
-      if (!supportRole) return null;
+      if (!supportRole) {
+        return null;
+      }
 
       // Get online support members
-      const onlineSupport = supportRole.members.filter(member => 
-        member.presence?.status === 'online' || member.presence?.status === 'idle'
+      const onlineSupport = supportRole.members.filter(
+        member => member.presence?.status === 'online' || member.presence?.status === 'idle'
       );
 
-      if (onlineSupport.size === 0) return null;
+      if (onlineSupport.size === 0) {
+        return null;
+      }
 
       // Return random online support member
-       const assignee = onlineSupport.random();
-       return assignee ? { id: assignee.id } : null;
+      const assignee = onlineSupport.random();
+      return assignee ? { id: assignee.id } : null;
     } catch (error) {
       this.logger.error('Error finding available assignee:', error);
       return null;
@@ -999,20 +1078,28 @@ export class TicketService {
   private async autoAssignTicket(guildId: string, ticketId: string): Promise<void> {
     try {
       const settings = this.getTicketSettings(guildId);
-      if (!settings.supportRoleId) return;
+      if (!settings.supportRoleId) {
+        return;
+      }
 
       const guild = this.client.guilds.cache.get(guildId);
-      if (!guild) return;
+      if (!guild) {
+        return;
+      }
 
       const supportRole = guild.roles.cache.get(settings.supportRoleId);
-      if (!supportRole) return;
+      if (!supportRole) {
+        return;
+      }
 
       // Get online support members
-      const onlineSupport = supportRole.members.filter(member => 
-        member.presence?.status === 'online' || member.presence?.status === 'idle'
+      const onlineSupport = supportRole.members.filter(
+        member => member.presence?.status === 'online' || member.presence?.status === 'idle'
       );
 
-      if (onlineSupport.size === 0) return;
+      if (onlineSupport.size === 0) {
+        return;
+      }
 
       // Assign to random online support member
       const assignee = onlineSupport.random();
@@ -1041,11 +1128,11 @@ export class TicketService {
       // Update database
       await this.database.client.ticket.update({
         where: { id: ticketId },
-        data: { 
+        data: {
           assignedTo: assigneeId,
           status: 'in_progress',
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       });
 
       // Update cache
@@ -1072,7 +1159,7 @@ export class TicketService {
               .setDescription(`${assignee} assumiu este ticket e irá ajudá-lo.`)
               .setColor('#00FF00')
               .setTimestamp();
-            
+
             await channel.send({ embeds: [embed] });
           }
         }
@@ -1114,16 +1201,16 @@ export class TicketService {
       // Update database
       await this.database.client.ticket.update({
         where: { id: ticketId },
-        data: { 
+        data: {
           status: 'closed',
           updatedAt: new Date(),
           metadata: {
             ...ticket.metadata,
             closedBy,
             closedAt: new Date().toISOString(),
-            closeReason: reason
-          }
-        }
+            closeReason: reason,
+          },
+        },
       });
 
       // Remove from active tickets
@@ -1156,7 +1243,7 @@ export class TicketService {
         title: ticket.title,
         closedBy,
         reason: reason || 'Não especificado',
-        createdAt: ticket.createdAt
+        createdAt: ticket.createdAt,
       });
 
       this.logger.info(`Ticket ${ticketId} closed by ${closedBy}`);
@@ -1211,7 +1298,6 @@ export class TicketService {
 
       // Archive the channel with proper error handling
       await this.performChannelArchival(channel, guild, ticket);
-
     } catch (error) {
       this.logger.error('Error in archive ticket channel:', error);
     }
@@ -1231,7 +1317,7 @@ export class TicketService {
     while (retryCount < maxRetries) {
       try {
         // Wait before archiving (progressive delay on retries)
-        const delay = 10000 + (retryCount * 5000); // 10s, 15s, 20s
+        const delay = 10000 + retryCount * 5000; // 10s, 15s, 20s
         await new Promise(resolve => setTimeout(resolve, delay));
 
         // Validate channel still exists and is accessible
@@ -1242,7 +1328,7 @@ export class TicketService {
         }
 
         // Validate bot permissions before proceeding
-        if (!await this.validateArchivePermissions(currentChannel, guild)) {
+        if (!(await this.validateArchivePermissions(currentChannel, guild))) {
           this.logger.warn(`Insufficient permissions to archive channel ${channel.id}`);
           await this.deleteChannelSafely(currentChannel, 'Insufficient permissions for archival');
           return;
@@ -1258,24 +1344,26 @@ export class TicketService {
 
         // Perform archival operations with individual error handling
         await this.performArchivalOperations(currentChannel, archiveCategory, ticket);
-        
+
         // Schedule cleanup with persistent storage
         await this.scheduleChannelCleanup(currentChannel.id, ticket.id);
-        
+
         this.logger.info(`Successfully archived ticket channel: ${currentChannel.name}`);
         return; // Success - exit retry loop
-
       } catch (error) {
         retryCount++;
-        this.logger.error(`Archival attempt ${retryCount} failed for channel ${channel.id}:`, error);
-        
+        this.logger.error(
+          `Archival attempt ${retryCount} failed for channel ${channel.id}:`,
+          error
+        );
+
         if (retryCount >= maxRetries) {
           this.logger.error(`All archival attempts failed for channel ${channel.id}`);
           // Final fallback - try to delete the channel
           await this.deleteChannelSafely(channel, 'All archival attempts failed');
           return;
         }
-        
+
         // Wait before retry (exponential backoff)
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
       }
@@ -1309,18 +1397,20 @@ export class TicketService {
         await currentChannel.delete(reason);
         this.logger.info(`Successfully deleted ticket channel: ${currentChannel.name}`);
         return; // Success - exit retry loop
-
       } catch (error) {
         retryCount++;
-        this.logger.error(`Deletion attempt ${retryCount} failed for channel ${channel.id}:`, error);
-        
+        this.logger.error(
+          `Deletion attempt ${retryCount} failed for channel ${channel.id}:`,
+          error
+        );
+
         if (retryCount >= maxRetries) {
           this.logger.error(`All deletion attempts failed for channel ${channel.id}`);
           // Final fallback - try to hide the channel
           await this.hideChannelAsFallback(channel);
           return;
         }
-        
+
         // Wait before retry
         await new Promise(resolve => setTimeout(resolve, 2000 * retryCount));
       }
@@ -1334,17 +1424,17 @@ export class TicketService {
     try {
       // Try to fetch from cache first
       let channel = this.client.channels.cache.get(channelId) as TextChannel;
-      
+
       // If not in cache, try to fetch from API
       if (!channel) {
-        channel = await this.client.channels.fetch(channelId) as TextChannel;
+        channel = (await this.client.channels.fetch(channelId)) as TextChannel;
       }
-      
+
       // Validate it's a text channel and accessible
       if (!channel || !channel.isTextBased()) {
         return null;
       }
-      
+
       return channel;
     } catch (error) {
       this.logger.debug(`Channel ${channelId} not accessible:`, error);
@@ -1358,17 +1448,20 @@ export class TicketService {
   private async validateArchivePermissions(channel: TextChannel, guild: any): Promise<boolean> {
     try {
       const botMember = guild.members.cache.get(this.client.user!.id);
-      if (!botMember) return false;
+      if (!botMember) {
+        return false;
+      }
 
       const requiredPermissions = [
         PermissionFlagsBits.ManageChannels,
         PermissionFlagsBits.ViewChannel,
-        PermissionFlagsBits.ManageRoles
+        PermissionFlagsBits.ManageRoles,
       ];
 
-      return requiredPermissions.every(permission => 
-        botMember.permissions.has(permission) || 
-        channel.permissionsFor(botMember)?.has(permission)
+      return requiredPermissions.every(
+        permission =>
+          botMember.permissions.has(permission) ||
+          channel.permissionsFor(botMember)?.has(permission)
       );
     } catch (error) {
       this.logger.error('Error validating archive permissions:', error);
@@ -1382,17 +1475,21 @@ export class TicketService {
   private async getOrCreateArchiveCategory(guild: any): Promise<CategoryChannel | null> {
     try {
       // Try to find existing archive category
-      let archiveCategory = guild.channels.cache.find((c: any) => 
-        c.type === ChannelType.GuildCategory && 
-        (c.name.toLowerCase().includes('arquivo') || 
-         c.name.toLowerCase().includes('closed') ||
-         c.name.toLowerCase().includes('ticket') && c.name.toLowerCase().includes('arquiv'))
+      let archiveCategory = guild.channels.cache.find(
+        (c: any) =>
+          c.type === ChannelType.GuildCategory &&
+          (c.name.toLowerCase().includes('arquivo') ||
+            c.name.toLowerCase().includes('closed') ||
+            (c.name.toLowerCase().includes('ticket') && c.name.toLowerCase().includes('arquiv')))
       ) as CategoryChannel;
 
       if (archiveCategory) {
         // Validate category is not full (Discord limit: 50 channels per category)
-        const channelsInCategory = guild.channels.cache.filter((c: any) => c.parentId === archiveCategory.id).size;
-        if (channelsInCategory >= 49) { // Leave room for one more
+        const channelsInCategory = guild.channels.cache.filter(
+          (c: any) => c.parentId === archiveCategory.id
+        ).size;
+        if (channelsInCategory >= 49) {
+          // Leave room for one more
           // Create a new archive category
           const newCategory = await this.createNewArchiveCategory(guild, channelsInCategory);
           if (!newCategory) {
@@ -1414,11 +1511,15 @@ export class TicketService {
   /**
    * Create a new archive category
    */
-  private async createNewArchiveCategory(guild: any, existingCount: number): Promise<CategoryChannel | null> {
+  private async createNewArchiveCategory(
+    guild: any,
+    existingCount: number
+  ): Promise<CategoryChannel | null> {
     try {
-      const categoryName = existingCount > 0 
-        ? `📁 TICKETS ARQUIVADOS ${Math.floor(existingCount / 49) + 1}`
-        : '📁 TICKETS ARQUIVADOS';
+      const categoryName =
+        existingCount > 0
+          ? `📁 TICKETS ARQUIVADOS ${Math.floor(existingCount / 49) + 1}`
+          : '📁 TICKETS ARQUIVADOS';
 
       const archiveCategory = await guild.channels.create({
         name: categoryName,
@@ -1426,19 +1527,19 @@ export class TicketService {
         permissionOverwrites: [
           {
             id: guild.roles.everyone.id,
-            deny: [PermissionFlagsBits.ViewChannel]
+            deny: [PermissionFlagsBits.ViewChannel],
           },
           {
             id: this.client.user!.id,
             allow: [
               PermissionFlagsBits.ViewChannel,
               PermissionFlagsBits.ManageChannels,
-              PermissionFlagsBits.ManageRoles
-            ]
-          }
-        ]
+              PermissionFlagsBits.ManageRoles,
+            ],
+          },
+        ],
       });
-      
+
       this.logger.info(`Created archive category: ${archiveCategory.name}`);
       return archiveCategory;
     } catch (error) {
@@ -1478,7 +1579,7 @@ export class TicketService {
       if (ticket.userId) {
         await channel.permissionOverwrites.edit(ticket.userId, {
           ViewChannel: false,
-          SendMessages: false
+          SendMessages: false,
         });
       }
 
@@ -1486,7 +1587,7 @@ export class TicketService {
       await channel.permissionOverwrites.edit(this.client.user!.id, {
         ViewChannel: true,
         ManageChannels: true,
-        ManageRoles: true
+        ManageRoles: true,
       });
     } catch (error) {
       this.logger.warn('Failed to update archived channel permissions:', error);
@@ -1497,41 +1598,49 @@ export class TicketService {
   /**
    * Schedule channel cleanup with persistent tracking
    */
-  private async scheduleChannelCleanup(channelId: string, ticketId: string, delayHours: number = 168): Promise<void> {
+  private async scheduleChannelCleanup(
+    channelId: string,
+    ticketId: string,
+    delayHours: number = 168
+  ): Promise<void> {
     try {
       const scheduledFor = new Date(Date.now() + delayHours * 60 * 60 * 1000);
-      
+
       // Store cleanup task in database for persistence
       await this.database.client.ticketCleanup.upsert({
         where: {
           channelId_ticketId: {
             channelId,
-            ticketId
-          }
+            ticketId,
+          },
         },
         create: {
           channelId,
           ticketId,
           scheduledFor,
-          status: 'scheduled'
+          status: 'scheduled',
         },
         update: {
           scheduledFor,
           status: 'scheduled',
           retryCount: 0,
-          errorMessage: null
-        }
+          errorMessage: null,
+        },
       });
-      
-      this.logger.info(`Scheduled cleanup for ticket channel ${channelId} at ${scheduledFor.toISOString()}`);
-      
+
+      this.logger.info(
+        `Scheduled cleanup for ticket channel ${channelId} at ${scheduledFor.toISOString()}`
+      );
     } catch (error) {
       this.logger.error(`Failed to schedule cleanup for channel ${channelId}:`, error);
-      
+
       // Fallback to in-memory scheduling only
-      setTimeout(async () => {
-        await this.performScheduledCleanup(channelId, ticketId);
-      }, delayHours * 60 * 60 * 1000);
+      setTimeout(
+        async () => {
+          await this.performScheduledCleanup(channelId, ticketId);
+        },
+        delayHours * 60 * 60 * 1000
+      );
     }
   }
 
@@ -1546,12 +1655,14 @@ export class TicketService {
       }
 
       // Update cleanup status in database
-      await this.database.client.ticketCleanup.updateMany({
-        where: { channelId, ticketId },
-        data: { status: 'completed', completedAt: new Date() }
-      }).catch(error => {
-        this.logger.warn('Failed to update cleanup status:', error);
-      });
+      await this.database.client.ticketCleanup
+        .updateMany({
+          where: { channelId, ticketId },
+          data: { status: 'completed', completedAt: new Date() },
+        })
+        .catch(error => {
+          this.logger.warn('Failed to update cleanup status:', error);
+        });
     } catch (error) {
       this.logger.error('Error in scheduled cleanup:', error);
     }
@@ -1564,9 +1675,9 @@ export class TicketService {
     try {
       await channel.permissionOverwrites.edit(channel.guild.roles.everyone.id, {
         ViewChannel: false,
-        SendMessages: false
+        SendMessages: false,
       });
-      
+
       // Try to rename to indicate it's hidden
       try {
         const hiddenName = `hidden-${channel.name.substring(0, 90)}`;
@@ -1574,7 +1685,7 @@ export class TicketService {
       } catch (renameError) {
         this.logger.warn('Failed to rename hidden channel:', renameError);
       }
-      
+
       this.logger.info(`Hidden channel ${channel.name} due to deletion failure`);
     } catch (hideError) {
       this.logger.error(`Failed to hide channel ${channel.id}:`, hideError);
@@ -1592,10 +1703,14 @@ export class TicketService {
   ): Promise<void> {
     try {
       const settings = this.getTicketSettings(guildId);
-      if (!settings.logChannelId) return;
+      if (!settings.logChannelId) {
+        return;
+      }
 
       const channel = this.client.channels.cache.get(settings.logChannelId) as TextChannel;
-      if (!channel) return;
+      if (!channel) {
+        return;
+      }
 
       const user = await this.client.users.fetch(ticket.userId).catch(() => null);
       const actor = actorId ? await this.client.users.fetch(actorId).catch(() => null) : null;
@@ -1604,14 +1719,14 @@ export class TicketService {
         create: '#00FF00',
         assign: '#0099FF',
         close: '#FF0000',
-        reopen: '#FFA500'
+        reopen: '#FFA500',
       };
 
       const titles = {
         create: '🎫 Novo Ticket Criado',
         assign: '🎯 Ticket Assumido',
         close: '🔒 Ticket Fechado',
-        reopen: '🔓 Ticket Reaberto'
+        reopen: '🔓 Ticket Reaberto',
       };
 
       const embed = new EmbedBuilder()
@@ -1656,10 +1771,12 @@ export class TicketService {
 
       // Check database
       const ticket = await this.database.client.ticket.findUnique({
-        where: { id: ticketId }
+        where: { id: ticketId },
       });
 
-      if (!ticket) return null;
+      if (!ticket) {
+        return null;
+      }
 
       return {
         id: ticket.id,
@@ -1674,7 +1791,7 @@ export class TicketService {
         tags: ticket.tags || undefined,
         metadata: ticket.metadata,
         createdAt: ticket.createdAt,
-        updatedAt: ticket.updatedAt
+        updatedAt: ticket.updatedAt,
       };
     } catch (error) {
       this.logger.error('Error getting ticket by ID:', error);
@@ -1687,7 +1804,9 @@ export class TicketService {
    */
   public getTicketData(guildId: string, ticketId: string): TicketData | null {
     const guildTickets = this.activeTickets.get(guildId);
-    if (!guildTickets) return null;
+    if (!guildTickets) {
+      return null;
+    }
 
     for (const [userId, ticket] of guildTickets) {
       if (ticket.id === ticketId) {
@@ -1702,7 +1821,9 @@ export class TicketService {
    */
   public getUserTickets(guildId: string, userId: string): TicketData[] {
     const guildTickets = this.activeTickets.get(guildId);
-    if (!guildTickets) return [];
+    if (!guildTickets) {
+      return [];
+    }
 
     const userTicket = guildTickets.get(userId);
     return userTicket ? [userTicket] : [];
@@ -1711,7 +1832,10 @@ export class TicketService {
   /**
    * Get all tickets for guild
    */
-  public async getGuildTickets(guildId: string, status?: 'open' | 'in_progress' | 'closed'): Promise<TicketData[]> {
+  public async getGuildTickets(
+    guildId: string,
+    status?: 'open' | 'in_progress' | 'closed'
+  ): Promise<TicketData[]> {
     try {
       const where: any = { guildId };
       if (status) {
@@ -1720,7 +1844,7 @@ export class TicketService {
 
       const tickets = await this.database.client.ticket.findMany({
         where,
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
       });
 
       return tickets.map(ticket => ({
@@ -1736,7 +1860,7 @@ export class TicketService {
         tags: ticket.tags || undefined,
         metadata: ticket.metadata,
         createdAt: ticket.createdAt,
-        updatedAt: ticket.updatedAt
+        updatedAt: ticket.updatedAt,
       }));
     } catch (error) {
       this.logger.error('Error getting guild tickets:', error);
@@ -1747,12 +1871,15 @@ export class TicketService {
   /**
    * Update ticket settings
    */
-  public async updateTicketSettings(guildId: string, settings: Partial<TicketSettings>): Promise<void> {
+  public async updateTicketSettings(
+    guildId: string,
+    settings: Partial<TicketSettings>
+  ): Promise<void> {
     try {
       const currentSettings = this.getTicketSettings(guildId);
       const newSettings = { ...currentSettings, ...settings };
       this.ticketSettings.set(guildId, newSettings);
-      
+
       // Save to database
       await this.database.client.ticketSettings.upsert({
         where: { guildId },
@@ -1766,7 +1893,7 @@ export class TicketService {
           requireReason: newSettings.requireReason,
           allowAnonymous: newSettings.allowAnonymous,
           closeAfterInactivity: newSettings.closeAfterInactivity,
-          notificationSettings: JSON.stringify(newSettings.notificationSettings)
+          notificationSettings: JSON.stringify(newSettings.notificationSettings),
         },
         create: {
           guildId,
@@ -1779,10 +1906,10 @@ export class TicketService {
           requireReason: newSettings.requireReason,
           allowAnonymous: newSettings.allowAnonymous,
           closeAfterInactivity: newSettings.closeAfterInactivity,
-          notificationSettings: JSON.stringify(newSettings.notificationSettings)
-        }
+          notificationSettings: JSON.stringify(newSettings.notificationSettings),
+        },
       });
-      
+
       this.logger.info(`Ticket settings updated for guild ${guildId}`);
     } catch (error) {
       this.logger.error('Error updating ticket settings:', error);
@@ -1806,7 +1933,7 @@ export class TicketService {
         this.database.client.ticket.count({ where: { guildId } }),
         this.database.client.ticket.count({ where: { guildId, status: 'open' } }),
         this.database.client.ticket.count({ where: { guildId, status: 'in_progress' } }),
-        this.database.client.ticket.count({ where: { guildId, status: 'closed' } })
+        this.database.client.ticket.count({ where: { guildId, status: 'closed' } }),
       ]);
 
       // TODO: Calculate actual response and resolution times
@@ -1819,7 +1946,7 @@ export class TicketService {
         inProgress,
         closed,
         avgResponseTime,
-        avgResolutionTime
+        avgResolutionTime,
       };
     } catch (error) {
       this.logger.error('Error getting ticket stats:', error);
@@ -1829,7 +1956,7 @@ export class TicketService {
         inProgress: 0,
         closed: 0,
         avgResponseTime: 0,
-        avgResolutionTime: 0
+        avgResolutionTime: 0,
       };
     }
   }

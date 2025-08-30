@@ -58,12 +58,12 @@ export class SchedulerService {
   private clipService: ClipService;
   private weaponMasteryService: WeaponMasteryService;
   private client: ExtendedClient;
-  
+
   private tasks: Map<string, ScheduledTask> = new Map();
   private cronJobs: Map<string, cron.ScheduledTask> = new Map();
   private executions: TaskExecution[] = [];
   private startTime: Date = new Date();
-  
+
   private readonly maxExecutionHistory = 1000;
 
   constructor(client: ExtendedClient) {
@@ -73,7 +73,7 @@ export class SchedulerService {
 
     this.logger = new Logger();
     this.client = client;
-    
+
     // Validate required services
     if (!client.cache) {
       throw new Error('CacheService is required');
@@ -84,18 +84,18 @@ export class SchedulerService {
 
     this.cache = client.cache;
     this.database = client.database;
-    
+
     try {
       this.rankingService = new RankingService(client);
       this.badgeService = new BadgeService(client, (client as any).xpService);
       this.presenceService = new PresenceService(client);
       this.clipService = new ClipService(client);
       this.weaponMasteryService = new WeaponMasteryService(client);
-      
+
       this.initializeTasks();
       this.startTasks();
       this.startMonitoring();
-      
+
       this.logger.info('SchedulerService initialized successfully');
     } catch (error) {
       this.logger.error('Failed to initialize SchedulerService:', error);
@@ -119,7 +119,7 @@ export class SchedulerService {
       averageExecutionTime: 0,
       handler: this.updateDailyRankings.bind(this),
     });
-    
+
     this.addTask({
       id: 'daily_presence_reset',
       name: 'Reset de Presença Diário',
@@ -131,7 +131,7 @@ export class SchedulerService {
       averageExecutionTime: 0,
       handler: this.resetDailyPresence.bind(this),
     });
-    
+
     this.addTask({
       id: 'daily_challenges',
       name: 'Desafios Diários',
@@ -143,7 +143,7 @@ export class SchedulerService {
       averageExecutionTime: 0,
       handler: this.generateDailyChallenges.bind(this),
     });
-    
+
     this.addTask({
       id: 'daily_backup',
       name: 'Backup Diário',
@@ -155,7 +155,7 @@ export class SchedulerService {
       averageExecutionTime: 0,
       handler: this.performDailyBackup.bind(this),
     });
-    
+
     // Weekly tasks
     this.addTask({
       id: 'weekly_ranking_update',
@@ -168,7 +168,7 @@ export class SchedulerService {
       averageExecutionTime: 0,
       handler: this.updateWeeklyRankings.bind(this),
     });
-    
+
     this.addTask({
       id: 'weekly_challenges',
       name: 'Desafios Semanais',
@@ -180,7 +180,7 @@ export class SchedulerService {
       averageExecutionTime: 0,
       handler: this.generateWeeklyChallenges.bind(this),
     });
-    
+
     this.addTask({
       id: 'weekly_stats_report',
       name: 'Relatório Semanal',
@@ -192,7 +192,7 @@ export class SchedulerService {
       averageExecutionTime: 0,
       handler: this.generateWeeklyReport.bind(this),
     });
-    
+
     // Monthly tasks
     this.addTask({
       id: 'monthly_ranking_update',
@@ -205,7 +205,7 @@ export class SchedulerService {
       averageExecutionTime: 0,
       handler: this.updateMonthlyRankings.bind(this),
     });
-    
+
     this.addTask({
       id: 'monthly_challenges',
       name: 'Desafios Mensais',
@@ -217,7 +217,7 @@ export class SchedulerService {
       averageExecutionTime: 0,
       handler: this.generateMonthlyChallenges.bind(this),
     });
-    
+
     this.addTask({
       id: 'monthly_cleanup',
       name: 'Limpeza Mensal',
@@ -229,7 +229,7 @@ export class SchedulerService {
       averageExecutionTime: 0,
       handler: this.performMonthlyCleanup.bind(this),
     });
-    
+
     // Hourly tasks
     this.addTask({
       id: 'hourly_pubg_update',
@@ -242,7 +242,7 @@ export class SchedulerService {
       averageExecutionTime: 0,
       handler: this.updatePUBGData.bind(this),
     });
-    
+
     this.addTask({
       id: 'hourly_cache_cleanup',
       name: 'Limpeza de Cache Horária',
@@ -254,7 +254,7 @@ export class SchedulerService {
       averageExecutionTime: 0,
       handler: this.cleanupCache.bind(this),
     });
-    
+
     // Every 6 hours
     this.addTask({
       id: 'weapon_mastery_sync',
@@ -267,7 +267,7 @@ export class SchedulerService {
       averageExecutionTime: 0,
       handler: this.syncWeaponMastery.bind(this),
     });
-    
+
     // Every 15 minutes
     this.addTask({
       id: 'presence_auto_checkout',
@@ -280,7 +280,7 @@ export class SchedulerService {
       averageExecutionTime: 0,
       handler: this.autoCheckoutInactiveUsers.bind(this),
     });
-    
+
     // Every 5 minutes
     this.addTask({
       id: 'badge_progress_check',
@@ -293,7 +293,7 @@ export class SchedulerService {
       averageExecutionTime: 0,
       handler: this.checkBadgeProgress.bind(this),
     });
-    
+
     // Every 10 minutes
     this.addTask({
       id: 'ticket_cleanup_processor',
@@ -306,7 +306,7 @@ export class SchedulerService {
       averageExecutionTime: 0,
       handler: this.processTicketCleanupTasks.bind(this),
     });
-    
+
     this.logger.info(`Initialized ${this.tasks.size} scheduled tasks`);
   }
 
@@ -369,7 +369,7 @@ export class SchedulerService {
           }
         }
       }
-      
+
       this.logger.info(`Started ${startedCount} scheduled tasks (${failedCount} failed)`);
     } catch (error) {
       this.logger.error('Failed to start tasks:', error);
@@ -395,7 +395,7 @@ export class SchedulerService {
         this.logger.warn(`Attempted to start disabled task: ${task.name}`);
         return;
       }
-      
+
       // Stop existing job if running
       if (this.cronJobs.has(taskId)) {
         try {
@@ -406,30 +406,34 @@ export class SchedulerService {
           this.logger.warn(`Failed to stop existing job for task ${task.name}:`, error);
         }
       }
-      
+
       // Validate cron expression before creating job
       if (!cron.validate(task.cronExpression)) {
         throw new Error(`Invalid cron expression for task ${task.name}: ${task.cronExpression}`);
       }
-      
+
       // Create new cron job
-      const job = cron.schedule(task.cronExpression, async () => {
-        await this.executeTask(taskId);
-      }, {
-        scheduled: false,
-        timezone: 'America/Sao_Paulo',
-      });
-      
+      const job = cron.schedule(
+        task.cronExpression,
+        async () => {
+          await this.executeTask(taskId);
+        },
+        {
+          scheduled: false,
+          timezone: 'America/Sao_Paulo',
+        }
+      );
+
       job.start();
       this.cronJobs.set(taskId, job);
-      
+
       // Calculate next run time
       try {
         task.nextRun = this.getNextRunTime(task.cronExpression);
       } catch (error) {
         this.logger.warn(`Failed to calculate next run time for task ${task.name}:`, error);
       }
-      
+
       this.logger.info(`Started task: ${task.name} (next run: ${task.nextRun?.toISOString()})`);
     } catch (error) {
       this.logger.error(`Failed to start task ${taskId}:`, error);
@@ -451,7 +455,7 @@ export class SchedulerService {
         try {
           cronJob.stop();
           this.cronJobs.delete(taskId);
-          
+
           const task = this.tasks.get(taskId);
           if (task) {
             task.nextRun = undefined;
@@ -491,16 +495,16 @@ export class SchedulerService {
       this.logger.warn(`Attempted to execute disabled task: ${task.name}`);
       return;
     }
-    
+
     const execution: TaskExecution = {
       taskId,
       startTime: new Date(),
       success: false,
     };
-    
+
     try {
       this.logger.info(`Executing task: ${task.name}`);
-      
+
       // Validate handler exists and is callable
       if (typeof task.handler !== 'function') {
         throw new Error(`Task handler is not a function: ${task.name}`);
@@ -513,11 +517,11 @@ export class SchedulerService {
       });
 
       await Promise.race([task.handler(), timeoutPromise]);
-      
+
       execution.endTime = new Date();
       execution.duration = execution.endTime.getTime() - execution.startTime.getTime();
       execution.success = true;
-      
+
       // Update task statistics
       task.lastRun = execution.startTime;
       try {
@@ -526,37 +530,38 @@ export class SchedulerService {
         this.logger.warn(`Failed to calculate next run time for ${task.name}:`, error);
       }
       task.runCount++;
-      
+
       // Update average execution time with weighted average
       if (task.averageExecutionTime === 0) {
         task.averageExecutionTime = execution.duration;
       } else {
         // Use weighted average (70% old, 30% new) for smoother transitions
         task.averageExecutionTime = Math.round(
-          (task.averageExecutionTime * 0.7) + (execution.duration * 0.3)
+          task.averageExecutionTime * 0.7 + execution.duration * 0.3
         );
       }
-      
+
       this.logger.info(`Task completed: ${task.name} (${execution.duration}ms)`);
-      
     } catch (error) {
       execution.endTime = new Date();
       execution.duration = execution.endTime.getTime() - execution.startTime.getTime();
       execution.error = error instanceof Error ? error.message : String(error);
-      
+
       task.errorCount++;
-      
+
       this.logger.error(`Task failed: ${task.name} (${execution.duration}ms)`, error);
-      
+
       // If task has too many consecutive errors, consider disabling it
       if (task.errorCount > 10 && task.runCount > 0) {
         const errorRate = task.errorCount / task.runCount;
         if (errorRate > 0.8) {
-          this.logger.warn(`Task ${task.name} has high error rate (${Math.round(errorRate * 100)}%), consider reviewing`);
+          this.logger.warn(
+            `Task ${task.name} has high error rate (${Math.round(errorRate * 100)}%), consider reviewing`
+          );
         }
       }
     }
-    
+
     // Store execution history
     try {
       this.executions.push(execution);
@@ -606,22 +611,28 @@ export class SchedulerService {
   private startMonitoring(): void {
     try {
       // Monitor task health every 5 minutes
-      const healthInterval = setInterval(() => {
-        try {
-          this.monitorTaskHealth();
-        } catch (error) {
-          this.logger.error('Error during task health monitoring:', error);
-        }
-      }, 5 * 60 * 1000);
-      
+      const healthInterval = setInterval(
+        () => {
+          try {
+            this.monitorTaskHealth();
+          } catch (error) {
+            this.logger.error('Error during task health monitoring:', error);
+          }
+        },
+        5 * 60 * 1000
+      );
+
       // Log statistics every hour
-      const statsInterval = setInterval(() => {
-        try {
-          this.logStatistics();
-        } catch (error) {
-          this.logger.error('Error during statistics logging:', error);
-        }
-      }, 60 * 60 * 1000);
+      const statsInterval = setInterval(
+        () => {
+          try {
+            this.logStatistics();
+          } catch (error) {
+            this.logger.error('Error during statistics logging:', error);
+          }
+        },
+        60 * 60 * 1000
+      );
 
       this.logger.info('Scheduler monitoring started successfully');
     } catch (error) {
@@ -638,40 +649,46 @@ export class SchedulerService {
       let healthyTasks = 0;
       let unhealthyTasks = 0;
       let restartedTasks = 0;
-      
+
       for (const [taskId, task] of this.tasks) {
         if (!task.enabled) {
           continue;
         }
-        
+
         let isHealthy = true;
-        
+
         // Check if task should have run by now
         if (task.nextRun && now > task.nextRun) {
           const delay = now.getTime() - task.nextRun.getTime();
-          if (delay > 5 * 60 * 1000) { // 5 minutes late
+          if (delay > 5 * 60 * 1000) {
+            // 5 minutes late
             this.logger.warn(`Task ${task.name} is ${Math.round(delay / 1000)}s late`);
             isHealthy = false;
           }
         }
-        
+
         // Check if task hasn't run for too long
         if (task.lastRun) {
           const timeSinceLastRun = now.getTime() - task.lastRun.getTime();
           const maxInterval = 24 * 60 * 60 * 1000; // 24 hours
           if (timeSinceLastRun > maxInterval) {
-            this.logger.warn(`Task ${task.name} hasn't run for ${Math.round(timeSinceLastRun / 1000 / 60 / 60)} hours`);
+            this.logger.warn(
+              `Task ${task.name} hasn't run for ${Math.round(timeSinceLastRun / 1000 / 60 / 60)} hours`
+            );
             isHealthy = false;
           }
         }
-        
+
         // Check error rate
         if (task.runCount > 0) {
           const errorRate = task.errorCount / task.runCount;
-          if (errorRate > 0.5) { // More than 50% failure rate
-            this.logger.warn(`Task ${task.name} has high error rate: ${Math.round(errorRate * 100)}%`);
+          if (errorRate > 0.5) {
+            // More than 50% failure rate
+            this.logger.warn(
+              `Task ${task.name} has high error rate: ${Math.round(errorRate * 100)}%`
+            );
             isHealthy = false;
-            
+
             // Try to restart problematic tasks
             if (task.runCount >= 5 && errorRate > 0.8) {
               try {
@@ -685,16 +702,18 @@ export class SchedulerService {
             }
           }
         }
-        
+
         if (isHealthy) {
           healthyTasks++;
         } else {
           unhealthyTasks++;
         }
       }
-      
+
       if (unhealthyTasks > 0 || restartedTasks > 0) {
-        this.logger.info(`Task health check completed - Healthy: ${healthyTasks}, Unhealthy: ${unhealthyTasks}, Restarted: ${restartedTasks}`);
+        this.logger.info(
+          `Task health check completed - Healthy: ${healthyTasks}, Unhealthy: ${unhealthyTasks}, Restarted: ${restartedTasks}`
+        );
       }
     } catch (error) {
       this.logger.error('Error during task health monitoring:', error);
@@ -707,15 +726,16 @@ export class SchedulerService {
   private logStatistics(): void {
     try {
       const stats = this.getStatistics();
-      
+
       // Calculate success rate safely
-      const successRate = stats.totalExecutions > 0 
-        ? Math.round((stats.successfulExecutions / stats.totalExecutions) * 100)
-        : 0;
-      
+      const successRate =
+        stats.totalExecutions > 0
+          ? Math.round((stats.successfulExecutions / stats.totalExecutions) * 100)
+          : 0;
+
       // Convert uptime to hours for better readability
-      const uptimeHours = Math.round(stats.uptime / 1000 / 60 / 60 * 100) / 100;
-      
+      const uptimeHours = Math.round((stats.uptime / 1000 / 60 / 60) * 100) / 100;
+
       this.logger.info('Scheduler Statistics:', {
         totalTasks: stats.totalTasks,
         activeTasks: stats.activeTasks,
@@ -725,13 +745,15 @@ export class SchedulerService {
         successRate: `${successRate}%`,
         averageExecutionTime: `${Math.round(stats.averageExecutionTime)}ms`,
         uptime: `${uptimeHours}h`,
-        lastUpdate: stats.lastUpdate.toISOString()
+        lastUpdate: stats.lastUpdate.toISOString(),
       });
-      
+
       // Log individual task statistics for problematic tasks
       const problematicTasks = Array.from(this.tasks.values())
         .filter(task => {
-          if (task.runCount === 0) return false;
+          if (task.runCount === 0) {
+            return false;
+          }
           const errorRate = task.errorCount / task.runCount;
           return errorRate > 0.3 || task.averageExecutionTime > 30000; // 30 seconds
         })
@@ -741,9 +763,9 @@ export class SchedulerService {
           errorCount: task.errorCount,
           errorRate: `${Math.round((task.errorCount / task.runCount) * 100)}%`,
           avgTime: `${Math.round(task.averageExecutionTime)}ms`,
-          lastRun: task.lastRun?.toISOString() || 'Never'
+          lastRun: task.lastRun?.toISOString() || 'Never',
         }));
-      
+
       if (problematicTasks.length > 0) {
         this.logger.warn('Tasks with issues:', problematicTasks);
       }
@@ -759,7 +781,7 @@ export class SchedulerService {
    */
   private async updateDailyRankings(): Promise<void> {
     await this.rankingService.updateAllRankings();
-    
+
     // Send daily ranking notifications
     for (const guild of this.client.guilds.cache.values()) {
       try {
@@ -782,7 +804,7 @@ export class SchedulerService {
    */
   private async updateWeeklyRankings(): Promise<void> {
     await this.rankingService.updateAllRankings();
-    
+
     // Award weekly rewards
     for (const guild of this.client.guilds.cache.values()) {
       try {
@@ -806,7 +828,7 @@ export class SchedulerService {
    */
   private async updateMonthlyRankings(): Promise<void> {
     await this.rankingService.updateAllRankings();
-    
+
     // Award monthly rewards
     for (const guild of this.client.guilds.cache.values()) {
       try {
@@ -833,22 +855,22 @@ export class SchedulerService {
       // Clear daily stats cache for all guilds
       const guilds = this.client.guilds.cache.keys();
       let resetCount = 0;
-      
+
       for (const guildId of guilds) {
         try {
           // Clear daily presence stats from cache
           await this.cache.del(`daily_presence_stats_${guildId}`);
-        await this.cache.del(`daily_active_users_${guildId}`);
-        await this.cache.del(`daily_check_ins_${guildId}`);
+          await this.cache.del(`daily_active_users_${guildId}`);
+          await this.cache.del(`daily_check_ins_${guildId}`);
           resetCount++;
         } catch (error) {
           this.logger.warn(`Failed to reset daily presence for guild ${guildId}:`, error);
         }
       }
-      
+
       // Also clear global daily stats
       await this.cache.del('daily_presence_global_stats');
-      
+
       this.logger.info(`Daily presence reset completed for ${resetCount} guilds`);
     } catch (error) {
       this.logger.error('Failed to reset daily presence:', error);
@@ -863,7 +885,7 @@ export class SchedulerService {
       try {
         // Generate challenges for each guild
         const challenges = await this.generateChallengesForGuild(guild.id, 'daily');
-        
+
         if (challenges.length > 0) {
           await this.sendChallengeNotification(guild.id, 'daily', challenges);
         }
@@ -880,7 +902,7 @@ export class SchedulerService {
     for (const guild of this.client.guilds.cache.values()) {
       try {
         const challenges = await this.generateChallengesForGuild(guild.id, 'weekly');
-        
+
         if (challenges.length > 0) {
           await this.sendChallengeNotification(guild.id, 'weekly', challenges);
         }
@@ -897,7 +919,7 @@ export class SchedulerService {
     for (const guild of this.client.guilds.cache.values()) {
       try {
         const challenges = await this.generateChallengesForGuild(guild.id, 'monthly');
-        
+
         if (challenges.length > 0) {
           await this.sendChallengeNotification(guild.id, 'monthly', challenges);
         }
@@ -927,7 +949,7 @@ export class SchedulerService {
         },
       },
     });
-    
+
     for (const user of activeUsers) {
       try {
         if (user.pubgUsername && user.pubgPlatform) {
@@ -936,7 +958,10 @@ export class SchedulerService {
             try {
               await this.rankingService.updateUserRanking(userGuild.guildId, user.id);
             } catch (error) {
-              this.logger.error(`Failed to update PUBG ranking for user ${user.id} in guild ${userGuild.guildId}:`, error);
+              this.logger.error(
+                `Failed to update PUBG ranking for user ${user.id} in guild ${userGuild.guildId}:`,
+                error
+              );
             }
           }
         }
@@ -996,24 +1021,24 @@ export class SchedulerService {
         quizzes: await this.database.client.quiz.count(),
         badges: await this.database.client.badge.count(),
         presences: await this.database.client.presence.count(),
-        userGuilds: await this.database.client.userGuild.count()
+        userGuilds: await this.database.client.userGuild.count(),
       };
-      
+
       // Store backup info in cache (in production, you'd save to external storage)
       await this.cache.set('daily_backup', JSON.stringify(backupData), 7 * 24 * 60 * 60); // 7 days
-      
+
       // Also store backup history
-      const backupHistory = await this.cache.get('backup_history') || '[]';
+      const backupHistory = (await this.cache.get('backup_history')) || '[]';
       const history = JSON.parse(backupHistory as string);
       history.push({
         date: backupData.timestamp.toISOString().split('T')[0],
-        counts: backupData
+        counts: backupData,
       });
-      
+
       // Keep only last 30 days of backup history
       const recentHistory = history.slice(-30);
       await this.cache.set('backup_history', JSON.stringify(recentHistory), 30 * 24 * 60 * 60);
-      
+
       this.logger.info('Daily backup completed', backupData);
     } catch (error) {
       this.logger.error('Failed to perform daily backup:', error);
@@ -1027,50 +1052,50 @@ export class SchedulerService {
     try {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
-      
-      let cleanupStats = {
+
+      const cleanupStats = {
         deletedPresences: 0,
         deletedGameResults: 0,
         deletedOldClips: 0,
         deletedExpiredTokens: 0,
-        cleanedCache: 0
+        cleanedCache: 0,
       };
-      
+
       // Clean up old presence records (keep only last 60 days)
       const deletedPresences = await this.database.client.presence.deleteMany({
         where: {
           createdAt: {
-            lt: sixtyDaysAgo
-          }
-        }
+            lt: sixtyDaysAgo,
+          },
+        },
       });
       cleanupStats.deletedPresences = deletedPresences.count;
-      
+
       // Clean up old quiz results (keep only last 30 days)
       const deletedGameResults = await this.database.client.gameResult.deleteMany({
         where: {
           completedAt: {
-            lt: thirtyDaysAgo
-          }
-        }
+            lt: thirtyDaysAgo,
+          },
+        },
       });
       cleanupStats.deletedGameResults = deletedGameResults.count;
-      
+
       // Clean up very old clips (keep only last 90 days for storage optimization)
       const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
       const oldClips = await this.database.client.clip.findMany({
         where: {
           createdAt: {
-            lt: ninetyDaysAgo
-          }
+            lt: ninetyDaysAgo,
+          },
         },
         select: {
           id: true,
           url: true,
-          createdAt: true
-        }
+          createdAt: true,
+        },
       });
-      
+
       // Delete old clips and their files
       for (const clip of oldClips) {
         try {
@@ -1080,25 +1105,25 @@ export class SchedulerService {
           this.logger.warn(`Failed to delete old clip ${clip.id}:`, error);
         }
       }
-      
+
       // Clean up expired authentication tokens (if any)
       try {
         const expiredTokens = await this.database.client.user.updateMany({
           where: {
             lastSeen: {
-              lt: thirtyDaysAgo
-            }
+              lt: thirtyDaysAgo,
+            },
           },
           data: {
             // Clear any cached tokens or sensitive data for inactive users
-            lastSeen: new Date(0) // Reset to epoch to indicate cleanup
-          }
+            lastSeen: new Date(0), // Reset to epoch to indicate cleanup
+          },
         });
         cleanupStats.deletedExpiredTokens = expiredTokens.count;
       } catch (error) {
         this.logger.warn('Failed to clean expired tokens:', error);
       }
-      
+
       // Clean up cache
       try {
         await this.cache.cleanup();
@@ -1106,7 +1131,7 @@ export class SchedulerService {
       } catch (error) {
         this.logger.warn('Failed to clean cache:', error);
       }
-      
+
       this.logger.info('Monthly cleanup completed', cleanupStats);
     } catch (error) {
       this.logger.error('Failed to perform monthly cleanup:', error);
@@ -1132,7 +1157,10 @@ export class SchedulerService {
   /**
    * Generate challenges for guild
    */
-  private async generateChallengesForGuild(guildId: string, period: 'daily' | 'weekly' | 'monthly'): Promise<any[]> {
+  private async generateChallengesForGuild(
+    guildId: string,
+    period: 'daily' | 'weekly' | 'monthly'
+  ): Promise<any[]> {
     // This would generate appropriate challenges based on the period
     // For now, return empty array
     return [];
@@ -1146,7 +1174,7 @@ export class SchedulerService {
     for (let i = 0; i < Math.min(3, ranking.length); i++) {
       const player = ranking[i];
       const rewards = this.getWeeklyRewards(i + 1);
-      
+
       try {
         await this.database.client.user.update({
           where: {
@@ -1157,7 +1185,7 @@ export class SchedulerService {
             coins: { increment: rewards.coins },
           },
         });
-        
+
         // Award badge for top positions
         if (i === 0) {
           await this.badgeService.awardBadge(player.userId, 'weekly_champion');
@@ -1178,7 +1206,7 @@ export class SchedulerService {
     for (let i = 0; i < Math.min(5, ranking.length); i++) {
       const player = ranking[i];
       const rewards = this.getMonthlyRewards(i + 1);
-      
+
       try {
         await this.database.client.user.update({
           where: {
@@ -1189,7 +1217,7 @@ export class SchedulerService {
             coins: { increment: rewards.coins },
           },
         });
-        
+
         // Award badge for top positions
         if (i === 0) {
           await this.badgeService.awardBadge(player.userId, 'monthly_champion');
@@ -1207,10 +1235,14 @@ export class SchedulerService {
    */
   private getWeeklyRewards(position: number): { xp: number; coins: number } {
     switch (position) {
-    case 1: return { xp: 500, coins: 200 };
-    case 2: return { xp: 300, coins: 120 };
-    case 3: return { xp: 200, coins: 80 };
-    default: return { xp: 100, coins: 40 };
+      case 1:
+        return { xp: 500, coins: 200 };
+      case 2:
+        return { xp: 300, coins: 120 };
+      case 3:
+        return { xp: 200, coins: 80 };
+      default:
+        return { xp: 100, coins: 40 };
     }
   }
 
@@ -1219,49 +1251,59 @@ export class SchedulerService {
    */
   private getMonthlyRewards(position: number): { xp: number; coins: number } {
     switch (position) {
-    case 1: return { xp: 2000, coins: 1000 };
-    case 2: return { xp: 1500, coins: 750 };
-    case 3: return { xp: 1000, coins: 500 };
-    case 4: return { xp: 750, coins: 375 };
-    case 5: return { xp: 500, coins: 250 };
-    default: return { xp: 250, coins: 125 };
+      case 1:
+        return { xp: 2000, coins: 1000 };
+      case 2:
+        return { xp: 1500, coins: 750 };
+      case 3:
+        return { xp: 1000, coins: 500 };
+      case 4:
+        return { xp: 750, coins: 375 };
+      case 5:
+        return { xp: 500, coins: 250 };
+      default:
+        return { xp: 250, coins: 125 };
     }
   }
 
   /**
    * Send ranking notification
    */
-  private async sendRankingNotification(guildId: string, period: string, ranking: any[]): Promise<void> {
+  private async sendRankingNotification(
+    guildId: string,
+    period: string,
+    ranking: any[]
+  ): Promise<void> {
     try {
       const guild = this.client.guilds.cache.get(guildId);
       if (!guild) {
         return;
       }
-      
+
       // Find announcement channel
       const announcementChannel = guild.channels.cache.find(
-        channel => channel.name.includes('anúncios') || channel.name.includes('announcements'),
+        channel => channel.name.includes('anúncios') || channel.name.includes('announcements')
       ) as TextChannel;
-      
+
       if (!announcementChannel) {
         return;
       }
-      
+
       const embed = new EmbedBuilder()
         .setColor('#ffd700')
         .setTitle(`🏆 Ranking ${period.charAt(0).toUpperCase() + period.slice(1)}`)
         .setDescription('Confira os melhores jogadores do período!')
         .setTimestamp();
-      
+
       let description = '';
       for (let i = 0; i < Math.min(5, ranking.length); i++) {
         const player = ranking[i];
         const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}º`;
         description += `${medal} <@${player.userId}> - ${player.points} pontos\n`;
       }
-      
+
       embed.addFields({ name: 'Top Jogadores', value: description || 'Nenhum jogador encontrado' });
-      
+
       await announcementChannel.send({ embeds: [embed] });
     } catch (error) {
       this.logger.error(`Failed to send ranking notification for ${guildId}:`, error);
@@ -1271,7 +1313,11 @@ export class SchedulerService {
   /**
    * Send challenge notification
    */
-  private async sendChallengeNotification(guildId: string, period: string, challenges: any[]): Promise<void> {
+  private async sendChallengeNotification(
+    guildId: string,
+    period: string,
+    challenges: any[]
+  ): Promise<void> {
     // Implementation for challenge notifications
   }
 
@@ -1280,28 +1326,30 @@ export class SchedulerService {
    */
   private async generateGuildWeeklyReport(guildId: string): Promise<any> {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    
+
     try {
       const stats = {
         newUsers: await this.database.client.userGuild.count({
           where: {
             guildId,
-            joinedAt: { gte: weekAgo }
-          }
+            joinedAt: { gte: weekAgo },
+          },
         }),
-        activeUsers: await this.database.client.presence.groupBy({
-          by: ['userId'],
-          where: {
-            guildId,
-            checkInTime: { gte: weekAgo }
-          }
-        }).then(result => result.length),
+        activeUsers: await this.database.client.presence
+          .groupBy({
+            by: ['userId'],
+            where: {
+              guildId,
+              checkInTime: { gte: weekAgo },
+            },
+          })
+          .then(result => result.length),
         totalPresenceSessions: await this.database.client.presence.count({
           where: {
             guildId,
             checkInTime: { gte: weekAgo },
-            checkOutTime: { not: null }
-          }
+            checkOutTime: { not: null },
+          },
         }),
         completedQuizzes: await this.database.client.gameResult.count({
           where: {
@@ -1309,17 +1357,17 @@ export class SchedulerService {
             user: {
               guilds: {
                 some: {
-                  guildId: guildId
-                }
-              }
-            }
-          }
+                  guildId: guildId,
+                },
+              },
+            },
+          },
         }),
         uploadedClips: await this.database.client.clip.count({
           where: {
             guildId,
-            createdAt: { gte: weekAgo }
-          }
+            createdAt: { gte: weekAgo },
+          },
         }),
         earnedBadges: await this.database.client.userBadge.count({
           where: {
@@ -1327,37 +1375,39 @@ export class SchedulerService {
             user: {
               guilds: {
                 some: {
-                  guildId: guildId
-                }
-              }
-            }
-          }
-        }),
-        totalPresenceTime: await this.database.client.presence.findMany({
-          where: {
-            guildId,
-            checkInTime: { gte: weekAgo },
-            checkOutTime: { not: null }
+                  guildId: guildId,
+                },
+              },
+            },
           },
-          select: {
-            checkInTime: true,
-            checkOutTime: true
-          }
-        }).then(presences => {
-          return presences.reduce((total, presence) => {
-            if (presence.checkInTime && presence.checkOutTime) {
-              const duration = presence.checkOutTime.getTime() - presence.checkInTime.getTime();
-              return total + Math.floor(duration / (1000 * 60)); // minutes
-            }
-            return total;
-          }, 0);
-        })
+        }),
+        totalPresenceTime: await this.database.client.presence
+          .findMany({
+            where: {
+              guildId,
+              checkInTime: { gte: weekAgo },
+              checkOutTime: { not: null },
+            },
+            select: {
+              checkInTime: true,
+              checkOutTime: true,
+            },
+          })
+          .then(presences => {
+            return presences.reduce((total, presence) => {
+              if (presence.checkInTime && presence.checkOutTime) {
+                const duration = presence.checkOutTime.getTime() - presence.checkInTime.getTime();
+                return total + Math.floor(duration / (1000 * 60)); // minutes
+              }
+              return total;
+            }, 0);
+          }),
       };
-      
+
       return stats;
     } catch (error) {
       this.logger.error(`Failed to generate weekly report for guild ${guildId}:`, error);
-      
+
       // Return empty stats on error
       return {
         newUsers: 0,
@@ -1366,7 +1416,7 @@ export class SchedulerService {
         completedQuizzes: 0,
         uploadedClips: 0,
         earnedBadges: 0,
-        totalPresenceTime: 0
+        totalPresenceTime: 0,
       };
     }
   }
@@ -1380,18 +1430,18 @@ export class SchedulerService {
       if (!guild) {
         return;
       }
-      
+
       const announcementChannel = guild.channels.cache.find(
-        channel => channel.name.includes('anúncios') || channel.name.includes('announcements'),
+        channel => channel.name.includes('anúncios') || channel.name.includes('announcements')
       ) as TextChannel;
-      
+
       if (!announcementChannel) {
         return;
       }
-      
+
       const totalHours = Math.floor(report.totalPresenceTime / 60);
       const totalMinutes = report.totalPresenceTime % 60;
-      
+
       const embed = new EmbedBuilder()
         .setColor('#00ff00')
         .setTitle('📊 Relatório Semanal')
@@ -1399,14 +1449,22 @@ export class SchedulerService {
         .addFields(
           { name: '👥 Novos Usuários', value: report.newUsers.toString(), inline: true },
           { name: '🟢 Usuários Ativos', value: report.activeUsers.toString(), inline: true },
-          { name: '⏰ Sessões de Presença', value: report.totalPresenceSessions.toString(), inline: true },
+          {
+            name: '⏰ Sessões de Presença',
+            value: report.totalPresenceSessions.toString(),
+            inline: true,
+          },
           { name: '🕐 Tempo Total', value: `${totalHours}h ${totalMinutes}m`, inline: true },
-          { name: '🧠 Quizzes Completados', value: report.completedQuizzes.toString(), inline: true },
+          {
+            name: '🧠 Quizzes Completados',
+            value: report.completedQuizzes.toString(),
+            inline: true,
+          },
           { name: '🎬 Clips Enviados', value: report.uploadedClips.toString(), inline: true },
-          { name: '🏆 Badges Conquistadas', value: report.earnedBadges.toString(), inline: true },
+          { name: '🏆 Badges Conquistadas', value: report.earnedBadges.toString(), inline: true }
         )
         .setTimestamp();
-      
+
       await announcementChannel.send({ embeds: [embed] });
     } catch (error) {
       this.logger.error(`Failed to send weekly report for ${guildId}:`, error);
@@ -1419,42 +1477,42 @@ export class SchedulerService {
   private async syncWeaponMastery(): Promise<void> {
     try {
       this.logger.info('Starting weapon mastery synchronization for all users');
-      
+
       // Get all users with linked PUBG accounts
       const users = await this.database.client.user.findMany({
         where: {
           pubgUsername: {
-            not: null
-          }
+            not: null,
+          },
         },
         select: {
           id: true,
-          pubgUsername: true
-        }
+          pubgUsername: true,
+        },
       });
-      
+
       if (users.length === 0) {
         this.logger.info('No users with linked PUBG accounts found');
         return;
       }
-      
+
       this.logger.info(`Found ${users.length} users with linked PUBG accounts`);
-      
+
       let syncedCount = 0;
       let errorCount = 0;
-      
+
       // Process users in batches to avoid API rate limits
       const batchSize = 5;
       for (let i = 0; i < users.length; i += batchSize) {
         const batch = users.slice(i, i + batchSize);
-        
-        const promises = batch.map(async (user) => {
+
+        const promises = batch.map(async user => {
           try {
             const synced = await this.weaponMasteryService.syncUserWeaponMastery(
               user.id,
               user.pubgUsername!
             );
-            
+
             if (synced) {
               syncedCount++;
               this.logger.debug(`Synced weapon mastery for user ${user.pubgUsername}`);
@@ -1464,20 +1522,19 @@ export class SchedulerService {
             this.logger.warn(`Failed to sync weapon mastery for user ${user.pubgUsername}:`, error);
           }
         });
-        
+
         await Promise.all(promises);
-        
+
         // Add delay between batches to respect API limits
         if (i + batchSize < users.length) {
           await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
         }
       }
-      
+
       this.logger.info(
-        `Weapon mastery synchronization completed. ` +
-        `Synced: ${syncedCount}, Errors: ${errorCount}, Total: ${users.length}`
+        'Weapon mastery synchronization completed. ' +
+          `Synced: ${syncedCount}, Errors: ${errorCount}, Total: ${users.length}`
       );
-      
     } catch (error) {
       this.logger.error('Failed to sync weapon mastery data:', error);
     }
@@ -1499,13 +1556,13 @@ export class SchedulerService {
         where: {
           status: 'scheduled',
           scheduledFor: {
-            lte: new Date()
-          }
+            lte: new Date(),
+          },
         },
         orderBy: {
-          scheduledFor: 'asc'
+          scheduledFor: 'asc',
         },
-        take: 10 // Process up to 10 tasks per run
+        take: 10, // Process up to 10 tasks per run
       });
 
       if (pendingTasks.length === 0) {
@@ -1519,7 +1576,7 @@ export class SchedulerService {
           // Mark as processing
           await this.database.client.ticketCleanup.update({
             where: { id: task.id },
-            data: { status: 'processing' }
+            data: { status: 'processing' },
           });
 
           // Attempt to delete the channel
@@ -1534,10 +1591,9 @@ export class SchedulerService {
             where: { id: task.id },
             data: {
               status: 'completed',
-              completedAt: new Date()
-            }
+              completedAt: new Date(),
+            },
           });
-
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           const retryCount = task.retryCount + 1;
@@ -1551,23 +1607,28 @@ export class SchedulerService {
                 status: 'failed',
                 errorMessage,
                 retryCount,
-                completedAt: new Date()
-              }
+                completedAt: new Date(),
+              },
             });
-            this.logger.error(`Ticket cleanup failed permanently for channel ${task.channelId}:`, error);
+            this.logger.error(
+              `Ticket cleanup failed permanently for channel ${task.channelId}:`,
+              error
+            );
           } else {
             // Schedule retry
-            const nextRetry = new Date(Date.now() + (retryCount * 30 * 60 * 1000)); // Exponential backoff: 30min, 1h, 1.5h
+            const nextRetry = new Date(Date.now() + retryCount * 30 * 60 * 1000); // Exponential backoff: 30min, 1h, 1.5h
             await this.database.client.ticketCleanup.update({
               where: { id: task.id },
               data: {
                 status: 'scheduled',
                 errorMessage,
                 retryCount,
-                scheduledFor: nextRetry
-              }
+                scheduledFor: nextRetry,
+              },
             });
-            this.logger.warn(`Ticket cleanup retry ${retryCount}/${maxRetries} scheduled for channel ${task.channelId}`);
+            this.logger.warn(
+              `Ticket cleanup retry ${retryCount}/${maxRetries} scheduled for channel ${task.channelId}`
+            );
           }
         }
       }
@@ -1578,11 +1639,10 @@ export class SchedulerService {
         where: {
           status: { in: ['completed', 'failed'] },
           completedAt: {
-            lt: thirtyDaysAgo
-          }
-        }
+            lt: thirtyDaysAgo,
+          },
+        },
       });
-
     } catch (error) {
       this.logger.error('Failed to process ticket cleanup tasks:', error);
     }
@@ -1597,21 +1657,25 @@ export class SchedulerService {
     try {
       // Safely calculate execution statistics
       const totalExecutions = this.executions?.length || 0;
-      const successfulExecutions = this.executions?.filter(e => e && e.success === true).length || 0;
+      const successfulExecutions =
+        this.executions?.filter(e => e && e.success === true).length || 0;
       const failedExecutions = Math.max(0, totalExecutions - successfulExecutions);
-      
+
       // Calculate average execution time more robustly
-      const executionsWithDuration = this.executions?.filter(e => e && typeof e.duration === 'number' && e.duration > 0) || [];
+      const executionsWithDuration =
+        this.executions?.filter(e => e && typeof e.duration === 'number' && e.duration > 0) || [];
       const totalExecutionTime = executionsWithDuration.reduce((sum, e) => sum + e.duration!, 0);
-      const averageExecutionTime = executionsWithDuration.length > 0 ? totalExecutionTime / executionsWithDuration.length : 0;
-      
+      const averageExecutionTime =
+        executionsWithDuration.length > 0 ? totalExecutionTime / executionsWithDuration.length : 0;
+
       // Ensure uptime is always positive
       const uptime = Math.max(0, Date.now() - this.startTime.getTime());
-      
+
       // Count active tasks (enabled tasks with running cron jobs)
-      const activeTasks = Array.from(this.tasks.values())
-        .filter(task => task.enabled && this.cronJobs.has(task.id)).length;
-      
+      const activeTasks = Array.from(this.tasks.values()).filter(
+        task => task.enabled && this.cronJobs.has(task.id)
+      ).length;
+
       return {
         totalTasks: this.tasks?.size || 0,
         activeTasks,
@@ -1624,7 +1688,7 @@ export class SchedulerService {
       };
     } catch (error) {
       this.logger.error('Error calculating scheduler statistics:', error);
-      
+
       // Return safe default statistics
       return {
         totalTasks: 0,
@@ -1661,13 +1725,13 @@ export class SchedulerService {
     if (!task) {
       return false;
     }
-    
+
     if (!task.enabled) {
       task.enabled = true;
       this.startTask(taskId);
       this.logger.info(`Enabled task: ${task.name}`);
     }
-    
+
     return true;
   }
 
@@ -1679,13 +1743,13 @@ export class SchedulerService {
     if (!task) {
       return false;
     }
-    
+
     if (task.enabled) {
       task.enabled = false;
       this.stopTask(taskId);
       this.logger.info(`Disabled task: ${task.name}`);
     }
-    
+
     return true;
   }
 
@@ -1697,7 +1761,7 @@ export class SchedulerService {
     if (!task) {
       return false;
     }
-    
+
     try {
       await this.executeTask(taskId);
       return true;
@@ -1723,7 +1787,7 @@ export class SchedulerService {
     for (const [taskId] of this.cronJobs) {
       this.stopTask(taskId);
     }
-    
+
     this.logger.info('Scheduler shutdown completed');
   }
 }

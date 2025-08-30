@@ -3,8 +3,14 @@ import { CacheService } from './cache.service';
 import { DatabaseService } from '../database/database.service';
 import { PUBGService } from './pubg.service';
 import { ExtendedClient } from '../types/client';
-import { PUBGPlatform, PUBGGameMode, PUBGRankTier, InternalRankingEntry, PUBGRankingEntry } from '../types/pubg';
-import { GuildMember, Role, EmbedBuilder } from 'discord.js';
+import {
+  PUBGPlatform,
+  PUBGGameMode,
+  PUBGRankTier,
+  InternalRankingEntry,
+  PUBGRankingEntry,
+} from '../types/pubg';
+import { GuildMember, Role, EmbedBuilder, TextChannel } from 'discord.js';
 
 export interface RankingPeriod {
   type: 'daily' | 'weekly' | 'monthly' | 'all_time';
@@ -30,7 +36,7 @@ export interface UserRankingData {
     rankPoints: number;
     tier: PUBGRankTier;
     subTier: string;
-    
+
     // Internal Stats
     level: number;
     xp: number;
@@ -74,11 +80,11 @@ export class RankingService {
   private database: DatabaseService;
   private pubgService: PUBGService;
   private client: ExtendedClient;
-  
+
   private rankings: Map<string, Map<string, UserRankingData>> = new Map(); // guildId -> userId -> data
   private snapshots: Map<string, RankingSnapshot[]> = new Map(); // guildId -> snapshots
   private roleRewards: Map<string, RoleReward[]> = new Map(); // guildId -> role rewards
-  
+
   private readonly updateIntervals = {
     daily: 24 * 60 * 60 * 1000, // 24 hours
     weekly: 7 * 24 * 60 * 60 * 1000, // 7 days
@@ -90,21 +96,21 @@ export class RankingService {
   // Pesos para cálculo de ranking composto (NOVO SISTEMA)
   private readonly rankingWeights = {
     pubg: {
-      rankPoints: 0.4,    // 40% - Pontos de rank PUBG
-      kda: 0.25,          // 25% - KDA
-      winRate: 0.2,       // 20% - Taxa de vitória
-      averageDamage: 0.15 // 15% - Dano médio
+      rankPoints: 0.4, // 40% - Pontos de rank PUBG
+      kda: 0.25, // 25% - KDA
+      winRate: 0.2, // 20% - Taxa de vitória
+      averageDamage: 0.15, // 15% - Dano médio
     },
     internal: {
-      level: 0.3,         // 30% - Nível do usuário
-      xp: 0.2,            // 20% - XP total
-      activity: 0.25,     // 25% - Atividade (mensagens + voz)
-      achievements: 0.25  // 25% - Conquistas (badges + desafios)
+      level: 0.3, // 30% - Nível do usuário
+      xp: 0.2, // 20% - XP total
+      activity: 0.25, // 25% - Atividade (mensagens + voz)
+      achievements: 0.25, // 25% - Conquistas (badges + desafios)
     },
     hybrid: {
-      pubgScore: 0.6,     // 60% - Score PUBG composto
-      internalScore: 0.4  // 40% - Score interno composto
-    }
+      pubgScore: 0.6, // 60% - Score PUBG composto
+      internalScore: 0.4, // 40% - Score interno composto
+    },
   };
 
   constructor(client: ExtendedClient) {
@@ -113,7 +119,7 @@ export class RankingService {
     this.database = client.database;
     this.pubgService = client.pubgService;
     this.client = client;
-    
+
     this.loadRankings();
     this.loadRoleRewards();
     this.startRankingUpdater();
@@ -140,15 +146,15 @@ export class RankingService {
           },
         },
       });
-      
+
       for (const guild of guilds) {
         const guildRankings = new Map<string, UserRankingData>();
-        
+
         for (const guildUser of guild.users) {
           const user = guildUser.user;
           const pubgStats = user.pubgStats[0]; // Get latest PUBG stats
           const userStats = user.stats;
-          
+
           // Calculate derived stats
           const games = pubgStats?.roundsPlayed || 0;
           const kills = pubgStats?.kills || 0;
@@ -156,16 +162,16 @@ export class RankingService {
           const wins = pubgStats?.wins || 0;
           const damage = pubgStats?.damageDealt || 0;
           const headshots = pubgStats?.headshotKills || 0;
-          
+
           const kda = deaths > 0 ? (kills + (pubgStats?.assists || 0)) / deaths : kills;
           const winRate = games > 0 ? (wins / games) * 100 : 0;
           const averageDamage = games > 0 ? damage / games : 0;
-          
+
           const rankingData: UserRankingData = {
             userId: user.id,
             username: user.username,
             pubgName: user.pubgUsername || undefined,
-            pubgPlatform: user.pubgPlatform as PUBGPlatform || undefined,
+            pubgPlatform: (user.pubgPlatform as PUBGPlatform) || undefined,
             stats: {
               // PUBG Stats
               kills,
@@ -179,7 +185,7 @@ export class RankingService {
               rankPoints: pubgStats?.currentRankPoint || 0,
               tier: (pubgStats?.currentTier as PUBGRankTier) || PUBGRankTier.BRONZE,
               subTier: pubgStats?.currentSubTier || 'V',
-              
+
               // Internal Stats
               level: user.level,
               xp: user.xp,
@@ -195,13 +201,13 @@ export class RankingService {
             },
             lastUpdated: new Date(),
           };
-          
+
           guildRankings.set(user.id, rankingData);
         }
-        
+
         this.rankings.set(guild.id, guildRankings);
       }
-      
+
       this.logger.info(`Loaded rankings for ${guilds.length} guilds`);
     } catch (error) {
       this.logger.error('Failed to load rankings:', error);
@@ -214,7 +220,7 @@ export class RankingService {
   private async loadRoleRewards(): Promise<void> {
     try {
       const guildConfigs = await this.database.client.guildConfig.findMany();
-      
+
       for (const config of guildConfigs) {
         const configData = config.config as any;
         if (configData && configData.rankingRoles) {
@@ -222,7 +228,7 @@ export class RankingService {
           this.roleRewards.set(config.guildId, roleRewards);
         }
       }
-      
+
       this.logger.info(`Loaded role rewards for ${this.roleRewards.size} guilds`);
     } catch (error) {
       this.logger.error('Failed to load role rewards:', error);
@@ -237,11 +243,14 @@ export class RankingService {
     setInterval(async () => {
       await this.updateAllRankings();
     }, this.updateIntervals.realtime);
-    
+
     // Update role assignments every hour
-    setInterval(async () => {
-      await this.updateRoleAssignments();
-    }, 60 * 60 * 1000);
+    setInterval(
+      async () => {
+        await this.updateRoleAssignments();
+      },
+      60 * 60 * 1000
+    );
   }
 
   /**
@@ -249,36 +258,46 @@ export class RankingService {
    */
   private startSnapshotScheduler(): void {
     // Daily snapshots at midnight
-    setInterval(async () => {
-      const now = new Date();
-      if (now.getHours() === 0 && now.getMinutes() < 5) {
-        await this.createDailySnapshots();
-      }
-    }, 5 * 60 * 1000);
-    
+    setInterval(
+      async () => {
+        const now = new Date();
+        if (now.getHours() === 0 && now.getMinutes() < 5) {
+          await this.createDailySnapshots();
+        }
+      },
+      5 * 60 * 1000
+    );
+
     // Weekly snapshots on Monday at midnight
-    setInterval(async () => {
-      const now = new Date();
-      if (now.getDay() === 1 && now.getHours() === 0 && now.getMinutes() < 5) {
-        await this.createWeeklySnapshots();
-      }
-    }, 5 * 60 * 1000);
-    
+    setInterval(
+      async () => {
+        const now = new Date();
+        if (now.getDay() === 1 && now.getHours() === 0 && now.getMinutes() < 5) {
+          await this.createWeeklySnapshots();
+        }
+      },
+      5 * 60 * 1000
+    );
+
     // Monthly snapshots on the 1st at midnight
-    setInterval(async () => {
-      const now = new Date();
-      if (now.getDate() === 1 && now.getHours() === 0 && now.getMinutes() < 5) {
-        await this.createMonthlySnapshots();
-      }
-    }, 5 * 60 * 1000);
+    setInterval(
+      async () => {
+        const now = new Date();
+        if (now.getDate() === 1 && now.getHours() === 0 && now.getMinutes() < 5) {
+          await this.createMonthlySnapshots();
+        }
+      },
+      5 * 60 * 1000
+    );
   }
 
   /**
    * Update user ranking data
    */
   public async updateUserRanking(guildId: string, userId: string): Promise<void> {
+    let user: any = null;
     try {
-      const user = await this.database.client.user.findUnique({
+      user = await this.database.client.user.findUnique({
         where: { id: userId },
         include: {
           pubgStats: { orderBy: { updatedAt: 'desc' }, take: 1 },
@@ -286,24 +305,56 @@ export class RankingService {
           badges: true,
         },
       });
-      
+
       if (!user) {
         return;
       }
-      
+
       // Update PUBG stats if user has PUBG info
       if (user.pubgUsername && user.pubgPlatform) {
+        // Verificar se o serviço PUBG está disponível e saudável
+        if (!(await this.pubgService.isAPIAvailable())) {
+          await this.logToChannel(
+            '⚠️ Serviço PUBG Indisponível',
+            'warning',
+            userId,
+            user.pubgUsername,
+            undefined,
+            user.pubgPlatform as PUBGPlatform,
+            'Serviço PUBG não está disponível no momento',
+            'Tentativa de atualização de ranking adiada'
+          );
+          return;
+        }
+
+        if (!(await this.pubgService.healthCheck())) {
+          await this.logToChannel(
+            '⚠️ Health Check PUBG Falhou',
+            'warning',
+            userId,
+            user.pubgUsername,
+            undefined,
+            user.pubgPlatform as PUBGPlatform,
+            'Health check do serviço PUBG falhou',
+            'Tentativa de atualização de ranking adiada'
+          );
+          return;
+        }
+
         const pubgStats = await this.pubgService.getPlayerStats(
           user.pubgUsername,
-          user.pubgPlatform as PUBGPlatform,
+          user.pubgPlatform as PUBGPlatform
         );
-        
+
         if (pubgStats && pubgStats.gameModeStats) {
           // Get stats from squad mode or first available mode
           const gameModes = Object.keys(pubgStats.gameModeStats) as PUBGGameMode[];
-          const primaryMode = gameModes.find(mode => mode === PUBGGameMode.SQUAD) || gameModes[0] || PUBGGameMode.SQUAD;
+          const primaryMode =
+            gameModes.find(mode => mode === PUBGGameMode.SQUAD) ||
+            gameModes[0] ||
+            PUBGGameMode.SQUAD;
           const modeStats = pubgStats.gameModeStats[primaryMode];
-          
+
           if (modeStats) {
             await this.database.client.pUBGStats.upsert({
               where: {
@@ -345,19 +396,43 @@ export class RankingService {
                 currentSubTier: 'V',
               },
             });
+
+            // Log sucesso da atualização PUBG
+            await this.logToChannel(
+              '✅ Ranking PUBG Atualizado',
+              'success',
+              userId,
+              user.pubgUsername,
+              pubgStats.playerId,
+              user.pubgPlatform as PUBGPlatform,
+              'Ranking PUBG atualizado com sucesso',
+              `**Modo:** ${primaryMode}\n**Kills:** ${modeStats.kills}\n**Wins:** ${modeStats.wins}\n**Rank Points:** ${modeStats.rankPoints}\n**Tier:** ${modeStats.rankPointsTitle || 'Bronze'}`
+            );
           }
+        } else {
+          // Log aviso quando não há dados de estatísticas
+          await this.logToChannel(
+            '⚠️ Dados PUBG Não Encontrados',
+            'warning',
+            userId,
+            user.pubgUsername,
+            undefined,
+            user.pubgPlatform as PUBGPlatform,
+            'Não foi possível obter estatísticas PUBG do jogador',
+            'Verifique se o nome do jogador está correto e se há dados disponíveis'
+          );
         }
       }
-      
+
       // Update ranking data in memory
       if (!this.rankings.has(guildId)) {
         this.rankings.set(guildId, new Map());
       }
-      
+
       const guildRankings = this.rankings.get(guildId)!;
       const pubgStats = user.pubgStats[0]; // Get latest PUBG stats
       const userStats = user.stats; // Get user stats
-      
+
       // Calculate derived stats
       const games = pubgStats?.roundsPlayed || 0;
       const kills = pubgStats?.kills || 0;
@@ -365,7 +440,7 @@ export class RankingService {
       const wins = pubgStats?.wins || 0;
       const damage = pubgStats?.damageDealt || 0;
       const headshots = pubgStats?.headshotKills || 0;
-      
+
       const kda = deaths > 0 ? (kills + (pubgStats?.assists || 0)) / deaths : kills;
       const winRate = games > 0 ? (wins / games) * 100 : 0;
       const averageDamage = games > 0 ? damage / games : 0;
@@ -374,7 +449,7 @@ export class RankingService {
         userId: user.id,
         username: user.username,
         pubgName: user.pubgUsername || undefined,
-        pubgPlatform: user.pubgPlatform as PUBGPlatform || undefined,
+        pubgPlatform: (user.pubgPlatform as PUBGPlatform) || undefined,
         stats: {
           // PUBG Stats
           kills,
@@ -388,7 +463,7 @@ export class RankingService {
           rankPoints: pubgStats?.currentRankPoint || 0,
           tier: (pubgStats?.currentTier as PUBGRankTier) || PUBGRankTier.BRONZE,
           subTier: pubgStats?.currentSubTier || 'V',
-          
+
           // Internal Stats
           level: user.level,
           xp: user.xp,
@@ -412,9 +487,21 @@ export class RankingService {
         userId,
         username: user.username,
       });
-      
     } catch (error) {
       this.logger.error(`Failed to update user ranking for ${userId}:`, error);
+
+      // Log erro geral para o canal
+      await this.logToChannel(
+        '❌ Erro na Atualização de Ranking',
+        'error',
+        userId,
+        user?.pubgUsername,
+        undefined,
+        user?.pubgPlatform as PUBGPlatform,
+        'Falha na atualização do ranking do usuário',
+        undefined,
+        error instanceof Error ? error.message : 'Erro desconhecido'
+      );
     }
   }
 
@@ -425,12 +512,12 @@ export class RankingService {
     try {
       for (const guildId of Array.from(this.rankings.keys())) {
         const guildRankings = this.rankings.get(guildId)!;
-        
+
         for (const userId of Array.from(guildRankings.keys())) {
           await this.updateUserRanking(guildId, userId);
         }
       }
-      
+
       this.logger.debug('Updated all rankings');
     } catch (error) {
       this.logger.error('Failed to update all rankings:', error);
@@ -445,20 +532,20 @@ export class RankingService {
     period: RankingPeriod,
     gameMode: PUBGGameMode = PUBGGameMode.SQUAD_FPP,
     sortBy: 'kills' | 'wins' | 'kda' | 'rankPoints' | 'winRate' = 'rankPoints',
-    limit: number = 50,
+    limit: number = 50
   ): PUBGRankingEntry[] {
     const guildRankings = this.rankings.get(guildId);
     if (!guildRankings) {
       return [];
     }
-    
+
     const entries: PUBGRankingEntry[] = [];
-    
+
     for (const [userId, data] of Array.from(guildRankings.entries())) {
       if (!data.pubgName || !data.pubgPlatform) {
         continue;
       }
-      
+
       entries.push({
         rank: 0, // Will be set after sorting
         userId,
@@ -481,29 +568,29 @@ export class RankingService {
         lastUpdated: data.lastUpdated,
       });
     }
-    
+
     // Sort by specified criteria
     entries.sort((a, b) => {
       switch (sortBy) {
-      case 'kills':
-        return b.stats.kills - a.stats.kills;
-      case 'wins':
-        return b.stats.wins - a.stats.wins;
-      case 'kda':
-        return b.stats.kda - a.stats.kda;
-      case 'winRate':
-        return b.stats.winRate - a.stats.winRate;
-      case 'rankPoints':
-      default:
-        return b.stats.rankPoints - a.stats.rankPoints;
+        case 'kills':
+          return b.stats.kills - a.stats.kills;
+        case 'wins':
+          return b.stats.wins - a.stats.wins;
+        case 'kda':
+          return b.stats.kda - a.stats.kda;
+        case 'winRate':
+          return b.stats.winRate - a.stats.winRate;
+        case 'rankPoints':
+        default:
+          return b.stats.rankPoints - a.stats.rankPoints;
       }
     });
-    
+
     // Set ranks
     entries.forEach((entry, index) => {
       entry.rank = index + 1;
     });
-    
+
     return entries.slice(0, limit);
   }
 
@@ -513,16 +600,24 @@ export class RankingService {
   public getInternalRanking(
     guildId: string,
     period: RankingPeriod,
-    sortBy: 'level' | 'xp' | 'coins' | 'messages' | 'voiceTime' | 'quizScore' | 'miniGameWins' | 'badgeCount' = 'level',
-    limit: number = 50,
+    sortBy:
+      | 'level'
+      | 'xp'
+      | 'coins'
+      | 'messages'
+      | 'voiceTime'
+      | 'quizScore'
+      | 'miniGameWins'
+      | 'badgeCount' = 'level',
+    limit: number = 50
   ): InternalRankingEntry[] {
     const guildRankings = this.rankings.get(guildId);
     if (!guildRankings) {
       return [];
     }
-    
+
     const entries: InternalRankingEntry[] = [];
-    
+
     for (const [userId, data] of Array.from(guildRankings.entries())) {
       entries.push({
         rank: 0, // Will be set after sorting
@@ -544,39 +639,39 @@ export class RankingService {
         lastUpdated: data.lastUpdated,
       });
     }
-    
+
     // Sort by specified criteria
     entries.sort((a, b) => {
       switch (sortBy) {
-      case 'xp':
-        return b.stats.xp - a.stats.xp;
-      case 'coins':
-        return b.stats.coins - a.stats.coins;
-      case 'messages':
-        return b.stats.messages - a.stats.messages;
-      case 'voiceTime':
-        return b.stats.voiceTime - a.stats.voiceTime;
-      case 'quizScore':
-        return b.stats.quizScore - a.stats.quizScore;
-      case 'miniGameWins':
-        return b.stats.miniGameWins - a.stats.miniGameWins;
-      case 'badgeCount':
-        return b.stats.badgeCount - a.stats.badgeCount;
-      case 'level':
-      default:
-        // Sort by level first, then by XP
-        if (b.stats.level !== a.stats.level) {
-          return b.stats.level - a.stats.level;
-        }
-        return b.stats.xp - a.stats.xp;
+        case 'xp':
+          return b.stats.xp - a.stats.xp;
+        case 'coins':
+          return b.stats.coins - a.stats.coins;
+        case 'messages':
+          return b.stats.messages - a.stats.messages;
+        case 'voiceTime':
+          return b.stats.voiceTime - a.stats.voiceTime;
+        case 'quizScore':
+          return b.stats.quizScore - a.stats.quizScore;
+        case 'miniGameWins':
+          return b.stats.miniGameWins - a.stats.miniGameWins;
+        case 'badgeCount':
+          return b.stats.badgeCount - a.stats.badgeCount;
+        case 'level':
+        default:
+          // Sort by level first, then by XP
+          if (b.stats.level !== a.stats.level) {
+            return b.stats.level - a.stats.level;
+          }
+          return b.stats.xp - a.stats.xp;
       }
     });
-    
+
     // Set ranks
     entries.forEach((entry, index) => {
       entry.rank = index + 1;
     });
-    
+
     return entries.slice(0, limit);
   }
 
@@ -587,21 +682,29 @@ export class RankingService {
     guildId: string,
     userId: string,
     type: 'pubg' | 'internal',
-    sortBy?: string,
+    sortBy?: string
   ): { rank: number; total: number } | null {
     let ranking: any[];
-    
+
     if (type === 'pubg') {
-      ranking = this.getPUBGRanking(guildId, { type: 'all_time', startDate: new Date(0), endDate: new Date() });
+      ranking = this.getPUBGRanking(guildId, {
+        type: 'all_time',
+        startDate: new Date(0),
+        endDate: new Date(),
+      });
     } else {
-      ranking = this.getInternalRanking(guildId, { type: 'all_time', startDate: new Date(0), endDate: new Date() });
+      ranking = this.getInternalRanking(guildId, {
+        type: 'all_time',
+        startDate: new Date(0),
+        endDate: new Date(),
+      });
     }
-    
+
     const userIndex = ranking.findIndex(entry => entry.userId === userId);
     if (userIndex === -1) {
       return null;
     }
-    
+
     return {
       rank: userIndex + 1,
       total: ranking.length,
@@ -615,21 +718,21 @@ export class RankingService {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     yesterday.setHours(0, 0, 0, 0);
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const period: RankingPeriod = {
       type: 'daily',
       startDate: yesterday,
       endDate: today,
     };
-    
+
     for (const guildId of Array.from(this.rankings.keys())) {
       await this.createSnapshot(guildId, period, 'pubg');
       await this.createSnapshot(guildId, period, 'internal');
     }
-    
+
     this.logger.info('Created daily ranking snapshots');
   }
 
@@ -640,21 +743,21 @@ export class RankingService {
     const lastWeek = new Date();
     lastWeek.setDate(lastWeek.getDate() - 7);
     lastWeek.setHours(0, 0, 0, 0);
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const period: RankingPeriod = {
       type: 'weekly',
       startDate: lastWeek,
       endDate: today,
     };
-    
+
     for (const guildId of Array.from(this.rankings.keys())) {
       await this.createSnapshot(guildId, period, 'pubg');
       await this.createSnapshot(guildId, period, 'internal');
     }
-    
+
     this.logger.info('Created weekly ranking snapshots');
   }
 
@@ -666,22 +769,22 @@ export class RankingService {
     lastMonth.setMonth(lastMonth.getMonth() - 1);
     lastMonth.setDate(1);
     lastMonth.setHours(0, 0, 0, 0);
-    
+
     const thisMonth = new Date();
     thisMonth.setDate(1);
     thisMonth.setHours(0, 0, 0, 0);
-    
+
     const period: RankingPeriod = {
       type: 'monthly',
       startDate: lastMonth,
       endDate: thisMonth,
     };
-    
+
     for (const guildId of this.rankings.keys()) {
       await this.createSnapshot(guildId, period, 'pubg');
       await this.createSnapshot(guildId, period, 'internal');
     }
-    
+
     this.logger.info('Created monthly ranking snapshots');
   }
 
@@ -692,16 +795,16 @@ export class RankingService {
     guildId: string,
     period: RankingPeriod,
     type: 'pubg' | 'internal',
-    gameMode?: PUBGGameMode,
+    gameMode?: PUBGGameMode
   ): Promise<void> {
     try {
       const guildRankings = this.rankings.get(guildId);
       if (!guildRankings) {
         return;
       }
-      
+
       const data = Array.from(guildRankings.values());
-      
+
       const snapshot: RankingSnapshot = {
         id: `${guildId}_${type}_${period.type}_${Date.now()}`,
         guildId,
@@ -711,7 +814,7 @@ export class RankingService {
         data,
         createdAt: new Date(),
       };
-      
+
       // Save to database
       await this.database.client.rankingSnapshot.create({
         data: {
@@ -722,34 +825,35 @@ export class RankingService {
           period: period.type,
           rank: 0,
           value: 0,
-          metadata: JSON.parse(JSON.stringify({
-            gameMode: gameMode || null,
-            startDate: period.startDate.toISOString(),
-            endDate: period.endDate.toISOString(),
-            data: JSON.stringify(data),
-          })),
+          metadata: JSON.parse(
+            JSON.stringify({
+              gameMode: gameMode || null,
+              startDate: period.startDate.toISOString(),
+              endDate: period.endDate.toISOString(),
+              data: JSON.stringify(data),
+            })
+          ),
         },
       });
-      
+
       // Store in memory
       if (!this.snapshots.has(guildId)) {
         this.snapshots.set(guildId, []);
       }
       this.snapshots.get(guildId)!.push(snapshot);
-      
+
       // Keep only last 30 snapshots per guild
       const guildSnapshots = this.snapshots.get(guildId)!;
       if (guildSnapshots.length > 30) {
         guildSnapshots.splice(0, guildSnapshots.length - 30);
       }
-      
+
       this.logger.info('SNAPSHOT_CREATED', {
         guildId,
         type,
         period: period.type,
         userCount: data.length,
       });
-      
     } catch (error) {
       this.logger.error(`Failed to create snapshot for guild ${guildId}:`, error);
     }
@@ -765,27 +869,27 @@ export class RankingService {
         if (!guild) {
           continue;
         }
-        
+
         // Get current rankings
         const pubgRanking = this.getPUBGRanking(guildId, {
           type: 'all_time',
           startDate: new Date(0),
           endDate: new Date(),
         });
-        
+
         const internalRanking = this.getInternalRanking(guildId, {
           type: 'all_time',
           startDate: new Date(0),
           endDate: new Date(),
         });
-        
+
         // Update PUBG role assignments
         await this.updateRolesForRanking(guild, pubgRanking, roleRewards, 'pubg');
-        
+
         // Update internal role assignments
         await this.updateRolesForRanking(guild, internalRanking, roleRewards, 'internal');
       }
-      
+
       this.logger.debug('Updated role assignments');
     } catch (error) {
       this.logger.error('Failed to update role assignments:', error);
@@ -799,25 +903,25 @@ export class RankingService {
     guild: any,
     ranking: any[],
     roleRewards: RoleReward[],
-    type: 'pubg' | 'internal',
+    type: 'pubg' | 'internal'
   ): Promise<void> {
     for (const roleReward of roleRewards) {
       const role = guild.roles.cache.get(roleReward.roleId);
       if (!role) {
         continue;
       }
-      
+
       const [minRank, maxRank] = roleReward.rankRange;
-      
+
       // Get users in rank range
       const usersInRange = ranking.slice(minRank - 1, maxRank);
-      
+
       for (const entry of usersInRange) {
         try {
           const member = await guild.members.fetch(entry.userId);
           if (member && !member.roles.cache.has(roleReward.roleId)) {
             await member.roles.add(role);
-            
+
             this.logger.info('ROLE_ASSIGNED', {
               guildId: guild.id,
               userId: entry.userId,
@@ -830,7 +934,7 @@ export class RankingService {
           this.logger.error(`Failed to assign role to user ${entry.userId}:`, error);
         }
       }
-      
+
       // Remove role from users outside rank range
       const membersWithRole = role.members;
       for (const [memberId, member] of membersWithRole) {
@@ -838,7 +942,7 @@ export class RankingService {
         if (!userInRange) {
           try {
             await member.roles.remove(role);
-            
+
             this.logger.info('ROLE_REMOVED', {
               guildId: guild.id,
               userId: memberId,
@@ -859,15 +963,15 @@ export class RankingService {
   public async configureRoleRewards(guildId: string, roleRewards: RoleReward[]): Promise<void> {
     try {
       this.roleRewards.set(guildId, roleRewards);
-      
+
       // Save to database
       const existingConfig = await this.database.client.guildConfig.findUnique({
         where: { guildId },
       });
-      
-      const currentConfig = existingConfig?.config as any || {};
+
+      const currentConfig = (existingConfig?.config as any) || {};
       currentConfig.rankingRoles = roleRewards;
-      
+
       await this.database.client.guildConfig.upsert({
         where: { guildId },
         update: {
@@ -878,12 +982,11 @@ export class RankingService {
           config: JSON.parse(JSON.stringify({ rankingRoles: roleRewards })),
         },
       });
-      
+
       this.logger.info('ROLE_REWARDS_CONFIGURED', {
         guildId,
         rewardCount: roleRewards.length,
       });
-      
     } catch (error) {
       this.logger.error(`Failed to configure role rewards for guild ${guildId}:`, error);
     }
@@ -907,19 +1010,22 @@ export class RankingService {
         topPlayer: null,
       };
     }
-    
+
     const users = Array.from(guildRankings.values());
     const pubgUsers = users.filter(user => user.pubgName && user.pubgPlatform);
     const averageLevel = users.reduce((sum, user) => sum + user.stats.level, 0) / users.length;
-    
+
     // Get top player by level
-    const topPlayer = users.reduce((top, user) => {
-      if (!top || user.stats.level > top.stats.level) {
-        return user;
-      }
-      return top;
-    }, null as UserRankingData | null);
-    
+    const topPlayer = users.reduce(
+      (top, user) => {
+        if (!top || user.stats.level > top.stats.level) {
+          return user;
+        }
+        return top;
+      },
+      null as UserRankingData | null
+    );
+
     return {
       totalUsers: users.length,
       pubgUsers: pubgUsers.length,
@@ -935,10 +1041,10 @@ export class RankingService {
     guildId: string,
     type: 'pubg' | 'internal',
     period: 'daily' | 'weekly' | 'monthly',
-    limit: number = 10,
+    limit: number = 10
   ): RankingSnapshot[] {
     const guildSnapshots = this.snapshots.get(guildId) || [];
-    
+
     return guildSnapshots
       .filter(snapshot => snapshot.type === type && snapshot.period.type === period)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
@@ -977,7 +1083,7 @@ export class RankingService {
       this.rankings.clear();
       this.snapshots.clear();
     }
-    
+
     this.logger.info(`Cleared ranking cache${guildId ? ` for guild ${guildId}` : ''}`);
   }
 
@@ -986,13 +1092,13 @@ export class RankingService {
    */
   private calculatePUBGScore(stats: UserRankingData['stats']): number {
     const weights = this.rankingWeights.pubg;
-    
+
     // Normalizar valores para escala 0-100
     const normalizedRankPoints = Math.min(stats.rankPoints / 50, 100); // Max ~5000 pontos
     const normalizedKDA = Math.min(stats.kda * 20, 100); // Max KDA ~5
     const normalizedWinRate = Math.min(stats.winRate, 100); // Já em %
     const normalizedDamage = Math.min(stats.averageDamage / 10, 100); // Max ~1000 dano
-    
+
     return (
       normalizedRankPoints * weights.rankPoints +
       normalizedKDA * weights.kda +
@@ -1006,17 +1112,13 @@ export class RankingService {
    */
   private calculateInternalScore(stats: UserRankingData['stats']): number {
     const weights = this.rankingWeights.internal;
-    
+
     // Normalizar valores para escala 0-100
     const normalizedLevel = Math.min(stats.level * 2, 100); // Max level ~50
     const normalizedXP = Math.min(stats.xp / 1000, 100); // Max ~100k XP
-    const normalizedActivity = Math.min(
-      (stats.messages / 100 + stats.voiceTime / 3600) * 5, 100
-    ); // Mensagens + horas de voz
-    const normalizedAchievements = Math.min(
-      (stats.badgeCount * 10 + stats.quizScore * 2) * 2, 100
-    ); // Badges + quiz scores
-    
+    const normalizedActivity = Math.min((stats.messages / 100 + stats.voiceTime / 3600) * 5, 100); // Mensagens + horas de voz
+    const normalizedAchievements = Math.min((stats.badgeCount * 10 + stats.quizScore * 2) * 2, 100); // Badges + quiz scores
+
     return (
       normalizedLevel * weights.level +
       normalizedXP * weights.xp +
@@ -1032,11 +1134,8 @@ export class RankingService {
     const pubgScore = this.calculatePUBGScore(stats);
     const internalScore = this.calculateInternalScore(stats);
     const weights = this.rankingWeights.hybrid;
-    
-    return (
-      pubgScore * weights.pubgScore +
-      internalScore * weights.internalScore
-    );
+
+    return pubgScore * weights.pubgScore + internalScore * weights.internalScore;
   }
 
   /**
@@ -1048,7 +1147,9 @@ export class RankingService {
     limit: number = 50
   ): Array<UserRankingData & { hybridScore: number; rank: number }> {
     const guildRankings = this.rankings.get(guildId);
-    if (!guildRankings) return [];
+    if (!guildRankings) {
+      return [];
+    }
 
     const users = Array.from(guildRankings.values())
       .filter(user => {
@@ -1060,16 +1161,83 @@ export class RankingService {
       })
       .map(user => ({
         ...user,
-        hybridScore: this.calculateHybridScore(user.stats)
+        hybridScore: this.calculateHybridScore(user.stats),
       }))
       .sort((a, b) => b.hybridScore - a.hybridScore)
       .slice(0, limit)
       .map((user, index) => ({
         ...user,
-        rank: index + 1
+        rank: index + 1,
       }));
 
     return users;
+  }
+
+  /**
+   * Envia logs formatados para o canal do Discord
+   */
+  private async logToChannel(
+    title: string,
+    status: 'success' | 'warning' | 'error',
+    userId?: string,
+    pubgName?: string,
+    playerId?: string,
+    platform?: PUBGPlatform,
+    message?: string,
+    details?: string,
+    error?: string
+  ): Promise<void> {
+    try {
+      const guild = this.client.guilds.cache.first();
+      if (!guild) {
+        return;
+      }
+
+      const logChannel = guild.channels.cache.find(
+        channel => channel.name === 'logs-api' && channel.type === 0
+      ) as TextChannel;
+
+      if (!logChannel) {
+        return;
+      }
+
+      const colors = {
+        success: '#00FF00',
+        warning: '#FFA500',
+        error: '#FF0000',
+      };
+
+      const embed = new EmbedBuilder()
+        .setTitle(title)
+        .setColor(colors[status] as `#${string}`)
+        .setTimestamp();
+
+      if (userId) {
+        embed.addFields({ name: '👤 Usuário', value: `<@${userId}>`, inline: true });
+      }
+      if (pubgName) {
+        embed.addFields({ name: '🎮 Nome PUBG', value: pubgName, inline: true });
+      }
+      if (playerId) {
+        embed.addFields({ name: '🆔 Player ID', value: playerId, inline: true });
+      }
+      if (platform) {
+        embed.addFields({ name: '🖥️ Plataforma', value: platform, inline: true });
+      }
+      if (message) {
+        embed.addFields({ name: '📝 Mensagem', value: message, inline: false });
+      }
+      if (details) {
+        embed.addFields({ name: '📊 Detalhes', value: details, inline: false });
+      }
+      if (error) {
+        embed.addFields({ name: '❌ Erro', value: `\`\`\`${error}\`\`\``, inline: false });
+      }
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (logError) {
+      this.logger.error('Erro ao enviar log para o canal:', logError);
+    }
   }
 
   /**
@@ -1082,7 +1250,9 @@ export class RankingService {
     limit: number = 50
   ): Array<UserRankingData & { score: number; rank: number; category: string }> {
     const guildRankings = this.rankings.get(guildId);
-    if (!guildRankings) return [];
+    if (!guildRankings) {
+      return [];
+    }
 
     const users = Array.from(guildRankings.values())
       .filter(user => {
@@ -1092,46 +1262,38 @@ export class RankingService {
         return true;
       })
       .map(user => {
-        let score: number;
-        let categoryName: string;
-        
+        let score = 0;
+
         switch (category) {
           case 'pubg_score':
             score = this.calculatePUBGScore(user.stats);
-            categoryName = 'PUBG Performance';
             break;
           case 'internal_score':
             score = this.calculateInternalScore(user.stats);
-            categoryName = 'Server Activity';
             break;
           case 'hybrid_score':
             score = this.calculateHybridScore(user.stats);
-            categoryName = 'Overall Performance';
             break;
           case 'activity':
-            score = user.stats.messages + (user.stats.voiceTime / 60); // Mensagens + minutos de voz
-            categoryName = 'Activity Level';
+            score = user.stats.messages + user.stats.voiceTime / 1000 / 60; // messages + voice minutes
             break;
           case 'skill':
-            score = (user.stats.kda * 20) + (user.stats.winRate * 2) + (user.stats.averageDamage / 10);
-            categoryName = 'Skill Rating';
+            score = user.stats.kda * 100 + user.stats.winRate;
             break;
-          default:
-            score = 0;
-            categoryName = 'Unknown';
         }
-        
+
         return {
           ...user,
           score,
-          category: categoryName
+          rank: 0, // Will be set after sorting
+          category,
         };
       })
       .sort((a, b) => b.score - a.score)
       .slice(0, limit)
       .map((user, index) => ({
         ...user,
-        rank: index + 1
+        rank: index + 1,
       }));
 
     return users;
@@ -1156,56 +1318,61 @@ export class RankingService {
         pubgUsers: 0,
         averageHybridScore: 0,
         scoreDistribution: [],
-        topPerformers: []
+        topPerformers: [],
       };
     }
 
     const users = Array.from(guildRankings.values());
     const activeUsers = users.filter(u => u.stats.messages > 0 || u.stats.voiceTime > 0);
     const pubgUsers = users.filter(u => u.pubgName);
-    
+
     const hybridScores = users.map(u => this.calculateHybridScore(u.stats));
     const averageHybridScore = hybridScores.reduce((a, b) => a + b, 0) / hybridScores.length || 0;
-    
+
     // Distribuição de scores
     const scoreRanges = [
       { range: '0-20', min: 0, max: 20 },
       { range: '21-40', min: 21, max: 40 },
       { range: '41-60', min: 41, max: 60 },
       { range: '61-80', min: 61, max: 80 },
-      { range: '81-100', min: 81, max: 100 }
+      { range: '81-100', min: 81, max: 100 },
     ];
-    
+
     const scoreDistribution = scoreRanges.map(range => ({
       range: range.range,
-      count: hybridScores.filter(score => score >= range.min && score <= range.max).length
+      count: hybridScores.filter(score => score >= range.min && score <= range.max).length,
     }));
-    
+
     // Top performers por categoria
     const categories = ['pubg_score', 'internal_score', 'activity', 'skill'] as const;
     const topPerformers = categories.map(category => {
-      const categoryRanking = this.getCategoryRanking(guildId, category, {
-        type: 'all_time',
-        startDate: new Date(0),
-        endDate: new Date()
-      }, 1);
-      
+      const categoryRanking = this.getCategoryRanking(
+        guildId,
+        category,
+        {
+          type: 'all_time',
+          startDate: new Date(0),
+          endDate: new Date(),
+        },
+        1
+      );
+
       const top = categoryRanking[0];
       return {
         category: top?.category || category,
         userId: top?.userId || '',
         username: top?.username || 'N/A',
-        score: top?.score || 0
+        score: top?.score || 0,
       };
     });
-    
+
     return {
       totalUsers: users.length,
       activeUsers: activeUsers.length,
       pubgUsers: pubgUsers.length,
       averageHybridScore: Math.round(averageHybridScore * 100) / 100,
       scoreDistribution,
-      topPerformers
+      topPerformers,
     };
   }
 }

@@ -11,7 +11,7 @@ import {
   VoiceChannel,
   TextChannel,
   PermissionFlagsBits,
-  ComponentType
+  ComponentType,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -48,15 +48,19 @@ const checkin: Command = {
         .setRequired(false)
         .setMaxLength(50)
     ) as SlashCommandBuilder,
-  
+
   category: CommandCategory.GENERAL,
   cooldown: 10, // 10 seconds cooldown to prevent spam
-  
-  async execute(interaction: CommandInteraction | ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+
+  async execute(
+    interaction: CommandInteraction | ChatInputCommandInteraction,
+    client: ExtendedClient
+  ): Promise<void> {
     const logger = new Logger();
     const database = client.database;
     const presenceService = (client as any).presenceService;
-    const presenceEnhancementsService = (client as any).presenceEnhancementsService as PresenceEnhancementsService;
+    const presenceEnhancementsService = (client as any)
+      .presenceEnhancementsService as PresenceEnhancementsService;
     const xpService = (client as any).xpService;
     const badgeService = (client as any).badgeService;
 
@@ -73,7 +77,9 @@ const checkin: Command = {
       if ((tipo === 'scrim' || tipo === 'campeonato') && !nome) {
         const errorEmbed = new EmbedBuilder()
           .setTitle('❌ Nome Obrigatório')
-          .setDescription(`Para sessões de **${getTipoDisplayName(tipo)}**, você deve informar o nome da partida/evento.`)
+          .setDescription(
+            `Para sessões de **${getTipoDisplayName(tipo)}**, você deve informar o nome da partida/evento.`
+          )
           .setColor(0xff0000)
           .setTimestamp();
 
@@ -84,13 +90,15 @@ const checkin: Command = {
       // Check if user is registered
       const user = await database.client.user.findUnique({
         where: { id: userId },
-        include: { stats: true }
+        include: { stats: true },
       });
 
       if (!user) {
         const registerEmbed = new EmbedBuilder()
           .setTitle('❌ Usuário Não Registrado')
-          .setDescription('Você precisa se registrar primeiro usando `/register` para fazer check-in!')
+          .setDescription(
+            'Você precisa se registrar primeiro usando `/register` para fazer check-in!'
+          )
           .setColor(0xff0000)
           .setTimestamp();
 
@@ -102,7 +110,7 @@ const checkin: Command = {
       const sessionName = nome || `${interaction.user.displayName} - ${getTipoDisplayName(tipo)}`;
       let checkInResult: any;
       let pubgValidation: any = null;
-      
+
       if (presenceEnhancementsService) {
         // Enhanced check-in with PUBG validation and automatic penalties
         const enhancedResult = await presenceEnhancementsService.enhancedCheckIn(
@@ -111,11 +119,13 @@ const checkin: Command = {
           sessionName,
           `Tipo: ${tipo}${nome ? ` | Nome: ${nome}` : ''}`
         );
-        
+
         checkInResult = enhancedResult;
         pubgValidation = enhancedResult.validation;
-        
-        logger.info(`Enhanced check-in for user ${userId}: ${enhancedResult.success ? 'Success' : 'Failed'}`);
+
+        logger.info(
+          `Enhanced check-in for user ${userId}: ${enhancedResult.success ? 'Success' : 'Failed'}`
+        );
       } else {
         // Fallback to regular check-in
         checkInResult = await presenceService.checkIn(
@@ -126,7 +136,7 @@ const checkin: Command = {
           interaction.user.id,
           `Discord Bot - ${tipo}`
         );
-        
+
         logger.warn('PresenceEnhancementsService not available, using regular check-in');
       }
 
@@ -142,12 +152,17 @@ const checkin: Command = {
       }
 
       // Create or get voice/text channels
-      const channelResult = await createSessionChannels(interaction as ChatInputCommandInteraction, tipo, sessionName, nome || undefined);
-      
+      const channelResult = await createSessionChannels(
+        interaction as ChatInputCommandInteraction,
+        tipo,
+        sessionName,
+        nome || undefined
+      );
+
       // Calculate XP and streak info
       const baseXP = calculateSessionXP(tipo);
       const currentStreak = 0; // TODO: Implement streak system
-      
+
       // Calculate actual XP (base + any PUBG bonus from enhanced check-in)
       let actualXP = baseXP;
       if (checkInResult.message && checkInResult.message.includes('XP bônus PUBG')) {
@@ -156,14 +171,14 @@ const checkin: Command = {
           actualXP += parseInt(bonusMatch[1]);
         }
       }
-      
+
       // Award XP for check-in (if not already awarded by enhanced service)
       if (!presenceEnhancementsService) {
         await database.client.user.update({
           where: { id: userId },
           data: {
-            xp: { increment: actualXP }
-          }
+            xp: { increment: actualXP },
+          },
         });
       }
 
@@ -171,12 +186,12 @@ const checkin: Command = {
       await database.client.userStats.upsert({
         where: { userId },
         update: {
-          commandsUsed: { increment: 1 }
+          commandsUsed: { increment: 1 },
         },
         create: {
           userId,
-          commandsUsed: 1
-        }
+          commandsUsed: 1,
+        },
       });
 
       // Check for presence-related badges
@@ -191,17 +206,17 @@ const checkin: Command = {
           {
             name: '👤 Usuário',
             value: interaction.user.displayName,
-            inline: true
+            inline: true,
           },
           {
             name: '🎮 Tipo de Sessão',
             value: getTipoDisplayName(tipo),
-            inline: true
+            inline: true,
           },
           {
             name: '⏰ Início',
             value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
-            inline: true
+            inline: true,
           }
         )
         .setThumbnail(interaction.user.displayAvatarURL())
@@ -211,7 +226,7 @@ const checkin: Command = {
         successEmbed.addFields({
           name: '📝 Nome da Sessão',
           value: nome,
-          inline: false
+          inline: false,
         });
       }
 
@@ -219,43 +234,43 @@ const checkin: Command = {
         {
           name: '🎯 XP Ganho',
           value: `+${actualXP} XP${actualXP > baseXP ? ` (${baseXP} base + ${actualXP - baseXP} bônus PUBG)` : ''}`,
-          inline: true
+          inline: true,
         },
         {
           name: '🔥 Streak Atual',
           value: `${currentStreak} dias`,
-          inline: true
+          inline: true,
         }
       );
-      
+
       // Add PUBG validation info if available
       if (pubgValidation) {
         const validationEmoji = pubgValidation.isValid ? '✅' : '❌';
         const validationText = pubgValidation.isValid ? 'Válida' : 'Inválida';
-        
+
         successEmbed.addFields({
           name: '🎮 Integração PUBG',
           value: `${validationEmoji} ${validationText}${pubgValidation.pubgUsername ? ` (${pubgValidation.pubgUsername})` : ''}`,
-          inline: true
+          inline: true,
         });
-        
+
         if (pubgValidation.isValid && pubgValidation.stats) {
           successEmbed.addFields({
             name: '📊 Stats PUBG',
             value: [
               `**KDA:** ${pubgValidation.stats.kda.toFixed(2)}`,
               `**Rank:** ${pubgValidation.stats.rank}`,
-              `**Vitórias:** ${pubgValidation.stats.wins}`
+              `**Vitórias:** ${pubgValidation.stats.wins}`,
             ].join(' | '),
-            inline: false
+            inline: false,
           });
         }
-        
+
         if (!pubgValidation.isValid && pubgValidation.validationErrors?.length) {
           successEmbed.addFields({
             name: '⚠️ Aviso PUBG',
             value: pubgValidation.validationErrors[0],
-            inline: false
+            inline: false,
           });
         }
       }
@@ -264,7 +279,7 @@ const checkin: Command = {
         successEmbed.addFields({
           name: '🔊 Canal de Voz',
           value: `<#${channelResult.voiceChannel.id}>`,
-          inline: true
+          inline: true,
         });
       }
 
@@ -272,60 +287,66 @@ const checkin: Command = {
         successEmbed.addFields({
           name: '💬 Canal de Texto',
           value: `<#${channelResult.textChannel.id}>`,
-          inline: true
+          inline: true,
         });
       }
 
       // Create action buttons
-      const actionButtons = new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId(`checkout_${userId}`)
-            .setLabel('🚪 Check-out')
-            .setStyle(ButtonStyle.Danger),
-          new ButtonBuilder()
-            .setCustomId(`invite_players_${userId}`)
-            .setLabel('👥 Convidar Jogadores')
-            .setStyle(ButtonStyle.Success),
-          new ButtonBuilder()
-            .setCustomId(`confirm_presence_${userId}`)
-            .setLabel('✅ Confirmar Presença')
-            .setStyle(ButtonStyle.Primary)
-        );
+      const actionButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`checkout_${userId}`)
+          .setLabel('🚪 Check-out')
+          .setStyle(ButtonStyle.Danger),
+        new ButtonBuilder()
+          .setCustomId(`invite_players_${userId}`)
+          .setLabel('👥 Convidar Jogadores')
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId(`confirm_presence_${userId}`)
+          .setLabel('✅ Confirmar Presença')
+          .setStyle(ButtonStyle.Primary)
+      );
 
       // Create secondary action buttons
-      const secondaryButtons = new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId(`ranking_presence`)
-            .setLabel('🏆 Ver Ranking')
-            .setStyle(ButtonStyle.Secondary),
-          new ButtonBuilder()
-            .setCustomId(`session_info_${userId}`)
-            .setLabel('📊 Info da Sessão')
-            .setStyle(ButtonStyle.Secondary),
-          new ButtonBuilder()
-            .setCustomId(`session_participants_${userId}`)
-            .setLabel('👤 Participantes')
-            .setStyle(ButtonStyle.Secondary)
-        );
+      const secondaryButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId('ranking_presence')
+          .setLabel('🏆 Ver Ranking')
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId(`session_info_${userId}`)
+          .setLabel('📊 Info da Sessão')
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId(`session_participants_${userId}`)
+          .setLabel('👤 Participantes')
+          .setStyle(ButtonStyle.Secondary)
+      );
 
       const response = await interaction.editReply({
         embeds: [successEmbed],
-        components: [actionButtons, secondaryButtons]
+        components: [actionButtons, secondaryButtons],
       });
 
       // Setup button collector
-      setupButtonCollector(response, interaction as ChatInputCommandInteraction, presenceService, userId, guildId, channelResult);
+      setupButtonCollector(
+        response,
+        interaction as ChatInputCommandInteraction,
+        presenceService,
+        userId,
+        guildId,
+        channelResult
+      );
 
       logger.info(`User ${userId} checked in successfully for ${tipo} session`);
-
     } catch (error) {
       logger.error('Error in checkin command:', error);
-      
+
       const errorEmbed = new EmbedBuilder()
         .setTitle('❌ Erro Interno')
-        .setDescription('Ocorreu um erro ao processar seu check-in. Tente novamente em alguns instantes.')
+        .setDescription(
+          'Ocorreu um erro ao processar seu check-in. Tente novamente em alguns instantes.'
+        )
         .setColor(0xff0000)
         .setTimestamp();
 
@@ -346,7 +367,7 @@ function getTipoDisplayName(tipo: string): string {
     mm: '🎯 Matchmaking',
     scrim: '⚔️ Scrim',
     campeonato: '🏆 Campeonato',
-    ranked: '🎖️ Ranked'
+    ranked: '🎖️ Ranked',
   };
   return displayNames[tipo] || tipo;
 }
@@ -359,7 +380,7 @@ function calculateSessionXP(tipo: string): number {
     mm: 25,
     scrim: 50,
     campeonato: 100,
-    ranked: 75
+    ranked: 75,
   };
   return xpValues[tipo] || 25;
 }
@@ -376,16 +397,16 @@ async function createSessionChannels(
   try {
     const guild = interaction.guild!;
     const member = interaction.member!;
-    
+
     // Find or create category
     let category: CategoryChannel | null = null;
     const categoryName = tipo === 'mm' ? '🎯 Matchmaking' : `🎮 ${sessionName}`;
-    
-    category = guild.channels.cache.find(
-      (channel): channel is CategoryChannel => 
-        channel.type === ChannelType.GuildCategory && 
-        channel.name === categoryName
-    ) || null;
+
+    category =
+      guild.channels.cache.find(
+        (channel): channel is CategoryChannel =>
+          channel.type === ChannelType.GuildCategory && channel.name === categoryName
+      ) || null;
 
     if (!category) {
       category = await guild.channels.create({
@@ -402,12 +423,14 @@ async function createSessionChannels(
 
     // Get configuration for this session type
     const config = getChannelConfig(tipo);
-    
+
     // Create voice channel
-    const voiceChannelName = nome 
-      ? `🔊 ${nome}` 
-      : (tipo === 'mm' ? `🔊 ${interaction.user.displayName}` : `🔊 ${sessionName}`);
-    
+    const voiceChannelName = nome
+      ? `🔊 ${nome}`
+      : tipo === 'mm'
+        ? `🔊 ${interaction.user.displayName}`
+        : `🔊 ${sessionName}`;
+
     const voiceChannel = await guild.channels.create({
       name: voiceChannelName,
       type: ChannelType.GuildVoice,
@@ -416,7 +439,11 @@ async function createSessionChannels(
       permissionOverwrites: [
         {
           id: guild.roles.everyone.id,
-          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak],
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.Connect,
+            PermissionFlagsBits.Speak,
+          ],
         },
       ],
     });
@@ -424,10 +451,10 @@ async function createSessionChannels(
     // Create text channel if needed
     let textChannel: TextChannel | undefined;
     if (config.createTextChannel) {
-      const textChannelName = nome 
-        ? `💬 ${nome.toLowerCase().replace(/\s+/g, '-')}` 
+      const textChannelName = nome
+        ? `💬 ${nome.toLowerCase().replace(/\s+/g, '-')}`
         : `💬 ${sessionName.toLowerCase().replace(/\s+/g, '-')}`;
-      
+
       textChannel = await guild.channels.create({
         name: textChannelName,
         type: ChannelType.GuildText,
@@ -436,7 +463,11 @@ async function createSessionChannels(
         permissionOverwrites: [
           {
             id: guild.roles.everyone.id,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+              PermissionFlagsBits.ReadMessageHistory,
+            ],
           },
         ],
       });
@@ -444,7 +475,9 @@ async function createSessionChannels(
       // Send welcome message in text channel
       const welcomeEmbed = new EmbedBuilder()
         .setTitle(`🎮 ${nome || sessionName}`)
-        .setDescription(`Canal criado para a sessão de **${getTipoDisplayName(tipo)}**\n\nBoa sorte e divirtam-se! 🎯`)
+        .setDescription(
+          `Canal criado para a sessão de **${getTipoDisplayName(tipo)}**\n\nBoa sorte e divirtam-se! 🎯`
+        )
         .setColor(0x00ff00)
         .setTimestamp();
 
@@ -455,7 +488,6 @@ async function createSessionChannels(
     scheduleChannelCleanup(voiceChannel, textChannel, tipo);
 
     return { voiceChannel, textChannel };
-
   } catch (error) {
     console.error('Error creating session channels:', error);
     return {};
@@ -465,19 +497,23 @@ async function createSessionChannels(
 /**
  * Check and award presence-related badges
  */
-async function checkPresenceBadges(badgeService: BadgeService, userId: string, tipo: string): Promise<void> {
+async function checkPresenceBadges(
+  badgeService: BadgeService,
+  userId: string,
+  tipo: string
+): Promise<void> {
   try {
     // Award first check-in badge
     await badgeService.awardBadge(userId, 'first_checkin', false);
-    
+
     // Award type-specific badges
     const typeBadges: Record<string, string> = {
       mm: 'mm_player',
       scrim: 'scrim_warrior',
       campeonato: 'tournament_fighter',
-      ranked: 'ranked_grinder'
+      ranked: 'ranked_grinder',
     };
-    
+
     if (typeBadges[tipo]) {
       await badgeService.awardBadge(userId, typeBadges[tipo], false);
     }
@@ -508,11 +544,13 @@ function setupButtonCollector(
       `invite_players_${userId}`,
       `confirm_presence_${userId}`,
       `session_participants_${userId}`,
-      'ranking_presence'
+      'ranking_presence',
     ];
-    
-    const isOwnerOnly = !allowedForAll.some(id => buttonInteraction.customId.includes(id.replace(`_${userId}`, '')));
-    
+
+    const isOwnerOnly = !allowedForAll.some(id =>
+      buttonInteraction.customId.includes(id.replace(`_${userId}`, ''))
+    );
+
     if (isOwnerOnly && buttonInteraction.user.id !== userId) {
       await buttonInteraction.reply({
         content: '❌ Você não pode usar os botões de outro usuário!',
@@ -524,8 +562,12 @@ function setupButtonCollector(
     try {
       if (buttonInteraction.customId === `checkout_${userId}`) {
         // Handle checkout via button
-        const checkoutResult = await presenceService.checkOut(guildId, userId, 'Check-out via botão');
-        
+        const checkoutResult = await presenceService.checkOut(
+          guildId,
+          userId,
+          'Check-out via botão'
+        );
+
         const embed = new EmbedBuilder()
           .setTitle(checkoutResult.success ? '✅ Check-out Realizado' : '❌ Erro no Check-out')
           .setDescription(checkoutResult.message)
@@ -533,18 +575,17 @@ function setupButtonCollector(
           .setTimestamp();
 
         await buttonInteraction.reply({ embeds: [embed], ephemeral: true });
-        
+
         if (checkoutResult.success) {
           // Disable buttons after successful checkout
-          const disabledButtons = new ActionRowBuilder<ButtonBuilder>()
-            .addComponents(
-              new ButtonBuilder()
-                .setCustomId('checkout_disabled')
-                .setLabel('✅ Check-out Realizado')
-                .setStyle(ButtonStyle.Success)
-                .setDisabled(true)
-            );
-          
+          const disabledButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+              .setCustomId('checkout_disabled')
+              .setLabel('✅ Check-out Realizado')
+              .setStyle(ButtonStyle.Success)
+              .setDisabled(true)
+          );
+
           await response.edit({ components: [disabledButtons] });
         }
       } else if (buttonInteraction.customId === `invite_players_${userId}`) {
@@ -552,29 +593,28 @@ function setupButtonCollector(
         const inviteEmbed = new EmbedBuilder()
           .setTitle('👥 Convidar Jogadores')
           .setDescription(
-            `**Como convidar jogadores para a sessão:**\n\n` +
-            `🔊 **Canal de Voz:** ${channelResult.voiceChannel ? `<#${channelResult.voiceChannel.id}>` : 'Não disponível'}\n` +
-            `💬 **Canal de Texto:** ${channelResult.textChannel ? `<#${channelResult.textChannel.id}>` : 'Não disponível'}\n\n` +
-            `📋 **Instruções:**\n` +
-            `• Compartilhe os links dos canais com seus amigos\n` +
-            `• Eles podem entrar diretamente nos canais\n` +
-            `• Use o botão "✅ Confirmar Presença" quando chegarem\n` +
-            `• O criador da sessão pode fazer check-out por todos`
+            '**Como convidar jogadores para a sessão:**\n\n' +
+              `🔊 **Canal de Voz:** ${channelResult.voiceChannel ? `<#${channelResult.voiceChannel.id}>` : 'Não disponível'}\n` +
+              `💬 **Canal de Texto:** ${channelResult.textChannel ? `<#${channelResult.textChannel.id}>` : 'Não disponível'}\n\n` +
+              '📋 **Instruções:**\n' +
+              '• Compartilhe os links dos canais com seus amigos\n' +
+              '• Eles podem entrar diretamente nos canais\n' +
+              '• Use o botão "✅ Confirmar Presença" quando chegarem\n' +
+              '• O criador da sessão pode fazer check-out por todos'
           )
           .setColor(0x00ff00)
           .setTimestamp();
 
         await buttonInteraction.reply({ embeds: [inviteEmbed], ephemeral: true });
-        
       } else if (buttonInteraction.customId === `confirm_presence_${userId}`) {
         // Handle presence confirmation
         const confirmingUser = buttonInteraction.user;
         const isInVoiceChannel = channelResult.voiceChannel?.members.has(confirmingUser.id);
-        
+
         if (!isInVoiceChannel) {
           await buttonInteraction.reply({
             content: `❌ Você precisa estar no canal de voz ${channelResult.voiceChannel ? `<#${channelResult.voiceChannel.id}>` : ''} para confirmar presença!`,
-            ephemeral: true
+            ephemeral: true,
           });
           return;
         }
@@ -584,43 +624,43 @@ function setupButtonCollector(
           .setTitle('✅ Presença Confirmada!')
           .setDescription(
             `${confirmingUser.displayName} confirmou presença na sessão!\n\n` +
-            `⏰ **Confirmado em:** <t:${Math.floor(Date.now() / 1000)}:F>\n` +
-            `🔊 **Canal:** ${channelResult.voiceChannel ? `<#${channelResult.voiceChannel.id}>` : 'N/A'}\n\n` +
-            `💡 **Lembre-se:** Faça check-out quando sair para evitar penalidades!`
+              `⏰ **Confirmado em:** <t:${Math.floor(Date.now() / 1000)}:F>\n` +
+              `🔊 **Canal:** ${channelResult.voiceChannel ? `<#${channelResult.voiceChannel.id}>` : 'N/A'}\n\n` +
+              '💡 **Lembre-se:** Faça check-out quando sair para evitar penalidades!'
           )
           .setColor(0x00ff00)
           .setThumbnail(confirmingUser.displayAvatarURL())
           .setTimestamp();
 
         await buttonInteraction.reply({ embeds: [confirmEmbed], ephemeral: true });
-        
+
         // Notify in text channel if available
         if (channelResult.textChannel) {
           const notificationEmbed = new EmbedBuilder()
             .setDescription(`✅ ${confirmingUser.displayName} confirmou presença na sessão!`)
             .setColor(0x00ff00)
             .setTimestamp();
-          
+
           await channelResult.textChannel.send({ embeds: [notificationEmbed] });
         }
-        
       } else if (buttonInteraction.customId === `session_participants_${userId}`) {
         // Show session participants
         const voiceMembers = channelResult.voiceChannel?.members;
-        const participantsList = voiceMembers?.map(member => `• ${member.displayName}`).join('\n') || 'Nenhum participante no canal de voz';
-        
+        const participantsList =
+          voiceMembers?.map(member => `• ${member.displayName}`).join('\n') ||
+          'Nenhum participante no canal de voz';
+
         const participantsEmbed = new EmbedBuilder()
           .setTitle('👤 Participantes da Sessão')
           .setDescription(
             `**Canal de Voz:** ${channelResult.voiceChannel ? `<#${channelResult.voiceChannel.id}>` : 'N/A'}\n\n` +
-            `**Participantes Ativos (${voiceMembers?.size || 0}):**\n${participantsList}\n\n` +
-            `💡 **Dica:** Use "✅ Confirmar Presença" para registrar sua participação!`
+              `**Participantes Ativos (${voiceMembers?.size || 0}):**\n${participantsList}\n\n` +
+              '💡 **Dica:** Use "✅ Confirmar Presença" para registrar sua participação!'
           )
           .setColor(0x3498db)
           .setTimestamp();
 
         await buttonInteraction.reply({ embeds: [participantsEmbed], ephemeral: true });
-        
       } else if (buttonInteraction.customId === 'ranking_presence') {
         // Show presence ranking
         await buttonInteraction.reply({
@@ -655,15 +695,14 @@ function setupButtonCollector(
   collector.on('end', async () => {
     try {
       // Disable buttons after collector expires
-      const expiredButtons = new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId('expired')
-            .setLabel('⏰ Botões Expirados')
-            .setStyle(ButtonStyle.Secondary)
-            .setDisabled(true)
-        );
-      
+      const expiredButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId('expired')
+          .setLabel('⏰ Botões Expirados')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true)
+      );
+
       await response.edit({ components: [expiredButtons] });
     } catch (error) {
       // Ignore errors when editing expired messages
@@ -682,7 +721,7 @@ function scheduleChannelCleanup(
   // Get configuration for this session type
   const config = getChannelConfig(tipo);
   const cleanupTime = config.cleanupTime;
-  
+
   console.log(`Canais programados para limpeza automática em ${formatCleanupTime(cleanupTime)}`);
 
   // Schedule voice channel cleanup
@@ -713,7 +752,7 @@ function scheduleChannelCleanup(
           if (updatedChannel) {
             const messages = await updatedChannel.messages.fetch({ limit: 5 });
             const userMessages = messages.filter(msg => !msg.author.bot);
-            
+
             // Remove if no recent user activity
             if (userMessages.size <= 1) {
               await updatedChannel.delete('Limpeza automática - tempo limite atingido');

@@ -531,27 +531,28 @@ export class ChallengeService {
    * Generate daily challenge set (ALGORITMO REBALANCEADO)
    */
   private generateDailyChallengeSet(): ChallengeDefinition[] {
-    const availableTemplates = Array.from(this.challengeTemplates.values())
-      .filter(template => template.isActive && template.timeLimit === 24);
-    
+    const availableTemplates = Array.from(this.challengeTemplates.values()).filter(
+      template => template.isActive && template.timeLimit === 24
+    );
+
     // Categorizar desafios por dificuldade
     const easyTemplates = availableTemplates.filter(t => t.difficulty === 'easy');
     const mediumTemplates = availableTemplates.filter(t => t.difficulty === 'medium');
     const hardTemplates = availableTemplates.filter(t => t.difficulty === 'hard');
     const extremeTemplates = availableTemplates.filter(t => t.difficulty === 'extreme');
-    
+
     const selectedChallenges: ChallengeDefinition[] = [];
-    
+
     // Algoritmo balanceado baseado no dia da semana
     const dayOfWeek = new Date().getDay();
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    
+
     if (isWeekend) {
       // Fins de semana: mais desafios e maior dificuldade
       selectedChallenges.push(...this.selectRandomChallenges(easyTemplates, 2));
       selectedChallenges.push(...this.selectRandomChallenges(mediumTemplates, 2));
       selectedChallenges.push(...this.selectRandomChallenges(hardTemplates, 1));
-      
+
       // 20% chance de desafio extremo no fim de semana
       if (Math.random() < 0.2 && extremeTemplates.length > 0) {
         selectedChallenges.push(...this.selectRandomChallenges(extremeTemplates, 1));
@@ -560,42 +561,40 @@ export class ChallengeService {
       // Dias de semana: balanceamento padrão
       selectedChallenges.push(...this.selectRandomChallenges(easyTemplates, 2));
       selectedChallenges.push(...this.selectRandomChallenges(mediumTemplates, 1));
-      
+
       // 40% chance de desafio difícil em dias de semana
       if (Math.random() < 0.4 && hardTemplates.length > 0) {
         selectedChallenges.push(...this.selectRandomChallenges(hardTemplates, 1));
       }
-      
+
       // 5% chance de desafio extremo em dias de semana
       if (Math.random() < 0.05 && extremeTemplates.length > 0) {
         selectedChallenges.push(...this.selectRandomChallenges(extremeTemplates, 1));
       }
     }
-    
+
     // Garantir diversidade de tipos de desafio
     const challengeTypes = selectedChallenges.map(c => c.type);
     const uniqueTypes = new Set(challengeTypes);
-    
+
     // Se há muita repetição de tipos, substituir alguns
     if (uniqueTypes.size < Math.max(2, selectedChallenges.length - 2)) {
       const typeCount = new Map<string, number>();
       challengeTypes.forEach(type => {
         typeCount.set(type, (typeCount.get(type) || 0) + 1);
       });
-      
+
       // Encontrar tipo mais repetido e substituir um desafio
-      const mostRepeatedType = Array.from(typeCount.entries())
-        .sort((a, b) => b[1] - a[1])[0]?.[0];
-      
+      const mostRepeatedType = Array.from(typeCount.entries()).sort((a, b) => b[1] - a[1])[0]?.[0];
+
       const indexToReplace = selectedChallenges.findIndex(c => c.type === mostRepeatedType);
       if (indexToReplace !== -1) {
         const challengeToReplace = selectedChallenges[indexToReplace];
         if (challengeToReplace && mostRepeatedType) {
-          const alternativeTemplates = availableTemplates.filter(t => 
-            t.type !== mostRepeatedType && 
-            t.difficulty === challengeToReplace.difficulty
+          const alternativeTemplates = availableTemplates.filter(
+            t => t.type !== mostRepeatedType && t.difficulty === challengeToReplace.difficulty
           );
-          
+
           if (alternativeTemplates.length > 0) {
             const replacement = this.selectRandomChallenges(alternativeTemplates, 1)[0];
             if (replacement) {
@@ -605,7 +604,7 @@ export class ChallengeService {
         }
       }
     }
-    
+
     return selectedChallenges;
   }
 

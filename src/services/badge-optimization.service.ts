@@ -15,7 +15,17 @@ export interface OptimizedBadgeDefinition extends Omit<BadgeDefinition, 'rarity'
   exclusiveUntil?: Date; // Time-limited exclusivity
   dynamicRequirements?: boolean; // Requirements change based on season/meta
   seasonId?: string; // PUBG season specific
-  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'exclusive' | 'founder' | 'seasonal' | 'limited';
+  rarity:
+    | 'common'
+    | 'uncommon'
+    | 'rare'
+    | 'epic'
+    | 'legendary'
+    | 'mythic'
+    | 'exclusive'
+    | 'founder'
+    | 'seasonal'
+    | 'limited';
   completionRate?: number;
   popularity?: number;
   lastUpdated?: Date;
@@ -72,16 +82,16 @@ export class BadgeOptimizationService {
 
   // Enhanced rarity system
   private readonly enhancedRarityColors: Record<string, string> = {
-    common: '#95A5A6',      // Gray
-    uncommon: '#2ECC71',    // Green
-    rare: '#3498DB',        // Blue
-    epic: '#9B59B6',        // Purple
-    legendary: '#F39C12',   // Orange
-    mythic: '#E74C3C',      // Red
-    exclusive: '#FF1493',   // Deep Pink
-    founder: '#FFD700',     // Gold
-    seasonal: '#00CED1',    // Dark Turquoise
-    limited: '#FF4500',     // Orange Red
+    common: '#95A5A6', // Gray
+    uncommon: '#2ECC71', // Green
+    rare: '#3498DB', // Blue
+    epic: '#9B59B6', // Purple
+    legendary: '#F39C12', // Orange
+    mythic: '#E74C3C', // Red
+    exclusive: '#FF1493', // Deep Pink
+    founder: '#FFD700', // Gold
+    seasonal: '#00CED1', // Dark Turquoise
+    limited: '#FF4500', // Orange Red
   };
 
   private readonly enhancedRarityEmojis: Record<string, string> = {
@@ -118,7 +128,7 @@ export class BadgeOptimizationService {
       await this.loadDynamicRules();
       await this.initializeSeasonalBadges();
       await this.setupAutomaticOptimizations();
-      
+
       this.logger.info('Badge optimization service initialized successfully');
     } catch (error) {
       this.logger.error('Failed to initialize badge optimization service:', error);
@@ -134,7 +144,13 @@ export class BadgeOptimizationService {
         id: 'pubg_warrior',
         name: 'Guerreiro PUBG',
         description: 'Domine todos os aspectos do combate no PUBG',
-        badges: ['first_kill', 'killer_instinct', 'death_dealer', 'legendary_slayer', 'headshot_master'],
+        badges: [
+          'first_kill',
+          'killer_instinct',
+          'death_dealer',
+          'legendary_slayer',
+          'headshot_master',
+        ],
         rewards: { xp: 1000, coins: 500, role: 'pubg_warrior', title: 'Guerreiro' },
         completionBonus: 500,
       },
@@ -293,7 +309,9 @@ export class BadgeOptimizationService {
       ];
 
       this.seasonalBadges.set(currentSeason, seasonalBadges);
-      this.logger.info(`Initialized ${seasonalBadges.length} seasonal badges for season ${currentSeason}`);
+      this.logger.info(
+        `Initialized ${seasonalBadges.length} seasonal badges for season ${currentSeason}`
+      );
     } catch (error) {
       this.logger.error('Failed to initialize seasonal badges:', error);
     }
@@ -304,19 +322,28 @@ export class BadgeOptimizationService {
    */
   private async setupAutomaticOptimizations(): Promise<void> {
     // Check dynamic rules every 30 minutes
-    setInterval(async () => {
-      await this.processDynamicRules();
-    }, 30 * 60 * 1000);
+    setInterval(
+      async () => {
+        await this.processDynamicRules();
+      },
+      30 * 60 * 1000
+    );
 
     // Update seasonal badges daily
-    setInterval(async () => {
-      await this.updateSeasonalBadges();
-    }, 24 * 60 * 60 * 1000);
+    setInterval(
+      async () => {
+        await this.updateSeasonalBadges();
+      },
+      24 * 60 * 60 * 1000
+    );
 
     // Optimize badge difficulty weekly
-    setInterval(async () => {
-      await this.optimizeBadgeDifficulty();
-    }, 7 * 24 * 60 * 60 * 1000);
+    setInterval(
+      async () => {
+        await this.optimizeBadgeDifficulty();
+      },
+      7 * 24 * 60 * 60 * 1000
+    );
 
     this.logger.info('Automatic optimization processes started');
   }
@@ -349,7 +376,7 @@ export class BadgeOptimizationService {
       const awardedBadges: string[] = [];
       // Get PUBG stats - integrate with PUBG service when getUserStats is available
       const pubgStats = null;
-      
+
       if (!pubgStats) {
         return awardedBadges;
       }
@@ -398,7 +425,11 @@ export class BadgeOptimizationService {
             const awarded = await this.badgeService.awardBadge(userId, badgeId);
             if (awarded) {
               awardedBadges.push(badge.name);
-              await this.cache.set(`dynamic_badge_${ruleId}_${userId}`, Date.now().toString(), rule.cooldown * 60);
+              await this.cache.set(
+                `dynamic_badge_${ruleId}_${userId}`,
+                Date.now().toString(),
+                rule.cooldown * 60
+              );
             }
           }
         } catch (error) {
@@ -480,17 +511,20 @@ export class BadgeOptimizationService {
   private async updateBadgeMetadata(badgeId: string): Promise<void> {
     try {
       const totalUsers = await this.database.client.user.count();
-       const badgeHolders = await this.database.client.userBadge.count({ where: { badgeId } });
-      
-      const completionRate = totalUsers > 0 ? (badgeHolders / totalUsers) * 100 : 0;
-      
-      // Update badge metadata in cache
-      await this.cache.set(`badge_metadata_${badgeId}`, JSON.stringify({
-        completionRate,
-        lastUpdated: new Date().toISOString(),
-        totalHolders: badgeHolders,
-      }), 24 * 60 * 60); // 24 hours
+      const badgeHolders = await this.database.client.userBadge.count({ where: { badgeId } });
 
+      const completionRate = totalUsers > 0 ? (badgeHolders / totalUsers) * 100 : 0;
+
+      // Update badge metadata in cache
+      await this.cache.set(
+        `badge_metadata_${badgeId}`,
+        JSON.stringify({
+          completionRate,
+          lastUpdated: new Date().toISOString(),
+          totalHolders: badgeHolders,
+        }),
+        24 * 60 * 60
+      ); // 24 hours
     } catch (error) {
       this.logger.error(`Failed to update metadata for badge ${badgeId}:`, error);
     }
@@ -506,7 +540,9 @@ export class BadgeOptimizationService {
 
       for (const badge of badges) {
         const metadata = await this.cache.get(`badge_metadata_${badge.id}`);
-        if (!metadata) continue;
+        if (!metadata) {
+          continue;
+        }
 
         const data = metadata ? JSON.parse(metadata as string) : {};
         const completionRate = data.completionRate;
@@ -535,7 +571,9 @@ export class BadgeOptimizationService {
   private async adjustBadgeRequirements(badgeId: string, multiplier: number): Promise<void> {
     try {
       const badge = this.badgeService.getBadge(badgeId);
-      if (!badge) return;
+      if (!badge) {
+        return;
+      }
 
       const adjustedRequirements = badge.requirements.map(req => {
         if (typeof req.value === 'number') {
@@ -578,7 +616,7 @@ export class BadgeOptimizationService {
 
         // Check if all badges in collection are owned
         const hasAllBadges = collection.badges.every(badgeId => userBadgeIds.has(badgeId));
-        
+
         if (hasAllBadges) {
           // Award collection badge
           const collectionBadge: OptimizedBadgeDefinition = {
@@ -598,7 +636,7 @@ export class BadgeOptimizationService {
           const awarded = await this.badgeService.awardBadge(userId, collectionBadge.id);
           if (awarded) {
             awardedCollections.push(collection.name);
-            
+
             // Award completion bonus
             if (collection.completionBonus > 0) {
               // XP bonus for collection completion - integrate with XP system when available
@@ -628,34 +666,45 @@ export class BadgeOptimizationService {
   }> {
     try {
       const badges = await this.database.badges.findAll();
-       const userBadges = await this.database.client.userBadge.findMany();
-      
+      const userBadges = await this.database.client.userBadge.findMany();
+
       const totalBadges = badges.length;
       const usersWithBadges = new Set(userBadges.map(ub => ub.userId)).size;
-      
+
       // Find rarest badge (least awarded)
-      const badgeCounts = userBadges.reduce((acc, ub) => {
-        acc[ub.badgeId] = (acc[ub.badgeId] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-      
-      const rarest = badges.find(b => badgeCounts[b.id] === Math.min(...Object.values(badgeCounts)));
-      const mostPopular = badges.find(b => badgeCounts[b.id] === Math.max(...Object.values(badgeCounts)));
-      
+      const badgeCounts = userBadges.reduce(
+        (acc, ub) => {
+          acc[ub.badgeId] = (acc[ub.badgeId] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
+
+      const rarest = badges.find(
+        b => badgeCounts[b.id] === Math.min(...Object.values(badgeCounts))
+      );
+      const mostPopular = badges.find(
+        b => badgeCounts[b.id] === Math.max(...Object.values(badgeCounts))
+      );
+
       // Badges granted today
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const badgesGrantedToday = userBadges.filter(ub => ub.earnedAt >= today).length;
-      
+
       // Completion rate
-      const completionRate = totalBadges > 0 ? (userBadges.length / (totalBadges * usersWithBadges)) * 100 : 0;
-      
+      const completionRate =
+        totalBadges > 0 ? (userBadges.length / (totalBadges * usersWithBadges)) * 100 : 0;
+
       // Rarity distribution
-      const rarityDistribution = badges.reduce((acc, badge) => {
-        acc[badge.rarity] = (acc[badge.rarity] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-      
+      const rarityDistribution = badges.reduce(
+        (acc, badge) => {
+          acc[badge.rarity] = (acc[badge.rarity] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
+
       return {
         totalBadges,
         usersWithBadges,
@@ -663,7 +712,7 @@ export class BadgeOptimizationService {
         mostPopular: mostPopular?.name || 'N/A',
         badgesGrantedToday,
         completionRate,
-        rarityDistribution
+        rarityDistribution,
       };
     } catch (error) {
       this.logger.error('Failed to get badge system stats:', error);
@@ -685,7 +734,7 @@ export class BadgeOptimizationService {
   }> {
     try {
       const basicStats = await this.badgeService.getBadgeStats();
-      
+
       // Collection completion stats
       const collectionStats: Record<string, number> = {};
       for (const [collectionId, collection] of this.collections) {
@@ -701,8 +750,8 @@ export class BadgeOptimizationService {
         let seasonTotal = 0;
         for (const badge of badges) {
           const count = await this.database.client.userBadge.count({
-             where: { badgeId: badge.id },
-           });
+            where: { badgeId: badge.id },
+          });
           seasonTotal += count;
         }
         seasonalStats[seasonId] = seasonTotal;
@@ -804,7 +853,7 @@ export class BadgeOptimizationService {
         // Convert to compatible badge format
         const compatibleBadge = {
           ...badge,
-          rarity: badge.rarity as 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic'
+          rarity: badge.rarity as 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic',
         };
         await this.badgeService.createCustomBadge(compatibleBadge);
       }
@@ -823,7 +872,7 @@ export class BadgeOptimizationService {
       const awarded = await this.badgeService.awardBadge(founderId, 'founder');
       if (awarded) {
         this.logger.info(`Awarded founder badge to user ${founderId}`);
-        
+
         // Send special notification
         await this.sendFounderNotification(founderId);
       }
@@ -840,8 +889,10 @@ export class BadgeOptimizationService {
   private async sendFounderNotification(userId: string): Promise<void> {
     try {
       const user = await this.client.users.fetch(userId);
-      const channel = this.client.channels.cache.find(c => c.type === 0 && (c as any).name === 'badges') as TextChannel;
-      
+      const channel = this.client.channels.cache.find(
+        c => c.type === 0 && (c as any).name === 'badges'
+      ) as TextChannel;
+
       if (!channel) {
         this.logger.warn('Badges channel not found for founder notification');
         return;
@@ -951,9 +1002,9 @@ export class BadgeOptimizationService {
   }> {
     try {
       let processed = 0;
-      let updated = 0;
-      let created = 0;
-      let errors = 0;
+      const updated = 0;
+      const created = 0;
+      const errors = 0;
 
       // Sync PUBG badges
       const badges = await this.database.badges.findAll();
@@ -980,7 +1031,7 @@ export class BadgeOptimizationService {
     recommendations?: string[];
   }> {
     const startTime = Date.now();
-    
+
     try {
       const badges = await this.database.badges.findAll();
       const analyzed = badges.length;
@@ -996,7 +1047,7 @@ export class BadgeOptimizationService {
       const cacheUpdated = true;
       const recommendations = [
         'Consider adding more rare badges',
-        'Review badge requirements for balance'
+        'Review badge requirements for balance',
       ];
 
       return {
@@ -1004,7 +1055,7 @@ export class BadgeOptimizationService {
         optimized,
         executionTime,
         cacheUpdated,
-        recommendations
+        recommendations,
       };
     } catch (error) {
       this.logger.error('Failed to run optimization:', error);
@@ -1015,12 +1066,17 @@ export class BadgeOptimizationService {
   /**
    * Get user's collection progress
    */
-  public async getUserCollectionProgress(userId: string): Promise<Record<string, {
-    completed: number;
-    total: number;
-    percentage: number;
-    isComplete: boolean;
-  }>> {
+  public async getUserCollectionProgress(userId: string): Promise<
+    Record<
+      string,
+      {
+        completed: number;
+        total: number;
+        percentage: number;
+        isComplete: boolean;
+      }
+    >
+  > {
     try {
       const userBadges = this.badgeService.getUserBadges(userId);
       const userBadgeIds = new Set(userBadges.map(b => b.id));

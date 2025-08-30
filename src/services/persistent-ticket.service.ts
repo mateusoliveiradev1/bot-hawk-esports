@@ -11,7 +11,7 @@ import {
   User,
   GuildMember,
   ButtonInteraction,
-  Guild
+  Guild,
 } from 'discord.js';
 import { Logger } from '../utils/logger';
 import { DatabaseService } from '../database/database.service';
@@ -55,14 +55,14 @@ export class PersistentTicketService {
     this.logger = new Logger();
     this.database = client.database;
     this.client = client;
-    
+
     try {
       this.ticketService = new TicketService(client);
       this.loggingService = new LoggingService(client, client.database);
-      
+
       this.loadConfigurations();
       this.setupEventListeners();
-      
+
       this.logger.info('PersistentTicketService initialized successfully');
     } catch (error) {
       this.logger.error('Failed to initialize PersistentTicketService:', error);
@@ -84,12 +84,12 @@ export class PersistentTicketService {
       const configs = await this.database.client.persistentTicketConfig.findMany();
       let loadedCount = 0;
       let skippedCount = 0;
-      
+
       for (const config of configs) {
         try {
           // Validate required fields
           if (!config.guildId || !config.channelId) {
-            this.logger.warn(`Skipping invalid config: missing guildId or channelId`, config);
+            this.logger.warn('Skipping invalid config: missing guildId or channelId', config);
             skippedCount++;
             continue;
           }
@@ -103,7 +103,7 @@ export class PersistentTicketService {
             logChannelId: config.logChannelId || undefined,
             maxTicketsPerUser: Math.max(1, Math.min(config.maxTicketsPerUser || 3, 10)),
             autoClose: Boolean(config.autoClose),
-            autoCloseHours: Math.max(1, Math.min(config.autoCloseHours || 24, 168)) // Max 1 week
+            autoCloseHours: Math.max(1, Math.min(config.autoCloseHours || 24, 168)), // Max 1 week
           };
 
           this.configs.set(config.guildId, normalizedConfig);
@@ -113,9 +113,11 @@ export class PersistentTicketService {
           skippedCount++;
         }
       }
-      
-      this.logger.info(`Loaded ${loadedCount} persistent ticket configurations (${skippedCount} skipped due to errors)`);
-      
+
+      this.logger.info(
+        `Loaded ${loadedCount} persistent ticket configurations (${skippedCount} skipped due to errors)`
+      );
+
       // Initialize embeds for all configured guilds
       if (loadedCount > 0) {
         await this.initializeAllEmbeds();
@@ -130,13 +132,17 @@ export class PersistentTicketService {
    */
   private setupEventListeners(): void {
     try {
-      this.client.on('interactionCreate', async (interaction) => {
+      this.client.on('interactionCreate', async interaction => {
         try {
-          if (!interaction.isButton()) return;
-          if (!interaction.guildId) return;
-          
+          if (!interaction.isButton()) {
+            return;
+          }
+          if (!interaction.guildId) {
+            return;
+          }
+
           const customId = interaction.customId;
-          
+
           if (customId && customId.startsWith('ticket_')) {
             await this.handleTicketButton(interaction);
           }
@@ -144,7 +150,7 @@ export class PersistentTicketService {
           this.logger.error('Error in interaction event handler:', error);
         }
       });
-      
+
       this.logger.debug('Event listeners setup successfully');
     } catch (error) {
       this.logger.error('Failed to setup event listeners:', error);
@@ -168,7 +174,7 @@ export class PersistentTicketService {
         this.logger.warn(`Invalid customId format: ${interaction.customId}`);
         await interaction.reply({
           content: '❌ Formato de botão inválido.',
-          ephemeral: true
+          ephemeral: true,
         });
         return;
       }
@@ -176,19 +182,21 @@ export class PersistentTicketService {
       const action = customIdParts[1];
       const guildId = interaction.guildId;
       const userId = interaction.user.id;
-      
+
       // Check if guild has persistent ticket configuration
       const config = this.configs.get(guildId);
       if (!config) {
         await interaction.reply({
           content: '❌ Sistema de tickets não configurado neste servidor.',
-          ephemeral: true
+          ephemeral: true,
         });
         return;
       }
-      
-      this.logger.debug(`Processing ticket button action: ${action} for user ${userId} in guild ${guildId}`);
-      
+
+      this.logger.debug(
+        `Processing ticket button action: ${action} for user ${userId} in guild ${guildId}`
+      );
+
       switch (action) {
         case 'create':
           await this.handleCreateTicket(interaction, guildId, userId);
@@ -203,21 +211,21 @@ export class PersistentTicketService {
           this.logger.warn(`Unknown ticket action: ${action}`);
           await interaction.reply({
             content: '❌ Ação não reconhecida.',
-            ephemeral: true
+            ephemeral: true,
           });
       }
     } catch (error) {
       this.logger.error('Error handling ticket button:', error);
-      
+
       try {
         if (!interaction.replied && !interaction.deferred) {
           await interaction.reply({
             content: '❌ Ocorreu um erro ao processar sua solicitação.',
-            ephemeral: true
+            ephemeral: true,
           });
         } else if (interaction.deferred) {
           await interaction.editReply({
-            content: '❌ Ocorreu um erro ao processar sua solicitação.'
+            content: '❌ Ocorreu um erro ao processar sua solicitação.',
           });
         }
       } catch (replyError) {
@@ -240,7 +248,7 @@ export class PersistentTicketService {
         this.logger.warn('Invalid parameters for ticket creation');
         await interaction.reply({
           content: '❌ Dados inválidos para criação de ticket.',
-          ephemeral: true
+          ephemeral: true,
         });
         return;
       }
@@ -250,7 +258,7 @@ export class PersistentTicketService {
         this.logger.warn(`No persistent ticket config found for guild ${guildId}`);
         await interaction.reply({
           content: '❌ Sistema de tickets não configurado neste servidor.',
-          ephemeral: true
+          ephemeral: true,
         });
         return;
       }
@@ -258,21 +266,22 @@ export class PersistentTicketService {
       // Check if user already has maximum tickets
       let userTickets: any[] = [];
       try {
-        userTickets = this.ticketService.getUserTickets(guildId, userId)
+        userTickets = this.ticketService
+          .getUserTickets(guildId, userId)
           .filter(ticket => ticket.status !== 'closed');
       } catch (error) {
         this.logger.error('Error getting user tickets:', error);
         await interaction.reply({
           content: '❌ Erro ao verificar tickets existentes.',
-          ephemeral: true
+          ephemeral: true,
         });
         return;
       }
-      
+
       if (userTickets.length >= config.maxTicketsPerUser) {
         await interaction.reply({
           content: `❌ Você já possui ${config.maxTicketsPerUser} ticket(s) aberto(s). Feche um ticket existente antes de criar um novo.`,
-          ephemeral: true
+          ephemeral: true,
         });
         return;
       }
@@ -291,7 +300,7 @@ export class PersistentTicketService {
       if (!result.success) {
         this.logger.warn(`Failed to create ticket: ${result.message}`);
         await interaction.editReply({
-          content: `❌ ${result.message}`
+          content: `❌ ${result.message}`,
         });
         return;
       }
@@ -299,7 +308,7 @@ export class PersistentTicketService {
       if (!result.ticket) {
         this.logger.error('Ticket creation succeeded but no ticket data returned');
         await interaction.editReply({
-          content: '❌ Erro interno: dados do ticket não disponíveis.'
+          content: '❌ Erro interno: dados do ticket não disponíveis.',
         });
         return;
       }
@@ -307,10 +316,10 @@ export class PersistentTicketService {
       const embed = new EmbedBuilder()
         .setTitle('🎟️ Ticket Criado!')
         .setDescription(
-          `Seu ticket foi criado com sucesso!\n\n` +
-          `**Canal:** ${result.channel ? `<#${result.channel.id}>` : 'Canal não disponível'}\n` +
-          `**ID:** \`${result.ticket.id}\`\n` +
-          `**Prioridade:** ${result.ticket.priority || 'medium'}`
+          'Seu ticket foi criado com sucesso!\n\n' +
+            `**Canal:** ${result.channel ? `<#${result.channel.id}>` : 'Canal não disponível'}\n` +
+            `**ID:** \`${result.ticket.id}\`\n` +
+            `**Prioridade:** ${result.ticket.priority || 'medium'}`
         )
         .setColor(0x00ff00)
         .setTimestamp();
@@ -324,20 +333,22 @@ export class PersistentTicketService {
         this.logger.error('Failed to log ticket creation:', logError);
         // Don't fail the entire operation for logging errors
       }
-      
-      this.logger.info(`Persistent ticket created: ${result.ticket.id} for user ${userId} in guild ${guildId}`);
+
+      this.logger.info(
+        `Persistent ticket created: ${result.ticket.id} for user ${userId} in guild ${guildId}`
+      );
     } catch (error) {
       this.logger.error('Error in handleCreateTicket:', error);
-      
+
       try {
         if (!interaction.replied && !interaction.deferred) {
           await interaction.reply({
             content: '❌ Erro interno ao criar ticket.',
-            ephemeral: true
+            ephemeral: true,
           });
         } else if (interaction.deferred) {
           await interaction.editReply({
-            content: '❌ Erro interno ao criar ticket.'
+            content: '❌ Erro interno ao criar ticket.',
           });
         }
       } catch (replyError) {
@@ -359,7 +370,7 @@ export class PersistentTicketService {
     if (!channel || !channel.name.startsWith('ticket-')) {
       await interaction.reply({
         content: '❌ Este botão só funciona em canais de ticket.',
-        ephemeral: true
+        ephemeral: true,
       });
       return;
     }
@@ -369,7 +380,7 @@ export class PersistentTicketService {
     if (!ticketId) {
       await interaction.reply({
         content: '❌ Não foi possível identificar o ID do ticket.',
-        ephemeral: true
+        ephemeral: true,
       });
       return;
     }
@@ -385,7 +396,7 @@ export class PersistentTicketService {
 
     if (!result.success) {
       await interaction.editReply({
-        content: `❌ ${result.message}`
+        content: `❌ ${result.message}`,
       });
       return;
     }
@@ -409,12 +420,12 @@ export class PersistentTicketService {
   ): Promise<void> {
     const member = interaction.member as GuildMember;
     const config = this.configs.get(guildId);
-    
+
     // Check if user has support role
     if (config?.supportRoleId && !member.roles.cache.has(config.supportRoleId)) {
       await interaction.reply({
         content: '❌ Você não tem permissão para reivindicar tickets.',
-        ephemeral: true
+        ephemeral: true,
       });
       return;
     }
@@ -424,7 +435,7 @@ export class PersistentTicketService {
     if (!channel || !channel.name.startsWith('ticket-')) {
       await interaction.reply({
         content: '❌ Este botão só funciona em canais de ticket.',
-        ephemeral: true
+        ephemeral: true,
       });
       return;
     }
@@ -434,7 +445,7 @@ export class PersistentTicketService {
     if (!ticketId) {
       await interaction.reply({
         content: '❌ Não foi possível identificar o ID do ticket.',
-        ephemeral: true
+        ephemeral: true,
       });
       return;
     }
@@ -445,7 +456,7 @@ export class PersistentTicketService {
 
     if (!result.success) {
       await interaction.editReply({
-        content: `❌ ${result.message}`
+        content: `❌ ${result.message}`,
       });
       return;
     }
@@ -503,8 +514,16 @@ export class PersistentTicketService {
 
       // Check bot permissions in the channel
       const botPermissions = channel.permissionsFor(botMember);
-      if (!botPermissions?.has([PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.ViewChannel])) {
-        this.logger.warn(`Bot lacks required permissions in channel ${config.channelId} in guild ${guildId}`);
+      if (
+        !botPermissions?.has([
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.EmbedLinks,
+          PermissionFlagsBits.ViewChannel,
+        ])
+      ) {
+        this.logger.warn(
+          `Bot lacks required permissions in channel ${config.channelId} in guild ${guildId}`
+        );
         return false;
       }
 
@@ -515,7 +534,9 @@ export class PersistentTicketService {
           const existingMessage = await channel.messages.fetch(existingMessageId);
           if (existingMessage) {
             await existingMessage.delete();
-            this.logger.debug(`Deleted existing embed message ${existingMessageId} in guild ${guildId}`);
+            this.logger.debug(
+              `Deleted existing embed message ${existingMessageId} in guild ${guildId}`
+            );
           }
         } catch (error) {
           this.logger.debug(`Could not delete existing message ${existingMessageId}:`, error);
@@ -528,46 +549,48 @@ export class PersistentTicketService {
         .setTitle('🎟️ Sistema de Tickets')
         .setDescription(
           '**Precisa de ajuda?** Clique no botão abaixo para criar um ticket de suporte.\n\n' +
-          '🔹 **Suporte Geral** - Dúvidas gerais sobre o servidor\n' +
-          '🔹 **Problemas Técnicos** - Bugs ou problemas com o bot\n' +
-          '🔹 **Denúncias** - Reportar comportamento inadequado\n' +
-          '🔹 **Sugestões** - Ideias para melhorar o servidor\n\n' +
-          '⚠️ **Importante:** Não abuse do sistema de tickets. Tickets desnecessários podem resultar em punições.'
+            '🔹 **Suporte Geral** - Dúvidas gerais sobre o servidor\n' +
+            '🔹 **Problemas Técnicos** - Bugs ou problemas com o bot\n' +
+            '🔹 **Denúncias** - Reportar comportamento inadequado\n' +
+            '🔹 **Sugestões** - Ideias para melhorar o servidor\n\n' +
+            '⚠️ **Importante:** Não abuse do sistema de tickets. Tickets desnecessários podem resultar em punições.'
         )
         .setColor(0x0099ff)
         .setThumbnail(guild.iconURL() || null)
         .setFooter({
           text: 'Hawk Esports • Sistema de Tickets',
-          iconURL: this.client.user?.displayAvatarURL()
+          iconURL: this.client.user?.displayAvatarURL(),
         })
         .setTimestamp();
 
-      const buttons = new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId('ticket_create')
-            .setLabel('🎟️ Abrir Ticket')
-            .setStyle(ButtonStyle.Primary),
-          new ButtonBuilder()
-            .setCustomId('ticket_close')
-            .setLabel('❌ Fechar Ticket')
-            .setStyle(ButtonStyle.Danger),
-          new ButtonBuilder()
-            .setCustomId('ticket_claim')
-            .setLabel('👤 Reivindicar')
-            .setStyle(ButtonStyle.Secondary)
-        );
+      const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId('ticket_create')
+          .setLabel('🎟️ Abrir Ticket')
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId('ticket_close')
+          .setLabel('❌ Fechar Ticket')
+          .setStyle(ButtonStyle.Danger),
+        new ButtonBuilder()
+          .setCustomId('ticket_claim')
+          .setLabel('👤 Reivindicar')
+          .setStyle(ButtonStyle.Secondary)
+      );
 
       // Send the embed message
       let message;
       try {
         message = await channel.send({
           embeds: [embed],
-          components: [buttons]
+          components: [buttons],
         });
         this.logger.debug(`Sent persistent ticket embed message ${message.id} in guild ${guildId}`);
       } catch (sendError) {
-        this.logger.error(`Failed to send embed message in channel ${config.channelId}:`, sendError);
+        this.logger.error(
+          `Failed to send embed message in channel ${config.channelId}:`,
+          sendError
+        );
         return false;
       }
 
@@ -582,8 +605,8 @@ export class PersistentTicketService {
           create: {
             guildId,
             channelId: config.channelId,
-            messageId: message.id
-          }
+            messageId: message.id,
+          },
         });
         this.logger.debug(`Saved persistent ticket message data to database for guild ${guildId}`);
       } catch (dbError) {
@@ -594,7 +617,10 @@ export class PersistentTicketService {
       this.logger.info(`Successfully initialized persistent ticket embed for guild ${guildId}`);
       return true;
     } catch (error) {
-      this.logger.error(`Failed to initialize persistent ticket embed for guild ${guildId}:`, error);
+      this.logger.error(
+        `Failed to initialize persistent ticket embed for guild ${guildId}:`,
+        error
+      );
       return false;
     }
   }
@@ -604,14 +630,14 @@ export class PersistentTicketService {
    */
   private async initializeAllEmbeds(): Promise<void> {
     const guildIds = Array.from(this.configs.keys());
-    
+
     if (guildIds.length === 0) {
       this.logger.info('No persistent ticket configurations found to initialize');
       return;
     }
 
     this.logger.info(`Initializing persistent ticket embeds for ${guildIds.length} guilds`);
-    
+
     let successCount = 0;
     let failureCount = 0;
 
@@ -627,14 +653,16 @@ export class PersistentTicketService {
         this.logger.error(`Failed to initialize embed for guild ${guildId}:`, error);
         failureCount++;
       }
-      
+
       // Add delay to prevent rate limiting
       if (guildIds.indexOf(guildId) < guildIds.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
 
-    this.logger.info(`Embed initialization completed: ${successCount} successful, ${failureCount} failed`);
+    this.logger.info(
+      `Embed initialization completed: ${successCount} successful, ${failureCount} failed`
+    );
   }
 
   /**
@@ -684,7 +712,13 @@ export class PersistentTicketService {
       }
 
       const permissions = channel.permissionsFor(botMember);
-      if (!permissions?.has([PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.ViewChannel])) {
+      if (
+        !permissions?.has([
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.EmbedLinks,
+          PermissionFlagsBits.ViewChannel,
+        ])
+      ) {
         this.logger.error(`Bot lacks required permissions in channel ${channelId}`);
         return false;
       }
@@ -701,7 +735,7 @@ export class PersistentTicketService {
         logChannelId: options.logChannelId,
         maxTicketsPerUser,
         autoClose: options.autoClose || false,
-        autoCloseHours
+        autoCloseHours,
       };
 
       // Save to database
@@ -709,11 +743,14 @@ export class PersistentTicketService {
         await this.database.client.persistentTicketConfig.upsert({
           where: { guildId },
           update: config,
-          create: config
+          create: config,
         });
         this.logger.debug(`Saved persistent ticket configuration to database for guild ${guildId}`);
       } catch (dbError) {
-        this.logger.error(`Failed to save configuration to database for guild ${guildId}:`, dbError);
+        this.logger.error(
+          `Failed to save configuration to database for guild ${guildId}:`,
+          dbError
+        );
         return false;
       }
 
@@ -724,7 +761,9 @@ export class PersistentTicketService {
       try {
         const embedSuccess = await this.initializeEmbed(guildId);
         if (!embedSuccess) {
-          this.logger.warn(`Failed to initialize embed for guild ${guildId}, but configuration was saved`);
+          this.logger.warn(
+            `Failed to initialize embed for guild ${guildId}, but configuration was saved`
+          );
         }
       } catch (embedError) {
         this.logger.error(`Failed to initialize embed for guild ${guildId}:`, embedError);
@@ -809,13 +848,13 @@ export class PersistentTicketService {
       const actionEmojis = {
         create: '🎟️',
         close: '🔒',
-        claim: '👤'
+        claim: '👤',
       };
 
       const actionNames = {
         create: 'Criado',
         close: 'Fechado',
-        claim: 'Reivindicado'
+        claim: 'Reivindicado',
       };
 
       const embed = new EmbedBuilder()
@@ -826,20 +865,29 @@ export class PersistentTicketService {
           { name: 'Título', value: ticket.title || 'Sem título', inline: true },
           { name: 'Prioridade', value: ticket.priority || 'N/A', inline: true },
           { name: 'Status', value: ticket.status || 'N/A', inline: true },
-          { name: 'Canal', value: ticket.channelId ? `<#${ticket.channelId}>` : 'N/A', inline: true }
+          {
+            name: 'Canal',
+            value: ticket.channelId ? `<#${ticket.channelId}>` : 'N/A',
+            inline: true,
+          }
         )
         .setColor(action === 'create' ? 0x00ff00 : action === 'close' ? 0xff0000 : 0x0099ff)
         .setTimestamp()
         .setFooter({
-          text: `Hawk Esports • Sistema de Tickets`,
-          iconURL: this.client.user?.displayAvatarURL()
+          text: 'Hawk Esports • Sistema de Tickets',
+          iconURL: this.client.user?.displayAvatarURL(),
         });
 
       try {
         await (logChannel as TextChannel).send({ embeds: [embed] });
-        this.logger.debug(`Logged ticket ${action} action for ticket ${ticket.id} in guild ${guildId}`);
+        this.logger.debug(
+          `Logged ticket ${action} action for ticket ${ticket.id} in guild ${guildId}`
+        );
       } catch (sendError) {
-        this.logger.error(`Failed to send log message to channel ${config.logChannelId}:`, sendError);
+        this.logger.error(
+          `Failed to send log message to channel ${config.logChannelId}:`,
+          sendError
+        );
       }
     } catch (error) {
       this.logger.error(`Failed to log ticket action ${action} for guild ${guildId}:`, error);
@@ -874,22 +922,32 @@ export class PersistentTicketService {
       // Remove from database
       try {
         await this.database.client.persistentTicketConfig.delete({
-          where: { guildId }
+          where: { guildId },
         });
-        this.logger.debug(`Deleted persistent ticket configuration from database for guild ${guildId}`);
+        this.logger.debug(
+          `Deleted persistent ticket configuration from database for guild ${guildId}`
+        );
       } catch (dbError) {
-        this.logger.error(`Failed to delete configuration from database for guild ${guildId}:`, dbError);
+        this.logger.error(
+          `Failed to delete configuration from database for guild ${guildId}:`,
+          dbError
+        );
         // Continue with cleanup even if database deletion fails
       }
 
       // Remove message record from database
       try {
         await this.database.client.persistentTicketMessage.delete({
-          where: { guildId }
+          where: { guildId },
         });
-        this.logger.debug(`Deleted persistent ticket message record from database for guild ${guildId}`);
+        this.logger.debug(
+          `Deleted persistent ticket message record from database for guild ${guildId}`
+        );
       } catch (dbError) {
-        this.logger.error(`Failed to delete message record from database for guild ${guildId}:`, dbError);
+        this.logger.error(
+          `Failed to delete message record from database for guild ${guildId}:`,
+          dbError
+        );
         // Continue with cleanup even if database deletion fails
       }
 
@@ -900,7 +958,10 @@ export class PersistentTicketService {
       this.logger.info(`Successfully removed persistent ticket configuration for guild ${guildId}`);
       return true;
     } catch (error) {
-      this.logger.error(`Failed to remove persistent ticket configuration for guild ${guildId}:`, error);
+      this.logger.error(
+        `Failed to remove persistent ticket configuration for guild ${guildId}:`,
+        error
+      );
       return false;
     }
   }

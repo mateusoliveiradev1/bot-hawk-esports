@@ -1,10 +1,10 @@
-import { 
-  Client, 
-  GuildMember, 
-  EmbedBuilder, 
-  ActionRowBuilder, 
-  ButtonBuilder, 
-  ButtonStyle, 
+import {
+  Client,
+  GuildMember,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   TextChannel,
   ButtonInteraction,
 } from 'discord.js';
@@ -48,7 +48,7 @@ export class OnboardingService {
   async handleMemberJoin(member: GuildMember): Promise<void> {
     try {
       const config = await this.getGuildConfig(member.guild.id);
-      
+
       if (!config.onboardingEnabled) {
         this.logger.info(`Onboarding disabled for guild ${member.guild.name}`);
         return;
@@ -56,24 +56,23 @@ export class OnboardingService {
 
       // Create or update user record
       await this.createUserRecord(member);
-      
+
       // Add new member role if auto role is enabled
       if (config.autoRoleEnabled) {
         await this.addNewMemberRole(member);
       }
-      
+
       // Send welcome message to channel
       if (config.welcomeChannelId) {
         await this.sendWelcomeMessage(member, config);
       }
-      
+
       // Send welcome DM if enabled
       if (config.welcomeDMEnabled) {
         await this.sendWelcomeDM(member, config);
       }
-      
+
       this.logger.info(`Successfully onboarded member ${member.user.tag} in ${member.guild.name}`);
-      
     } catch (error) {
       this.logger.error(`Failed to handle member join for ${member.user.tag}:`, error);
     }
@@ -86,7 +85,7 @@ export class OnboardingService {
     try {
       // Use role manager to promote member
       const success = await this.roleManager.promoteToVerified(member);
-      
+
       if (success) {
         // Update database
         if (this.client.db) {
@@ -99,12 +98,11 @@ export class OnboardingService {
             },
           });
         }
-        
+
         this.logger.info(`Member ${member.user.tag} verified and promoted in ${member.guild.name}`);
       } else {
         this.logger.warn(`Failed to promote ${member.user.tag} to verified`);
       }
-      
     } catch (error) {
       this.logger.error(`Failed to handle member verification for ${member.user.tag}:`, error);
     }
@@ -117,7 +115,7 @@ export class OnboardingService {
     if (!this.client.db) {
       return;
     }
-    
+
     try {
       // Create or update user
       await this.client.db.client.user.upsert({
@@ -152,7 +150,6 @@ export class OnboardingService {
           guildId: member.guild.id,
         },
       });
-      
     } catch (error) {
       this.logger.error(`Failed to create user record for ${member.user.tag}:`, error);
     }
@@ -165,10 +162,10 @@ export class OnboardingService {
     try {
       // Initialize guild roles if needed
       await this.roleManager.initializeGuildRoles(member.guild);
-      
+
       // Add new member role using role manager
       const success = await this.roleManager.addNewMemberRole(member);
-      
+
       if (success) {
         // Setup channel permissions for the guild
         await this.roleManager.setupChannelPermissions(member.guild);
@@ -176,7 +173,6 @@ export class OnboardingService {
       } else {
         this.logger.warn(`Failed to add new member role to ${member.user.tag}`);
       }
-      
     } catch (error) {
       this.logger.error(`Failed to add new member role to ${member.user.tag}:`, error);
     }
@@ -187,8 +183,10 @@ export class OnboardingService {
    */
   private async sendWelcomeMessage(member: GuildMember, config: OnboardingConfig): Promise<void> {
     try {
-      const welcomeChannel = member.guild.channels.cache.get(config.welcomeChannelId!) as TextChannel;
-      
+      const welcomeChannel = member.guild.channels.cache.get(
+        config.welcomeChannelId!
+      ) as TextChannel;
+
       if (!welcomeChannel) {
         this.logger.warn(`Welcome channel not found in guild ${member.guild.name}`);
         return;
@@ -198,47 +196,45 @@ export class OnboardingService {
         .setTitle('🎉 Novo Membro!')
         .setDescription(
           `🎉 Bem-vindo(a) ao **${member.guild.name}**, ${member}!\n\n` +
-          '🔐 **Para acessar o servidor, você precisa se registrar:**\n\n' +
-          '**1️⃣ Registro Básico** (Obrigatório)\n' +
-          '• Digite \`/register-server\` aqui no chat\n' +
-          '• Libera acesso aos canais do servidor\n\n' +
-          '**2️⃣ Registro PUBG** (Opcional)\n' +
-          '• Digite \`/register\` para conectar seu PUBG\n' +
-          '• Acesso a rankings e estatísticas\n\n' +
-          '📨 **Verifique seu DM** - Enviamos um guia detalhado!'
+            '🔐 **Para acessar o servidor, você precisa se registrar:**\n\n' +
+            '**1️⃣ Registro Básico** (Obrigatório)\n' +
+            '• Digite `/register-server` aqui no chat\n' +
+            '• Libera acesso aos canais do servidor\n\n' +
+            '**2️⃣ Registro PUBG** (Opcional)\n' +
+            '• Digite `/register` para conectar seu PUBG\n' +
+            '• Acesso a rankings e estatísticas\n\n' +
+            '📨 **Verifique seu DM** - Enviamos um guia detalhado!'
         )
         .setColor(0x00ff00)
         .setThumbnail(member.user.displayAvatarURL())
         .setTimestamp()
         .setFooter({ text: `Membro #${member.guild.memberCount} • Hawk Esports` });
 
-      const actionRow = new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId('start_server_registration')
-            .setLabel('🚀 Registrar no Servidor')
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji('🚀'),
-          new ButtonBuilder()
-            .setCustomId('view_rules')
-            .setLabel('📖 Ver Regras')
-            .setStyle(ButtonStyle.Secondary)
-            .setEmoji('📖'),
-          new ButtonBuilder()
-            .setCustomId('start_registration')
-            .setLabel('🎮 Registrar PUBG')
-            .setStyle(ButtonStyle.Primary),
-          new ButtonBuilder()
-            .setCustomId('view_commands')
-            .setLabel('🤖 Ver Comandos')
-            .setStyle(ButtonStyle.Secondary),
-        );
+      const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId('start_server_registration')
+          .setLabel('🚀 Registrar no Servidor')
+          .setStyle(ButtonStyle.Primary)
+          .setEmoji('🚀'),
+        new ButtonBuilder()
+          .setCustomId('view_rules')
+          .setLabel('📖 Ver Regras')
+          .setStyle(ButtonStyle.Secondary)
+          .setEmoji('📖'),
+        new ButtonBuilder()
+          .setCustomId('start_registration')
+          .setLabel('🎮 Registrar PUBG')
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId('view_commands')
+          .setLabel('🤖 Ver Comandos')
+          .setStyle(ButtonStyle.Secondary)
+      );
 
-      await welcomeChannel.send({ 
-        embeds: [embed], 
-        components: [actionRow], 
+      await welcomeChannel.send({
+        embeds: [embed],
+        components: [actionRow],
       });
-      
     } catch (error) {
       this.logger.error(`Failed to send welcome message for ${member.user.tag}:`, error);
     }
@@ -253,62 +249,60 @@ export class OnboardingService {
         .setTitle('🎉 Bem-vindo(a) ao Hawk Esports!')
         .setDescription(
           `Olá ${member.displayName}! 👋\n\n` +
-          '🔐 **Para acessar o servidor completamente, você precisa fazer 2 registros:**\n\n' +
-          '**1️⃣ Registro no Servidor** (Obrigatório)\n' +
-          '• Use o comando \`/register-server\` no servidor\n' +
-          '• Isso libera o acesso aos canais básicos\n' +
-          '• É rápido e simples!\n\n' +
-          '**2️⃣ Registro PUBG** (Opcional, mas recomendado)\n' +
-          '• Use o comando \`/register\` no servidor\n' +
-          '• Conecta sua conta PUBG para recursos avançados\n' +
-          '• Acesso a rankings, estatísticas e badges\n\n' +
-          '🎯 **Dica:** Comece com \`/register-server\` para ter acesso imediato!'
+            '🔐 **Para acessar o servidor completamente, você precisa fazer 2 registros:**\n\n' +
+            '**1️⃣ Registro no Servidor** (Obrigatório)\n' +
+            '• Use o comando `/register-server` no servidor\n' +
+            '• Isso libera o acesso aos canais básicos\n' +
+            '• É rápido e simples!\n\n' +
+            '**2️⃣ Registro PUBG** (Opcional, mas recomendado)\n' +
+            '• Use o comando `/register` no servidor\n' +
+            '• Conecta sua conta PUBG para recursos avançados\n' +
+            '• Acesso a rankings, estatísticas e badges\n\n' +
+            '🎯 **Dica:** Comece com `/register-server` para ter acesso imediato!'
         )
         .setColor(0x00ff00)
         .setThumbnail(member.guild.iconURL())
         .addFields(
           {
             name: '📋 Próximos Passos',
-            value: 
+            value:
               '1. Vá para o servidor\n' +
-              '2. Digite \`/register-server\` em qualquer canal\n' +
-              '3. (Opcional) Digite \`/register\` para conectar seu PUBG\n' +
+              '2. Digite `/register-server` em qualquer canal\n' +
+              '3. (Opcional) Digite `/register` para conectar seu PUBG\n' +
               '4. Leia as regras e se apresente!',
-            inline: false
+            inline: false,
           },
           {
             name: '❓ Precisa de Ajuda?',
             value: 'Mencione um moderador no servidor ou abra um ticket!',
-            inline: false
+            inline: false,
           }
         )
         .setTimestamp()
-        .setFooter({ 
+        .setFooter({
           text: 'Hawk Esports • Sistema de Registro Automático',
-          iconURL: member.guild.iconURL() || undefined
+          iconURL: member.guild.iconURL() || undefined,
         });
 
-      const actionRow = new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId('registration_help')
-            .setLabel('❓ Ajuda com Registro')
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji('❓'),
-          new ButtonBuilder()
-            .setCustomId('view_rules')
-            .setLabel('📖 Ver Regras')
-            .setStyle(ButtonStyle.Secondary)
-            .setEmoji('📖')
-        );
+      const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId('registration_help')
+          .setLabel('❓ Ajuda com Registro')
+          .setStyle(ButtonStyle.Primary)
+          .setEmoji('❓'),
+        new ButtonBuilder()
+          .setCustomId('view_rules')
+          .setLabel('📖 Ver Regras')
+          .setStyle(ButtonStyle.Secondary)
+          .setEmoji('📖')
+      );
 
-      await member.send({ 
-        embeds: [embed], 
-        components: [actionRow] 
+      await member.send({
+        embeds: [embed],
+        components: [actionRow],
       });
-      
+
       this.logger.info(`Sent detailed registration guide DM to ${member.user.tag}`);
-      
     } catch (error) {
       this.logger.error(`Failed to send welcome DM to ${member.user.tag}:`, error);
       // If DM fails, try to send a message in the welcome channel mentioning the user
@@ -320,24 +314,24 @@ export class OnboardingService {
    * Setup button interaction handlers
    */
   private setupButtonHandlers(): void {
-    this.client.on('interactionCreate', async (interaction) => {
+    this.client.on('interactionCreate', async interaction => {
       if (!interaction.isButton()) {
         return;
       }
-      
+
       const buttonInteraction = interaction as ButtonInteraction;
-      
+
       try {
         switch (buttonInteraction.customId) {
-        case 'view_rules':
-          await this.handleViewRules(buttonInteraction);
-          break;
-        case 'start_registration':
-          await this.handleStartRegistration(buttonInteraction);
-          break;
-        case 'view_commands':
-          await this.handleViewCommands(buttonInteraction);
-          break;
+          case 'view_rules':
+            await this.handleViewRules(buttonInteraction);
+            break;
+          case 'start_registration':
+            await this.handleStartRegistration(buttonInteraction);
+            break;
+          case 'view_commands':
+            await this.handleViewCommands(buttonInteraction);
+            break;
         }
       } catch (error) {
         this.logger.error('Failed to handle button interaction:', error);
@@ -353,13 +347,13 @@ export class OnboardingService {
       .setTitle('📖 Regras do Servidor')
       .setDescription(
         '**1.** Seja respeitoso com todos os membros\n' +
-        '**2.** Não faça spam ou flood nos canais\n' +
-        '**3.** Use os canais apropriados para cada tipo de conteúdo\n' +
-        '**4.** Não compartilhe conteúdo ofensivo ou inadequado\n' +
-        '**5.** Siga as diretrizes da comunidade do Discord\n' +
-        '**6.** Registre-se com seu nick real do PUBG\n' +
-        '**7.** Não faça trapaça ou use cheats\n' +
-        '**8.** Divirta-se e seja parte da comunidade! 🎮',
+          '**2.** Não faça spam ou flood nos canais\n' +
+          '**3.** Use os canais apropriados para cada tipo de conteúdo\n' +
+          '**4.** Não compartilhe conteúdo ofensivo ou inadequado\n' +
+          '**5.** Siga as diretrizes da comunidade do Discord\n' +
+          '**6.** Registre-se com seu nick real do PUBG\n' +
+          '**7.** Não faça trapaça ou use cheats\n' +
+          '**8.** Divirta-se e seja parte da comunidade! 🎮'
       )
       .setColor(0xff9900)
       .setTimestamp();
@@ -375,15 +369,15 @@ export class OnboardingService {
       .setTitle('🎮 Registro PUBG')
       .setDescription(
         'Para se registrar no servidor, use o comando:\n\n' +
-        '`/register nick:SEU_NICK plataforma:PLATAFORMA`\n\n' +
-        '**Plataformas disponíveis:**\n' +
-        '• `steam` - PC (Steam)\n' +
-        '• `xbox` - Xbox\n' +
-        '• `psn` - PlayStation\n' +
-        '• `stadia` - Stadia\n\n' +
-        '**Exemplo:**\n' +
-        '`/register nick:PlayerName123 plataforma:steam`\n\n' +
-        '⚠️ **Importante:** Use seu nick exato do PUBG para verificação automática!',
+          '`/register nick:SEU_NICK plataforma:PLATAFORMA`\n\n' +
+          '**Plataformas disponíveis:**\n' +
+          '• `steam` - PC (Steam)\n' +
+          '• `xbox` - Xbox\n' +
+          '• `psn` - PlayStation\n' +
+          '• `stadia` - Stadia\n\n' +
+          '**Exemplo:**\n' +
+          '`/register nick:PlayerName123 plataforma:steam`\n\n' +
+          '⚠️ **Importante:** Use seu nick exato do PUBG para verificação automática!'
       )
       .setColor(0x00ff00)
       .setTimestamp();
@@ -399,20 +393,20 @@ export class OnboardingService {
       .setTitle('🤖 Comandos Disponíveis')
       .setDescription(
         '**📋 Registro e Perfil:**\n' +
-        '• `/register` - Registrar nick PUBG\n' +
-        '• `/profile` - Ver seu perfil\n' +
-        '• `/stats` - Ver suas estatísticas\n\n' +
-        '**🏆 Rankings:**\n' +
-        '• `/ranking` - Ver rankings do servidor\n' +
-        '• `/leaderboard` - Top players\n\n' +
-        '**🎮 Diversão:**\n' +
-        '• `/quiz` - Quiz PUBG\n' +
-        '• `/challenge` - Desafios diários\n' +
-        '• `/clip` - Upload de clips\n\n' +
-        '**🎵 Música:**\n' +
-        '• `/play` - Tocar música\n' +
-        '• `/queue` - Ver fila de música\n\n' +
-        'Use `/help` para mais informações sobre cada comando!',
+          '• `/register` - Registrar nick PUBG\n' +
+          '• `/profile` - Ver seu perfil\n' +
+          '• `/stats` - Ver suas estatísticas\n\n' +
+          '**🏆 Rankings:**\n' +
+          '• `/ranking` - Ver rankings do servidor\n' +
+          '• `/leaderboard` - Top players\n\n' +
+          '**🎮 Diversão:**\n' +
+          '• `/quiz` - Quiz PUBG\n' +
+          '• `/challenge` - Desafios diários\n' +
+          '• `/clip` - Upload de clips\n\n' +
+          '**🎵 Música:**\n' +
+          '• `/play` - Tocar música\n' +
+          '• `/queue` - Ver fila de música\n\n' +
+          'Use `/help` para mais informações sobre cada comando!'
       )
       .setColor(0x0099ff)
       .setTimestamp();
@@ -423,12 +417,19 @@ export class OnboardingService {
   /**
    * Send fallback welcome message if DM fails
    */
-  private async sendFallbackWelcomeMessage(member: GuildMember, config: OnboardingConfig): Promise<void> {
+  private async sendFallbackWelcomeMessage(
+    member: GuildMember,
+    config: OnboardingConfig
+  ): Promise<void> {
     try {
-      const welcomeChannel = member.guild.channels.cache.get(config.welcomeChannelId!) as TextChannel;
-      
+      const welcomeChannel = member.guild.channels.cache.get(
+        config.welcomeChannelId!
+      ) as TextChannel;
+
       if (!welcomeChannel) {
-        this.logger.warn(`Welcome channel not found for fallback message in guild ${member.guild.name}`);
+        this.logger.warn(
+          `Welcome channel not found for fallback message in guild ${member.guild.name}`
+        );
         return;
       }
 
@@ -436,14 +437,14 @@ export class OnboardingService {
         .setTitle('📨 DM Bloqueado - Instruções de Registro')
         .setDescription(
           `${member}, não conseguimos enviar um DM para você!\n\n` +
-          '🔐 **Para acessar o servidor, siga estes passos:**\n\n' +
-          '**1️⃣ Registro Básico** (Obrigatório)\n' +
-          '• Digite \`/register-server\` aqui no chat\n' +
-          '• Libera acesso aos canais do servidor\n\n' +
-          '**2️⃣ Registro PUBG** (Opcional)\n' +
-          '• Digite \`/register\` para conectar seu PUBG\n' +
-          '• Acesso a rankings e estatísticas\n\n' +
-          '💡 **Dica:** Habilite DMs de membros do servidor para receber notificações!'
+            '🔐 **Para acessar o servidor, siga estes passos:**\n\n' +
+            '**1️⃣ Registro Básico** (Obrigatório)\n' +
+            '• Digite `/register-server` aqui no chat\n' +
+            '• Libera acesso aos canais do servidor\n\n' +
+            '**2️⃣ Registro PUBG** (Opcional)\n' +
+            '• Digite `/register` para conectar seu PUBG\n' +
+            '• Acesso a rankings e estatísticas\n\n' +
+            '💡 **Dica:** Habilite DMs de membros do servidor para receber notificações!'
         )
         .setColor(0xffa500)
         .setThumbnail(member.user.displayAvatarURL())
@@ -451,18 +452,20 @@ export class OnboardingService {
         .setFooter({ text: 'Esta mensagem será deletada em 5 minutos' });
 
       const message = await welcomeChannel.send({ embeds: [fallbackEmbed] });
-      
+
       // Delete the fallback message after 5 minutes
-      setTimeout(async () => {
-        try {
-          await message.delete();
-        } catch (error) {
-          this.logger.warn('Failed to delete fallback welcome message:', error);
-        }
-      }, 5 * 60 * 1000);
-      
+      setTimeout(
+        async () => {
+          try {
+            await message.delete();
+          } catch (error) {
+            this.logger.warn('Failed to delete fallback welcome message:', error);
+          }
+        },
+        5 * 60 * 1000
+      );
+
       this.logger.info(`Sent fallback welcome message for ${member.user.tag}`);
-      
     } catch (error) {
       this.logger.error(`Failed to send fallback welcome message for ${member.user.tag}:`, error);
     }
@@ -478,10 +481,10 @@ export class OnboardingService {
           .setTitle('🚀 Como Registrar no Servidor')
           .setDescription(
             '**Para se registrar no servidor:**\n\n' +
-            '1️⃣ Digite o comando: \`/register-server\`\n' +
-            '2️⃣ Pressione Enter para executar\n' +
-            '3️⃣ Pronto! Você terá acesso aos canais\n\n' +
-            '💡 **Dica:** Você pode digitar o comando aqui mesmo neste canal!'
+              '1️⃣ Digite o comando: `/register-server`\n' +
+              '2️⃣ Pressione Enter para executar\n' +
+              '3️⃣ Pronto! Você terá acesso aos canais\n\n' +
+              '💡 **Dica:** Você pode digitar o comando aqui mesmo neste canal!'
           )
           .setColor(0x00ff00)
           .setTimestamp();
@@ -492,15 +495,15 @@ export class OnboardingService {
           .setTitle('❓ Ajuda com Registro')
           .setDescription(
             '**Precisa de ajuda? Aqui estão suas opções:**\n\n' +
-            '🔹 **Registro Básico:** \`/register-server\`\n' +
-            '   • Obrigatório para acessar o servidor\n' +
-            '   • Rápido e simples\n\n' +
-            '🔹 **Registro PUBG:** \`/register\`\n' +
-            '   • Opcional, mas recomendado\n' +
-            '   • Conecta sua conta PUBG\n\n' +
-            '🆘 **Ainda com problemas?**\n' +
-            '   • Mencione um moderador\n' +
-            '   • Abra um ticket de suporte'
+              '🔹 **Registro Básico:** `/register-server`\n' +
+              '   • Obrigatório para acessar o servidor\n' +
+              '   • Rápido e simples\n\n' +
+              '🔹 **Registro PUBG:** `/register`\n' +
+              '   • Opcional, mas recomendado\n' +
+              '   • Conecta sua conta PUBG\n\n' +
+              '🆘 **Ainda com problemas?**\n' +
+              '   • Mencione um moderador\n' +
+              '   • Abra um ticket de suporte'
           )
           .setColor(0x0099ff)
           .setTimestamp();
@@ -515,11 +518,11 @@ export class OnboardingService {
         const embed = new EmbedBuilder()
           .setTitle('📖 Regras do Servidor')
           .setDescription(
-            rulesChannel 
+            rulesChannel
               ? `📋 Confira as regras em ${rulesChannel}\n\n` +
-                '⚠️ **Importante:** Leia todas as regras antes de participar!'
+                  '⚠️ **Importante:** Leia todas as regras antes de participar!'
               : '📋 Procure pelo canal de regras no servidor\n\n' +
-                '⚠️ **Importante:** Leia todas as regras antes de participar!'
+                  '⚠️ **Importante:** Leia todas as regras antes de participar!'
           )
           .setColor(0xff9900)
           .setTimestamp();
@@ -528,11 +531,13 @@ export class OnboardingService {
       }
     } catch (error) {
       this.logger.error('Failed to handle registration button interaction:', error);
-      
-      await interaction.reply({
-        content: '❌ Ocorreu um erro ao processar sua solicitação. Tente novamente.',
-        ephemeral: true
-      }).catch(() => {});
+
+      await interaction
+        .reply({
+          content: '❌ Ocorreu um erro ao processar sua solicitação. Tente novamente.',
+          ephemeral: true,
+        })
+        .catch(() => {});
     }
   }
 
@@ -618,7 +623,10 @@ export class OnboardingService {
   /**
    * Update guild onboarding configuration
    */
-  async updateGuildConfig(guildId: string, config: Partial<OnboardingConfig>): Promise<OnboardingConfig> {
+  async updateGuildConfig(
+    guildId: string,
+    config: Partial<OnboardingConfig>
+  ): Promise<OnboardingConfig> {
     if (!this.client.db) {
       throw new Error('Database service not available');
     }

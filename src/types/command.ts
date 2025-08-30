@@ -1,7 +1,7 @@
-import { 
-  SlashCommandBuilder, 
+import {
+  SlashCommandBuilder,
   SlashCommandSubcommandsOnlyBuilder,
-  CommandInteraction, 
+  CommandInteraction,
   ChatInputCommandInteraction,
   PermissionResolvable,
   AutocompleteInteraction,
@@ -26,7 +26,7 @@ export enum CommandCategory {
   ECONOMY = 'economy',
   BADGES = 'badges',
   CLIPS = 'clips',
-  GENERAL = 'general'
+  GENERAL = 'general',
 }
 
 /**
@@ -152,7 +152,16 @@ export interface CommandBuilderOptions {
   options?: Array<{
     name: string;
     description: string;
-    type: 'string' | 'integer' | 'boolean' | 'user' | 'channel' | 'role' | 'mentionable' | 'number' | 'attachment';
+    type:
+      | 'string'
+      | 'integer'
+      | 'boolean'
+      | 'user'
+      | 'channel'
+      | 'role'
+      | 'mentionable'
+      | 'number'
+      | 'attachment';
     required?: boolean;
     choices?: Array<{ name: string; value: string | number }>;
     autocomplete?: boolean;
@@ -181,7 +190,7 @@ export enum CommandError {
   DISABLED = 'disabled',
   INVALID_ARGUMENTS = 'invalid_arguments',
   EXECUTION_ERROR = 'execution_error',
-  RATE_LIMITED = 'rate_limited'
+  RATE_LIMITED = 'rate_limited',
 }
 
 /**

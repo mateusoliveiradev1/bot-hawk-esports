@@ -36,10 +36,10 @@ export class SecurityService {
   constructor(database: DatabaseService) {
     this.logger = new Logger();
     this.database = database;
-    
+
     // Limpar captchas expirados a cada 5 minutos
     setInterval(() => this.cleanExpiredCaptchas(), 5 * 60 * 1000);
-    
+
     // Limpar IPs suspeitos a cada hora
     setInterval(() => this.cleanSuspiciousIPs(), 60 * 60 * 1000);
   }
@@ -55,19 +55,19 @@ export class SecurityService {
       color: true,
       background: '#f0f0f0',
       width: 200,
-      height: 80
+      height: 80,
     });
 
     const challenge: CaptchaChallenge = {
       id: crypto.randomUUID(),
       text: captcha.text.toLowerCase(),
       svg: captcha.data,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutos
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutos
     };
 
     this.captchaStore.set(challenge.id, challenge);
     this.logger.info(`CAPTCHA gerado: ${challenge.id}`);
-    
+
     return challenge;
   }
 
@@ -76,7 +76,7 @@ export class SecurityService {
    */
   public verifyCaptcha(captchaId: string, userInput: string): boolean {
     const challenge = this.captchaStore.get(captchaId);
-    
+
     if (!challenge) {
       this.logger.warn(`CAPTCHA não encontrado: ${captchaId}`);
       return false;
@@ -89,16 +89,16 @@ export class SecurityService {
     }
 
     const isValid = userInput.toLowerCase().trim() === challenge.text;
-    
+
     // Remove o captcha após verificação (uso único)
     this.captchaStore.delete(captchaId);
-    
+
     if (isValid) {
       this.logger.info(`CAPTCHA verificado com sucesso: ${captchaId}`);
     } else {
       this.logger.warn(`CAPTCHA inválido: ${captchaId}`);
     }
-    
+
     return isValid;
   }
 
@@ -119,10 +119,16 @@ export class SecurityService {
 
     // Verificar padrões de bot conhecidos
     const botPatterns = [
-      /bot/i, /crawler/i, /spider/i, /scraper/i,
-      /curl/i, /wget/i, /python/i, /java/i
+      /bot/i,
+      /crawler/i,
+      /spider/i,
+      /scraper/i,
+      /curl/i,
+      /wget/i,
+      /python/i,
+      /java/i,
     ];
-    
+
     if (botPatterns.some(pattern => pattern.test(userAgent))) {
       riskScore += 50;
       reasons.push('User-Agent indica bot automatizado');
@@ -131,7 +137,7 @@ export class SecurityService {
     // Verificar headers suspeitos
     const suspiciousHeaders = ['x-forwarded-for', 'x-real-ip'];
     const hasProxyHeaders = suspiciousHeaders.some(header => req.get(header));
-    
+
     if (hasProxyHeaders) {
       riskScore += 20;
       reasons.push('Uso de proxy detectado');
@@ -140,7 +146,7 @@ export class SecurityService {
     // Verificar rate limiting por IP
     const clientIP = this.getClientIP(req);
     const rateLimitCheck = this.checkRateLimit(clientIP, 'registration', 5, 60 * 60 * 1000); // 5 tentativas por hora
-    
+
     if (!rateLimitCheck.allowed) {
       riskScore += 40;
       reasons.push('Muitas tentativas de registro do mesmo IP');
@@ -158,8 +164,9 @@ export class SecurityService {
     const sessionData = req.session as any;
     const lastRequest = sessionData?.lastRequestTime || 0;
     const timeDiff = timestamp - lastRequest;
-    
-    if (timeDiff < 2000 && lastRequest > 0) { // Menos de 2 segundos
+
+    if (timeDiff < 2000 && lastRequest > 0) {
+      // Menos de 2 segundos
       riskScore += 25;
       reasons.push('Requisições muito rápidas');
     }
@@ -170,17 +177,19 @@ export class SecurityService {
     }
 
     const isBot = riskScore >= 50;
-    
+
     if (isBot) {
       this.recordSuspiciousActivity(clientIP);
-      this.logger.warn(`Atividade suspeita detectada - IP: ${clientIP}, Score: ${riskScore}, Razões: ${reasons.join(', ')}`);
+      this.logger.warn(
+        `Atividade suspeita detectada - IP: ${clientIP}, Score: ${riskScore}, Razões: ${reasons.join(', ')}`
+      );
     }
 
     return {
       isBot,
       riskScore,
       reasons,
-      fingerprint
+      fingerprint,
     };
   }
 
@@ -191,11 +200,11 @@ export class SecurityService {
     const secret = speakeasy.generateSecret({
       name: `Hawk Esports Bot (${userId})`,
       issuer: 'Hawk Esports',
-      length: 32
+      length: 32,
     });
 
     // Gerar códigos de backup
-    const backupCodes = Array.from({ length: 8 }, () => 
+    const backupCodes = Array.from({ length: 8 }, () =>
       crypto.randomBytes(4).toString('hex').toUpperCase()
     );
 
@@ -208,8 +217,8 @@ export class SecurityService {
       data: {
         twoFactorSecret: secret.base32,
         twoFactorBackupCodes: backupCodes.join(','),
-        twoFactorEnabled: false // Será ativado após confirmação
-      }
+        twoFactorEnabled: false, // Será ativado após confirmação
+      },
     });
 
     this.logger.info(`2FA configurado para usuário: ${userId}`);
@@ -217,7 +226,7 @@ export class SecurityService {
     return {
       secret: secret.base32,
       qrCode,
-      backupCodes
+      backupCodes,
     };
   }
 
@@ -231,8 +240,8 @@ export class SecurityService {
         select: {
           twoFactorSecret: true,
           twoFactorBackupCodes: true,
-          twoFactorEnabled: true
-        }
+          twoFactorEnabled: true,
+        },
       });
 
       if (!user?.twoFactorSecret) {
@@ -243,17 +252,17 @@ export class SecurityService {
       if (user.twoFactorBackupCodes) {
         const backupCodes = user.twoFactorBackupCodes.split(',');
         const tokenIndex = backupCodes.indexOf(token.toUpperCase());
-        
+
         if (tokenIndex !== -1) {
           // Remover código de backup usado
           backupCodes.splice(tokenIndex, 1);
           await this.database.client.user.update({
             where: { id: userId },
             data: {
-              twoFactorBackupCodes: backupCodes.join(',')
-            }
+              twoFactorBackupCodes: backupCodes.join(','),
+            },
           });
-          
+
           this.logger.info(`Código de backup 2FA usado: ${userId}`);
           return true;
         }
@@ -264,7 +273,7 @@ export class SecurityService {
         secret: user.twoFactorSecret,
         encoding: 'base32',
         token: token,
-        window: 2 // Permite 2 períodos de tempo (60 segundos)
+        window: 2, // Permite 2 períodos de tempo (60 segundos)
       });
 
       if (verified) {
@@ -285,19 +294,19 @@ export class SecurityService {
    */
   public async enable2FA(userId: string, token: string): Promise<boolean> {
     const isValid = await this.verify2FA(userId, token);
-    
+
     if (isValid) {
       await this.database.client.user.update({
         where: { id: userId },
         data: {
-          twoFactorEnabled: true
-        }
+          twoFactorEnabled: true,
+        },
       });
-      
+
       this.logger.info(`2FA ativado para usuário: ${userId}`);
       return true;
     }
-    
+
     return false;
   }
 
@@ -310,17 +319,22 @@ export class SecurityService {
       data: {
         twoFactorEnabled: false,
         twoFactorSecret: null,
-        twoFactorBackupCodes: null
-      }
+        twoFactorBackupCodes: null,
+      },
     });
-    
+
     this.logger.info(`2FA desativado para usuário: ${userId}`);
   }
 
   /**
    * Verificar rate limiting
    */
-  public checkRateLimit(identifier: string, action: string, maxAttempts: number, windowMs: number): { allowed: boolean; remaining: number; resetTime: Date } {
+  public checkRateLimit(
+    identifier: string,
+    action: string,
+    maxAttempts: number,
+    windowMs: number
+  ): { allowed: boolean; remaining: number; resetTime: Date } {
     const key = `${identifier}:${action}`;
     const now = new Date();
     const entry = this.rateLimitStore.get(key);
@@ -349,14 +363,10 @@ export class SecurityService {
       req.get('Accept-Language') || '',
       req.get('Accept-Encoding') || '',
       this.getClientIP(req),
-      req.get('Accept') || ''
+      req.get('Accept') || '',
     ];
 
-    return crypto
-      .createHash('sha256')
-      .update(components.join('|'))
-      .digest('hex')
-      .substring(0, 16);
+    return crypto.createHash('sha256').update(components.join('|')).digest('hex').substring(0, 16);
   }
 
   /**
@@ -389,14 +399,14 @@ export class SecurityService {
   private cleanExpiredCaptchas(): void {
     const now = new Date();
     let cleaned = 0;
-    
+
     for (const [id, challenge] of this.captchaStore.entries()) {
       if (now > challenge.expiresAt) {
         this.captchaStore.delete(id);
         cleaned++;
       }
     }
-    
+
     if (cleaned > 0) {
       this.logger.debug(`Limpeza de captchas: ${cleaned} removidos`);
     }
@@ -409,14 +419,14 @@ export class SecurityService {
     const now = new Date();
     const maxAge = 24 * 60 * 60 * 1000; // 24 horas
     let cleaned = 0;
-    
+
     for (const [ip, data] of this.suspiciousIPs.entries()) {
       if (now.getTime() - data.lastAttempt.getTime() > maxAge) {
         this.suspiciousIPs.delete(ip);
         cleaned++;
       }
     }
-    
+
     if (cleaned > 0) {
       this.logger.debug(`Limpeza de IPs suspeitos: ${cleaned} removidos`);
     }
@@ -433,7 +443,7 @@ export class SecurityService {
     return {
       activeCaptchas: this.captchaStore.size,
       suspiciousIPs: this.suspiciousIPs.size,
-      rateLimitEntries: this.rateLimitStore.size
+      rateLimitEntries: this.rateLimitStore.size,
     };
   }
 }

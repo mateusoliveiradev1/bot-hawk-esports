@@ -18,16 +18,18 @@ export class ValidationUtils {
         where: { id: interaction.user.id },
         include: {
           guilds: {
-            where: { guildId: interaction.guildId! }
-          }
-        }
+            where: { guildId: interaction.guildId! },
+          },
+        },
       });
 
       if (!user || user.guilds.length === 0) {
         await interaction.editReply({
-          embeds: [EmbedUtils.userNotRegistered(
-            'Você precisa se registrar primeiro usando `/register-server`'
-          )]
+          embeds: [
+            EmbedUtils.userNotRegistered(
+              'Você precisa se registrar primeiro usando `/register-server`'
+            ),
+          ],
         });
         return { isValid: false };
       }
@@ -35,9 +37,7 @@ export class ValidationUtils {
       return { isValid: true, user };
     } catch (error) {
       await interaction.editReply({
-        embeds: [EmbedUtils.internalError(
-          'Erro ao verificar registro do usuário'
-        )]
+        embeds: [EmbedUtils.internalError('Erro ao verificar registro do usuário')],
       });
       return { isValid: false };
     }
@@ -51,26 +51,25 @@ export class ValidationUtils {
     requiredPermissions: bigint[]
   ): Promise<boolean> {
     const member = interaction.member as GuildMember;
-    
+
     if (!member) {
       await interaction.editReply({
-        embeds: [EmbedUtils.createErrorEmbed(
-          'Erro',
-          'Não foi possível verificar suas permissões'
-        )]
+        embeds: [EmbedUtils.createErrorEmbed('Erro', 'Não foi possível verificar suas permissões')],
       });
       return false;
     }
 
-    const hasPermissions = requiredPermissions.every(permission => 
+    const hasPermissions = requiredPermissions.every(permission =>
       member.permissions.has(permission)
     );
 
     if (!hasPermissions) {
       await interaction.editReply({
-        embeds: [EmbedUtils.insufficientPermissions(
-          'Você não tem permissões suficientes para executar este comando'
-        )]
+        embeds: [
+          EmbedUtils.insufficientPermissions(
+            'Você não tem permissões suficientes para executar este comando'
+          ),
+        ],
       });
       return false;
     }
@@ -98,7 +97,7 @@ export class ValidationUtils {
   static async validateModerationPermissions(interaction: CommandInteraction): Promise<boolean> {
     return this.validatePermissions(interaction, [
       PermissionFlagsBits.KickMembers,
-      PermissionFlagsBits.BanMembers
+      PermissionFlagsBits.BanMembers,
     ]);
   }
 
@@ -112,10 +111,12 @@ export class ValidationUtils {
   ): boolean {
     if (!value || value.trim().length === 0) {
       interaction.editReply({
-        embeds: [EmbedUtils.createErrorEmbed(
-          'Parâmetro Inválido',
-          `O parâmetro '${parameterName}' é obrigatório`
-        )]
+        embeds: [
+          EmbedUtils.createErrorEmbed(
+            'Parâmetro Inválido',
+            `O parâmetro '${parameterName}' é obrigatório`
+          ),
+        ],
       });
       return false;
     }
@@ -134,10 +135,12 @@ export class ValidationUtils {
   ): boolean {
     if (value < min || value > max) {
       interaction.editReply({
-        embeds: [EmbedUtils.createErrorEmbed(
-          'Parâmetro Inválido',
-          `O parâmetro '${parameterName}' deve estar entre ${min} e ${max}`
-        )]
+        embeds: [
+          EmbedUtils.createErrorEmbed(
+            'Parâmetro Inválido',
+            `O parâmetro '${parameterName}' deve estar entre ${min} e ${max}`
+          ),
+        ],
       });
       return false;
     }
@@ -149,13 +152,15 @@ export class ValidationUtils {
    */
   static validateVoiceChannel(interaction: CommandInteraction): boolean {
     const member = interaction.member as GuildMember;
-    
+
     if (!member?.voice?.channel) {
       interaction.editReply({
-        embeds: [EmbedUtils.createErrorEmbed(
-          'Canal de Voz Necessário',
-          'Você precisa estar em um canal de voz para usar este comando'
-        )]
+        embeds: [
+          EmbedUtils.createErrorEmbed(
+            'Canal de Voz Necessário',
+            'Você precisa estar em um canal de voz para usar este comando'
+          ),
+        ],
       });
       return false;
     }
@@ -171,27 +176,28 @@ export class ValidationUtils {
     requiredPermissions: bigint[]
   ): boolean {
     const botMember = interaction.guild?.members.me;
-    
+
     if (!botMember) {
       interaction.editReply({
-        embeds: [EmbedUtils.createErrorEmbed(
-          'Erro',
-          'Não foi possível verificar as permissões do bot'
-        )]
+        embeds: [
+          EmbedUtils.createErrorEmbed('Erro', 'Não foi possível verificar as permissões do bot'),
+        ],
       });
       return false;
     }
 
-    const hasPermissions = requiredPermissions.every(permission => 
+    const hasPermissions = requiredPermissions.every(permission =>
       botMember.permissions.has(permission)
     );
 
     if (!hasPermissions) {
       interaction.editReply({
-        embeds: [EmbedUtils.createErrorEmbed(
-          'Permissões Insuficientes',
-          'O bot não tem permissões suficientes para executar esta ação'
-        )]
+        embeds: [
+          EmbedUtils.createErrorEmbed(
+            'Permissões Insuficientes',
+            'O bot não tem permissões suficientes para executar esta ação'
+          ),
+        ],
       });
       return false;
     }

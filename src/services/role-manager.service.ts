@@ -45,13 +45,13 @@ export class RoleManagerService {
           color: roleConfig.color as ColorResolvable,
           permissions: roleConfig.permissions,
           hoist: roleConfig.hoist || false,
-          mentionable: roleConfig.mentionable || false
+          mentionable: roleConfig.mentionable || false,
         });
 
         this.logger.info(`Created role: ${roleConfig.name}`);
       } else {
         // Update existing role if needed
-        const needsUpdate = 
+        const needsUpdate =
           role.color !== parseInt(roleConfig.color?.replace('#', '') || '0', 16) ||
           role.hoist !== (roleConfig.hoist || false) ||
           role.mentionable !== (roleConfig.mentionable || false);
@@ -60,7 +60,7 @@ export class RoleManagerService {
           await role.edit({
             color: roleConfig.color as ColorResolvable,
             hoist: roleConfig.hoist || false,
-            mentionable: roleConfig.mentionable || false
+            mentionable: roleConfig.mentionable || false,
           });
 
           this.logger.info(`Updated role: ${roleConfig.name}`);
@@ -84,17 +84,17 @@ export class RoleManagerService {
       );
 
       if (!newMemberRole) {
-          // Try to create the role if it doesn't exist
-          if (DEFAULT_ROLES.NEW_MEMBER) {
-            const createdRole = await this.ensureRoleExists(member.guild, DEFAULT_ROLES.NEW_MEMBER);
-            if (createdRole) {
-              await member.roles.add(createdRole);
-              this.logger.info(`Added new member role to ${member.user.tag}`);
-              return true;
-            }
+        // Try to create the role if it doesn't exist
+        if (DEFAULT_ROLES.NEW_MEMBER) {
+          const createdRole = await this.ensureRoleExists(member.guild, DEFAULT_ROLES.NEW_MEMBER);
+          if (createdRole) {
+            await member.roles.add(createdRole);
+            this.logger.info(`Added new member role to ${member.user.tag}`);
+            return true;
           }
-          return false;
         }
+        return false;
+      }
 
       await member.roles.add(newMemberRole);
       this.logger.info(`Added new member role to ${member.user.tag}`);
@@ -118,13 +118,18 @@ export class RoleManagerService {
       );
 
       if (!verifiedRole) {
-          if (DEFAULT_ROLES.VERIFIED_MEMBER) {
-            const createdRole = await this.ensureRoleExists(member.guild, DEFAULT_ROLES.VERIFIED_MEMBER);
-            if (!createdRole) return false;
-          } else {
+        if (DEFAULT_ROLES.VERIFIED_MEMBER) {
+          const createdRole = await this.ensureRoleExists(
+            member.guild,
+            DEFAULT_ROLES.VERIFIED_MEMBER
+          );
+          if (!createdRole) {
             return false;
           }
+        } else {
+          return false;
         }
+      }
 
       // Remove new member role and add verified role
       const rolesToAdd = [verifiedRole!];
@@ -158,39 +163,49 @@ export class RoleManagerService {
       }
 
       // Find general channel
-      const generalChannel = guild.channels.cache.find(channel => 
-        channel.name.toLowerCase().includes('geral') ||
-        channel.name.toLowerCase().includes('general') ||
-        channel.name.toLowerCase().includes('chat')
+      const generalChannel = guild.channels.cache.find(
+        channel =>
+          channel.name.toLowerCase().includes('geral') ||
+          channel.name.toLowerCase().includes('general') ||
+          channel.name.toLowerCase().includes('chat')
       );
 
-      if (generalChannel && generalChannel.isTextBased() && 'permissionOverwrites' in generalChannel) {
+      if (
+        generalChannel &&
+        generalChannel.isTextBased() &&
+        'permissionOverwrites' in generalChannel
+      ) {
         await generalChannel.permissionOverwrites.edit(newMemberRole, CHANNEL_PERMISSIONS.GENERAL);
-        this.logger.info(`Setup general channel permissions for new members`);
+        this.logger.info('Setup general channel permissions for new members');
       }
 
       // Find welcome channel
-      const welcomeChannel = guild.channels.cache.find(channel => 
-        channel.name.toLowerCase().includes('welcome') ||
-        channel.name.toLowerCase().includes('bem-vindo')
+      const welcomeChannel = guild.channels.cache.find(
+        channel =>
+          channel.name.toLowerCase().includes('welcome') ||
+          channel.name.toLowerCase().includes('bem-vindo')
       );
 
-      if (welcomeChannel && welcomeChannel.isTextBased() && 'permissionOverwrites' in welcomeChannel) {
+      if (
+        welcomeChannel &&
+        welcomeChannel.isTextBased() &&
+        'permissionOverwrites' in welcomeChannel
+      ) {
         await welcomeChannel.permissionOverwrites.edit(newMemberRole, CHANNEL_PERMISSIONS.WELCOME);
-        this.logger.info(`Setup welcome channel permissions for new members`);
+        this.logger.info('Setup welcome channel permissions for new members');
       }
 
       // Find rules channel
-      const rulesChannel = guild.channels.cache.find(channel => 
-        channel.name.toLowerCase().includes('rules') ||
-        channel.name.toLowerCase().includes('regras')
+      const rulesChannel = guild.channels.cache.find(
+        channel =>
+          channel.name.toLowerCase().includes('rules') ||
+          channel.name.toLowerCase().includes('regras')
       );
 
       if (rulesChannel && rulesChannel.isTextBased() && 'permissionOverwrites' in rulesChannel) {
         await rulesChannel.permissionOverwrites.edit(newMemberRole, CHANNEL_PERMISSIONS.RULES);
-        this.logger.info(`Setup rules channel permissions for new members`);
+        this.logger.info('Setup rules channel permissions for new members');
       }
-
     } catch (error) {
       this.logger.error(`Failed to setup channel permissions for guild ${guild.name}:`, error);
     }
@@ -203,7 +218,7 @@ export class RoleManagerService {
     const roleHierarchy = [
       DEFAULT_ROLES.NEW_MEMBER?.name,
       DEFAULT_ROLES.VERIFIED_MEMBER?.name,
-      DEFAULT_ROLES.BASIC_MEMBER?.name
+      DEFAULT_ROLES.BASIC_MEMBER?.name,
     ].filter(Boolean);
 
     for (let i = roleHierarchy.length - 1; i >= 0; i--) {

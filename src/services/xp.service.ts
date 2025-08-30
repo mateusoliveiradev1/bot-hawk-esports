@@ -29,46 +29,46 @@ export class XPService {
   private prisma: PrismaClient;
   private logger: Logger;
   private cache: CacheService;
-  
+
   // XP base por tipo de atividade (REBALANCEADO)
   private readonly ACTIVITY_XP: Record<string, number> = {
-    MM: 35,              // +10 (25→35) - Matchmaking mais valorizado
-    SCRIM: 65,           // +15 (50→65) - Scrimmages mais recompensadoras
-    CAMPEONATO: 120,     // +20 (100→120) - Campeonatos premium
-    RANKED: 85,          // +10 (75→85) - Ranked mais atrativo
+    MM: 35, // +10 (25→35) - Matchmaking mais valorizado
+    SCRIM: 65, // +15 (50→65) - Scrimmages mais recompensadoras
+    CAMPEONATO: 120, // +20 (100→120) - Campeonatos premium
+    RANKED: 85, // +10 (75→85) - Ranked mais atrativo
     DAILY_CHALLENGE: 60, // +10 (50→60) - Desafios diários mais valiosos
-    ACHIEVEMENT: 80,     // -20 (100→80) - Conquistas menos inflacionárias
-    BADGE_EARNED: 35,    // +10 (25→35) - Badges mais significativas
-    QUIZ_COMPLETED: 45,  // +15 (30→45) - Quiz mais educativo
-    CLIP_APPROVED: 55,   // +15 (40→55) - Clips de qualidade recompensados
-    CHECK_IN: 15,        // +5 (10→15) - Check-in diário mais atrativo
-    WEAPON_MASTERY: 40,  // NOVO - Maestria de armas
+    ACHIEVEMENT: 80, // -20 (100→80) - Conquistas menos inflacionárias
+    BADGE_EARNED: 35, // +10 (25→35) - Badges mais significativas
+    QUIZ_COMPLETED: 45, // +15 (30→45) - Quiz mais educativo
+    CLIP_APPROVED: 55, // +15 (40→55) - Clips de qualidade recompensados
+    CHECK_IN: 15, // +5 (10→15) - Check-in diário mais atrativo
+    WEAPON_MASTERY: 40, // NOVO - Maestria de armas
     TOURNAMENT_WIN: 200, // NOVO - Vitória em torneio
-    STREAK_BONUS: 25,    // NOVO - Bônus por sequências
+    STREAK_BONUS: 25, // NOVO - Bônus por sequências
   };
 
   // Bônus XP por tempo de atividade (REBALANCEADO)
   private readonly TIME_BONUS_XP: Record<string, number> = {
-    '30m': 15,   // NOVO - Bônus para sessões curtas
-    '1h': 35,    // +10 (25→35) - 1 hora mais recompensadora
-    '2h': 70,    // +20 (50→70) - 2 horas significativamente melhor
-    '3h': 120,   // +20 (100→120) - 3 horas premium
-    '4h+': 180,  // NOVO - Sessões longas muito recompensadoras
+    '30m': 15, // NOVO - Bônus para sessões curtas
+    '1h': 35, // +10 (25→35) - 1 hora mais recompensadora
+    '2h': 70, // +20 (50→70) - 2 horas significativamente melhor
+    '3h': 120, // +20 (100→120) - 3 horas premium
+    '4h+': 180, // NOVO - Sessões longas muito recompensadoras
   };
 
   // Multiplicadores por dificuldade de desafio
   private readonly CHALLENGE_DIFFICULTY_MULTIPLIER: Record<string, number> = {
-    'easy': 1.0,
-    'medium': 1.3,
-    'hard': 1.6,
-    'extreme': 2.0,
-    'legendary': 2.5,
+    easy: 1.0,
+    medium: 1.3,
+    hard: 1.6,
+    extreme: 2.0,
+    legendary: 2.5,
   };
 
   // Fórmula para calcular XP necessário para próximo nível (REBALANCEADA)
-  private readonly XP_PER_LEVEL = 120;     // +20 (100→120) - Níveis mais desafiadores
-  private readonly XP_MULTIPLIER = 1.15;   // -0.05 (1.2→1.15) - Crescimento mais suave
-  private readonly MAX_LEVEL = 100;        // NOVO - Nível máximo definido
+  private readonly XP_PER_LEVEL = 120; // +20 (100→120) - Níveis mais desafiadores
+  private readonly XP_MULTIPLIER = 1.15; // -0.05 (1.2→1.15) - Crescimento mais suave
+  private readonly MAX_LEVEL = 100; // NOVO - Nível máximo definido
   private readonly PRESTIGE_XP_BONUS = 0.1; // NOVO - 10% bônus XP após prestígio
 
   constructor(client: any) {
@@ -103,8 +103,10 @@ export class XPService {
       throw new Error(`Level cannot exceed maximum level of ${this.MAX_LEVEL}`);
     }
 
-    if (level <= 1) return 0;
-    
+    if (level <= 1) {
+      return 0;
+    }
+
     let totalXP = 0;
     for (let i = 1; i < level; i++) {
       totalXP += Math.floor(this.XP_PER_LEVEL * Math.pow(this.XP_MULTIPLIER, i - 1));
@@ -122,12 +124,12 @@ export class XPService {
 
     let level = 1;
     let xpRequired = 0;
-    
+
     while (xpRequired <= totalXP && level < this.MAX_LEVEL) {
       level++;
       xpRequired += Math.floor(this.XP_PER_LEVEL * Math.pow(this.XP_MULTIPLIER, level - 2));
     }
-    
+
     return Math.min(level - 1, this.MAX_LEVEL);
   }
 
@@ -163,11 +165,11 @@ export class XPService {
         where: { id: userId },
         select: {
           id: true,
-          xp: true, 
-          totalXp: true, 
-          level: true, 
-          prestigeLevel: true
-        }
+          xp: true,
+          totalXp: true,
+          level: true,
+          prestigeLevel: true,
+        },
       });
 
       if (!user) {
@@ -180,7 +182,7 @@ export class XPService {
       // Calcular XP base
       const activityKey = activityType.toUpperCase();
       const baseActivityXP = this.ACTIVITY_XP[activityKey];
-      
+
       if (baseActivityXP === undefined) {
         this.logger.warn(`Unknown activity type: ${activityType}`);
         return {
@@ -190,18 +192,18 @@ export class XPService {
           totalXP: 0,
           newLevel: user.level,
           oldLevel: user.level,
-          leveledUp: false
+          leveledUp: false,
         };
       }
 
       let baseXP = Math.floor(baseActivityXP * multiplier);
-      
+
       // Aplicar bônus de prestígio
       if (user.prestigeLevel && user.prestigeLevel > 0) {
         const prestigeBonus = await this.calculatePrestigeBonus(userId, baseXP);
         baseXP += prestigeBonus;
       }
-      
+
       // Calcular bônus por tempo
       let bonusXP = 0;
       if (timeSpent && timeSpent > 0) {
@@ -224,15 +226,15 @@ export class XPService {
       const leveledUp = newLevel > user.level;
 
       // Usar transação para garantir consistência
-      const updatedUser = await this.prisma.$transaction(async (tx) => {
+      const updatedUser = await this.prisma.$transaction(async tx => {
         return await tx.user.update({
           where: { id: userId },
           data: {
             xp: user.xp + totalXPGain,
             totalXp: newTotalXP,
             level: newLevel,
-            updatedAt: now
-          }
+            updatedAt: now,
+          },
         });
       });
 
@@ -242,9 +244,9 @@ export class XPService {
         `user:${userId}:xp`,
         `user:${userId}:level`,
         `user:${userId}:xp_info`,
-        `xp_leaderboard:*`
+        'xp_leaderboard:*',
       ];
-      
+
       for (const key of cacheKeys) {
         if (key.includes('*')) {
           await this.cache.clearPattern(key);
@@ -260,7 +262,7 @@ export class XPService {
         totalXP: totalXPGain,
         newLevel,
         oldLevel: user.level,
-        leveledUp
+        leveledUp,
       };
 
       // Log da atividade
@@ -271,7 +273,7 @@ export class XPService {
         totalGain: totalXPGain,
         newLevel,
         leveledUp,
-        prestigeLevel: user.prestigeLevel || 0
+        prestigeLevel: user.prestigeLevel || 0,
       });
 
       // Se subiu de nível, processar recompensas
@@ -286,7 +288,7 @@ export class XPService {
         userId,
         activityType,
         timeSpent,
-        multiplier
+        multiplier,
       });
       throw error;
     }
@@ -295,14 +297,18 @@ export class XPService {
   /**
    * Processa recompensas por subir de nível
    */
-  private async processLevelUpRewards(userId: string, oldLevel: number, newLevel: number): Promise<void> {
+  private async processLevelUpRewards(
+    userId: string,
+    oldLevel: number,
+    newLevel: number
+  ): Promise<void> {
     try {
       if (!userId || oldLevel >= newLevel) {
         return;
       }
 
       const levelsGained = newLevel - oldLevel;
-      
+
       // Recompensas escalonadas por nível
       let totalCoinsReward = 0;
       for (let level = oldLevel + 1; level <= newLevel; level++) {
@@ -316,17 +322,17 @@ export class XPService {
           totalCoinsReward += 100; // Níveis máximos: 100 coins
         }
       }
-      
+
       // Usar transação para garantir consistência
-      await this.prisma.$transaction(async (tx) => {
+      await this.prisma.$transaction(async tx => {
         // Atualizar coins do usuário
         await tx.user.update({
           where: { id: userId },
           data: {
             coins: {
-              increment: totalCoinsReward
-            }
-          }
+              increment: totalCoinsReward,
+            },
+          },
         });
 
         // Registrar transação
@@ -337,13 +343,13 @@ export class XPService {
             amount: totalCoinsReward,
             balance: 0, // Será atualizado por trigger ou outro processo
             reason: `Level up reward (${oldLevel} → ${newLevel})`,
-            metadata: JSON.stringify({ 
-              oldLevel, 
-              newLevel, 
+            metadata: JSON.stringify({
+              oldLevel,
+              newLevel,
               levelsGained,
-              coinsPerLevel: Math.floor(totalCoinsReward / levelsGained)
-            })
-          }
+              coinsPerLevel: Math.floor(totalCoinsReward / levelsGained),
+            }),
+          },
         });
       });
 
@@ -354,14 +360,14 @@ export class XPService {
         oldLevel,
         newLevel,
         levelsGained,
-        totalCoinsReward
+        totalCoinsReward,
       });
     } catch (error) {
       this.logger.error('Failed to process level up rewards:', {
         error: error instanceof Error ? error.message : String(error),
         userId,
         oldLevel,
-        newLevel
+        newLevel,
       });
       // Não relançar o erro para não quebrar o fluxo principal de XP
     }
@@ -382,12 +388,12 @@ export class XPService {
         { level: 30, badge: 'veterano', name: 'Veterano' },
         { level: 50, badge: 'elite', name: 'Elite' },
         { level: 75, badge: 'lenda', name: 'Lenda' },
-        { level: 100, badge: 'imortal', name: 'Imortal' }
+        { level: 100, badge: 'imortal', name: 'Imortal' },
       ];
 
       // Verificar quais badges o usuário deve ter baseado no nível atual
       const eligibleBadges = levelBadges.filter(b => level >= b.level);
-      
+
       if (eligibleBadges.length === 0) {
         return;
       }
@@ -398,13 +404,13 @@ export class XPService {
           userId,
           badge: {
             name: {
-              in: eligibleBadges.map(b => b.name)
-            }
-          }
+              in: eligibleBadges.map(b => b.name),
+            },
+          },
         },
         include: {
-          badge: true
-        }
+          badge: true,
+        },
       });
 
       const existingBadgeNames = existingBadges.map(ub => ub.badge.name);
@@ -422,8 +428,8 @@ export class XPService {
               description: `Alcançado ao atingir o nível ${badgeInfo.level}`,
               icon: '🏆',
               category: 'level',
-              rarity: this.getBadgeRarity(badgeInfo.level)
-            }
+              rarity: this.getBadgeRarity(badgeInfo.level),
+            },
           });
 
           // Conceder badge ao usuário
@@ -431,20 +437,25 @@ export class XPService {
             data: {
               userId,
               badgeId: badge.id,
-              earnedAt: new Date()
-            }
+              earnedAt: new Date(),
+            },
           });
 
-          this.logger.info(`🏆 Badge '${badgeInfo.name}' awarded to user ${userId} for reaching level ${level}`);
+          this.logger.info(
+            `🏆 Badge '${badgeInfo.name}' awarded to user ${userId} for reaching level ${level}`
+          );
         } catch (badgeError) {
-          this.logger.error(`Failed to award badge '${badgeInfo.badge}' to user ${userId}:`, badgeError);
+          this.logger.error(
+            `Failed to award badge '${badgeInfo.badge}' to user ${userId}:`,
+            badgeError
+          );
         }
       }
     } catch (error) {
       this.logger.error('Failed to check level badges:', {
         error: error instanceof Error ? error.message : String(error),
         userId,
-        level
+        level,
       });
     }
   }
@@ -453,10 +464,18 @@ export class XPService {
    * Determina a raridade do badge baseado no nível
    */
   private getBadgeRarity(level: number): string {
-    if (level >= 100) return 'legendary';
-    if (level >= 75) return 'epic';
-    if (level >= 50) return 'rare';
-    if (level >= 30) return 'uncommon';
+    if (level >= 100) {
+      return 'legendary';
+    }
+    if (level >= 75) {
+      return 'epic';
+    }
+    if (level >= 50) {
+      return 'rare';
+    }
+    if (level >= 30) {
+      return 'uncommon';
+    }
     return 'common';
   }
 
@@ -483,7 +502,7 @@ export class XPService {
 
       const cacheKey = `user:${userId}:xp_info`;
       const cached = await this.cache.get(cacheKey);
-      
+
       if (cached && typeof cached === 'string') {
         try {
           return JSON.parse(cached);
@@ -500,22 +519,26 @@ export class XPService {
           xp: true,
           totalXp: true,
           prestigeLevel: true,
-          createdAt: true
-        }
+          createdAt: true,
+        },
       });
 
-      if (!user) return null;
+      if (!user) {
+        return null;
+      }
 
       const currentLevel = user.level;
       const isMaxLevel = currentLevel >= this.MAX_LEVEL;
       const nextLevel = isMaxLevel ? this.MAX_LEVEL : currentLevel + 1;
-      
+
       const xpForCurrentLevel = this.calculateXPForLevel(currentLevel);
-      const xpForNextLevel = isMaxLevel ? this.calculateXPForLevel(this.MAX_LEVEL) : this.calculateXPForLevel(nextLevel);
-      
+      const xpForNextLevel = isMaxLevel
+        ? this.calculateXPForLevel(this.MAX_LEVEL)
+        : this.calculateXPForLevel(nextLevel);
+
       const xpProgress = user.totalXp - xpForCurrentLevel;
       const xpNeededForNext = isMaxLevel ? 0 : xpForNextLevel - xpForCurrentLevel;
-      
+
       let xpProgressPercent = 0;
       if (!isMaxLevel && xpNeededForNext > 0) {
         xpProgressPercent = Math.round((xpProgress / xpNeededForNext) * 100);
@@ -537,7 +560,7 @@ export class XPService {
         isMaxLevel,
         prestigeLevel: user.prestigeLevel || 0,
         rankingPosition,
-        accountAge: Math.floor((Date.now() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24)) // dias
+        accountAge: Math.floor((Date.now() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24)), // dias
       };
 
       // Cache por 5 minutos
@@ -546,7 +569,7 @@ export class XPService {
     } catch (error) {
       this.logger.error('Failed to get user XP info:', {
         error: error instanceof Error ? error.message : String(error),
-        userId
+        userId,
       });
       return null;
     }
@@ -560,16 +583,16 @@ export class XPService {
       const result = await this.prisma.user.findMany({
         where: {
           totalXp: {
-            gt: 0
-          }
+            gt: 0,
+          },
         },
         select: {
           id: true,
-          totalXp: true
+          totalXp: true,
         },
         orderBy: {
-          totalXp: 'desc'
-        }
+          totalXp: 'desc',
+        },
       });
 
       const position = result.findIndex(user => user.id === userId) + 1;
@@ -583,16 +606,21 @@ export class XPService {
   /**
    * Obtém ranking de XP
    */
-  public async getXPLeaderboard(guildId?: string, limit: number = 10): Promise<Array<{
-    userId: string;
-    username: string;
-    level: number;
-    totalXp: number;
-    rank: number;
-    prestigeLevel: number;
-    progressPercent: number;
-    isMaxLevel: boolean;
-  }>> {
+  public async getXPLeaderboard(
+    guildId?: string,
+    limit: number = 10
+  ): Promise<
+    Array<{
+      userId: string;
+      username: string;
+      level: number;
+      totalXp: number;
+      rank: number;
+      prestigeLevel: number;
+      progressPercent: number;
+      isMaxLevel: boolean;
+    }>
+  > {
     try {
       // Validar parâmetros
       if (limit < 1 || limit > 100) {
@@ -605,12 +633,12 @@ export class XPService {
 
       const cacheKey = `xp_leaderboard:${guildId || 'global'}:${limit}`;
       const cached = await this.cache.get(cacheKey);
-      
+
       if (cached && typeof cached === 'string') {
         try {
           return JSON.parse(cached);
         } catch (parseError) {
-          this.logger.warn(`Failed to parse cached leaderboard:`, parseError);
+          this.logger.warn('Failed to parse cached leaderboard:', parseError);
           await this.cache.del(cacheKey);
         }
       }
@@ -618,16 +646,16 @@ export class XPService {
       // Query base
       const whereClause: any = {
         totalXp: {
-          gt: 0
-        }
+          gt: 0,
+        },
       };
 
       if (guildId) {
         whereClause.guilds = {
           some: {
             guildId,
-            isActive: true
-          }
+            isActive: true,
+          },
         };
       }
 
@@ -639,20 +667,20 @@ export class XPService {
           level: true,
           totalXp: true,
           prestigeLevel: true,
-          updatedAt: true
+          updatedAt: true,
         },
         orderBy: [
           {
-            totalXp: 'desc'
+            totalXp: 'desc',
           },
           {
-            level: 'desc'
+            level: 'desc',
           },
           {
-            updatedAt: 'asc' // Em caso de empate, quem chegou primeiro
-          }
+            updatedAt: 'asc', // Em caso de empate, quem chegou primeiro
+          },
         ],
-        take: limit
+        take: limit,
       });
 
       if (users.length === 0) {
@@ -661,9 +689,12 @@ export class XPService {
 
       const leaderboard = users.map((user, index) => {
         const currentLevelXP = this.calculateXPForLevel(user.level);
-        const nextLevelXP = user.level < this.MAX_LEVEL ? this.calculateXPForLevel(user.level + 1) : currentLevelXP;
-        const progressPercent = user.level >= this.MAX_LEVEL ? 100 : 
-          Math.floor(((user.totalXp - currentLevelXP) / (nextLevelXP - currentLevelXP)) * 100);
+        const nextLevelXP =
+          user.level < this.MAX_LEVEL ? this.calculateXPForLevel(user.level + 1) : currentLevelXP;
+        const progressPercent =
+          user.level >= this.MAX_LEVEL
+            ? 100
+            : Math.floor(((user.totalXp - currentLevelXP) / (nextLevelXP - currentLevelXP)) * 100);
 
         return {
           userId: user.id,
@@ -673,17 +704,17 @@ export class XPService {
           rank: index + 1,
           prestigeLevel: user.prestigeLevel || 0,
           progressPercent: Math.max(0, Math.min(100, progressPercent)),
-          isMaxLevel: user.level >= this.MAX_LEVEL
+          isMaxLevel: user.level >= this.MAX_LEVEL,
         };
       });
 
       // Cache por 10 minutos
       await this.cache.set(cacheKey, leaderboard, 600);
-      
-      this.logger.info(`📊 XP Leaderboard generated:`, {
+
+      this.logger.info('📊 XP Leaderboard generated:', {
         guildId: guildId || 'global',
         userCount: leaderboard.length,
-        limit
+        limit,
       });
 
       return leaderboard;
@@ -691,7 +722,7 @@ export class XPService {
       this.logger.error('Failed to get XP leaderboard:', {
         error: error instanceof Error ? error.message : String(error),
         guildId,
-        limit
+        limit,
       });
       return [];
     }
@@ -709,15 +740,15 @@ export class XPService {
       // Verificar se já fez check-in hoje
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       const existingCheckIn = await this.prisma.auditLog.findFirst({
         where: {
           userId,
           action: 'DAILY_CHECKIN',
           createdAt: {
-            gte: today
-          }
-        }
+            gte: today,
+          },
+        },
       });
 
       if (existingCheckIn) {
@@ -725,22 +756,22 @@ export class XPService {
       }
 
       const result = await this.addXP(userId, 'CHECK_IN');
-      
+
       // Registrar atividade
       await this.prisma.auditLog.create({
         data: {
           userId,
           action: 'DAILY_CHECKIN',
           target: 'XP_SYSTEM',
-          metadata: JSON.stringify({ xpGained: result.totalXP })
-        }
+          metadata: JSON.stringify({ xpGained: result.totalXP }),
+        },
       });
 
       return result;
     } catch (error) {
       this.logger.error('Failed to add check-in XP:', {
         error: error instanceof Error ? error.message : String(error),
-        userId
+        userId,
       });
       throw error;
     }
@@ -764,19 +795,19 @@ export class XPService {
 
       const multiplier = this.CHALLENGE_DIFFICULTY_MULTIPLIER[difficulty] || 1;
       const result = await this.addXP(userId, 'DAILY_CHALLENGE', undefined, multiplier);
-      
+
       // Registrar atividade
       await this.prisma.auditLog.create({
         data: {
           userId,
           action: 'DAILY_CHALLENGE',
           target: 'XP_SYSTEM',
-          metadata: JSON.stringify({ 
-            difficulty, 
-            multiplier, 
-            xpGained: result.totalXP 
-          })
-        }
+          metadata: JSON.stringify({
+            difficulty,
+            multiplier,
+            xpGained: result.totalXP,
+          }),
+        },
       });
 
       return result;
@@ -784,7 +815,7 @@ export class XPService {
       this.logger.error('Failed to add daily challenge XP:', {
         error: error instanceof Error ? error.message : String(error),
         userId,
-        difficulty
+        difficulty,
       });
       throw error;
     }
@@ -808,19 +839,19 @@ export class XPService {
 
       const multiplier = achievementPoints / 100; // Normalizar baseado em 100 pontos
       const result = await this.addXP(userId, 'ACHIEVEMENT', undefined, multiplier);
-      
+
       // Registrar atividade
       await this.prisma.auditLog.create({
         data: {
           userId,
           action: 'ACHIEVEMENT',
           target: 'XP_SYSTEM',
-          metadata: JSON.stringify({ 
+          metadata: JSON.stringify({
             achievementPoints,
             multiplier,
-            xpGained: result.totalXP 
-          })
-        }
+            xpGained: result.totalXP,
+          }),
+        },
       });
 
       return result;
@@ -828,7 +859,7 @@ export class XPService {
       this.logger.error('Failed to add achievement XP:', {
         error: error instanceof Error ? error.message : String(error),
         userId,
-        achievementPoints
+        achievementPoints,
       });
       throw error;
     }
@@ -857,24 +888,29 @@ export class XPService {
 
       const multiplier = this.CHALLENGE_DIFFICULTY_MULTIPLIER[difficulty] || 1.0;
       const finalXP = Math.floor(baseXP * multiplier);
-      
+
       const challengeBaseXP = this.ACTIVITY_XP.DAILY_CHALLENGE || 1;
-      const result = await this.addXP(userId, 'DAILY_CHALLENGE', undefined, finalXP / challengeBaseXP);
-      
+      const result = await this.addXP(
+        userId,
+        'DAILY_CHALLENGE',
+        undefined,
+        finalXP / challengeBaseXP
+      );
+
       // Registrar atividade
       await this.prisma.auditLog.create({
         data: {
           userId,
           action: 'CHALLENGE',
           target: 'XP_SYSTEM',
-          metadata: JSON.stringify({ 
+          metadata: JSON.stringify({
             difficulty,
             baseXP,
             multiplier,
             finalXP,
-            xpGained: result.totalXP 
-          })
-        }
+            xpGained: result.totalXP,
+          }),
+        },
       });
 
       return result;
@@ -883,7 +919,7 @@ export class XPService {
         error: error instanceof Error ? error.message : String(error),
         userId,
         difficulty,
-        baseXP
+        baseXP,
       });
       throw error;
     }
@@ -892,10 +928,7 @@ export class XPService {
   /**
    * Adiciona XP de maestria de armas
    */
-  public async addWeaponMasteryXP(
-    userId: string,
-    masteryLevel: number = 1
-  ): Promise<XPGainResult> {
+  public async addWeaponMasteryXP(userId: string, masteryLevel: number = 1): Promise<XPGainResult> {
     try {
       if (!userId) {
         throw new Error('User ID is required');
@@ -905,21 +938,21 @@ export class XPService {
         throw new Error('Mastery level must be an integer between 1 and 100');
       }
 
-      const multiplier = 1 + (masteryLevel * 0.1); // 10% por nível de maestria
+      const multiplier = 1 + masteryLevel * 0.1; // 10% por nível de maestria
       const result = await this.addXP(userId, 'WEAPON_MASTERY', undefined, multiplier);
-      
+
       // Registrar atividade
       await this.prisma.auditLog.create({
         data: {
           userId,
           action: 'WEAPON_MASTERY',
           target: 'XP_SYSTEM',
-          metadata: JSON.stringify({ 
+          metadata: JSON.stringify({
             masteryLevel,
             multiplier,
-            xpGained: result.totalXP 
-          })
-        }
+            xpGained: result.totalXP,
+          }),
+        },
       });
 
       return result;
@@ -927,7 +960,7 @@ export class XPService {
       this.logger.error('Failed to add weapon mastery XP:', {
         error: error instanceof Error ? error.message : String(error),
         userId,
-        masteryLevel
+        masteryLevel,
       });
       throw error;
     }
@@ -951,27 +984,27 @@ export class XPService {
       }
 
       const tierMultipliers = {
-        'local': 1.0,
-        'regional': 1.5,
-        'national': 2.0,
-        'international': 3.0
+        local: 1.0,
+        regional: 1.5,
+        national: 2.0,
+        international: 3.0,
       };
-      
+
       const multiplier = tierMultipliers[tournamentTier];
       const result = await this.addXP(userId, 'TOURNAMENT_WIN', undefined, multiplier);
-      
+
       // Registrar atividade
       await this.prisma.auditLog.create({
         data: {
           userId,
           action: 'TOURNAMENT_WIN',
           target: 'XP_SYSTEM',
-          metadata: JSON.stringify({ 
+          metadata: JSON.stringify({
             tournamentTier,
             multiplier,
-            xpGained: result.totalXP 
-          })
-        }
+            xpGained: result.totalXP,
+          }),
+        },
       });
 
       return result;
@@ -979,7 +1012,7 @@ export class XPService {
       this.logger.error('Failed to add tournament win XP:', {
         error: error instanceof Error ? error.message : String(error),
         userId,
-        tournamentTier
+        tournamentTier,
       });
       throw error;
     }
@@ -988,10 +1021,7 @@ export class XPService {
   /**
    * Adiciona XP de bônus por sequência (streak)
    */
-  public async addStreakBonusXP(
-    userId: string,
-    streakCount: number
-  ): Promise<XPGainResult> {
+  public async addStreakBonusXP(userId: string, streakCount: number): Promise<XPGainResult> {
     try {
       if (!userId) {
         throw new Error('User ID is required');
@@ -1007,19 +1037,19 @@ export class XPService {
 
       const multiplier = Math.min(streakCount * 0.2, 3.0); // Máximo 3x multiplier
       const result = await this.addXP(userId, 'STREAK_BONUS', undefined, multiplier);
-      
+
       // Registrar atividade no audit log
       await this.prisma.auditLog.create({
         data: {
           userId,
           action: 'STREAK_BONUS',
           target: 'XP_SYSTEM',
-          metadata: JSON.stringify({ 
+          metadata: JSON.stringify({
             streakCount,
             multiplier,
-            xpGained: result.totalXP 
-          })
-        }
+            xpGained: result.totalXP,
+          }),
+        },
       });
 
       return result;
@@ -1027,7 +1057,7 @@ export class XPService {
       this.logger.error('Failed to add streak bonus XP:', {
         error: error instanceof Error ? error.message : String(error),
         userId,
-        streakCount
+        streakCount,
       });
       throw error;
     }
@@ -1053,8 +1083,8 @@ export class XPService {
           level: true,
           prestigeLevel: true,
           totalXp: true,
-          xp: true
-        }
+          xp: true,
+        },
       });
 
       if (!user) {
@@ -1067,7 +1097,7 @@ export class XPService {
           success: false,
           newPrestigeLevel: user.prestigeLevel || 0,
           bonusXPPercent: this.calculatePrestigeBonusPercent(user.prestigeLevel || 0),
-          message: `Você precisa atingir o nível ${this.MAX_LEVEL} para fazer prestígio. Nível atual: ${user.level}`
+          message: `Você precisa atingir o nível ${this.MAX_LEVEL} para fazer prestígio. Nível atual: ${user.level}`,
         };
       }
 
@@ -1079,7 +1109,7 @@ export class XPService {
           success: false,
           newPrestigeLevel: currentPrestigeLevel,
           bonusXPPercent: this.calculatePrestigeBonusPercent(currentPrestigeLevel),
-          message: `Você já atingiu o nível máximo de prestígio (${maxPrestigeLevel})`
+          message: `Você já atingiu o nível máximo de prestígio (${maxPrestigeLevel})`,
         };
       }
 
@@ -1087,7 +1117,7 @@ export class XPService {
       const bonusXPPercent = this.calculatePrestigeBonusPercent(newPrestigeLevel);
 
       // Usar transação para garantir consistência
-      await this.prisma.$transaction(async (tx) => {
+      await this.prisma.$transaction(async tx => {
         // Resetar nível mas manter XP total para histórico
         await tx.user.update({
           where: { id: userId },
@@ -1095,8 +1125,8 @@ export class XPService {
             level: 1,
             xp: 0,
             prestigeLevel: newPrestigeLevel,
-            updatedAt: new Date()
-          }
+            updatedAt: new Date(),
+          },
         });
 
         // Registrar evento de prestígio
@@ -1110,9 +1140,9 @@ export class XPService {
               oldPrestigeLevel: currentPrestigeLevel,
               newPrestigeLevel,
               bonusXPPercent,
-              totalXpKept: user.totalXp
-            })
-          }
+              totalXpKept: user.totalXp,
+            }),
+          },
         });
       });
 
@@ -1122,9 +1152,9 @@ export class XPService {
         `user:${userId}:xp`,
         `user:${userId}:level`,
         `user:${userId}:xp_info`,
-        `xp_leaderboard:*`
+        'xp_leaderboard:*',
       ];
-      
+
       for (const key of cacheKeys) {
         if (key.includes('*')) {
           await this.cache.clearPattern(key);
@@ -1133,18 +1163,20 @@ export class XPService {
         }
       }
 
-      this.logger.info(`🌟 User ${userId} prestiged to level ${newPrestigeLevel} with ${bonusXPPercent}% XP bonus`);
+      this.logger.info(
+        `🌟 User ${userId} prestiged to level ${newPrestigeLevel} with ${bonusXPPercent}% XP bonus`
+      );
 
       return {
         success: true,
         newPrestigeLevel,
         bonusXPPercent,
-        message: `🎉 Parabéns! Você atingiu o Prestígio ${newPrestigeLevel} e agora ganha ${bonusXPPercent}% de bônus de XP!`
+        message: `🎉 Parabéns! Você atingiu o Prestígio ${newPrestigeLevel} e agora ganha ${bonusXPPercent}% de bônus de XP!`,
       };
     } catch (error) {
       this.logger.error('Failed to prestige user:', {
         error: error instanceof Error ? error.message : String(error),
-        userId
+        userId,
       });
       throw error;
     }
@@ -1161,7 +1193,7 @@ export class XPService {
 
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        select: { prestigeLevel: true }
+        select: { prestigeLevel: true },
       });
 
       if (!user || !user.prestigeLevel || user.prestigeLevel <= 0) {
@@ -1170,13 +1202,13 @@ export class XPService {
 
       const bonusPercent = this.calculatePrestigeBonusPercent(user.prestigeLevel);
       const bonus = Math.floor(baseXP * (bonusPercent / 100));
-      
+
       return Math.max(0, bonus);
     } catch (error) {
       this.logger.error('Failed to calculate prestige bonus:', {
         error: error instanceof Error ? error.message : String(error),
         userId,
-        baseXP
+        baseXP,
       });
       return 0;
     }
@@ -1191,16 +1223,36 @@ export class XPService {
     }
 
     // Bônus escalonado: 5% para o primeiro, depois aumenta gradualmente
-    if (prestigeLevel === 1) return 5;
-    if (prestigeLevel === 2) return 12;
-    if (prestigeLevel === 3) return 20;
-    if (prestigeLevel === 4) return 30;
-    if (prestigeLevel === 5) return 42;
-    if (prestigeLevel === 6) return 56;
-    if (prestigeLevel === 7) return 72;
-    if (prestigeLevel === 8) return 90;
-    if (prestigeLevel === 9) return 110;
-    if (prestigeLevel >= 10) return 135; // Máximo
+    if (prestigeLevel === 1) {
+      return 5;
+    }
+    if (prestigeLevel === 2) {
+      return 12;
+    }
+    if (prestigeLevel === 3) {
+      return 20;
+    }
+    if (prestigeLevel === 4) {
+      return 30;
+    }
+    if (prestigeLevel === 5) {
+      return 42;
+    }
+    if (prestigeLevel === 6) {
+      return 56;
+    }
+    if (prestigeLevel === 7) {
+      return 72;
+    }
+    if (prestigeLevel === 8) {
+      return 90;
+    }
+    if (prestigeLevel === 9) {
+      return 110;
+    }
+    if (prestigeLevel >= 10) {
+      return 135;
+    } // Máximo
 
     return 0;
   }
@@ -1225,8 +1277,8 @@ export class XPService {
         where: { id: userId },
         select: {
           level: true,
-          prestigeLevel: true
-        }
+          prestigeLevel: true,
+        },
       });
 
       if (!user) {
@@ -1237,8 +1289,10 @@ export class XPService {
       const maxPrestigeLevel = 10;
       const bonusXPPercent = this.calculatePrestigeBonusPercent(prestigeLevel);
       const canPrestige = user.level >= this.MAX_LEVEL && prestigeLevel < maxPrestigeLevel;
-      const nextPrestigeBonusPercent = prestigeLevel < maxPrestigeLevel ? 
-        this.calculatePrestigeBonusPercent(prestigeLevel + 1) : bonusXPPercent;
+      const nextPrestigeBonusPercent =
+        prestigeLevel < maxPrestigeLevel
+          ? this.calculatePrestigeBonusPercent(prestigeLevel + 1)
+          : bonusXPPercent;
       const isMaxPrestige = prestigeLevel >= maxPrestigeLevel;
 
       return {
@@ -1247,12 +1301,12 @@ export class XPService {
         canPrestige,
         nextPrestigeBonusPercent,
         maxPrestigeLevel,
-        isMaxPrestige
+        isMaxPrestige,
       };
     } catch (error) {
       this.logger.error('Failed to get user prestige info:', {
         error: error instanceof Error ? error.message : String(error),
-        userId
+        userId,
       });
       return null;
     }
@@ -1269,9 +1323,9 @@ export class XPService {
           `user:${userId}`,
           `user:${userId}:xp`,
           `user:${userId}:level`,
-          `user:${userId}:xp_info`
+          `user:${userId}:xp_info`,
         ];
-        
+
         for (const key of userCacheKeys) {
           await this.cache.del(key);
         }
@@ -1285,7 +1339,7 @@ export class XPService {
     } catch (error) {
       this.logger.error('Failed to clear XP cache:', {
         error: error instanceof Error ? error.message : String(error),
-        userId
+        userId,
       });
     }
   }
@@ -1305,29 +1359,29 @@ export class XPService {
     try {
       const stats = await this.prisma.user.aggregate({
         _count: {
-          id: true
+          id: true,
         },
         _avg: {
           level: true,
-          prestigeLevel: true
+          prestigeLevel: true,
         },
         _max: {
           level: true,
-          prestigeLevel: true
+          prestigeLevel: true,
         },
         where: {
           totalXp: {
-            gt: 0
-          }
-        }
+            gt: 0,
+          },
+        },
       });
 
       const prestigeUsers = await this.prisma.user.count({
         where: {
           prestigeLevel: {
-            gt: 0
-          }
-        }
+            gt: 0,
+          },
+        },
       });
 
       return {
@@ -1337,11 +1391,11 @@ export class XPService {
         totalPrestigeUsers: prestigeUsers,
         averagePrestigeLevel: Math.round(stats._avg.prestigeLevel || 0),
         topLevel: stats._max.level || 1,
-        topPrestige: stats._max.prestigeLevel || 0
+        topPrestige: stats._max.prestigeLevel || 0,
       };
     } catch (error) {
       this.logger.error('Failed to get XP system stats:', {
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       return {
         totalUsers: 0,
@@ -1350,7 +1404,7 @@ export class XPService {
         totalPrestigeUsers: 0,
         averagePrestigeLevel: 0,
         topLevel: 1,
-        topPrestige: 0
+        topPrestige: 0,
       };
     }
   }

@@ -1,4 +1,12 @@
-import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, ChatInputCommandInteraction } from 'discord.js';
+import {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ComponentType,
+  ChatInputCommandInteraction,
+} from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
 import { Logger } from '../../utils/logger';
@@ -13,45 +21,49 @@ const quiz: Command = {
     .setName('quiz')
     .setDescription('🧠 Inicia um quiz interativo sobre PUBG e gaming')
     .addStringOption(option =>
-      option.setName('category')
+      option
+        .setName('category')
         .setDescription('Categoria do quiz')
         .setRequired(false)
         .addChoices(
           { name: '🎮 PUBG', value: 'pubg' },
           { name: '🎯 Gaming Geral', value: 'gaming' },
           { name: '🏆 Esports', value: 'esports' },
-          { name: '🎲 Misto', value: 'mixed' },
-        ),
+          { name: '🎲 Misto', value: 'mixed' }
+        )
     )
     .addStringOption(option =>
-      option.setName('difficulty')
+      option
+        .setName('difficulty')
         .setDescription('Dificuldade do quiz')
         .setRequired(false)
         .addChoices(
           { name: '🟢 Fácil', value: 'easy' },
           { name: '🟡 Médio', value: 'medium' },
           { name: '🔴 Difícil', value: 'hard' },
-          { name: '🌈 Misto', value: 'mixed' },
-        ),
+          { name: '🌈 Misto', value: 'mixed' }
+        )
     )
     .addIntegerOption(option =>
-      option.setName('questions')
+      option
+        .setName('questions')
         .setDescription('Número de perguntas (5-20)')
         .setRequired(false)
         .setMinValue(5)
-        .setMaxValue(20),
+        .setMaxValue(20)
     )
     .addIntegerOption(option =>
-      option.setName('time')
+      option
+        .setName('time')
         .setDescription('Tempo por pergunta em segundos (15-120)')
         .setRequired(false)
         .setMinValue(15)
-        .setMaxValue(120),
+        .setMaxValue(120)
     ) as SlashCommandBuilder,
-  
+
   category: CommandCategory.GENERAL,
   cooldown: 30,
-  
+
   async execute(interaction: any, client: ExtendedClient) {
     const logger = new Logger();
     const gameService = new GameService(client);
@@ -72,7 +84,9 @@ const quiz: Command = {
       if (!user) {
         const embed = new EmbedBuilder()
           .setTitle('❌ Usuário Não Registrado')
-          .setDescription('Você precisa se registrar primeiro usando `/register` para participar de quizzes!')
+          .setDescription(
+            'Você precisa se registrar primeiro usando `/register` para participar de quizzes!'
+          )
           .setColor(0xff0000)
           .setTimestamp();
 
@@ -80,11 +94,15 @@ const quiz: Command = {
       }
 
       // Check if there's already an active quiz in this channel
-      const existingSession = gameService.getQuizSession(`${interaction.guildId}_${interaction.channelId}`);
+      const existingSession = gameService.getQuizSession(
+        `${interaction.guildId}_${interaction.channelId}`
+      );
       if (existingSession && existingSession.isActive) {
         const embed = new EmbedBuilder()
           .setTitle('⚠️ Quiz Já Ativo')
-          .setDescription('Já existe um quiz ativo neste canal! Aguarde ele terminar ou participe dele.')
+          .setDescription(
+            'Já existe um quiz ativo neste canal! Aguarde ele terminar ou participe dele.'
+          )
           .setColor(0xffa500)
           .setTimestamp();
 
@@ -106,7 +124,7 @@ const quiz: Command = {
         interaction.guildId!,
         interaction.channelId,
         interaction.user.id,
-        settings,
+        settings
       );
 
       // Create initial embed
@@ -114,30 +132,29 @@ const quiz: Command = {
         .setTitle('🧠 Quiz Iniciado!')
         .setDescription(
           `**Categoria:** ${getCategoryName(category)}\n` +
-          `**Dificuldade:** ${getDifficultyName(difficulty)}\n` +
-          `**Perguntas:** ${questionCount}\n` +
-          `**Tempo por pergunta:** ${timePerQuestion}s\n\n` +
-          '🎯 **Como participar:**\n' +
-          '• Clique em "Participar" para entrar no quiz\n' +
-          '• Responda as perguntas usando os botões\n' +
-          '• Ganhe XP e moedas baseado na sua performance!\n\n' +
-          '⏰ O quiz começará em 30 segundos...',
+            `**Dificuldade:** ${getDifficultyName(difficulty)}\n` +
+            `**Perguntas:** ${questionCount}\n` +
+            `**Tempo por pergunta:** ${timePerQuestion}s\n\n` +
+            '🎯 **Como participar:**\n' +
+            '• Clique em "Participar" para entrar no quiz\n' +
+            '• Responda as perguntas usando os botões\n' +
+            '• Ganhe XP e moedas baseado na sua performance!\n\n' +
+            '⏰ O quiz começará em 30 segundos...'
         )
         .setColor(0x0099ff)
         .setFooter({ text: `Host: ${interaction.user.username}` })
         .setTimestamp();
 
-      const joinButton = new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId(`quiz_join_${session.id}`)
-            .setLabel('🎯 Participar')
-            .setStyle(ButtonStyle.Primary),
-          new ButtonBuilder()
-            .setCustomId(`quiz_info_${session.id}`)
-            .setLabel('ℹ️ Informações')
-            .setStyle(ButtonStyle.Secondary),
-        );
+      const joinButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`quiz_join_${session.id}`)
+          .setLabel('🎯 Participar')
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId(`quiz_info_${session.id}`)
+          .setLabel('ℹ️ Informações')
+          .setStyle(ButtonStyle.Secondary)
+      );
 
       const response = await interaction.reply({
         embeds: [embed],
@@ -158,7 +175,7 @@ const quiz: Command = {
           const joined = await gameService.joinQuiz(
             session.id,
             buttonInteraction.user.id,
-            buttonInteraction.user.username,
+            buttonInteraction.user.username
           );
 
           if (joined) {
@@ -177,18 +194,18 @@ const quiz: Command = {
             .setTitle('ℹ️ Informações do Quiz')
             .setDescription(
               '**Sistema de Pontuação:**\n' +
-              '• Resposta correta: +pontos base\n' +
-              '• Streak bonus: +25% por resposta consecutiva\n' +
-              '• Tempo bonus: +10% se responder em <50% do tempo\n\n' +
-              '**Recompensas:**\n' +
-              '• 1º lugar: 100 XP + 50 moedas\n' +
-              '• 2º lugar: 75 XP + 35 moedas\n' +
-              '• 3º lugar: 50 XP + 25 moedas\n' +
-              '• Participação: 25 XP + 10 moedas\n\n' +
-              '**Dificuldades:**\n' +
-              '• 🟢 Fácil: 10 pontos\n' +
-              '• 🟡 Médio: 15 pontos\n' +
-              '• 🔴 Difícil: 20 pontos',
+                '• Resposta correta: +pontos base\n' +
+                '• Streak bonus: +25% por resposta consecutiva\n' +
+                '• Tempo bonus: +10% se responder em <50% do tempo\n\n' +
+                '**Recompensas:**\n' +
+                '• 1º lugar: 100 XP + 50 moedas\n' +
+                '• 2º lugar: 75 XP + 35 moedas\n' +
+                '• 3º lugar: 50 XP + 25 moedas\n' +
+                '• Participação: 25 XP + 10 moedas\n\n' +
+                '**Dificuldades:**\n' +
+                '• 🟢 Fácil: 10 pontos\n' +
+                '• 🟡 Médio: 15 pontos\n' +
+                '• 🔴 Difícil: 20 pontos'
             )
             .setColor(0x0099ff)
             .setTimestamp();
@@ -202,10 +219,9 @@ const quiz: Command = {
         collector.stop();
         await startQuizQuestions(interaction, session, gameService);
       }, 30000);
-
     } catch (error) {
       logger.error('Error in quiz command:', error);
-      
+
       const errorEmbed = new EmbedBuilder()
         .setTitle('❌ Erro')
         .setDescription('Ocorreu um erro ao iniciar o quiz. Tente novamente.')
@@ -227,10 +243,10 @@ const quiz: Command = {
 async function startQuizQuestions(
   interaction: ChatInputCommandInteraction,
   session: any,
-  gameService: GameService,
+  gameService: GameService
 ) {
   const currentQuestion = session.questions[session.currentQuestionIndex];
-  
+
   if (!currentQuestion) {
     await endQuiz(interaction, session, gameService);
     return;
@@ -240,25 +256,24 @@ async function startQuizQuestions(
     .setTitle(`🧠 Pergunta ${session.currentQuestionIndex + 1}/${session.questions.length}`)
     .setDescription(
       `**${currentQuestion.question}**\n\n` +
-      currentQuestion.options.map((option: string, index: number) => 
-        `${['🅰️', '🅱️', '🅲️', '🅳️'][index]} ${option}`,
-      ).join('\n'),
+        currentQuestion.options
+          .map((option: string, index: number) => `${['🅰️', '🅱️', '🅲️', '🅳️'][index]} ${option}`)
+          .join('\n')
     )
     .setColor(getDifficultyColor(currentQuestion.difficulty))
-    .setFooter({ 
-      text: `⏰ ${currentQuestion.timeLimit}s • 💎 ${currentQuestion.points} pontos • Participantes: ${session.participants.size}`, 
+    .setFooter({
+      text: `⏰ ${currentQuestion.timeLimit}s • 💎 ${currentQuestion.points} pontos • Participantes: ${session.participants.size}`,
     })
     .setTimestamp();
 
-  const answerButtons = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
-      ...currentQuestion.options.slice(0, 4).map((_: string, index: number) => 
-        new ButtonBuilder()
-          .setCustomId(`quiz_answer_${session.id}_${index}`)
-          .setLabel(['🅰️', '🅱️', '🅲️', '🅳️'][index] || `Opção ${index + 1}`)
-          .setStyle(ButtonStyle.Secondary),
-      ),
-    );
+  const answerButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    ...currentQuestion.options.slice(0, 4).map((_: string, index: number) =>
+      new ButtonBuilder()
+        .setCustomId(`quiz_answer_${session.id}_${index}`)
+        .setLabel(['🅰️', '🅱️', '🅲️', '🅳️'][index] || `Opção ${index + 1}`)
+        .setStyle(ButtonStyle.Secondary)
+    )
+  );
 
   const response = await interaction.editReply({
     embeds: [embed],
@@ -273,7 +288,7 @@ async function startQuizQuestions(
 
   const answeredUsers = new Set<string>();
 
-  collector.on('collect', async (buttonInteraction) => {
+  collector.on('collect', async buttonInteraction => {
     if (answeredUsers.has(buttonInteraction.user.id)) {
       await buttonInteraction.reply({
         content: '❌ Você já respondeu esta pergunta!',
@@ -286,15 +301,15 @@ async function startQuizQuestions(
     const result = await gameService.submitQuizAnswer(
       session.id,
       buttonInteraction.user.id,
-      answerIndex,
+      answerIndex
     );
 
     if (result) {
       answeredUsers.add(buttonInteraction.user.id);
-      
+
       const emoji = result.correct ? '✅' : '❌';
       const streakText = result.streak > 1 ? ` (🔥 ${result.streak}x streak!)` : '';
-      
+
       await buttonInteraction.reply({
         content: `${emoji} ${result.correct ? 'Correto' : 'Incorreto'}! +${result.points} pontos${streakText}`,
         ephemeral: true,
@@ -308,7 +323,7 @@ async function startQuizQuestions(
       .setTitle('✅ Resposta Correta')
       .setDescription(
         `**${currentQuestion.question}**\n\n` +
-        `**Resposta:** ${['🅰️', '🅱️', '🅲️', '🅳️'][currentQuestion.correctAnswer]} ${currentQuestion.options[currentQuestion.correctAnswer]}`,
+          `**Resposta:** ${['🅰️', '🅱️', '🅲️', '🅳️'][currentQuestion.correctAnswer]} ${currentQuestion.options[currentQuestion.correctAnswer]}`
       )
       .setColor(0x00ff00)
       .setTimestamp();
@@ -332,10 +347,10 @@ async function startQuizQuestions(
 async function endQuiz(
   interaction: ChatInputCommandInteraction,
   session: any,
-  gameService: GameService,
+  gameService: GameService
 ) {
   const results = await gameService.endQuiz(session.id);
-  
+
   if (results.length === 0) {
     const embed = new EmbedBuilder()
       .setTitle('🏁 Quiz Finalizado')
@@ -353,15 +368,21 @@ async function endQuiz(
   const embed = new EmbedBuilder()
     .setTitle('🏆 Resultados do Quiz')
     .setDescription(
-      results.slice(0, 10).map((participant, index) => {
-        const medal = ['🥇', '🥈', '🥉'][index] || `${index + 1}º`;
-        const accuracy = participant.totalAnswers > 0 
-          ? Math.round((participant.correctAnswers / participant.totalAnswers) * 100)
-          : 0;
-        
-        return `${medal} **${participant.username}**\n` +
-               `📊 ${participant.score} pontos • ✅ ${participant.correctAnswers}/${participant.totalAnswers} (${accuracy}%)`;
-      }).join('\n\n'),
+      results
+        .slice(0, 10)
+        .map((participant, index) => {
+          const medal = ['🥇', '🥈', '🥉'][index] || `${index + 1}º`;
+          const accuracy =
+            participant.totalAnswers > 0
+              ? Math.round((participant.correctAnswers / participant.totalAnswers) * 100)
+              : 0;
+
+          return (
+            `${medal} **${participant.username}**\n` +
+            `📊 ${participant.score} pontos • ✅ ${participant.correctAnswers}/${participant.totalAnswers} (${accuracy}%)`
+          );
+        })
+        .join('\n\n')
     )
     .setColor(0xffd700)
     .setFooter({ text: `Participantes: ${results.length}` })
@@ -375,29 +396,29 @@ async function endQuiz(
  */
 function getCategoryName(category: string): string {
   const names = {
-    'pubg': '🎮 PUBG',
-    'gaming': '🎯 Gaming Geral',
-    'esports': '🏆 Esports',
-    'mixed': '🎲 Misto',
+    pubg: '🎮 PUBG',
+    gaming: '🎯 Gaming Geral',
+    esports: '🏆 Esports',
+    mixed: '🎲 Misto',
   };
   return names[category as keyof typeof names] || '🎲 Misto';
 }
 
 function getDifficultyName(difficulty: string): string {
   const names = {
-    'easy': '🟢 Fácil',
-    'medium': '🟡 Médio',
-    'hard': '🔴 Difícil',
-    'mixed': '🌈 Misto',
+    easy: '🟢 Fácil',
+    medium: '🟡 Médio',
+    hard: '🔴 Difícil',
+    mixed: '🌈 Misto',
   };
   return names[difficulty as keyof typeof names] || '🌈 Misto';
 }
 
 function getDifficultyColor(difficulty: string): number {
   const colors = {
-    'easy': 0x00ff00,
-    'medium': 0xffa500,
-    'hard': 0xff0000,
+    easy: 0x00ff00,
+    medium: 0xffa500,
+    hard: 0xff0000,
   };
   return colors[difficulty as keyof typeof colors] || 0x0099ff;
 }

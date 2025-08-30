@@ -6,6 +6,7 @@ import { BadgeService } from './badge.service';
 import { XPService } from './xp.service';
 import { ExtendedClient } from '../types/client';
 import { PUBGPlatform } from '../types/pubg';
+import { TextChannel, EmbedBuilder } from 'discord.js';
 import * as cron from 'node-cron';
 
 export interface WeaponMasteryData {
@@ -68,7 +69,7 @@ export class WeaponMasteryService {
   private pubg: PUBGService;
   private badge: BadgeService;
   private xp: XPService;
-  
+
   private syncJob?: cron.ScheduledTask;
   private readonly CACHE_TTL = 3600; // 1 hour
   private readonly SYNC_INTERVAL = 21600; // 6 hours
@@ -81,7 +82,7 @@ export class WeaponMasteryService {
     this.pubg = (client as any).pubgService;
     this.badge = (client as any).badgeService;
     this.xp = (client as any).xpService;
-    
+
     this.startSyncScheduler();
   }
 
@@ -89,12 +90,16 @@ export class WeaponMasteryService {
    * Start automatic sync scheduler (every 6 hours)
    */
   private startSyncScheduler(): void {
-    this.syncJob = cron.schedule('0 */6 * * *', async () => {
-      this.logger.info('Starting scheduled weapon mastery sync...');
-      await this.syncAllUsersWeaponMastery();
-    }, {
-      timezone: 'UTC'
-    });
+    this.syncJob = cron.schedule(
+      '0 */6 * * *',
+      async () => {
+        this.logger.info('Starting scheduled weapon mastery sync...');
+        await this.syncAllUsersWeaponMastery();
+      },
+      {
+        timezone: 'UTC',
+      }
+    );
 
     this.logger.info('Weapon mastery sync scheduled every 6 hours');
   }
@@ -110,13 +115,13 @@ export class WeaponMasteryService {
       const users = await this.database.client.user.findMany({
         where: {
           pubgUsername: {
-            not: null
-          }
+            not: null,
+          },
         },
         select: {
           id: true,
-          pubgUsername: true
-        }
+          pubgUsername: true,
+        },
       });
 
       let syncedCount = 0;
@@ -142,7 +147,9 @@ export class WeaponMasteryService {
       // Update cache with last sync time
       await this.cache.set('weapon_mastery_last_sync', new Date().toISOString(), 86400);
 
-      this.logger.info(`Weapon mastery sync completed. Synced: ${syncedCount}, Errors: ${errorCount}, Total: ${users.length}`);
+      this.logger.info(
+        `Weapon mastery sync completed. Synced: ${syncedCount}, Errors: ${errorCount}, Total: ${users.length}`
+      );
     } catch (error) {
       this.logger.error('Failed to sync all users weapon mastery:', error);
       throw error;
@@ -154,27 +161,82 @@ export class WeaponMasteryService {
    */
   public async syncUserWeaponMastery(discordId: string, pubgName: string): Promise<boolean> {
     try {
+      // Check if PUBG service is available
+      if (!this.pubg) {
+        this.logger.error('PUBG service not available for weapon mastery sync');
+        await this.logToChannel('❌ **Weapon Mastery Sync Error**', {
+          event: 'Weapon Mastery Sync',
+          status: 'Error',
+          userId: discordId,
+          pubgName: pubgName,
+          message: 'PUBG service not available',
+          timestamp: new Date().toISOString(),
+        });
+        return false;
+      }
+
+      // Check PUBG service health
+      try {
+        const healthCheck = await this.pubg.healthCheck();
+        if (healthCheck.status !== 'healthy' || !healthCheck.api) {
+          this.logger.warn('PUBG service is unhealthy, skipping weapon mastery sync');
+          await this.logToChannel('⚠️ **Weapon Mastery Sync Warning**', {
+            event: 'Weapon Mastery Sync',
+            status: 'Warning',
+            userId: discordId,
+            pubgName: pubgName,
+            message: 'PUBG service is unhealthy',
+            details: healthCheck,
+            timestamp: new Date().toISOString(),
+          });
+          return false;
+        }
+      } catch (error) {
+        this.logger.error('Failed to check PUBG service health:', error);
+        await this.logToChannel('❌ **Weapon Mastery Sync Error**', {
+          event: 'Weapon Mastery Sync',
+          status: 'Error',
+          userId: discordId,
+          pubgName: pubgName,
+          message: 'Failed to check PUBG service health',
+          error: error instanceof Error ? error.message : String(error),
+          timestamp: new Date().toISOString(),
+        });
+        return false;
+      }
+
       // Check cache first (avoid too frequent updates)
       const cacheKey = `weapon_mastery_${discordId}`;
       const cachedData = await this.cache.get(cacheKey);
-      
+
       if (cachedData) {
         const parsedData = typeof cachedData === 'string' ? JSON.parse(cachedData) : cachedData;
-         if (parsedData && parsedData.lastSyncAt) {
-           const lastSync = new Date(parsedData.lastSyncAt);
-           const timeDiff = Date.now() - lastSync.getTime();
-           
-           // Skip if synced less than 1 hour ago
-           if (timeDiff < 3600000) {
-             return false;
-           }
-         }
+        if (parsedData && parsedData.lastSyncAt) {
+          const lastSync = new Date(parsedData.lastSyncAt);
+          const timeDiff = Date.now() - lastSync.getTime();
+
+          // Skip if synced less than 1 hour ago
+          if (timeDiff < 3600000) {
+            this.logger.info(
+              `Weapon mastery sync skipped for ${pubgName} - synced ${Math.round(timeDiff / 60000)} minutes ago`
+            );
+            return false;
+          }
+        }
       }
 
       // Get PUBG player data
       const player = await this.pubg.getPlayerByName(pubgName);
       if (!player) {
         this.logger.warn(`Player not found: ${pubgName}`);
+        await this.logToChannel('⚠️ **Weapon Mastery Sync Warning**', {
+          event: 'Weapon Mastery Sync',
+          status: 'Warning',
+          userId: discordId,
+          pubgName: pubgName,
+          message: 'PUBG player not found',
+          timestamp: new Date().toISOString(),
+        });
         return false;
       }
 
@@ -182,12 +244,21 @@ export class WeaponMasteryService {
       const weaponMasteryData = await this.pubg.getWeaponMastery(player.id, PUBGPlatform.STEAM);
       if (!weaponMasteryData) {
         this.logger.warn(`No weapon mastery data found for player: ${pubgName}`);
+        await this.logToChannel('⚠️ **Weapon Mastery Sync Warning**', {
+          event: 'Weapon Mastery Sync',
+          status: 'Warning',
+          userId: discordId,
+          pubgName: pubgName,
+          playerId: player.id,
+          message: 'No weapon mastery data found',
+          timestamp: new Date().toISOString(),
+        });
         return false;
       }
 
       // Extract weapon mastery badges
       const weaponBadges = this.pubg.extractWeaponMasteryBadges(weaponMasteryData);
-      
+
       // Process weapon mastery data
       const weapons: WeaponMasteryData[] = weaponBadges.map(badge => ({
         weaponName: badge.weaponName,
@@ -204,9 +275,9 @@ export class WeaponMasteryService {
           description: medal.description || '',
           icon: medal.icon || '🏅',
           rarity: this.getMedalRarity(medal.tier || 'common'),
-          unlockedAt: new Date(medal.unlockedAt || Date.now())
+          unlockedAt: new Date(medal.unlockedAt || Date.now()),
         })),
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       }));
 
       // Calculate totals
@@ -221,7 +292,7 @@ export class WeaponMasteryService {
         totalLevel,
         totalXP,
         favoriteWeapon,
-        lastSyncAt: new Date()
+        lastSyncAt: new Date(),
       };
 
       // Save to database
@@ -236,10 +307,39 @@ export class WeaponMasteryService {
       // Cache the result
       await this.cache.set(cacheKey, JSON.stringify(userMastery), this.CACHE_TTL);
 
-      this.logger.info(`Synced weapon mastery for ${pubgName}: ${weapons.length} weapons, ${totalLevel} total levels`);
+      // Log successful sync
+      await this.logToChannel('✅ **Weapon Mastery Sync Success**', {
+        event: 'Weapon Mastery Sync',
+        status: 'Success',
+        userId: discordId,
+        pubgName: pubgName,
+        details: {
+          weaponsCount: weapons.length,
+          totalLevel: totalLevel,
+          totalXP: totalXP,
+          favoriteWeapon: favoriteWeapon,
+        },
+        timestamp: new Date().toISOString(),
+      });
+
+      this.logger.info(
+        `Synced weapon mastery for ${pubgName}: ${weapons.length} weapons, ${totalLevel} total levels`
+      );
       return true;
     } catch (error) {
       this.logger.error(`Failed to sync weapon mastery for user ${discordId}:`, error);
+
+      // Log error to Discord
+      await this.logToChannel('❌ **Weapon Mastery Sync Error**', {
+        event: 'Weapon Mastery Sync',
+        status: 'Error',
+        userId: discordId,
+        pubgName: pubgName,
+        message: 'Failed to sync weapon mastery',
+        error: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString(),
+      });
+
       return false;
     }
   }
@@ -258,7 +358,7 @@ export class WeaponMasteryService {
           totalLevel: userMastery.totalLevel,
           totalXP: userMastery.totalXP,
           favoriteWeapon: userMastery.favoriteWeapon,
-          lastSyncAt: userMastery.lastSyncAt
+          lastSyncAt: userMastery.lastSyncAt,
         },
         create: {
           userId: userMastery.userId,
@@ -267,8 +367,8 @@ export class WeaponMasteryService {
           totalLevel: userMastery.totalLevel,
           totalXP: userMastery.totalXP,
           favoriteWeapon: userMastery.favoriteWeapon,
-          lastSyncAt: userMastery.lastSyncAt
-        }
+          lastSyncAt: userMastery.lastSyncAt,
+        },
       });
     } catch (error) {
       this.logger.error('Failed to save weapon mastery to database:', error);
@@ -279,14 +379,17 @@ export class WeaponMasteryService {
   /**
    * Check and award weapon mastery badges
    */
-  private async checkWeaponMasteryBadges(userId: string, weapons: WeaponMasteryData[]): Promise<void> {
+  private async checkWeaponMasteryBadges(
+    userId: string,
+    weapons: WeaponMasteryData[]
+  ): Promise<void> {
     try {
       const awardedBadges: string[] = [];
 
       for (const weapon of weapons) {
         // Check for weapon-specific mastery badges
         const weaponBadgeId = `weapon_mastery_${weapon.weaponName.toLowerCase()}_${weapon.level}`;
-        
+
         if (weapon.level >= 20 && !this.badge.hasBadge(userId, weaponBadgeId)) {
           const awarded = await this.badge.awardBadge(userId, weaponBadgeId);
           if (awarded) {
@@ -304,7 +407,7 @@ export class WeaponMasteryService {
         { level: 100, badge: 'weapon_master_novice', name: 'Novato das Armas' },
         { level: 250, badge: 'weapon_master_adept', name: 'Adepto das Armas' },
         { level: 500, badge: 'weapon_master_expert', name: 'Especialista em Armas' },
-        { level: 1000, badge: 'weapon_master_legend', name: 'Lenda das Armas' }
+        { level: 1000, badge: 'weapon_master_legend', name: 'Lenda das Armas' },
       ];
 
       for (const milestone of milestones) {
@@ -317,7 +420,9 @@ export class WeaponMasteryService {
       }
 
       if (awardedBadges.length > 0) {
-        this.logger.info(`Awarded weapon mastery badges to user ${userId}: ${awardedBadges.join(', ')}`);
+        this.logger.info(
+          `Awarded weapon mastery badges to user ${userId}: ${awardedBadges.join(', ')}`
+        );
       }
     } catch (error) {
       this.logger.error(`Failed to check weapon mastery badges for user ${userId}:`, error);
@@ -334,7 +439,7 @@ export class WeaponMasteryService {
       for (const weapon of weapons) {
         // Award XP based on weapon level milestones
         const levelMilestones = [20, 40, 60, 80, 100];
-        
+
         for (const milestone of levelMilestones) {
           if (weapon.level >= milestone) {
             const xpAmount = milestone * 5; // 5 XP per milestone level
@@ -357,14 +462,14 @@ export class WeaponMasteryService {
    */
   private getMedalRarity(tier: string): string {
     const tierMap: Record<string, string> = {
-      'bronze': 'common',
-      'silver': 'uncommon',
-      'gold': 'rare',
-      'platinum': 'epic',
-      'diamond': 'legendary',
-      'master': 'mythic'
+      bronze: 'common',
+      silver: 'uncommon',
+      gold: 'rare',
+      platinum: 'epic',
+      diamond: 'legendary',
+      master: 'mythic',
     };
-    
+
     return tierMap[tier.toLowerCase()] || 'common';
   }
 
@@ -375,14 +480,14 @@ export class WeaponMasteryService {
     try {
       const cacheKey = `weapon_mastery_${userId}`;
       const cachedData = await this.cache.get(cacheKey);
-      
+
       if (cachedData && typeof cachedData === 'string') {
         return JSON.parse(cachedData);
       }
 
       // Get from database
       const masteryRecord = await this.database.client.weaponMastery.findUnique({
-        where: { userId }
+        where: { userId },
       });
 
       if (!masteryRecord) {
@@ -396,7 +501,7 @@ export class WeaponMasteryService {
         totalLevel: masteryRecord.totalLevel,
         totalXP: masteryRecord.totalXP,
         favoriteWeapon: masteryRecord.favoriteWeapon,
-        lastSyncAt: masteryRecord.lastSyncAt
+        lastSyncAt: masteryRecord.lastSyncAt,
       };
 
       // Cache the result
@@ -412,20 +517,22 @@ export class WeaponMasteryService {
   /**
    * Get weapon mastery leaderboard
    */
-  public async getWeaponMasteryLeaderboard(limit: number = 10): Promise<Array<{
-    userId: string;
-    pubgName: string;
-    totalLevel: number;
-    totalXP: number;
-    favoriteWeapon: string;
-    weaponCount: number;
-  }>> {
+  public async getWeaponMasteryLeaderboard(limit: number = 10): Promise<
+    Array<{
+      userId: string;
+      pubgName: string;
+      totalLevel: number;
+      totalXP: number;
+      favoriteWeapon: string;
+      weaponCount: number;
+    }>
+  > {
     try {
       const records = await this.database.client.weaponMastery.findMany({
         orderBy: {
-          totalLevel: 'desc'
+          totalLevel: 'desc',
         },
-        take: limit
+        take: limit,
       });
 
       return records.map(record => ({
@@ -434,7 +541,7 @@ export class WeaponMasteryService {
         totalLevel: record.totalLevel,
         totalXP: record.totalXP,
         favoriteWeapon: record.favoriteWeapon,
-        weaponCount: JSON.parse(record.weapons).length
+        weaponCount: JSON.parse(record.weapons).length,
       }));
     } catch (error) {
       this.logger.error('Failed to get weapon mastery leaderboard:', error);
@@ -448,7 +555,7 @@ export class WeaponMasteryService {
   public async getWeaponMasteryStats(): Promise<WeaponMasteryStats> {
     try {
       const records = await this.database.client.weaponMastery.findMany();
-      
+
       const totalUsers = records.length;
       let totalWeapons = 0;
       let totalLevels = 0;
@@ -472,7 +579,7 @@ export class WeaponMasteryService {
         .map(([name, stats]) => ({
           name,
           users: stats.users,
-          averageLevel: stats.totalLevel / stats.users
+          averageLevel: stats.totalLevel / stats.users,
         }))
         .sort((a, b) => b.users - a.users)
         .slice(0, 10);
@@ -482,7 +589,7 @@ export class WeaponMasteryService {
           userId: record.userId,
           pubgName: record.pubgName,
           totalLevel: record.totalLevel,
-          weaponCount: JSON.parse(record.weapons).length
+          weaponCount: JSON.parse(record.weapons).length,
         }))
         .sort((a, b) => b.totalLevel - a.totalLevel)
         .slice(0, 10);
@@ -492,7 +599,7 @@ export class WeaponMasteryService {
         totalWeapons,
         averageLevel: totalUsers > 0 ? totalLevels / totalUsers : 0,
         topWeapons,
-        topPlayers
+        topPlayers,
       };
     } catch (error) {
       this.logger.error('Failed to get weapon mastery stats:', error);
@@ -501,7 +608,7 @@ export class WeaponMasteryService {
         totalWeapons: 0,
         averageLevel: 0,
         topWeapons: [],
-        topPlayers: []
+        topPlayers: [],
       };
     }
   }
@@ -514,7 +621,7 @@ export class WeaponMasteryService {
       // Clear cache first
       const cacheKey = `weapon_mastery_${userId}`;
       await this.cache.del(cacheKey);
-      
+
       // Sync weapon mastery
       return await this.syncUserWeaponMastery(userId, pubgName);
     } catch (error) {
@@ -539,18 +646,79 @@ export class WeaponMasteryService {
   public getNextSyncTime(): Date {
     const now = new Date();
     const nextSync = new Date(now);
-    
+
     // Find next 6-hour interval (00:00, 06:00, 12:00, 18:00)
     const currentHour = now.getUTCHours();
     const nextSyncHour = Math.ceil((currentHour + 1) / 6) * 6;
-    
+
     if (nextSyncHour >= 24) {
       nextSync.setUTCDate(nextSync.getUTCDate() + 1);
       nextSync.setUTCHours(0, 0, 0, 0);
     } else {
       nextSync.setUTCHours(nextSyncHour, 0, 0, 0);
     }
-    
+
     return nextSync;
+  }
+
+  /**
+   * Log events to Discord channel
+   */
+  private async logToChannel(title: string, data: any): Promise<void> {
+    try {
+      const logChannelId = process.env.LOGS_API_CHANNEL_ID;
+      if (!logChannelId) {
+        this.logger.warn('LOGS_API_CHANNEL_ID not configured');
+        return;
+      }
+
+      const channel = (await this.client.channels.fetch(logChannelId)) as TextChannel;
+      if (!channel) {
+        this.logger.warn(`Log channel ${logChannelId} not found`);
+        return;
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle(title)
+        .setTimestamp()
+        .setColor(
+          data.status === 'Success' ? '#00FF00' : data.status === 'Warning' ? '#FFA500' : '#FF0000'
+        );
+
+      // Add fields based on data
+      if (data.event) {
+        embed.addFields({ name: 'Event', value: data.event, inline: true });
+      }
+      if (data.status) {
+        embed.addFields({ name: 'Status', value: data.status, inline: true });
+      }
+      if (data.userId) {
+        embed.addFields({ name: 'User ID', value: data.userId, inline: true });
+      }
+      if (data.pubgName) {
+        embed.addFields({ name: 'PUBG Name', value: data.pubgName, inline: true });
+      }
+      if (data.playerId) {
+        embed.addFields({ name: 'Player ID', value: data.playerId, inline: true });
+      }
+      if (data.message) {
+        embed.addFields({ name: 'Message', value: data.message, inline: false });
+      }
+      if (data.error) {
+        embed.addFields({ name: 'Error', value: `\`\`\`${data.error}\`\`\``, inline: false });
+      }
+
+      if (data.details) {
+        embed.addFields({
+          name: 'Details',
+          value: `\`\`\`json\n${JSON.stringify(data.details, null, 2)}\`\`\``,
+          inline: false,
+        });
+      }
+
+      await channel.send({ embeds: [embed] });
+    } catch (error) {
+      this.logger.error('Failed to log to Discord channel:', error);
+    }
   }
 }

@@ -4,7 +4,7 @@ import {
   ChatInputCommandInteraction,
   CommandInteraction,
   PermissionFlagsBits,
-  User
+  User,
 } from 'discord.js';
 import { Command, CommandCategory } from '@/types/command';
 import { ExtendedClient } from '@/types/client';
@@ -23,10 +23,7 @@ const punishment: Command = {
         .setName('history')
         .setDescription('Ver histórico de punições de um usuário')
         .addUserOption(option =>
-          option
-            .setName('usuario')
-            .setDescription('Usuário para ver o histórico')
-            .setRequired(true)
+          option.setName('usuario').setDescription('Usuário para ver o histórico').setRequired(true)
         )
     )
     .addSubcommand(subcommand =>
@@ -34,37 +31,33 @@ const punishment: Command = {
         .setName('warnings')
         .setDescription('Ver avisos ativos de um usuário')
         .addUserOption(option =>
-          option
-            .setName('usuario')
-            .setDescription('Usuário para ver os avisos')
-            .setRequired(true)
+          option.setName('usuario').setDescription('Usuário para ver os avisos').setRequired(true)
         )
     )
     .addSubcommand(subcommand =>
-      subcommand
-        .setName('config')
-        .setDescription('Ver configurações do sistema de punições')
+      subcommand.setName('config').setDescription('Ver configurações do sistema de punições')
     )
     .addSubcommand(subcommand =>
-      subcommand
-        .setName('stats')
-        .setDescription('Ver estatísticas gerais de punições do servidor')
+      subcommand.setName('stats').setDescription('Ver estatísticas gerais de punições do servidor')
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild) as SlashCommandBuilder,
-  
+
   category: CommandCategory.ADMIN,
   cooldown: 5,
-  
-  async execute(interaction: CommandInteraction | ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+
+  async execute(
+    interaction: CommandInteraction | ChatInputCommandInteraction,
+    client: ExtendedClient
+  ): Promise<void> {
     const logger = new Logger();
     const punishmentService = client.services?.punishment;
-    
+
     if (!punishmentService) {
       const errorEmbed = new EmbedBuilder()
         .setTitle('❌ Serviço Indisponível')
         .setDescription('O serviço de punições não está disponível no momento.')
         .setColor(0xff0000);
-      
+
       await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
       return;
     }
@@ -79,39 +72,45 @@ const punishment: Command = {
         case 'history':
           await handleHistoryCommand(interaction as ChatInputCommandInteraction, punishmentService);
           break;
-        
+
         case 'warnings':
-          await handleWarningsCommand(interaction as ChatInputCommandInteraction, punishmentService);
+          await handleWarningsCommand(
+            interaction as ChatInputCommandInteraction,
+            punishmentService
+          );
           break;
-        
+
         case 'config':
           await handleConfigCommand(interaction as ChatInputCommandInteraction);
           break;
-        
+
         case 'stats':
-          await handleStatsCommand(interaction as ChatInputCommandInteraction, punishmentService, guildId);
+          await handleStatsCommand(
+            interaction as ChatInputCommandInteraction,
+            punishmentService,
+            guildId
+          );
           break;
-        
+
         default:
           const errorEmbed = new EmbedBuilder()
             .setTitle('❌ Subcomando Inválido')
             .setDescription('Subcomando não reconhecido.')
             .setColor(0xff0000);
-          
+
           await interaction.editReply({ embeds: [errorEmbed] });
       }
-
     } catch (error) {
       logger.error('Error in punishment command:', error);
-      
+
       const errorEmbed = new EmbedBuilder()
         .setTitle('❌ Erro')
         .setDescription('Ocorreu um erro ao executar o comando.')
         .setColor(0xff0000);
-      
+
       await interaction.editReply({ embeds: [errorEmbed] });
     }
-  }
+  },
 };
 
 /**
@@ -134,22 +133,22 @@ async function handleHistoryCommand(
     embed.setDescription('✅ Este usuário não possui punições registradas.');
   } else {
     const recentPunishments = punishments.slice(0, 10); // Show last 10 punishments
-    
+
     let description = `**Total de Punições:** ${punishments.length}\n\n`;
-    
+
     recentPunishments.forEach((punishment: any, index: number) => {
       const date = new Date(punishment.timestamp).toLocaleDateString('pt-BR');
       const typeEmoji = getTypeEmoji(punishment.type);
-      
+
       description += `${typeEmoji} **${punishment.type.replace('_', ' ').toUpperCase()}**\n`;
       description += `📅 ${date} | 💰 -${punishment.penalty.coins} moedas | ⭐ -${punishment.penalty.xp} XP\n`;
       description += `📝 ${punishment.reason}\n\n`;
     });
-    
+
     if (punishments.length > 10) {
       description += `*... e mais ${punishments.length - 10} punições antigas*`;
     }
-    
+
     embed.setDescription(description);
   }
 
@@ -177,22 +176,22 @@ async function handleWarningsCommand(
     embed.setDescription('✅ Este usuário não possui avisos ativos.');
   } else {
     let description = `**Avisos Ativos:** ${warnings.length}/${PUNISHMENT_CONFIG.warnings.maxWarnings}\n\n`;
-    
+
     warnings.forEach((warning: any, index: number) => {
       const issueDate = new Date(warning.issuedAt).toLocaleDateString('pt-BR');
       const expiryDate = new Date(warning.expiresAt).toLocaleDateString('pt-BR');
       const typeEmoji = getTypeEmoji(warning.type);
-      
+
       description += `${typeEmoji} **Aviso ${index + 1}**\n`;
       description += `📅 Emitido: ${issueDate} | Expira: ${expiryDate}\n`;
       description += `📝 ${warning.reason}\n\n`;
     });
-    
+
     // Warning about escalation
     if (warnings.length >= PUNISHMENT_CONFIG.warnings.maxWarnings - 1) {
-      description += `🚨 **ATENÇÃO:** Próximo aviso resultará em penalidade escalada!`;
+      description += '🚨 **ATENÇÃO:** Próximo aviso resultará em penalidade escalada!';
     }
-    
+
     embed.setDescription(description);
   }
 
@@ -209,22 +208,22 @@ async function handleConfigCommand(interaction: ChatInputCommandInteraction): Pr
     .setTimestamp();
 
   let description = `**Status:** ${PUNISHMENT_CONFIG.enabled ? '✅ Ativo' : '❌ Desativado'}\n\n`;
-  
-  description += `**📋 Penalidades:**\n`;
+
+  description += '**📋 Penalidades:**\n';
   description += `• **Não Check-out:** -${PUNISHMENT_CONFIG.penalties.no_checkout.xpPenalty} XP, -${PUNISHMENT_CONFIG.penalties.no_checkout.coinsPenalty} moedas\n`;
   description += `• **Não Compareceu:** -${PUNISHMENT_CONFIG.penalties.no_show_up.xpPenalty} XP, -${PUNISHMENT_CONFIG.penalties.no_show_up.coinsPenalty} moedas\n`;
   description += `• **Saída Precoce:** -${PUNISHMENT_CONFIG.penalties.early_leave.xpPenalty} XP, -${PUNISHMENT_CONFIG.penalties.early_leave.coinsPenalty} moedas\n\n`;
-  
-  description += `**⚠️ Sistema de Avisos:**\n`;
+
+  description += '**⚠️ Sistema de Avisos:**\n';
   description += `• **Máximo de Avisos:** ${PUNISHMENT_CONFIG.warnings.maxWarnings}\n`;
   description += `• **Duração do Aviso:** ${PUNISHMENT_CONFIG.warnings.warningDuration} horas\n`;
   description += `• **Penalidade Escalada:** -${PUNISHMENT_CONFIG.warnings.escalationPenalty.xpPenalty} XP, -${PUNISHMENT_CONFIG.warnings.escalationPenalty.coinsPenalty} moedas\n\n`;
-  
-  description += `**⏰ Tempos Limite:**\n`;
+
+  description += '**⏰ Tempos Limite:**\n';
   description += `• **Sem Check-out:** ${PUNISHMENT_CONFIG.timeouts.noCheckoutTimeout} horas\n`;
   description += `• **Não Compareceu:** ${PUNISHMENT_CONFIG.timeouts.noShowUpTimeout} hora(s)\n`;
   description += `• **Saída Precoce:** ${PUNISHMENT_CONFIG.timeouts.earlyLeaveTimeout} hora(s)\n`;
-  
+
   embed.setDescription(description);
 
   await interaction.editReply({ embeds: [embed] });
@@ -247,13 +246,13 @@ async function handleStatsCommand(
   // For now, show a placeholder message
   embed.setDescription(
     '📈 **Estatísticas em Desenvolvimento**\n\n' +
-    'As estatísticas detalhadas de punições estarão disponíveis em breve. ' +
-    'Isso incluirá:\n\n' +
-    '• Total de punições por tipo\n' +
-    '• Usuários mais punidos\n' +
-    '• Tendências mensais\n' +
-    '• Taxa de reincidência\n' +
-    '• Efetividade do sistema de avisos'
+      'As estatísticas detalhadas de punições estarão disponíveis em breve. ' +
+      'Isso incluirá:\n\n' +
+      '• Total de punições por tipo\n' +
+      '• Usuários mais punidos\n' +
+      '• Tendências mensais\n' +
+      '• Taxa de reincidência\n' +
+      '• Efetividade do sistema de avisos'
   );
 
   await interaction.editReply({ embeds: [embed] });
@@ -264,13 +263,13 @@ async function handleStatsCommand(
  */
 function getTypeEmoji(type: string): string {
   const typeEmojis: Record<string, string> = {
-      'no_checkout': '🚪',
-      'no_show_up': '👻',
-      'early_leave': '🏃',
-     'warning_escalation': '🚨'
-   };
- 
-   return typeEmojis[type] || '❓';
+    no_checkout: '🚪',
+    no_show_up: '👻',
+    early_leave: '🏃',
+    warning_escalation: '🚨',
+  };
+
+  return typeEmojis[type] || '❓';
 }
 
 export default punishment;

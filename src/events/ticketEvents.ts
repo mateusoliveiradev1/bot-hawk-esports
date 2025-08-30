@@ -8,7 +8,7 @@ import {
   TextInputStyle,
   ButtonBuilder,
   ButtonStyle,
-  PermissionFlagsBits
+  PermissionFlagsBits,
 } from 'discord.js';
 import { ExtendedClient } from '../types/client';
 import { Logger } from '../utils/logger';
@@ -47,7 +47,7 @@ export async function handleTicketButtonInteraction(
     }
   } catch (error) {
     logger.error('Error handling ticket button interaction:', error);
-    
+
     if (!interaction.replied && !interaction.deferred) {
       await interaction.reply({ content: 'Erro ao processar interação.', ephemeral: true });
     }
@@ -78,7 +78,7 @@ export async function handleTicketModalSubmission(
     }
   } catch (error) {
     logger.error('Error handling ticket modal submission:', error);
-    
+
     if (!interaction.replied && !interaction.deferred) {
       await interaction.reply({ content: 'Erro ao processar modal.', ephemeral: true });
     }
@@ -92,9 +92,7 @@ async function handleCreateTicketFromPanel(
   interaction: ButtonInteraction,
   ticketService: any
 ): Promise<void> {
-  const modal = new ModalBuilder()
-    .setCustomId('create_ticket_modal')
-    .setTitle('Criar Novo Ticket');
+  const modal = new ModalBuilder().setCustomId('create_ticket_modal').setTitle('Criar Novo Ticket');
 
   const titleInput = new TextInputBuilder()
     .setCustomId('ticket_title')
@@ -140,11 +138,11 @@ async function handleCreateTicketModal(
   const title = interaction.fields.getTextInputValue('ticket_title');
   const description = interaction.fields.getTextInputValue('ticket_description');
   const priorityInput = interaction.fields.getTextInputValue('ticket_priority') || 'medium';
-  
+
   // Validate priority
   const validPriorities = ['low', 'medium', 'high', 'urgent'];
-  const priority = validPriorities.includes(priorityInput.toLowerCase()) 
-    ? priorityInput.toLowerCase() as 'low' | 'medium' | 'high' | 'urgent'
+  const priority = validPriorities.includes(priorityInput.toLowerCase())
+    ? (priorityInput.toLowerCase() as 'low' | 'medium' | 'high' | 'urgent')
     : 'medium';
 
   await interaction.deferReply({ ephemeral: true });
@@ -160,7 +158,9 @@ async function handleCreateTicketModal(
   if (result.success) {
     const successEmbed = new EmbedBuilder()
       .setTitle('✅ Ticket Criado!')
-      .setDescription(`Seu ticket foi criado com sucesso!\n\n**Canal:** ${result.channel}\n**ID:** #${result.ticket!.id.slice(-8)}`)
+      .setDescription(
+        `Seu ticket foi criado com sucesso!\n\n**Canal:** ${result.channel}\n**ID:** #${result.ticket!.id.slice(-8)}`
+      )
       .setColor('#00FF00')
       .addFields(
         { name: '📝 Assunto', value: title, inline: true },
@@ -190,10 +190,15 @@ async function handleClaimTicket(
 ): Promise<void> {
   // Check if user has permission to claim tickets
   const member = interaction.member;
-  if (!member || !('permissions' in member) || typeof member.permissions === 'string' || !member.permissions.has(PermissionFlagsBits.ManageMessages)) {
+  if (
+    !member ||
+    !('permissions' in member) ||
+    typeof member.permissions === 'string' ||
+    !member.permissions.has(PermissionFlagsBits.ManageMessages)
+  ) {
     await interaction.reply({
       content: 'Você precisa ter permissão de moderação para assumir tickets.',
-      ephemeral: true
+      ephemeral: true,
     });
     return;
   }
@@ -234,10 +239,15 @@ async function handleChangePriority(
 ): Promise<void> {
   // Check if user has permission to change priority
   const member = interaction.member;
-  if (!member || !('permissions' in member) || typeof member.permissions === 'string' || !member.permissions.has(PermissionFlagsBits.ManageMessages)) {
+  if (
+    !member ||
+    !('permissions' in member) ||
+    typeof member.permissions === 'string' ||
+    !member.permissions.has(PermissionFlagsBits.ManageMessages)
+  ) {
     await interaction.reply({
       content: 'Você precisa ter permissão de moderação para alterar prioridade.',
-      ephemeral: true
+      ephemeral: true,
     });
     return;
   }
@@ -247,29 +257,28 @@ async function handleChangePriority(
     .setDescription(`Selecione a nova prioridade para o ticket #${ticketId.slice(-8)}:`)
     .setColor('#0099FF');
 
-  const row = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
-      new ButtonBuilder()
-        .setCustomId(`priority_low_${ticketId}`)
-        .setLabel('Baixa')
-        .setStyle(ButtonStyle.Success)
-        .setEmoji('🟢'),
-      new ButtonBuilder()
-        .setCustomId(`priority_medium_${ticketId}`)
-        .setLabel('Média')
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji('🟡'),
-      new ButtonBuilder()
-        .setCustomId(`priority_high_${ticketId}`)
-        .setLabel('Alta')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('🟠'),
-      new ButtonBuilder()
-        .setCustomId(`priority_urgent_${ticketId}`)
-        .setLabel('Urgente')
-        .setStyle(ButtonStyle.Danger)
-        .setEmoji('🔴')
-    );
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`priority_low_${ticketId}`)
+      .setLabel('Baixa')
+      .setStyle(ButtonStyle.Success)
+      .setEmoji('🟢'),
+    new ButtonBuilder()
+      .setCustomId(`priority_medium_${ticketId}`)
+      .setLabel('Média')
+      .setStyle(ButtonStyle.Primary)
+      .setEmoji('🟡'),
+    new ButtonBuilder()
+      .setCustomId(`priority_high_${ticketId}`)
+      .setLabel('Alta')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('🟠'),
+    new ButtonBuilder()
+      .setCustomId(`priority_urgent_${ticketId}`)
+      .setLabel('Urgente')
+      .setStyle(ButtonStyle.Danger)
+      .setEmoji('🔴')
+  );
 
   await interaction.reply({ embeds: [priorityEmbed], components: [row], ephemeral: true });
 }
@@ -284,27 +293,29 @@ async function handlePrioritySelection(
   const parts = interaction.customId.split('_');
   const priority = parts[1];
   const ticketId = parts[2];
-  
+
   if (!priority || !ticketId) {
     await interaction.reply({ content: 'Erro ao processar prioridade.', ephemeral: true });
     return;
   }
-  
+
   await interaction.deferUpdate();
 
   // Update ticket priority in database
   try {
     await ticketService.database.client.ticket.update({
       where: { id: ticketId },
-      data: { 
+      data: {
         priority,
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     });
 
     const successEmbed = new EmbedBuilder()
       .setTitle('✅ Prioridade Alterada')
-      .setDescription(`A prioridade do ticket #${ticketId.slice(-8)} foi alterada para **${priority.toUpperCase()}**.`)
+      .setDescription(
+        `A prioridade do ticket #${ticketId.slice(-8)} foi alterada para **${priority.toUpperCase()}**.`
+      )
       .setColor('#00FF00');
 
     await interaction.editReply({ embeds: [successEmbed], components: [] });
@@ -318,12 +329,14 @@ async function handlePrioritySelection(
           low: '🟢',
           medium: '🟡',
           high: '🟠',
-          urgent: '🔴'
+          urgent: '🔴',
         };
 
         const updateEmbed = new EmbedBuilder()
           .setTitle('📊 Prioridade Atualizada')
-          .setDescription(`A prioridade deste ticket foi alterada para ${priorityEmojis[priority as keyof typeof priorityEmojis]} **${priority.toUpperCase()}** por ${interaction.user}.`)
+          .setDescription(
+            `A prioridade deste ticket foi alterada para ${priorityEmojis[priority as keyof typeof priorityEmojis]} **${priority.toUpperCase()}** por ${interaction.user}.`
+          )
           .setColor('#FFA500')
           .setTimestamp();
 
@@ -332,7 +345,7 @@ async function handlePrioritySelection(
     }
   } catch (error) {
     logger.error('Error updating ticket priority:', error);
-    
+
     const errorEmbed = new EmbedBuilder()
       .setTitle('❌ Erro')
       .setDescription('Erro ao alterar prioridade do ticket.')
@@ -358,13 +371,17 @@ async function handleCloseTicketButton(
 
   // Check permissions
   const member = interaction.member;
-  const canClose = ticket.userId === interaction.user.id || 
-                  (member && 'permissions' in member && typeof member.permissions !== 'string' && member.permissions.has(PermissionFlagsBits.ManageMessages));
+  const canClose =
+    ticket.userId === interaction.user.id ||
+    (member &&
+      'permissions' in member &&
+      typeof member.permissions !== 'string' &&
+      member.permissions.has(PermissionFlagsBits.ManageMessages));
 
   if (!canClose) {
     await interaction.reply({
       content: 'Você só pode fechar seus próprios tickets ou precisa ter permissão de moderação.',
-      ephemeral: true
+      ephemeral: true,
     });
     return;
   }
