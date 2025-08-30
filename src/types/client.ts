@@ -20,6 +20,7 @@ import { WeaponMasteryService } from '../services/weapon-mastery.service';
 import { RoleManagerService } from '../services/role-manager.service';
 import { PersistentTicketService } from '../services/persistent-ticket.service';
 import { PresenceFixesService } from '../services/presence-fixes.service';
+import { BadgeAuditService } from '../services/badge-audit.service';
 import { CommandManager } from '../commands';
 import { Command } from './command';
 
@@ -48,6 +49,7 @@ export interface ExtendedClient extends Client {
   weaponMasteryService: WeaponMasteryService;
   persistentTicketService?: PersistentTicketService;
   presenceFixesService?: PresenceFixesService;
+  badgeAuditService?: BadgeAuditService;
   // New properties for the updated architecture
   db?: DatabaseService;
   services?: {

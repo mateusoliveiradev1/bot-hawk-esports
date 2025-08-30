@@ -24,6 +24,7 @@ import { RoleManagerService } from './services/role-manager.service';
 import { XPService } from './services/xp.service';
 import { PersistentTicketService } from './services/persistent-ticket.service';
 import { PresenceFixesService } from './services/presence-fixes.service';
+import { BadgeAuditService } from './services/badge-audit.service';
 import { CommandManager } from './commands/index';
 import { MemberEvents } from './events/memberEvents';
 import { MessageEvents } from './events/messageEvents';
@@ -145,6 +146,13 @@ class HawkEsportsBot {
     
     // Initialize PresenceFixesService
     (this.client as any).presenceFixesService = new PresenceFixesService(this.client);
+    
+    // Initialize BadgeAuditService
+    (this.client as any).badgeAuditService = new BadgeAuditService(
+      this.client,
+      this.services.badge,
+      this.db
+    );
     
     (this.client as any).roleManagerService = this.services.roleManager;
     (this.client as any).pubgService = this.services.pubg;
