@@ -22,6 +22,7 @@ import { PersistentTicketService } from '../services/persistent-ticket.service';
 import { PresenceFixesService } from '../services/presence-fixes.service';
 import { BadgeAuditService } from '../services/badge-audit.service';
 import { PresenceEnhancementsService } from '../services/presence-enhancements.service';
+import { BadgeOptimizationService } from '../services/badge-optimization.service';
 import { CommandManager } from '../commands';
 import { Command } from './command';
 
@@ -52,6 +53,7 @@ export interface ExtendedClient extends Client {
   presenceFixesService?: PresenceFixesService;
   badgeAuditService?: BadgeAuditService;
   presenceEnhancementsService?: PresenceEnhancementsService;
+  badgeOptimizationService?: BadgeOptimizationService;
   // New properties for the updated architecture
   db?: DatabaseService;
   services?: {
@@ -72,6 +74,7 @@ export interface ExtendedClient extends Client {
     weaponMastery: WeaponMasteryService;
     roleManager: RoleManagerService;
     presenceEnhancements: PresenceEnhancementsService;
+    badgeOptimization: BadgeOptimizationService;
   };
 }
 
