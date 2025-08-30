@@ -61,10 +61,18 @@ export const exclusiveBadges: Command = {
         .setDescription('Conceder badges automáticas baseadas em critérios')
     ),
 
-  async execute(interaction: ChatInputCommandInteraction) {
-    const client = interaction.client as ExtendedClient;
-    const badgeOptimizationService = client.services.badgeOptimization;
-    const badgeService = client.services.badge;
+  async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+    // Client is now passed as parameter
+    const badgeOptimizationService = client.services?.badgeOptimization;
+    const badgeService = client.services?.badge;
+    
+    if (!badgeOptimizationService || !badgeService) {
+       await interaction.reply({
+         content: '❌ Serviços não disponíveis no momento.',
+         ephemeral: true,
+       });
+       return;
+     }
     const subcommand = interaction.options.getSubcommand();
 
     if (!badgeOptimizationService || !badgeService) {
@@ -96,6 +104,12 @@ export const exclusiveBadges: Command = {
         break;
       case 'auto-award':
         await handleAutoAward(interaction, client, badgeService);
+        break;
+      default:
+        await interaction.reply({
+          content: '❌ Subcomando não reconhecido.',
+          ephemeral: true
+        });
         break;
     }
   },

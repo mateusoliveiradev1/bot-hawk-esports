@@ -345,7 +345,7 @@ export class ExclusiveBadgeService {
               .sort((a, b) => (a.joinedTimestamp || 0) - (b.joinedTimestamp || 0))
               .first(rule.criteria.maxCount || 100);
 
-            if (sortedMembers.has(userId)) {
+            if (sortedMembers.some(member => member.id === userId)) {
               return true;
             }
           } catch (error) {
@@ -434,7 +434,21 @@ export class ExclusiveBadgeService {
    */
   private async logManualAward(userId: string, badgeId: string, awardedBy: string): Promise<void> {
     try {
-      await this.client.database.client.badgeAudit.create({
+      // Log manual badge grant (using badge service audit if available)
+      try {
+        const auditService = (this.client as any).badgeAuditService;
+        if (auditService) {
+          await auditService.logBadgeGrant(userId, badgeId, 'manual_exclusive', {
+            grantedBy: awardedBy,
+            reason: 'Manual exclusive badge grant'
+          });
+        }
+      } catch (error) {
+        console.warn('Failed to log badge audit:', error);
+      }
+      
+      // Alternative: create a simple log entry
+      /* await this.client.database.client.badgeAudit.create({
         data: {
           userId,
           badgeId,
@@ -443,7 +457,7 @@ export class ExclusiveBadgeService {
           details: JSON.stringify({ type: 'exclusive_badge', manual: true }),
           timestamp: new Date()
         }
-      });
+      }); */
     } catch (error) {
       this.logger.error('Error logging manual award:', error);
     }
