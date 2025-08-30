@@ -1,9 +1,10 @@
-import { SlashCommandBuilder, EmbedBuilder, CommandInteraction, PermissionFlagsBits } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { ExtendedClient } from '../../types/client';
-import { Command } from '../../types/command';
+import { Command, CommandCategory } from '../../types/command';
 import { BadgeOptimizationService } from '../../services/badge-optimization.service';
 
 export const badgeOptimization: Command = {
+  category: CommandCategory.ADMIN,
   data: new SlashCommandBuilder()
     .setName('badge-optimization')
     .setDescription('Gerenciar sistema de badges otimizado com integração PUBG')
@@ -61,7 +62,7 @@ export const badgeOptimization: Command = {
         .setDescription('Executar otimização automática do sistema')
     ),
 
-  async execute(interaction: CommandInteraction) {
+  async execute(interaction: ChatInputCommandInteraction) {
     const client = interaction.client as ExtendedClient;
     const badgeOptimizationService = client.badgeOptimizationService;
 
@@ -114,7 +115,7 @@ export const badgeOptimization: Command = {
   }
 };
 
-async function handleSync(interaction: CommandInteraction, service: BadgeOptimizationService) {
+async function handleSync(interaction: ChatInputCommandInteraction, service: BadgeOptimizationService) {
   await interaction.deferReply({ ephemeral: true });
 
   try {
@@ -140,7 +141,7 @@ async function handleSync(interaction: CommandInteraction, service: BadgeOptimiz
   }
 }
 
-async function handleCollections(interaction: CommandInteraction, service: BadgeOptimizationService) {
+async function handleCollections(interaction: ChatInputCommandInteraction, service: BadgeOptimizationService) {
   await interaction.deferReply({ ephemeral: true });
 
   try {
@@ -153,14 +154,15 @@ async function handleCollections(interaction: CommandInteraction, service: Badge
 
     for (const [name, collection] of Object.entries(collections)) {
       const rarityCount = Object.entries(collection.badges.reduce((acc, badge) => {
-        acc[badge.rarity] = (acc[badge.rarity] || 0) + 1;
+        const badgeObj = badge as any;
+        acc[badgeObj.rarity] = (acc[badgeObj.rarity] || 0) + 1;
         return acc;
       }, {} as Record<string, number>))
         .map(([rarity, count]) => `${rarity}: ${count}`)
         .join(', ');
 
       embed.addFields({
-        name: `${collection.icon} ${collection.name}`,
+        name: `🏆 ${collection.name}`,
         value: `**Descrição:** ${collection.description}\n**Total:** ${collection.badges.length} badges\n**Raridades:** ${rarityCount}`,
         inline: false
       });
@@ -175,7 +177,7 @@ async function handleCollections(interaction: CommandInteraction, service: Badge
   }
 }
 
-async function handleDynamic(interaction: CommandInteraction, service: BadgeOptimizationService) {
+async function handleDynamic(interaction: ChatInputCommandInteraction, service: BadgeOptimizationService) {
   const action = interaction.options.get('action')?.value as string;
   await interaction.deferReply({ ephemeral: true });
 
@@ -221,7 +223,7 @@ async function handleDynamic(interaction: CommandInteraction, service: BadgeOpti
   }
 }
 
-async function handleSeasonal(interaction: CommandInteraction, service: BadgeOptimizationService) {
+async function handleSeasonal(interaction: ChatInputCommandInteraction, service: BadgeOptimizationService) {
   const action = interaction.options.get('action')?.value as string;
   await interaction.deferReply({ ephemeral: true });
 
@@ -272,7 +274,7 @@ async function handleSeasonal(interaction: CommandInteraction, service: BadgeOpt
   }
 }
 
-async function handleStats(interaction: CommandInteraction, service: BadgeOptimizationService) {
+async function handleStats(interaction: ChatInputCommandInteraction, service: BadgeOptimizationService) {
   await interaction.deferReply({ ephemeral: true });
 
   try {
@@ -312,7 +314,7 @@ async function handleStats(interaction: CommandInteraction, service: BadgeOptimi
   }
 }
 
-async function handleOptimize(interaction: CommandInteraction, service: BadgeOptimizationService) {
+async function handleOptimize(interaction: ChatInputCommandInteraction, service: BadgeOptimizationService) {
   await interaction.deferReply({ ephemeral: true });
 
   try {
@@ -329,11 +331,11 @@ async function handleOptimize(interaction: CommandInteraction, service: BadgeOpt
       )
       .setTimestamp();
 
-    if (result.recommendations?.length > 0) {
+    if (result.recommendations && result.recommendations.length > 0) {
       embed.addFields({
-        name: '💡 Recomendações',
+        name: '📋 Recomendações',
         value: result.recommendations.join('\n'),
-        inline: false
+        inline: false,
       });
     }
 

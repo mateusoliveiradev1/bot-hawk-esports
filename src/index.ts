@@ -112,13 +112,14 @@ class HawkEsportsBot {
     
     // Initialize XPService first as it's needed by other services
     const xpService = new XPService(this.client);
+    const badgeService = new BadgeService(this.client, xpService);
     
     this.services = {
       api: new APIService(this.client),
       automod: new AutoModerationService(this.client, this.db, punishmentService),
       xp: xpService,
-      badge: new BadgeService(this.client, xpService),
-      badgeOptimization: new BadgeOptimizationService(this.client, this.db, this.cache),
+      badge: badgeService,
+      badgeOptimization: new BadgeOptimizationService(this.client, badgeService, pubgService),
       challenge: new ChallengeService(this.client),
       logging: new LoggingService(this.client, this.db),
       music: new MusicService(this.cache, this.db),

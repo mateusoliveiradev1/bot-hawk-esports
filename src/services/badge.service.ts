@@ -806,7 +806,7 @@ export class BadgeService {
   public async getBadgeStats(): Promise<{
     totalBadges: number;
     totalAwarded: number;
-    raretyDistribution: Record<string, number>;
+    rarityDistribution: Record<string, number>;
     categoryDistribution: Record<string, number>;
   }> {
     const totalBadges = this.badges.size;
@@ -823,7 +823,7 @@ export class BadgeService {
     return {
       totalBadges,
       totalAwarded,
-      raretyDistribution: rarityDistribution,
+      rarityDistribution: rarityDistribution,
       categoryDistribution,
     };
   }
