@@ -18,6 +18,7 @@ import { Logger } from '@/utils/logger';
 import { PresenceService } from '@/services/presence.service';
 import { BadgeService } from '@/services/badge.service';
 import { DatabaseService } from '@/database/database.service';
+import { PresenceEnhancementsService } from '@/services/presence-enhancements.service';
 
 /**
  * Check-out command - End presence tracking session
@@ -34,6 +35,7 @@ const checkout: Command = {
     const logger = new Logger();
     const database = client.database;
     const presenceService = (client as any).presenceService;
+    const presenceEnhancementsService = (client as any).presenceEnhancementsService;
     const xpService = (client as any).xpService;
     const badgeService = (client as any).badgeService;
 
@@ -87,12 +89,30 @@ const checkout: Command = {
       const durationHours = Math.floor(durationMinutes / 60);
       const remainingMinutes = durationMinutes % 60;
 
-      // Attempt check-out via PresenceService
-      const checkOutResult = await presenceService.checkOut(
-        guildId,
-        userId,
-        'Check-out via comando /checkout'
-      );
+      // Attempt check-out via PresenceEnhancementsService (with fallback to PresenceService)
+      let checkOutResult;
+      if (presenceEnhancementsService) {
+        try {
+          checkOutResult = await presenceEnhancementsService.enhancedCheckOut(
+            guildId,
+            userId,
+            'Check-out via comando /checkout'
+          );
+        } catch (error) {
+          logger.warn('PresenceEnhancementsService checkout failed, falling back to PresenceService:', error);
+          checkOutResult = await presenceService.checkOut(
+            guildId,
+            userId,
+            'Check-out via comando /checkout'
+          );
+        }
+      } else {
+        checkOutResult = await presenceService.checkOut(
+          guildId,
+          userId,
+          'Check-out via comando /checkout'
+        );
+      }
 
       if (!checkOutResult.success) {
         const errorEmbed = new EmbedBuilder()

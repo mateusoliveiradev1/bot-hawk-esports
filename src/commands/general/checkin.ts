@@ -19,6 +19,7 @@ import { Logger } from '@/utils/logger';
 import { PresenceService } from '@/services/presence.service';
 import { BadgeService } from '@/services/badge.service';
 import { DatabaseService } from '@/database/database.service';
+import { PresenceEnhancementsService } from '@/services/presence-enhancements.service';
 import { getChannelConfig, formatCleanupTime } from '../../config/channels.config.js';
 
 /**
@@ -55,6 +56,7 @@ const checkin: Command = {
     const logger = new Logger();
     const database = client.database;
     const presenceService = (client as any).presenceService;
+    const presenceEnhancementsService = (client as any).presenceEnhancementsService as PresenceEnhancementsService;
     const xpService = (client as any).xpService;
     const badgeService = (client as any).badgeService;
 
@@ -96,16 +98,37 @@ const checkin: Command = {
         return;
       }
 
-      // Attempt check-in via PresenceService
+      // Use enhanced check-in if available, otherwise fallback to regular
       const sessionName = nome || `${interaction.user.displayName} - ${getTipoDisplayName(tipo)}`;
-      const checkInResult = await presenceService.checkIn(
-        guildId,
-        userId,
-        sessionName, // location field
-        `Tipo: ${tipo}${nome ? ` | Nome: ${nome}` : ''}`, // note field
-        interaction.user.id, // ipAddress placeholder
-        `Discord Bot - ${tipo}` // deviceInfo
-      );
+      let checkInResult: any;
+      let pubgValidation: any = null;
+      
+      if (presenceEnhancementsService) {
+        // Enhanced check-in with PUBG validation and automatic penalties
+        const enhancedResult = await presenceEnhancementsService.enhancedCheckIn(
+          guildId,
+          userId,
+          sessionName,
+          `Tipo: ${tipo}${nome ? ` | Nome: ${nome}` : ''}`
+        );
+        
+        checkInResult = enhancedResult;
+        pubgValidation = enhancedResult.validation;
+        
+        logger.info(`Enhanced check-in for user ${userId}: ${enhancedResult.success ? 'Success' : 'Failed'}`);
+      } else {
+        // Fallback to regular check-in
+        checkInResult = await presenceService.checkIn(
+          guildId,
+          userId,
+          sessionName,
+          `Tipo: ${tipo}${nome ? ` | Nome: ${nome}` : ''}`,
+          interaction.user.id,
+          `Discord Bot - ${tipo}`
+        );
+        
+        logger.warn('PresenceEnhancementsService not available, using regular check-in');
+      }
 
       if (!checkInResult.success) {
         const errorEmbed = new EmbedBuilder()
@@ -122,48 +145,27 @@ const checkin: Command = {
       const channelResult = await createSessionChannels(interaction as ChatInputCommandInteraction, tipo, sessionName, nome || undefined);
       
       // Calculate XP and streak info
-      const xpGained = calculateSessionXP(tipo);
+      const baseXP = calculateSessionXP(tipo);
       const currentStreak = 0; // TODO: Implement streak system
       
-      // Schedule punishment checks for this session
-      const sessionStartTime = new Date();
-      const punishmentService = client.services?.punishment;
-      
-      if (!punishmentService) {
-        logger.warn('PunishmentService not available for checkin');
+      // Calculate actual XP (base + any PUBG bonus from enhanced check-in)
+      let actualXP = baseXP;
+      if (checkInResult.message && checkInResult.message.includes('XP bônus PUBG')) {
+        const bonusMatch = checkInResult.message.match(/\+(\d+) XP bônus PUBG/);
+        if (bonusMatch) {
+          actualXP += parseInt(bonusMatch[1]);
+        }
       }
       
-      // Schedule no-show-up check (1 hour after check-in)
-      setTimeout(async () => {
-        if (channelResult.voiceChannel && punishmentService) {
-          await punishmentService.checkNoShowUpPunishment(
-            userId,
-            guildId,
-            sessionStartTime,
-            channelResult.voiceChannel.id
-          );
-        }
-      }, 60 * 60 * 1000); // 1 hour
-      
-      // Schedule no-checkout check (6 hours after check-in)
-      setTimeout(async () => {
-        if (punishmentService) {
-          await punishmentService.checkNoCheckoutPunishment(
-            userId,
-            guildId,
-            sessionStartTime,
-            channelResult.voiceChannel?.id
-          );
-        }
-      }, 6 * 60 * 60 * 1000); // 6 hours
-      
-      // Award XP for check-in
-      await database.client.user.update({
-        where: { id: userId },
-        data: {
-          xp: { increment: xpGained }
-        }
-      });
+      // Award XP for check-in (if not already awarded by enhanced service)
+      if (!presenceEnhancementsService) {
+        await database.client.user.update({
+          where: { id: userId },
+          data: {
+            xp: { increment: actualXP }
+          }
+        });
+      }
 
       // Update user stats separately
       await database.client.userStats.upsert({
@@ -216,7 +218,7 @@ const checkin: Command = {
       successEmbed.addFields(
         {
           name: '🎯 XP Ganho',
-          value: `+${xpGained} XP`,
+          value: `+${actualXP} XP${actualXP > baseXP ? ` (${baseXP} base + ${actualXP - baseXP} bônus PUBG)` : ''}`,
           inline: true
         },
         {
@@ -225,6 +227,38 @@ const checkin: Command = {
           inline: true
         }
       );
+      
+      // Add PUBG validation info if available
+      if (pubgValidation) {
+        const validationEmoji = pubgValidation.isValid ? '✅' : '❌';
+        const validationText = pubgValidation.isValid ? 'Válida' : 'Inválida';
+        
+        successEmbed.addFields({
+          name: '🎮 Integração PUBG',
+          value: `${validationEmoji} ${validationText}${pubgValidation.pubgUsername ? ` (${pubgValidation.pubgUsername})` : ''}`,
+          inline: true
+        });
+        
+        if (pubgValidation.isValid && pubgValidation.stats) {
+          successEmbed.addFields({
+            name: '📊 Stats PUBG',
+            value: [
+              `**KDA:** ${pubgValidation.stats.kda.toFixed(2)}`,
+              `**Rank:** ${pubgValidation.stats.rank}`,
+              `**Vitórias:** ${pubgValidation.stats.wins}`
+            ].join(' | '),
+            inline: false
+          });
+        }
+        
+        if (!pubgValidation.isValid && pubgValidation.validationErrors?.length) {
+          successEmbed.addFields({
+            name: '⚠️ Aviso PUBG',
+            value: pubgValidation.validationErrors[0],
+            inline: false
+          });
+        }
+      }
 
       if (channelResult.voiceChannel) {
         successEmbed.addFields({

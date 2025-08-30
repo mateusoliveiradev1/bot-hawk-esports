@@ -411,6 +411,9 @@ async function setupChannels(guild: any, mode: string = 'full'): Promise<string>
     // Categories
     { name: '📋 INFORMAÇÕES', type: ChannelType.GuildCategory, position: 0 },
     { name: '💬 CHAT GERAL', type: ChannelType.GuildCategory, position: 1 },
+    { name: '🤝 COMUNIDADE', type: ChannelType.GuildCategory, position: 2 },
+    { name: '🎫 TICKETS', type: ChannelType.GuildCategory, position: 3 },
+    { name: '🔧 ADMINISTRAÇÃO', type: ChannelType.GuildCategory, position: 4 },
     
     // Essential information channels
     { name: '📜-regras', type: ChannelType.GuildText, category: '📋 INFORMAÇÕES', topic: '📋 Leia as regras do servidor antes de participar das atividades' },
@@ -420,6 +423,13 @@ async function setupChannels(guild: any, mode: string = 'full'): Promise<string>
     // Essential general chat
     { name: '💬-geral', type: ChannelType.GuildText, category: '💬 CHAT GERAL', topic: '💬 Conversa geral da comunidade' },
     { name: '🤖-comandos', type: ChannelType.GuildText, category: '💬 CHAT GERAL', topic: '🤖 Use os comandos do bot aqui para não poluir outros canais' },
+    
+    // Essential community and tickets
+    { name: '🎟️-abrir-ticket', type: ChannelType.GuildText, category: '🤝 COMUNIDADE', topic: '🎟️ Canal público para abrir tickets de suporte - Use os botões abaixo!' },
+    
+    // Essential administration
+    { name: '📝-logs-geral', type: ChannelType.GuildText, category: '🔧 ADMINISTRAÇÃO', topic: '📝 Logs gerais do servidor: entradas, saídas e atividades importantes' },
+    { name: '🎫-logs-ticket', type: ChannelType.GuildText, category: '🔧 ADMINISTRAÇÃO', topic: '🎫 Logs específicos do sistema de tickets' },
   ];
   
   // Define todos os canais para configuração completa
@@ -434,7 +444,8 @@ async function setupChannels(guild: any, mode: string = 'full'): Promise<string>
     { name: '🎬 CONTEÚDO & MÍDIA', type: ChannelType.GuildCategory, position: 6 },
     { name: '🏆 COMPETIÇÕES & EVENTOS', type: ChannelType.GuildCategory, position: 7 },
     { name: '🤝 COMUNIDADE', type: ChannelType.GuildCategory, position: 8 },
-    { name: '🔧 ADMINISTRAÇÃO', type: ChannelType.GuildCategory, position: 9 },
+    { name: '🎫 TICKETS', type: ChannelType.GuildCategory, position: 9 },
+    { name: '🔧 ADMINISTRAÇÃO', type: ChannelType.GuildCategory, position: 10 },
     
     // Information channels
     { name: '📜-regras', type: ChannelType.GuildText, category: '📋 INFORMAÇÕES', topic: '📋 Leia as regras do servidor antes de participar das atividades' },
@@ -504,8 +515,12 @@ async function setupChannels(guild: any, mode: string = 'full'): Promise<string>
     
     // Administration
     { name: '🔧-admin-geral', type: ChannelType.GuildText, category: '🔧 ADMINISTRAÇÃO', topic: '🔧 Canal geral da administração para discussões internas' },
-    { name: '📝-logs', type: ChannelType.GuildText, category: '🔧 ADMINISTRAÇÃO', topic: '📝 Logs automáticos do servidor: entradas, saídas, moderação e atividades importantes' },
-    { name: '🎫-tickets', type: ChannelType.GuildText, category: '🔧 ADMINISTRAÇÃO', topic: '🎫 Sistema de tickets para suporte, dúvidas e solicitações dos membros' },
+    { name: '📝-logs-geral', type: ChannelType.GuildText, category: '🔧 ADMINISTRAÇÃO', topic: '📝 Logs gerais do servidor: entradas, saídas e atividades importantes' },
+    { name: '🎫-logs-ticket', type: ChannelType.GuildText, category: '🔧 ADMINISTRAÇÃO', topic: '🎫 Logs específicos do sistema de tickets' },
+    { name: '❌-logs-erro', type: ChannelType.GuildText, category: '🔧 ADMINISTRAÇÃO', topic: '❌ Logs de erros e problemas técnicos do bot' },
+    { name: '🔒-logs-seguranca', type: ChannelType.GuildText, category: '🔧 ADMINISTRAÇÃO', topic: '🔒 Logs de segurança, moderação e ações administrativas' },
+    { name: '🌐-logs-api', type: ChannelType.GuildText, category: '🔧 ADMINISTRAÇÃO', topic: '🌐 Logs de integrações com APIs externas (PUBG, etc.)' },
+    { name: '🎟️-abrir-ticket', type: ChannelType.GuildText, category: '🤝 COMUNIDADE', topic: '🎟️ Canal público para abrir tickets de suporte - Use os botões abaixo!' },
     
     // Voice channels - General
     { name: '🔊 Lobby Geral', type: ChannelType.GuildVoice, category: '💬 CHAT GERAL', userLimit: 15 },
@@ -712,49 +727,45 @@ async function setupDatabase(guild: any, client: ExtendedClient): Promise<string
       }
     }
     
-    // Configure ticket system automatically
-    const ticketsChannel = guild.channels.cache.find((c: any) => c.name === '🎫-tickets');
+    // Configure persistent ticket system automatically
+    const abrirTicketChannel = guild.channels.cache.find((c: any) => c.name === '🎟️-abrir-ticket');
+    const logsTicketChannel = guild.channels.cache.find((c: any) => c.name === '🎫-logs-ticket');
+    const ticketCategory = guild.channels.cache.find((c: any) => c.name === '🎫 TICKETS' && c.type === ChannelType.GuildCategory);
     const supportRole = guild.roles.cache.find((r: any) => r.name.includes('Moderador') || r.name.includes('Staff') || r.name.includes('Admin'));
     
-    if (ticketsChannel && client.services?.ticket) {
+    if (abrirTicketChannel && (client as any).persistentTicketService) {
       try {
-        // Configure ticket system to use tickets channel for logs
-        client.services.ticket.updateTicketSettings(guild.id, {
-          enabled: true,
-          logChannelId: ticketsChannel.id, // Logs dos tickets vão para o canal de tickets na administração
+        // Configure persistent ticket system
+        const success = await (client as any).persistentTicketService.configureGuild(guild.id, abrirTicketChannel.id, {
+          categoryId: ticketCategory?.id,
           supportRoleId: supportRole?.id,
+          logChannelId: logsTicketChannel?.id,
           maxTicketsPerUser: 3,
-          autoAssign: false,
-          requireReason: true,
-          allowAnonymous: false,
-          closeAfterInactivity: 48, // 48 horas
-          notificationSettings: {
-            onCreate: true,
-            onAssign: true,
-            onClose: true,
-            onReopen: true
-          }
+          autoClose: true,
+          autoCloseHours: 48
         });
         
-        // Send confirmation message to tickets channel
-        const ticketConfirmEmbed = new EmbedBuilder()
-          .setTitle('🎫 Sistema de Tickets Configurado')
-          .setDescription('O sistema de tickets foi configurado automaticamente durante o bootstrap do servidor.')
-          .addFields(
-            { name: '📋 Canal de Logs', value: `<#${ticketsChannel.id}>`, inline: true },
-            { name: '👥 Cargo de Suporte', value: supportRole ? `<@&${supportRole.id}>` : 'Não configurado', inline: true },
-            { name: '📊 Max Tickets/Usuário', value: '3', inline: true },
-            { name: '⏰ Fechamento Automático', value: '48 horas de inatividade', inline: true },
-            { name: '🔔 Notificações', value: 'Ativadas', inline: true },
-            { name: '📝 Motivo Obrigatório', value: 'Sim', inline: true }
-          )
-          .setColor('#0099FF')
-          .setFooter({ text: 'Os tickets individuais serão criados na categoria "🎫 TICKETS"' })
-          .setTimestamp();
-        
-        await ticketsChannel.send({ embeds: [ticketConfirmEmbed] });
+        if (success && logsTicketChannel) {
+          // Send confirmation message to logs channel
+          const ticketConfirmEmbed = new EmbedBuilder()
+            .setTitle('🎫 Sistema de Tickets Persistente Configurado')
+            .setDescription('O sistema de tickets persistente foi configurado automaticamente durante o bootstrap do servidor.')
+            .addFields(
+              { name: '🎟️ Canal Público', value: `<#${abrirTicketChannel.id}>`, inline: true },
+              { name: '📋 Canal de Logs', value: `<#${logsTicketChannel.id}>`, inline: true },
+              { name: '📁 Categoria', value: ticketCategory ? `<#${ticketCategory.id}>` : 'Será criada automaticamente', inline: true },
+              { name: '👥 Cargo de Suporte', value: supportRole ? `<@&${supportRole.id}>` : 'Não configurado', inline: true },
+              { name: '📊 Max Tickets/Usuário', value: '3', inline: true },
+              { name: '⏰ Fechamento Automático', value: '48 horas de inatividade', inline: true }
+            )
+            .setColor('#0099FF')
+            .setFooter({ text: 'Embed fixo criado no canal público para abertura de tickets' })
+            .setTimestamp();
+          
+          await logsTicketChannel.send({ embeds: [ticketConfirmEmbed] });
+        }
       } catch (ticketError) {
-        console.error('Error configuring ticket service:', ticketError);
+        console.error('Error configuring persistent ticket service:', ticketError);
       }
     }
     
@@ -917,6 +928,37 @@ async function setupInteractiveElements(guild: any) {
     await roleMessage.react('🎬');
     await roleMessage.react('📢');
     await roleMessage.react('🎮');
+  }
+  
+  // Setup persistent ticket system
+  const ticketChannel = guild.channels.cache.find((c: any) => c.name === '🎟️-abrir-ticket');
+  const ticketCategory = guild.channels.cache.find((c: any) => c.name === '🎫 TICKETS');
+  const supportRole = guild.roles.cache.find((r: any) => r.name === '🎯 Helper' || r.name === '⚔️ Moderador' || r.name === '🛡️ Admin');
+  const logChannel = guild.channels.cache.find((c: any) => c.name === '🎫-logs-ticket');
+  
+  if (ticketChannel && ticketCategory) {
+    try {
+      // Import PersistentTicketService dynamically to avoid circular dependencies
+      const { PersistentTicketService } = await import('../../services/persistent-ticket.service');
+      const persistentTicketService = new PersistentTicketService(guild.client as any);
+      
+      // Configure persistent tickets
+      await persistentTicketService.configureGuild(guild.id, ticketChannel.id, {
+        categoryId: ticketCategory.id,
+        supportRoleId: supportRole?.id,
+        logChannelId: logChannel?.id,
+        maxTicketsPerUser: 3,
+        autoClose: true,
+        autoCloseHours: 48
+      });
+      
+      // Initialize the embed
+      await persistentTicketService.initializeEmbed(guild.id);
+      
+      console.log('✅ Sistema de tickets persistente configurado automaticamente');
+    } catch (error) {
+      console.error('❌ Erro ao configurar sistema de tickets persistente:', error);
+    }
   }
 }
 

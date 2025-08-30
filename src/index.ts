@@ -25,6 +25,7 @@ import { XPService } from './services/xp.service';
 import { PersistentTicketService } from './services/persistent-ticket.service';
 import { PresenceFixesService } from './services/presence-fixes.service';
 import { BadgeAuditService } from './services/badge-audit.service';
+import { PresenceEnhancementsService } from './services/presence-enhancements.service';
 import { CommandManager } from './commands/index';
 import { MemberEvents } from './events/memberEvents';
 import { MessageEvents } from './events/messageEvents';
@@ -53,6 +54,7 @@ class HawkEsportsBot {
     music: MusicService;
     onboarding: OnboardingService;
     presence: PresenceService;
+    presenceEnhancements: PresenceEnhancementsService;
     pubg: PUBGService;
     punishment: PunishmentService;
     rank: RankService;
@@ -119,6 +121,7 @@ class HawkEsportsBot {
       music: new MusicService(this.cache, this.db),
       onboarding: new OnboardingService(this.client),
       presence: new PresenceService(this.client),
+      presenceEnhancements: new PresenceEnhancementsService(this.client),
       pubg: pubgService,
       punishment: punishmentService,
       rank: new RankService(this.client),
@@ -153,6 +156,9 @@ class HawkEsportsBot {
       this.services.badge,
       this.db
     );
+    
+    // Initialize PresenceEnhancementsService
+    (this.client as any).presenceEnhancementsService = this.services.presenceEnhancements;
     
     (this.client as any).roleManagerService = this.services.roleManager;
     (this.client as any).pubgService = this.services.pubg;
@@ -343,6 +349,19 @@ class HawkEsportsBot {
         this.logger.error('Failed to register slash commands with Discord API:', error);
       }
 
+      // Initialize persistent ticket service for all guilds
+      try {
+        const persistentTicketService = (this.client as any).persistentTicketService as PersistentTicketService;
+        if (persistentTicketService) {
+          for (const guild of this.client.guilds.cache.values()) {
+            await persistentTicketService.initializeEmbed(guild.id);
+          }
+          this.logger.info('✅ Persistent ticket service initialized for all guilds');
+        }
+      } catch (error) {
+        this.logger.error('Failed to initialize persistent ticket service:', error);
+      }
+
       this.logger.info('🎉 Hawk Esports Bot is ready!');
     });
 
@@ -404,6 +423,17 @@ class HawkEsportsBot {
           await this.services.roleManager.initializeGuildRoles(guild);
           await this.services.roleManager.setupChannelPermissions(guild);
           this.logger.info(`✅ Initialized roles and permissions for guild: ${guild.name}`);
+        }
+
+        // Initialize persistent ticket service for new guild
+        try {
+          const persistentTicketService = (this.client as any).persistentTicketService as PersistentTicketService;
+          if (persistentTicketService) {
+            await persistentTicketService.initializeEmbed(guild.id);
+            this.logger.info(`✅ Initialized persistent ticket service for guild: ${guild.name}`);
+          }
+        } catch (error) {
+          this.logger.error(`Failed to initialize persistent ticket service for guild ${guild.name}:`, error);
         }
       } catch (error) {
         this.logger.error('Failed to initialize new guild:', error);
