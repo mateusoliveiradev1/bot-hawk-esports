@@ -157,7 +157,8 @@ export class CacheService {
    */
   public async set(key: string, value: any, ttl?: number): Promise<void> {
     if (!this.client || !this.isConnected) {
-      this.logger.warn(`Redis not connected, skipping cache set for key: ${key}`);
+      // Use memory fallback silently
+      this.setMemoryCache(key, value, ttl);
       return;
     }
 
@@ -187,8 +188,8 @@ export class CacheService {
    */
   public async get<T>(key: string): Promise<T | null> {
     if (!this.client || !this.isConnected) {
-      this.logger.warn(`Redis not connected, skipping cache get for key: ${key}`);
-      return null;
+      // Use memory fallback silently
+      return this.getMemoryCache<T>(key);
     }
 
     try {
@@ -224,7 +225,8 @@ export class CacheService {
    */
   public async del(key: string): Promise<boolean> {
     if (!this.client || !this.isConnected) {
-      return false;
+      // Use memory fallback silently
+      return this.deleteMemoryCache(key);
     }
 
     try {
@@ -249,7 +251,8 @@ export class CacheService {
    */
   public async exists(key: string): Promise<boolean> {
     if (!this.client || !this.isConnected) {
-      return false;
+      // Use memory fallback silently
+      return this.existsMemoryCache(key);
     }
 
     try {
@@ -374,7 +377,8 @@ export class CacheService {
    */
   public async mget<T>(keys: string[]): Promise<(T | null)[]> {
     if (!this.client || !this.isConnected) {
-      return keys.map(() => null);
+      // Use memory fallback silently
+      return keys.map(key => this.getMemoryCache<T>(key));
     }
 
     try {
@@ -417,10 +421,10 @@ export class CacheService {
    */
   public async mset(keyValuePairs: Record<string, any>, ttl?: number): Promise<void> {
     if (!this.client || !this.isConnected) {
-      this.logger.warn('Redis not connected, skipping multiple cache set', {
-        category: LogCategory.CACHE,
-        metadata: { operation: 'mset', keysCount: Object.keys(keyValuePairs).length }
-      });
+      // Use memory fallback silently
+      for (const [key, value] of Object.entries(keyValuePairs)) {
+        this.setMemoryCache(key, value, ttl);
+      }
       return;
     }
 
@@ -540,11 +544,9 @@ export class CacheService {
    * Cleanup expired keys and optimize memory
    */
   public async cleanup(): Promise<void> {
-    if (!this.isConnected) {
-      this.logger.warn('Redis not connected, cannot perform cleanup', {
-        category: LogCategory.CACHE,
-        metadata: { operation: 'cleanup', status: 'skipped', reason: 'not_connected' }
-      });
+    if (!this.client || !this.isConnected) {
+      // Clean memory cache silently
+      this.cleanupMemoryCache();
       return;
     }
 
@@ -668,4 +670,53 @@ export class CacheService {
     clip: (clipId: string) => `clip:${clipId}`,
     badge: (badgeId: string) => `badge:${badgeId}`,
   };
+
+  /**
+   * Memory cache fallback methods
+   */
+  private setMemoryCache(key: string, value: any, ttl?: number): void {
+    const expires = Date.now() + (ttl || this.defaultTTL) * 1000;
+    this.memoryCache.set(key, { value, expires });
+  }
+
+  private getMemoryCache<T>(key: string): T | null {
+    const cached = this.memoryCache.get(key);
+    if (!cached) {
+      return null;
+    }
+    
+    if (Date.now() > cached.expires) {
+      this.memoryCache.delete(key);
+      return null;
+    }
+    
+    return cached.value as T;
+  }
+
+  private deleteMemoryCache(key: string): boolean {
+    return this.memoryCache.delete(key);
+  }
+
+  private existsMemoryCache(key: string): boolean {
+    const cached = this.memoryCache.get(key);
+    if (!cached) {
+      return false;
+    }
+    
+    if (Date.now() > cached.expires) {
+      this.memoryCache.delete(key);
+      return false;
+    }
+    
+    return true;
+  }
+
+  private cleanupMemoryCache(): void {
+    const now = Date.now();
+    for (const [key, cached] of this.memoryCache.entries()) {
+      if (now > cached.expires) {
+        this.memoryCache.delete(key);
+      }
+    }
+  }
 }
