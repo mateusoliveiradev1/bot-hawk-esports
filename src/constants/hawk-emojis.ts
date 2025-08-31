@@ -137,7 +137,7 @@ export const HAWK_EMOJIS = {
     PRIORITY_URGENT: '🔴',
     REASON: '📝',
     CREATE: '➕',
-    LIST: '📋'
+    LIST: '📋',
   },
   
   // 🆘 Sistema de Suporte
@@ -153,7 +153,7 @@ export const HAWK_EMOJIS = {
     ERROR: '❌',
     WARNING: '⚠️',
     SUCCESS: '✅',
-    INFO: 'ℹ️'
+    INFO: 'ℹ️',
   },
   
   // 📺 Canais
@@ -209,7 +209,7 @@ export const HAWK_EMOJIS = {
     CONFIG: '⚙️',
     LOCK: '🔒',
     TIP: '💡',
-    BULLET: '•'
+    BULLET: '•',
   },
   
   // 💰 Sistema de Economia
@@ -242,7 +242,7 @@ export const HAWK_EMOJIS = {
     RARITY_RARE: '🔵',
     RARITY_EPIC: '🟣',
     RARITY_LEGENDARY: '🟠',
-    RARITY_MYTHIC: '🔴'
+    RARITY_MYTHIC: '🔴',
   },
   
   // 🎮 Sistema de Gaming
@@ -255,12 +255,12 @@ export const HAWK_EMOJIS = {
     TARGET: '🎯',
     SESSION: '🎮',
     TYPES: '📋',
-    GAME: '🎮'
+    GAME: '🎮',
   },
   
   // 🔍 Sistema de Filtros
   FILTERS: {
-    TYPE: '🔍'
+    TYPE: '🔍',
   },
   
   // ⏰ Sistema de Tempo
@@ -280,22 +280,22 @@ export const HAWK_EMOJIS = {
   // 🎯 Sistema de Ações
   ACTIONS: {
     RETRY: '🔄',
-    REFRESH: '🔄'
+    REFRESH: '🔄',
   },
 
   // 🧭 Sistema de Navegação
   NAVIGATION: {
-    VIEW: '👁️'
+    VIEW: '👁️',
   },
 
   // 👥 Sistema Social
   SOCIAL: {
-    CHAT: '💬'
+    CHAT: '💬',
   },
 
   // 🎉 Sistema de Eventos
   EVENTS: {
-    PARTICIPATION: '🎉'
+    PARTICIPATION: '🎉',
   },
   
   // 💰 Economia

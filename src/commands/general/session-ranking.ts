@@ -104,7 +104,7 @@ const sessionRanking: Command = {
       if (sessionData.length === 0) {
         const noDataEmbed = HawkEmbedBuilder.createWarning(
           `${HAWK_EMOJIS.CHART} Ranking de Sessões`,
-          'Nenhum dado de sessão encontrado para o período selecionado.'
+          'Nenhum dado de sessão encontrado para o período selecionado.',
         );
 
         await interaction.editReply({ embeds: [noDataEmbed] });
@@ -120,20 +120,20 @@ const sessionRanking: Command = {
           customId: 'session_ranking_details',
           label: 'Ver Detalhes',
           style: ButtonStyle.Primary,
-          emoji: HAWK_EMOJIS.STATS
+          emoji: HAWK_EMOJIS.STATS,
         }),
         HawkComponentFactory.createButton({
           customId: 'session_ranking_personal',
           label: 'Meu Ranking',
           style: ButtonStyle.Secondary,
-          emoji: HAWK_EMOJIS.USER
+          emoji: HAWK_EMOJIS.USER,
         }),
         HawkComponentFactory.createButton({
           customId: 'session_ranking_refresh',
           label: 'Atualizar',
           style: ButtonStyle.Success,
-          emoji: HAWK_EMOJIS.REFRESH
-        })
+          emoji: HAWK_EMOJIS.REFRESH,
+        }),
       ]);
 
       const response = await interaction.editReply({
@@ -197,9 +197,9 @@ const sessionRanking: Command = {
                 customId: (button as any).customId || (button as any).data?.custom_id,
                 label: (button as any).label || (button as any).data?.label || 'Button',
                 style: ButtonStyle.Secondary,
-                disabled: true
-              })
-            )
+                disabled: true,
+              }),
+            ),
           );
 
           await interaction.editReply({ components: [disabledButtons] });
@@ -212,7 +212,7 @@ const sessionRanking: Command = {
 
       const errorEmbed = HawkEmbedBuilder.createError(
         `${HAWK_EMOJIS.ERROR} Erro`,
-        'Ocorreu um erro ao buscar o ranking de sessões.'
+        'Ocorreu um erro ao buscar o ranking de sessões.',
       );
 
       await interaction.editReply({ embeds: [errorEmbed] });
@@ -407,7 +407,7 @@ async function createRankingEmbed(
 
   const embed = HawkEmbedBuilder.createInfo(
     `Ranking de Sessões - ${periodNames[period as keyof typeof periodNames] || 'Geral'}`,
-    `${HAWK_EMOJIS.TROPHY} Confira os jogadores mais ativos do servidor!`
+    `${HAWK_EMOJIS.TROPHY} Confira os jogadores mais ativos do servidor!`,
   )
   .setTimestamp();
 
@@ -468,7 +468,7 @@ async function createRankingEmbed(
 async function createDetailsEmbed(topUsers: SessionRankingData[]): Promise<any> {
   const embed = HawkEmbedBuilder.createSuccess(
     'Detalhes dos Top Participantes',
-    `${HAWK_EMOJIS.STATS} Estatísticas detalhadas dos melhores jogadores`
+    `${HAWK_EMOJIS.STATS} Estatísticas detalhadas dos melhores jogadores`,
   )
   .setTimestamp();
 
@@ -523,7 +523,7 @@ async function createPersonalRankingEmbed(
 
   const embed = HawkEmbedBuilder.createInfo(
     'Seu Ranking Pessoal',
-    `${HAWK_EMOJIS.PROFILE} Confira suas estatísticas de participação`
+    `${HAWK_EMOJIS.PROFILE} Confira suas estatísticas de participação`,
   )
   .setTimestamp();
 

@@ -62,7 +62,7 @@ const profile: Command = {
       if (!userData) {
         const notFoundEmbed = HawkEmbedBuilder.createError(
           `${HAWK_EMOJIS.ERROR} Usuário não encontrado`,
-          `${isOwnProfile ? 'Você ainda não está' : 'Este usuário não está'} registrado no sistema.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Use \`/register\` para se cadastrar!`
+          `${isOwnProfile ? 'Você ainda não está' : 'Este usuário não está'} registrado no sistema.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Use \`/register\` para se cadastrar!`,
         );
 
         await interaction.editReply({ embeds: [notFoundEmbed] });
@@ -85,7 +85,7 @@ const profile: Command = {
       // Create main profile embed
       const profileEmbed = HawkEmbedBuilder.createInfo(
         `${HAWK_EMOJIS.SYSTEM.USER} Perfil de ${targetUser.displayName}`,
-        ''
+        '',
       )
         .setThumbnail(targetUser.displayAvatarURL({ size: 256 }));
 
@@ -194,26 +194,26 @@ const profile: Command = {
               customId: 'profile_badges',
               label: 'Ver Badges',
               style: ButtonStyle.Primary,
-              emoji: HAWK_EMOJIS.BADGE
+              emoji: HAWK_EMOJIS.BADGE,
             }),
           HawkComponentFactory.createButton({
                customId: 'profile_pubg',
                label: 'Estatísticas PUBG',
                style: ButtonStyle.Secondary,
                emoji: HAWK_EMOJIS.PUBG,
-               disabled: !userData.pubgUsername
+               disabled: !userData.pubgUsername,
              }),
            HawkComponentFactory.createButton({
               customId: 'profile_achievements',
               label: 'Conquistas',
               style: ButtonStyle.Secondary,
-              emoji: HAWK_EMOJIS.TROPHY
+              emoji: HAWK_EMOJIS.TROPHY,
             }),
            HawkComponentFactory.createLinkButton(
              'Dashboard',
              'https://your-dashboard-url.com/profile',
-             HAWK_EMOJIS.WEB
-           )
+             HAWK_EMOJIS.WEB,
+           ),
          ]);
       } else {
          buttonsRow = HawkComponentFactory.createButtonRow([
@@ -221,14 +221,14 @@ const profile: Command = {
               customId: 'profile_badges_other',
               label: 'Ver Badges',
               style: ButtonStyle.Primary,
-              emoji: HAWK_EMOJIS.BADGE
+              emoji: HAWK_EMOJIS.BADGE,
             }),
            HawkComponentFactory.createButton({
               customId: 'profile_compare',
               label: 'Comparar',
               style: ButtonStyle.Secondary,
-              emoji: HAWK_EMOJIS.MONEY
-            })
+              emoji: HAWK_EMOJIS.MONEY,
+            }),
          ]);
        }
 
@@ -308,13 +308,13 @@ async function createBadgesEmbed(user: any, badges: any[]): Promise<EmbedBuilder
   if (badges.length === 0) {
     return HawkEmbedBuilder.createWarning(
       `${HAWK_EMOJIS.BADGE} Badges de ${user.displayName}`,
-      'Este usuário ainda não possui badges.\n\nParticipe das atividades do servidor para conquistar badges!'
+      'Este usuário ainda não possui badges.\n\nParticipe das atividades do servidor para conquistar badges!',
     ).setThumbnail(user.displayAvatarURL());
   }
 
   const embed = HawkEmbedBuilder.createSuccess(
     `${HAWK_EMOJIS.BADGE} Badges de ${user.displayName}`,
-    ''
+    '',
   ).setThumbnail(user.displayAvatarURL());
 
   // Group badges by category
@@ -351,7 +351,7 @@ async function createBadgesEmbed(user: any, badges: any[]): Promise<EmbedBuilder
 async function createPUBGStatsEmbed(user: any, stats: any, userData: any): Promise<EmbedBuilder> {
   const embed = HawkEmbedBuilder.createInfo(
     `${HAWK_EMOJIS.PUBG} Estatísticas PUBG - ${user.displayName}`,
-    ''
+    '',
   ).setThumbnail(user.displayAvatarURL());
 
   // Current season stats
@@ -421,7 +421,7 @@ async function createPUBGStatsEmbed(user: any, stats: any, userData: any): Promi
 async function createAchievementsEmbed(user: any, userData: any): Promise<EmbedBuilder> {
   const embed = HawkEmbedBuilder.createInfo(
     `${HAWK_EMOJIS.ACHIEVEMENT} Conquistas de ${user.displayName}`,
-    ''
+    '',
   ).setThumbnail(user.displayAvatarURL());
 
   // Mock achievements data - replace with actual data from database

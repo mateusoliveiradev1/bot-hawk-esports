@@ -46,7 +46,7 @@ const help: Command = {
         if (!command) {
           const notFoundEmbed = HawkEmbedBuilder.createError(
           `${HAWK_EMOJIS.SYSTEM.ERROR} Comando Não Encontrado`,
-          `O comando \`${specificCommand}\` não existe.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Use \`/help\` para ver todos os comandos disponíveis.`
+          `O comando \`${specificCommand}\` não existe.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Use \`/help\` para ver todos os comandos disponíveis.`,
         );
 
           await interaction.reply({ embeds: [notFoundEmbed], flags: MessageFlags.Ephemeral });
@@ -55,7 +55,7 @@ const help: Command = {
 
         const commandEmbed = HawkEmbedBuilder.createInfo(
           `${HAWK_EMOJIS.SYSTEM.HELP} Ajuda: /${command.data.name}`,
-          (command.data as any).description
+          (command.data as any).description,
         )
           .addFields(
             { name: `${HAWK_EMOJIS.SYSTEM.CATEGORY} Categoria`, value: getCategoryName(command.category), inline: true },
@@ -84,7 +84,7 @@ const help: Command = {
       // Show general help with categories
       const mainEmbed = HawkEmbedBuilder.createInfo(
         `${HAWK_EMOJIS.SYSTEM.HELP} Central de Ajuda - Hawk Esports Bot`,
-        `${HAWK_EMOJIS.SYSTEM.INFO} Selecione uma categoria abaixo para ver os comandos disponíveis ou use o menu para navegar.`
+        `${HAWK_EMOJIS.SYSTEM.INFO} Selecione uma categoria abaixo para ver os comandos disponíveis ou use o menu para navegar.`,
       )
         .setThumbnail(client.user?.displayAvatarURL() ?? null)
         .addFields(
@@ -99,7 +99,7 @@ const help: Command = {
           { name: `${HAWK_EMOJIS.SYSTEM.USER} Perfil`, value: 'Comandos de perfil e estatísticas pessoais', inline: true },
           { name: `${HAWK_EMOJIS.SYSTEM.ADMIN} Admin`, value: 'Comandos administrativos (apenas admins)', inline: true },
         )
-        .setFooter({ text: `Use /help <comando> para ajuda específica • Hawk Esports`, iconURL: client.user?.displayAvatarURL() })
+        .setFooter({ text: 'Use /help <comando> para ajuda específica • Hawk Esports', iconURL: client.user?.displayAvatarURL() })
         .setTimestamp();
 
       const categorySelect = new StringSelectMenuBuilder()
@@ -155,26 +155,26 @@ const help: Command = {
           id: 'help_quick_start',
           label: 'Início Rápido',
           style: ButtonStyle.Primary,
-          emoji: '🚀'
+          emoji: '🚀',
         }),
         HawkComponentFactory.createButton({
           id: 'help_features',
           label: 'Funcionalidades',
           style: ButtonStyle.Secondary,
-          emoji: '⭐'
+          emoji: '⭐',
         }),
         HawkComponentFactory.createButton({
           label: 'Dashboard',
           style: ButtonStyle.Link,
           url: 'https://your-dashboard-url.com',
-          emoji: '🌐'
+          emoji: '🌐',
         }),
         HawkComponentFactory.createButton({
           label: 'Suporte',
           style: ButtonStyle.Link,
           url: 'https://discord.gg/your-support-server',
-          emoji: '💬'
-        })
+          emoji: '💬',
+        }),
       ]);
 
       const selectRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(categorySelect);
@@ -273,13 +273,13 @@ async function getCategoryEmbed(category: string, client: ExtendedClient): Promi
   if (commands.length === 0) {
     return HawkEmbedBuilder.createWarning(
       `${HAWK_EMOJIS.SYSTEM.HELP} Comandos - ${getCategoryName(categoryEnum)}`,
-      `${HAWK_EMOJIS.WARNING} Nenhum comando encontrado nesta categoria.`
+      `${HAWK_EMOJIS.WARNING} Nenhum comando encontrado nesta categoria.`,
     );
   }
 
   const embed = HawkEmbedBuilder.createInfo(
     `${HAWK_EMOJIS.SYSTEM.HELP} Comandos - ${getCategoryName(categoryEnum)}`,
-    ''
+    '',
   );
 
   const commandList = commands
@@ -307,7 +307,7 @@ async function getCategoryEmbed(category: string, client: ExtendedClient): Promi
 function getQuickStartEmbed(): any {
   return HawkEmbedBuilder.createSuccess(
     `${HAWK_EMOJIS.SYSTEM.ROCKET} Início Rápido`,
-    `${HAWK_EMOJIS.SYSTEM.INFO} Siga estes passos para começar a usar o bot:`
+    `${HAWK_EMOJIS.SYSTEM.INFO} Siga estes passos para começar a usar o bot:`,
   )
     .addFields(
       {
@@ -350,7 +350,7 @@ function getQuickStartEmbed(): any {
 function getFeaturesEmbed(): any {
   return HawkEmbedBuilder.createInfo(
     `${HAWK_EMOJIS.SYSTEM.STAR} Funcionalidades Principais`,
-    `${HAWK_EMOJIS.SYSTEM.INFO} Conheça todas as funcionalidades do Hawk Esports Bot:`
+    `${HAWK_EMOJIS.SYSTEM.INFO} Conheça todas as funcionalidades do Hawk Esports Bot:`,
   )
     .addFields(
       {

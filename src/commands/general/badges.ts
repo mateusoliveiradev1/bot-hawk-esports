@@ -120,7 +120,7 @@ const badges: Command = {
 
       const errorEmbed = HawkEmbedBuilder.createError(
         `${HAWK_EMOJIS.ERROR} Erro`,
-        'Ocorreu um erro ao processar o comando de badges.'
+        'Ocorreu um erro ao processar o comando de badges.',
       );
 
       if (interaction.replied || interaction.deferred) {
@@ -168,12 +168,12 @@ async function handleMyBadges(
     if (userBadges.length === 0) {
       const embed = HawkEmbedBuilder.createWarningEmbed(
         `${HAWK_EMOJIS.BADGES.BADGE} Nenhuma Badge Encontrada`,
-        `${isOwnProfile ? 'Você ainda não conquistou' : `${targetUser.username} ainda não conquistou`} nenhuma badge.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Use \`/badges disponiveis\` para ver as badges disponíveis!`
+        `${isOwnProfile ? 'Você ainda não conquistou' : `${targetUser.username} ainda não conquistou`} nenhuma badge.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Use \`/badges disponiveis\` para ver as badges disponíveis!`,
       )
         .setThumbnail(targetUser.displayAvatarURL({ size: 256 }))
         .setFooter({ 
           text: `${isOwnProfile ? 'Seu perfil' : `Perfil de ${targetUser.username}`} • Hawk Esports`,
-          iconURL: interaction.client.user?.displayAvatarURL()
+          iconURL: interaction.client.user?.displayAvatarURL(),
         });
 
       const components = HawkComponentFactory.createActionButtons([
@@ -181,14 +181,14 @@ async function handleMyBadges(
           id: 'view_available_badges',
           label: 'Ver Badges Disponíveis',
           emoji: '📋',
-          style: ButtonStyle.Primary
+          style: ButtonStyle.Primary,
         },
         {
           id: 'badge_progress',
           label: 'Meu Progresso',
           emoji: '📊',
-          style: ButtonStyle.Secondary
-        }
+          style: ButtonStyle.Secondary,
+        },
       ]);
 
       await interaction.editReply({ embeds: [embed], components: [components] });
@@ -214,12 +214,12 @@ async function handleMyBadges(
     // Create main embed with Hawk styling
     const embed = HawkEmbedBuilder.createInfoEmbed(
       `${HAWK_EMOJIS.BADGES.COLLECTION} Coleção de Badges`,
-      `${HAWK_EMOJIS.PROFILE} **${targetUser.username}**\n${HAWK_EMOJIS.BADGES.TOTAL} Total: **${userBadges.length}** badges conquistadas`
+      `${HAWK_EMOJIS.PROFILE} **${targetUser.username}**\n${HAWK_EMOJIS.BADGES.TOTAL} Total: **${userBadges.length}** badges conquistadas`,
     )
       .setThumbnail(targetUser.displayAvatarURL({ size: 256 }))
       .setFooter({ 
         text: `Perfil de ${targetUser.username} • Hawk Esports`,
-        iconURL: interaction.client.user?.displayAvatarURL()
+        iconURL: interaction.client.user?.displayAvatarURL(),
       });
 
     // Add rarity summary
@@ -267,7 +267,7 @@ async function handleMyBadges(
 
     // Add navigation components
     const components = HawkComponentFactory.createActionButtons([
-       { id: 'badges_refresh', label: 'Atualizar', style: ButtonStyle.Secondary, emoji: '🔄' }
+       { id: 'badges_refresh', label: 'Atualizar', style: ButtonStyle.Secondary, emoji: '🔄' },
      ]);
 
     await interaction.editReply({ embeds: [embed], components: [components] });
@@ -318,11 +318,11 @@ async function handleAvailableBadges(interaction: any, badgeService: BadgeServic
     if (availableBadges.length === 0) {
       const embed = HawkEmbedBuilder.createWarningEmbed(
         `${HAWK_EMOJIS.BADGES.AVAILABLE} Nenhuma Badge Encontrada`,
-        `Nenhuma badge encontrada com os filtros aplicados.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Tente remover alguns filtros ou use \`/badges disponiveis\` sem filtros.`
+        `Nenhuma badge encontrada com os filtros aplicados.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Tente remover alguns filtros ou use \`/badges disponiveis\` sem filtros.`,
       )
         .setFooter({ 
           text: `Filtros: ${filterText.join(' • ') || 'Nenhum'} • Hawk Esports`,
-          iconURL: interaction.client.user?.displayAvatarURL()
+          iconURL: interaction.client.user?.displayAvatarURL(),
         });
 
       const components = HawkComponentFactory.createActionButtons([
@@ -330,14 +330,14 @@ async function handleAvailableBadges(interaction: any, badgeService: BadgeServic
           id: 'view_all_badges',
           label: 'Ver Todas',
           emoji: '📋',
-          style: ButtonStyle.Primary
+          style: ButtonStyle.Primary,
         },
         {
           id: 'my_badges',
           label: 'Minhas Badges',
           emoji: '🗂️',
-          style: ButtonStyle.Secondary
-        }
+          style: ButtonStyle.Secondary,
+        },
       ]);
 
       await interaction.editReply({ embeds: [embed], components: [components] });
@@ -359,11 +359,11 @@ async function handleAvailableBadges(interaction: any, badgeService: BadgeServic
     // Create main embed with Hawk styling
     const embed = HawkEmbedBuilder.createInfoEmbed(
       `${HAWK_EMOJIS.BADGES.AVAILABLE} Badges Disponíveis`,
-      `${HAWK_EMOJIS.BADGES.TOTAL} Total: **${availableBadges.length}** badges disponíveis${filterText.length > 0 ? `\n${HAWK_EMOJIS.SYSTEM.FILTER} Filtros: ${filterText.join(' • ')}` : ''}`
+      `${HAWK_EMOJIS.BADGES.TOTAL} Total: **${availableBadges.length}** badges disponíveis${filterText.length > 0 ? `\n${HAWK_EMOJIS.SYSTEM.FILTER} Filtros: ${filterText.join(' • ')}` : ''}`,
     )
       .setFooter({ 
-        text: `Catálogo de Badges • Hawk Esports`,
-        iconURL: interaction.client.user?.displayAvatarURL()
+        text: 'Catálogo de Badges • Hawk Esports',
+        iconURL: interaction.client.user?.displayAvatarURL(),
       });
 
     // Add rarity distribution if no rarity filter is applied
@@ -376,7 +376,7 @@ async function handleAvailableBadges(interaction: any, badgeService: BadgeServic
       embed.addFields({
         name: `${HAWK_EMOJIS.BADGES.RARITY} Distribuição por Raridade`,
         value: rarityText,
-        inline: false
+        inline: false,
       });
     }
 
@@ -426,7 +426,7 @@ async function handleAvailableBadges(interaction: any, badgeService: BadgeServic
       { value: 'gaming', label: 'Gaming', description: 'Badges de jogos', emoji: '🎮' },
        { value: 'participation', label: 'Participação', description: 'Badges de participação', emoji: '🎉' },
       { value: 'achievement', label: 'Conquistas', description: 'Badges de conquistas', emoji: '🎖️' },
-       { value: 'special', label: 'Especiais', description: 'Badges especiais', emoji: '✨' }
+       { value: 'special', label: 'Especiais', description: 'Badges especiais', emoji: '✨' },
     ], 'badge_category_filter');
 
     const actionButtons = HawkComponentFactory.createActionButtons([
@@ -434,19 +434,19 @@ async function handleAvailableBadges(interaction: any, badgeService: BadgeServic
         id: 'my_badges',
         label: 'Minhas Badges',
         emoji: '🗂️',
-        style: ButtonStyle.Primary
+        style: ButtonStyle.Primary,
       },
       {
         id: 'badge_progress',
         label: 'Meu Progresso',
         emoji: '📊',
-        style: ButtonStyle.Secondary
-      }
+        style: ButtonStyle.Secondary,
+      },
     ]);
 
     await interaction.editReply({ 
       embeds: [embed], 
-      components: [filterMenu, actionButtons] 
+      components: [filterMenu, actionButtons], 
     });
   } catch (error) {
     logger.error('Error fetching available badges:', error);
@@ -473,11 +473,11 @@ async function handleBadgeProgress(
     if (!badge) {
       const embed = HawkEmbedBuilder.createErrorEmbed(
         `${HAWK_EMOJIS.SYSTEM.ERROR} Badge Não Encontrada`,
-        `A badge especificada não foi encontrada.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Use \`/badges disponiveis\` para ver todas as badges disponíveis.`
+        `A badge especificada não foi encontrada.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Use \`/badges disponiveis\` para ver todas as badges disponíveis.`,
       )
         .setFooter({ 
           text: `Badge ID: ${badgeId} • Hawk Esports`,
-          iconURL: interaction.client.user?.displayAvatarURL()
+          iconURL: interaction.client.user?.displayAvatarURL(),
         });
 
       const components = HawkComponentFactory.createActionButtons([
@@ -485,8 +485,8 @@ async function handleBadgeProgress(
           id: 'view_available_badges',
           label: 'Ver Disponíveis',
           emoji: '📋',
-          style: ButtonStyle.Primary
-        }
+          style: ButtonStyle.Primary,
+        },
       ]);
 
       await interaction.editReply({ embeds: [embed], components: [components] });
@@ -500,13 +500,13 @@ async function handleBadgeProgress(
     const embed = hasBadge 
       ? HawkEmbedBuilder.createSuccessEmbed(
           `${badge.icon} ${badge.name}`,
-          `${HAWK_EMOJIS.BADGES.COMPLETED} **Badge Conquistada!**\n\n${badge.description}`
+          `${HAWK_EMOJIS.BADGES.COMPLETED} **Badge Conquistada!**\n\n${badge.description}`,
         )
       : HawkEmbedBuilder.createProgressEmbed(
           `${badge.icon} ${badge.name}`,
           0,
           1,
-          `${HAWK_EMOJIS.SYSTEM.PROGRESS} **Em Progresso**\n\n${badge.description}`
+          `${HAWK_EMOJIS.SYSTEM.PROGRESS} **Em Progresso**\n\n${badge.description}`,
         );
 
     // Get category name with emoji
@@ -529,7 +529,7 @@ async function handleBadgeProgress(
       { 
         name: `${HAWK_EMOJIS.SYSTEM.CATEGORY} Categoria`, 
         value: categoryDisplay, 
-        inline: true 
+        inline: true, 
       },
       {
         name: `${HAWK_EMOJIS.BADGES.RARITY} Raridade`,
@@ -587,13 +587,13 @@ async function handleBadgeProgress(
     // Add completion date if badge is earned
     if (hasBadge) {
       embed.setFooter({ 
-        text: `Badge conquistada • Hawk Esports`,
-        iconURL: interaction.client.user?.displayAvatarURL()
+        text: 'Badge conquistada • Hawk Esports',
+        iconURL: interaction.client.user?.displayAvatarURL(),
       });
     } else {
       embed.setFooter({ 
-        text: `Continue progredindo para conquistar esta badge • Hawk Esports`,
-        iconURL: interaction.client.user?.displayAvatarURL()
+        text: 'Continue progredindo para conquistar esta badge • Hawk Esports',
+        iconURL: interaction.client.user?.displayAvatarURL(),
       });
     }
 
@@ -605,7 +605,7 @@ async function handleBadgeProgress(
         id: 'badge_tips',
         label: 'Dicas',
         emoji: 'ℹ️',
-        style: ButtonStyle.Secondary
+        style: ButtonStyle.Secondary,
       });
     }
     
@@ -614,14 +614,14 @@ async function handleBadgeProgress(
         id: 'my_badges',
         label: 'Minhas Badges',
         emoji: '🗂️',
-        style: ButtonStyle.Primary
+        style: ButtonStyle.Primary,
       },
       {
         id: 'available_badges',
         label: 'Ver Outras',
         emoji: '📋',
-        style: ButtonStyle.Secondary
-      }
+        style: ButtonStyle.Secondary,
+      },
     );
 
     const components = HawkComponentFactory.createActionButtons(actionButtons);
@@ -652,11 +652,11 @@ async function handleBadgeRanking(
     if (leaderboard.length === 0) {
       const embed = HawkEmbedBuilder.createWarningEmbed(
         `${HAWK_EMOJIS.TROPHY} Ranking Vazio`,
-        `Nenhum usuário com badges encontrado ainda.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Seja o primeiro a conquistar badges e aparecer no ranking!`
+        `Nenhum usuário com badges encontrado ainda.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Seja o primeiro a conquistar badges e aparecer no ranking!`,
       )
         .setFooter({ 
-          text: `Ranking de Badges • Hawk Esports`,
-          iconURL: interaction.client.user?.displayAvatarURL()
+          text: 'Ranking de Badges • Hawk Esports',
+          iconURL: interaction.client.user?.displayAvatarURL(),
         });
 
       const components = HawkComponentFactory.createActionButtons([
@@ -664,14 +664,14 @@ async function handleBadgeRanking(
           id: 'view_available_badges',
           label: 'Ver Badges',
           emoji: '📋',
-          style: ButtonStyle.Primary
+          style: ButtonStyle.Primary,
         },
         {
           id: 'my_badges',
           label: 'Minhas Badges',
           emoji: '🗂️',
-          style: ButtonStyle.Secondary
-        }
+          style: ButtonStyle.Secondary,
+        },
       ]);
 
       await interaction.editReply({ embeds: [embed], components: [components] });
@@ -681,11 +681,11 @@ async function handleBadgeRanking(
     // Create main ranking embed with Hawk styling
     const embed = HawkEmbedBuilder.createRankingEmbed(
       `${HAWK_EMOJIS.TROPHY} Ranking de Badges`,
-      `${HAWK_EMOJIS.BADGES.TOTAL} Top **${limit}** usuários com mais badges conquistadas`
+      `${HAWK_EMOJIS.BADGES.TOTAL} Top **${limit}** usuários com mais badges conquistadas`,
     )
       .setFooter({ 
-        text: `Atualizado • Hawk Esports`,
-        iconURL: interaction.client.user?.displayAvatarURL()
+        text: 'Atualizado • Hawk Esports',
+        iconURL: interaction.client.user?.displayAvatarURL(),
       });
 
     // Process leaderboard with enhanced display
@@ -755,7 +755,7 @@ async function handleBadgeRanking(
       embed.addFields({
         name: `${HAWK_EMOJIS.SYSTEM.STATS} Estatísticas`,
         value: `${HAWK_EMOJIS.BADGES.TOTAL} Total de badges: **${totalBadges}**\n${HAWK_EMOJIS.SYSTEM.AVERAGE} Média por usuário: **${avgBadges}**\n${HAWK_EMOJIS.CROWN} Líder: **${topUser.badgeCount}** badges`,
-        inline: false
+        inline: false,
       });
     }
 
@@ -765,20 +765,20 @@ async function handleBadgeRanking(
         id: 'my_position',
         label: 'Minha Posição',
         emoji: '👤',
-        style: ButtonStyle.Primary
+        style: ButtonStyle.Primary,
       },
       {
         id: 'my_badges',
         label: 'Minhas Badges',
         emoji: '🗂️',
-        style: ButtonStyle.Secondary
+        style: ButtonStyle.Secondary,
       },
       {
         id: 'available_badges',
         label: 'Ver Disponíveis',
         emoji: '📋',
-        style: ButtonStyle.Secondary
-      }
+        style: ButtonStyle.Secondary,
+      },
     ];
 
     const components = HawkComponentFactory.createActionButtons(actionButtons);

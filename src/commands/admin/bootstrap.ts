@@ -71,7 +71,7 @@ function createProgressEmbed(step: number, total: number, currentTask: string): 
   return HawkEmbedBuilder.createInfo(
     `${HAWK_EMOJIS.SYSTEM.ROCKET} Configurando Servidor Perfeito`,
     `**${currentTask}**\n\n${HAWK_EMOJIS.SYSTEM.LOADING} Progresso: ${percentage}%\n\`${progressBar}\` ${step}/${total}`,
-    { footer: 'Criando a experiência Discord perfeita...' }
+    { footer: 'Criando a experiência Discord perfeita...' },
   );
 }
 

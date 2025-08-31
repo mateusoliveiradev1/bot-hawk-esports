@@ -128,7 +128,7 @@ async function handleEconomyProfile(interaction: any, database: DatabaseService,
     if (!userData) {
       const embed = HawkEmbedBuilder.createError(
         `${HAWK_EMOJIS.ERROR} Usuário não encontrado`,
-        'Este usuário não está registrado no sistema.'
+        'Este usuário não está registrado no sistema.',
       );
 
       await interaction.editReply({ embeds: [embed] });
@@ -148,7 +148,7 @@ async function handleEconomyProfile(interaction: any, database: DatabaseService,
 
     const embed = HawkEmbedBuilder.createSuccess(
       `${HAWK_EMOJIS.ECONOMY.MONEY} Economia de ${targetUser.username}`,
-      ''
+      '',
     )
       .setThumbnail(targetUser.displayAvatarURL())
       .addFields(
@@ -244,7 +244,7 @@ async function handleEconomyRanking(
     if (users.length === 0) {
       const embed = HawkEmbedBuilder.createWarning(
         title,
-        'Nenhum usuário encontrado no ranking.'
+        'Nenhum usuário encontrado no ranking.',
       );
 
       await interaction.editReply({ embeds: [embed] });
@@ -253,7 +253,7 @@ async function handleEconomyRanking(
 
     const embed = HawkEmbedBuilder.createInfo(
       title,
-      `Top ${limit} usuários`
+      `Top ${limit} usuários`,
     );
 
     const rankingText = await Promise.all(
@@ -321,7 +321,7 @@ async function handleTransactionHistory(
     if (transactions.length === 0) {
       const embed = HawkEmbedBuilder.createWarning(
         `${HAWK_EMOJIS.SYSTEM.ACTIVITY} Histórico de Transações`,
-        'Você ainda não possui transações registradas.'
+        'Você ainda não possui transações registradas.',
       );
 
       await interaction.editReply({ embeds: [embed] });
@@ -330,7 +330,7 @@ async function handleTransactionHistory(
 
     const embed = HawkEmbedBuilder.createInfo(
       `${HAWK_EMOJIS.SYSTEM.ACTIVITY} Histórico de Transações`,
-      `Últimas ${transactions.length} transações`
+      `Últimas ${transactions.length} transações`,
     );
 
     const transactionText = transactions
@@ -395,7 +395,7 @@ async function handleDailyReward(interaction: any, database: DatabaseService, lo
     if (existingClaim) {
       const embed = HawkEmbedBuilder.createWarning(
         `${HAWK_EMOJIS.SYSTEM.TIME} Recompensa Diária`,
-        'Você já resgatou sua recompensa diária hoje!\n\nVolte amanhã para resgatar novamente.'
+        'Você já resgatou sua recompensa diária hoje!\n\nVolte amanhã para resgatar novamente.',
       );
 
       await interaction.editReply({ embeds: [embed] });
@@ -454,7 +454,7 @@ async function handleDailyReward(interaction: any, database: DatabaseService, lo
 
     const embed = HawkEmbedBuilder.createSuccess(
       `${HAWK_EMOJIS.ECONOMY.REWARD} Recompensa Diária Resgatada!`,
-      'Parabéns! Você resgatou sua recompensa diária.'
+      'Parabéns! Você resgatou sua recompensa diária.',
     )
       .addFields(
         { name: `${HAWK_EMOJIS.SYSTEM.STAR} XP Ganho`, value: `+${xpReward} XP`, inline: true },

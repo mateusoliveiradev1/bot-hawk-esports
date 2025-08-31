@@ -24,7 +24,7 @@ export class HawkEmbedBuilder {
       .setColor(THEME_COLORS.HAWK_PRIMARY)
       .setFooter({ 
         text: '🦅 Hawk Esports • Dominando os Battlegrounds',
-        iconURL: 'https://cdn.discordapp.com/icons/guild_id/guild_icon.png' // Substituir pela URL real
+        iconURL: 'https://cdn.discordapp.com/icons/guild_id/guild_icon.png', // Substituir pela URL real
       })
       .setTimestamp();
   }
@@ -266,7 +266,7 @@ export class HawkEmbedBuilder {
    * Adapta conteúdo para dispositivos móveis
    */
   static adaptForMobile(content: string, maxLength: number = 1000): string {
-    if (content.length <= maxLength) return content;
+    if (content.length <= maxLength) {return content;}
     return content.substring(0, maxLength - 3) + '...';
   }
 
@@ -306,7 +306,7 @@ export class HawkEmbedBuilder {
       embed.addFields({
         name: `${emoji} #${entry.position} ${entry.name}`,
         value: entry.value,
-        inline: false
+        inline: false,
       });
     });
 
@@ -325,7 +325,7 @@ export class HawkEmbedBuilder {
       embed.addFields({
         name: key,
         value: value.toLocaleString(),
-        inline: true
+        inline: true,
       });
     });
 
@@ -341,7 +341,7 @@ export class HawkEmbedBuilder {
     title: string,
     items: string[],
     currentPage: number,
-    itemsPerPage: number = 10
+    itemsPerPage: number = 10,
   ): EmbedBuilder {
     const totalPages = Math.ceil(items.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -352,7 +352,7 @@ export class HawkEmbedBuilder {
       .setTitle(`${HAWK_EMOJIS.HAWK} ${title}`)
       .setDescription(pageItems.join('\n'))
       .setFooter({ 
-        text: `🦅 Hawk Esports • Página ${currentPage}/${totalPages}` 
+        text: `🦅 Hawk Esports • Página ${currentPage}/${totalPages}`, 
       });
 
     return embed;
@@ -380,7 +380,7 @@ export class HawkEmbedBuilder {
     return embed.addFields({
       name: `${HAWK_EMOJIS.CLOCK} ${label}`,
       value: `<t:${Math.floor(timestamp.getTime() / 1000)}:R>`,
-      inline: true
+      inline: true,
     });
   }
 
@@ -390,7 +390,7 @@ export class HawkEmbedBuilder {
   static addAuthor(embed: EmbedBuilder, user: User, prefix?: string): EmbedBuilder {
     return embed.setAuthor({
       name: `${prefix || ''}${user.displayName}`,
-      iconURL: user.displayAvatarURL({ size: 64 })
+      iconURL: user.displayAvatarURL({ size: 64 }),
     });
   }
 }

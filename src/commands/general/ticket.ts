@@ -103,7 +103,7 @@ export default {
       if (!ticketService) {
         const errorEmbed = HawkEmbedBuilder.createError(
           'Serviço Indisponível',
-          `${HAWK_EMOJIS.STATUS.ERROR} O serviço de tickets não está disponível no momento.\n\n${HAWK_EMOJIS.HELP} Entre em contato com um administrador.`
+          `${HAWK_EMOJIS.STATUS.ERROR} O serviço de tickets não está disponível no momento.\n\n${HAWK_EMOJIS.HELP} Entre em contato com um administrador.`,
         );
 
         await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -134,7 +134,7 @@ export default {
 
       const errorEmbed = HawkEmbedBuilder.createError(
         'Erro no Comando',
-        `${HAWK_EMOJIS.STATUS.ERROR} Ocorreu um erro inesperado ao processar o comando.\n\n${HAWK_EMOJIS.HELP} Tente novamente ou entre em contato com um administrador.`
+        `${HAWK_EMOJIS.STATUS.ERROR} Ocorreu um erro inesperado ao processar o comando.\n\n${HAWK_EMOJIS.HELP} Tente novamente ou entre em contato com um administrador.`,
       );
 
       if (interaction.replied || interaction.deferred) {
@@ -169,7 +169,7 @@ async function handleCreateTicket(interaction: ChatInputCommandInteraction, tick
   if (result.success) {
     const successEmbed = HawkEmbedBuilder.createSuccess(
       'Ticket Criado com Sucesso!',
-      `${HAWK_EMOJIS.STATUS.SUCCESS} Seu ticket foi criado e nossa equipe será notificada.\n\n${HAWK_EMOJIS.SYSTEM.CHANNEL} **Canal:** ${result.channel}\n${HAWK_EMOJIS.TICKETS.ID} **ID:** #${result.ticket!.id.slice(-8)}`
+      `${HAWK_EMOJIS.STATUS.SUCCESS} Seu ticket foi criado e nossa equipe será notificada.\n\n${HAWK_EMOJIS.SYSTEM.CHANNEL} **Canal:** ${result.channel}\n${HAWK_EMOJIS.TICKETS.ID} **ID:** #${result.ticket!.id.slice(-8)}`,
     )
     .addFields(
       { name: `${HAWK_EMOJIS.TICKETS.SUBJECT} Assunto`, value: assunto, inline: true },
@@ -183,21 +183,21 @@ async function handleCreateTicket(interaction: ChatInputCommandInteraction, tick
         customId: 'view_ticket',
         label: 'Ver Ticket',
         style: ButtonStyle.Primary,
-        emoji: '👁️'
+        emoji: '👁️',
       }),
       HawkComponentFactory.createButton({
         customId: 'ticket_help',
         label: 'Ajuda',
         style: ButtonStyle.Secondary,
-        emoji: 'ℹ️'
-      })
+        emoji: 'ℹ️',
+      }),
     ]);
 
     await interaction.editReply({ embeds: [successEmbed], components: [actionRow] });
   } else {
     const errorEmbed = HawkEmbedBuilder.createError(
       'Erro ao Criar Ticket',
-      `${HAWK_EMOJIS.STATUS.ERROR} ${result.message}\n\n${HAWK_EMOJIS.HELP} Verifique os dados e tente novamente.`
+      `${HAWK_EMOJIS.STATUS.ERROR} ${result.message}\n\n${HAWK_EMOJIS.HELP} Verifique os dados e tente novamente.`,
     );
 
     const actionRow = HawkComponentFactory.createActionRow([
@@ -205,8 +205,8 @@ async function handleCreateTicket(interaction: ChatInputCommandInteraction, tick
         customId: 'retry_ticket',
         label: 'Tentar Novamente',
         style: ButtonStyle.Primary,
-        emoji: '🔄'
-      })
+        emoji: '🔄',
+      }),
     ]);
 
     await interaction.editReply({ embeds: [errorEmbed], components: [actionRow] });
@@ -221,7 +221,7 @@ function getPriorityEmoji(priority: string): string {
     low: HAWK_EMOJIS.STATUS.SUCCESS,
     medium: HAWK_EMOJIS.STATUS.WARNING,
     high: HAWK_EMOJIS.STATUS.ERROR,
-    urgent: HAWK_EMOJIS.STATUS.ERROR
+    urgent: HAWK_EMOJIS.STATUS.ERROR,
   };
   return priorityEmojis[priority] || HAWK_EMOJIS.STATUS.WARNING;
 }
@@ -250,7 +250,7 @@ async function handleListTickets(interaction: ChatInputCommandInteraction, ticke
       'Nenhum Ticket Encontrado',
       status 
         ? `${HAWK_EMOJIS.STATUS.WARNING} Você não possui tickets com status "${status}".\n\n${HAWK_EMOJIS.TICKETS.CREATE} Use \`/ticket create\` para criar um novo ticket.`
-        : `${HAWK_EMOJIS.STATUS.WARNING} Você ainda não possui tickets.\n\n${HAWK_EMOJIS.TICKETS.CREATE} Use \`/ticket create\` para criar seu primeiro ticket.`
+        : `${HAWK_EMOJIS.STATUS.WARNING} Você ainda não possui tickets.\n\n${HAWK_EMOJIS.TICKETS.CREATE} Use \`/ticket create\` para criar seu primeiro ticket.`,
     );
 
     const actionRow = HawkComponentFactory.createActionRow([
@@ -258,8 +258,8 @@ async function handleListTickets(interaction: ChatInputCommandInteraction, ticke
         customId: 'create_ticket',
         label: 'Criar Ticket',
         style: ButtonStyle.Primary,
-        emoji: '🎫'
-      })
+        emoji: '🎫',
+      }),
     ]);
 
     await interaction.editReply({ embeds: [noTicketsEmbed], components: [actionRow] });
@@ -288,10 +288,10 @@ async function handleListTickets(interaction: ChatInputCommandInteraction, ticke
 
   const listEmbed = HawkEmbedBuilder.createInfo(
     'Seus Tickets',
-    ticketList
+    ticketList,
   )
   .setFooter({ 
-    text: `${HAWK_EMOJIS.STATS} Total: ${filteredTickets.length} ticket(s) ${status ? `| Filtro: ${status}` : ''}` 
+    text: `${HAWK_EMOJIS.STATS} Total: ${filteredTickets.length} ticket(s) ${status ? `| Filtro: ${status}` : ''}`, 
   });
 
   const actionRow = HawkComponentFactory.createActionRow([
@@ -299,14 +299,14 @@ async function handleListTickets(interaction: ChatInputCommandInteraction, ticke
       customId: 'create_ticket',
       label: 'Novo Ticket',
       style: ButtonStyle.Primary,
-      emoji: '🎫'
+      emoji: '🎫',
     }),
     HawkComponentFactory.createButton({
       customId: 'refresh_tickets',
       label: 'Atualizar',
       style: ButtonStyle.Secondary,
-      emoji: '🔄'
-    })
+      emoji: '🔄',
+    }),
   ]);
 
   await interaction.editReply({ embeds: [listEmbed], components: [actionRow] });
@@ -326,7 +326,7 @@ async function handleCloseTicket(interaction: ChatInputCommandInteraction, ticke
   if (!ticket) {
     const errorEmbed = HawkEmbedBuilder.createError(
       'Ticket Não Encontrado',
-      `${HAWK_EMOJIS.STATUS.ERROR} O ticket especificado não foi encontrado.\n\n${HAWK_EMOJIS.TICKETS.ID} Verifique se o ID está correto: \`${ticketId}\``
+      `${HAWK_EMOJIS.STATUS.ERROR} O ticket especificado não foi encontrado.\n\n${HAWK_EMOJIS.TICKETS.ID} Verifique se o ID está correto: \`${ticketId}\``,
     );
 
     const actionRow = HawkComponentFactory.createActionRow([
@@ -334,8 +334,8 @@ async function handleCloseTicket(interaction: ChatInputCommandInteraction, ticke
         customId: 'list_tickets',
         label: 'Ver Meus Tickets',
         style: ButtonStyle.Primary,
-        emoji: '📋'
-      })
+        emoji: '📋',
+      }),
     ]);
 
     await interaction.editReply({ embeds: [errorEmbed], components: [actionRow] });
@@ -354,7 +354,7 @@ async function handleCloseTicket(interaction: ChatInputCommandInteraction, ticke
   if (!canClose) {
     const errorEmbed = HawkEmbedBuilder.createError(
       'Sem Permissão',
-      `${HAWK_EMOJIS.STATUS.ERROR} Você só pode fechar seus próprios tickets.\n\n${HAWK_EMOJIS.SYSTEM.PERMISSIONS} Ou precisa ter permissão de moderação para fechar tickets de outros usuários.`
+      `${HAWK_EMOJIS.STATUS.ERROR} Você só pode fechar seus próprios tickets.\n\n${HAWK_EMOJIS.SYSTEM.PERMISSIONS} Ou precisa ter permissão de moderação para fechar tickets de outros usuários.`,
     );
 
     const actionRow = HawkComponentFactory.createActionRow([
@@ -362,8 +362,8 @@ async function handleCloseTicket(interaction: ChatInputCommandInteraction, ticke
         customId: 'list_my_tickets',
         label: 'Meus Tickets',
         style: ButtonStyle.Primary,
-        emoji: '📋'
-      })
+        emoji: '📋',
+      }),
     ]);
 
     await interaction.editReply({ embeds: [errorEmbed], components: [actionRow] });
@@ -380,7 +380,7 @@ async function handleCloseTicket(interaction: ChatInputCommandInteraction, ticke
   if (result.success) {
     const successEmbed = HawkEmbedBuilder.createSuccess(
       'Ticket Fechado com Sucesso',
-      `${HAWK_EMOJIS.STATUS.SUCCESS} O ticket #${ticketId.slice(-8)} foi fechado e arquivado.`
+      `${HAWK_EMOJIS.STATUS.SUCCESS} O ticket #${ticketId.slice(-8)} foi fechado e arquivado.`,
     )
     .addFields(
       { name: `${HAWK_EMOJIS.TICKETS.REASON} Motivo`, value: motivo, inline: false },
@@ -393,21 +393,21 @@ async function handleCloseTicket(interaction: ChatInputCommandInteraction, ticke
         customId: 'list_tickets',
         label: 'Ver Tickets',
         style: ButtonStyle.Secondary,
-        emoji: '📋'
+        emoji: '📋',
       }),
       HawkComponentFactory.createButton({
         customId: 'create_ticket',
         label: 'Novo Ticket',
         style: ButtonStyle.Primary,
-        emoji: '🎫'
-      })
+        emoji: '🎫',
+      }),
     ]);
 
     await interaction.editReply({ embeds: [successEmbed], components: [actionRow] });
   } else {
     const errorEmbed = HawkEmbedBuilder.createError(
       'Erro ao Fechar Ticket',
-      `${HAWK_EMOJIS.STATUS.ERROR} ${result.message}\n\n${HAWK_EMOJIS.HELP} Tente novamente ou entre em contato com um administrador.`
+      `${HAWK_EMOJIS.STATUS.ERROR} ${result.message}\n\n${HAWK_EMOJIS.HELP} Tente novamente ou entre em contato com um administrador.`,
     );
 
     const actionRow = HawkComponentFactory.createActionRow([
@@ -415,8 +415,8 @@ async function handleCloseTicket(interaction: ChatInputCommandInteraction, ticke
         customId: 'retry_close',
         label: 'Tentar Novamente',
         style: ButtonStyle.Primary,
-        emoji: '🔄'
-      })
+        emoji: '🔄',
+      }),
     ]);
 
     await interaction.editReply({ embeds: [errorEmbed], components: [actionRow] });

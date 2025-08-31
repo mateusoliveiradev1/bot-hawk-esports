@@ -525,7 +525,7 @@ export class LoggingService {
       case LogType.MESSAGE_DELETE:
         return HawkEmbedBuilder.createError(
           'Mensagem Deletada',
-          entry.content
+          entry.content,
         )
         .addFields(
           { name: `${HAWK_EMOJIS.USER} Autor`, value: entry.metadata?.author || 'Desconhecido', inline: true },
@@ -537,7 +537,7 @@ export class LoggingService {
       case LogType.MESSAGE_EDIT:
         return HawkEmbedBuilder.createWarning(
           'Mensagem Editada',
-          `${HAWK_EMOJIS.EDIT} Uma mensagem foi modificada`
+          `${HAWK_EMOJIS.EDIT} Uma mensagem foi modificada`,
         )
         .addFields(
           { name: `${HAWK_EMOJIS.USER} Autor`, value: entry.metadata?.author || 'Desconhecido', inline: true },
@@ -559,7 +559,7 @@ export class LoggingService {
       case LogType.MEMBER_JOIN:
         return HawkEmbedBuilder.createSuccess(
           'Membro Entrou',
-          `${HAWK_EMOJIS.ADD} ${entry.content}`
+          `${HAWK_EMOJIS.ADD} ${entry.content}`,
         )
         .addFields(
           { name: `${HAWK_EMOJIS.USER} Usuário`, value: entry.metadata?.user || 'Desconhecido', inline: true },
@@ -580,7 +580,7 @@ export class LoggingService {
       case LogType.MEMBER_LEAVE:
         return HawkEmbedBuilder.createWarning(
           'Membro Saiu',
-          `${HAWK_EMOJIS.REMOVE} ${entry.content}`
+          `${HAWK_EMOJIS.REMOVE} ${entry.content}`,
         )
         .addFields(
           { name: `${HAWK_EMOJIS.USER} Usuário`, value: entry.metadata?.user || 'Desconhecido', inline: true },
@@ -607,12 +607,12 @@ export class LoggingService {
           'WARN': HAWK_EMOJIS.WARNING,
         'MUTE': HAWK_EMOJIS.MUTE,
         'KICK': HAWK_EMOJIS.REMOVE,
-        'BAN': HAWK_EMOJIS.BANNED
+        'BAN': HAWK_EMOJIS.BANNED,
       }[moderationAction] || HAWK_EMOJIS.WARNING;
         
         return HawkEmbedBuilder.createError(
           `${moderationAction} Aplicado`,
-          `${moderationEmoji} ${entry.content}`
+          `${moderationEmoji} ${entry.content}`,
         )
         .addFields(
           { name: `${HAWK_EMOJIS.USER} Usuário`, value: entry.metadata?.target || 'Desconhecido', inline: true },
@@ -633,7 +633,7 @@ export class LoggingService {
       case LogType.TICKET_CREATE:
         return HawkEmbedBuilder.createSuccess(
           'Ticket Criado',
-          `${HAWK_EMOJIS.TICKET} ${entry.content}`
+          `${HAWK_EMOJIS.TICKET} ${entry.content}`,
         )
         .addFields(
           { name: `${HAWK_EMOJIS.USER} Usuário`, value: entry.metadata?.user || 'Desconhecido', inline: true },
@@ -652,7 +652,7 @@ export class LoggingService {
       case LogType.TICKET_CLOSE:
         return HawkEmbedBuilder.createWarning(
           'Ticket Fechado',
-          `${HAWK_EMOJIS.TICKET} ${entry.content}`
+          `${HAWK_EMOJIS.TICKET} ${entry.content}`,
         )
         .addFields(
           { name: `${HAWK_EMOJIS.USER} Usuário`, value: entry.metadata?.user || 'Desconhecido', inline: true },
@@ -671,7 +671,7 @@ export class LoggingService {
       case LogType.CHANGELOG:
         return HawkEmbedBuilder.createInfo(
           'Changelog',
-          `${HAWK_EMOJIS.LOG} ${entry.content}`
+          `${HAWK_EMOJIS.LOG} ${entry.content}`,
         )
         .addFields(
           { name: `${HAWK_EMOJIS.LOG} Versão`, value: entry.metadata?.version || 'N/A', inline: true },
@@ -684,7 +684,7 @@ export class LoggingService {
       case LogType.API_SUCCESS:
         return HawkEmbedBuilder.createSuccess(
           'API Success',
-          `${HAWK_EMOJIS.SUCCESS} ${entry.content}`
+          `${HAWK_EMOJIS.SUCCESS} ${entry.content}`,
         )
         .addFields(
           { name: `${HAWK_EMOJIS.SETTINGS} Serviço`, value: entry.metadata?.service || 'API', inline: true },
@@ -724,7 +724,7 @@ export class LoggingService {
       case LogType.API_ERROR:
         return HawkEmbedBuilder.createError(
           `${HAWK_EMOJIS.LOG} API Error`,
-          entry.content
+          entry.content,
         )
         .addFields(
           { name: `${HAWK_EMOJIS.LOG} Serviço`, value: entry.metadata?.service || 'API', inline: true },
@@ -773,7 +773,7 @@ export class LoggingService {
       case LogType.API_REQUEST:
         return HawkEmbedBuilder.createInfo(
           `${HAWK_EMOJIS.LOG} API Request`,
-          entry.content
+          entry.content,
         )
         .addFields(
           { name: `${HAWK_EMOJIS.LOG} Serviço`, value: entry.metadata?.service || 'API', inline: true },
@@ -798,7 +798,7 @@ export class LoggingService {
       default:
         return HawkEmbedBuilder.createInfo(
           `${HAWK_EMOJIS.LOG} Log do Servidor`,
-          entry.content
+          entry.content,
         )
         .setTimestamp(entry.timestamp)
         .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
