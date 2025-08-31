@@ -229,3 +229,12 @@ prisma/migrations/
 # Lock files (keep yarn.lock or package-lock.json, not both)
 # package-lock.json
 # yarn.lock
+
+# Temporary HTML files
+*-watch.html
+*.tmp.html
+
+# Development artifacts
+*.log
+*.tmp
+*.temp
