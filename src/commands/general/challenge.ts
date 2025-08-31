@@ -6,6 +6,7 @@ import {
   ButtonStyle,
   ComponentType,
   ChatInputCommandInteraction,
+  MessageFlags,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -68,7 +69,7 @@ const challenge: Command = {
           .setColor(0xff0000)
           .setTimestamp();
 
-        return interaction.reply({ embeds: [embed], ephemeral: true });
+        return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       const action = interaction.options.getString('action') || 'list';
@@ -100,9 +101,9 @@ const challenge: Command = {
         .setTimestamp();
 
       if (interaction.replied || interaction.deferred) {
-        await interaction.followUp({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.followUp({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       } else {
-        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       }
     }
   },
@@ -134,7 +135,7 @@ async function showActiveChallenges(
       .setColor(0xffa500)
       .setTimestamp();
 
-    return interaction.reply({ embeds: [embed], ephemeral: true });
+    return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   }
 
   // Group challenges by type
@@ -210,7 +211,7 @@ async function showActiveChallenges(
     if (buttonInteraction.user.id !== interaction.user.id) {
       await buttonInteraction.reply({
         content: '❌ Apenas quem iniciou o comando pode usar os botões!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -267,7 +268,7 @@ async function showUserProgress(
       .setTimestamp();
 
     const editMethod = interaction.editReply || interaction.reply;
-    return editMethod.call(interaction, { embeds: [embed], ephemeral: true });
+    return editMethod.call(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
   }
 
   const progressData = filteredChallenges.map(challenge => {
@@ -344,7 +345,7 @@ async function showClaimableRewards(interaction: any, gameService: GameService, 
       .setTimestamp();
 
     const editMethod = interaction.editReply || interaction.reply;
-    return editMethod.call(interaction, { embeds: [embed], ephemeral: true });
+    return editMethod.call(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
   }
 
   const totalRewards = claimableChallenges.reduce(
@@ -403,7 +404,7 @@ async function showClaimableRewards(interaction: any, gameService: GameService, 
     if (buttonInteraction.user.id !== userId) {
       await buttonInteraction.reply({
         content: '❌ Apenas o dono do comando pode resgatar as recompensas!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -499,7 +500,7 @@ async function showIndividualClaimMenu(
     if (buttonInteraction.user.id !== userId) {
       await buttonInteraction.reply({
         content: '❌ Apenas o dono do comando pode resgatar as recompensas!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -510,7 +511,7 @@ async function showIndividualClaimMenu(
     if (!challenge) {
       await buttonInteraction.reply({
         content: '❌ Desafio não encontrado!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -520,12 +521,12 @@ async function showIndividualClaimMenu(
     if (success) {
       await buttonInteraction.reply({
         content: `✅ **${challenge.name}** resgatado!\n🎁 +${challenge.rewards.xp} XP + ${challenge.rewards.coins} moedas`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     } else {
       await buttonInteraction.reply({
         content: '❌ Erro ao resgatar recompensa. Tente novamente.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   });
@@ -557,7 +558,7 @@ async function showChallengeStats(
         .setTimestamp();
 
       const editMethod = interaction.editReply || interaction.reply;
-      return editMethod.call(interaction, { embeds: [embed], ephemeral: true });
+      return editMethod.call(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
     }
 
     const userProgress = gameService.getUserChallengeProgress(userId);
@@ -633,7 +634,7 @@ async function showChallengeStats(
       .setTimestamp();
 
     const editMethod = interaction.editReply || interaction.reply;
-    await editMethod.call(interaction, { embeds: [errorEmbed], ephemeral: true });
+    await editMethod.call(interaction, { embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
   }
 }
 

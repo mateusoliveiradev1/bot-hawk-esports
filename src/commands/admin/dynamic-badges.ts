@@ -6,6 +6,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ChatInputCommandInteraction,
+  MessageFlags,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -67,7 +68,7 @@ export default class DynamicBadgesCommand implements Command {
     if (!dynamicBadgeService) {
       await interaction.reply({
         content: '❌ Serviço de badges dinâmicas não está disponível.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -101,7 +102,7 @@ export default class DynamicBadgesCommand implements Command {
       default:
         await interaction.reply({
           content: '❌ Subcomando não reconhecido.',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
     }
@@ -116,7 +117,7 @@ export default class DynamicBadgesCommand implements Command {
     if (rules.length === 0) {
       await interaction.reply({
         content: '📋 Nenhuma regra de badge dinâmica encontrada.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -173,7 +174,7 @@ export default class DynamicBadgesCommand implements Command {
     await interaction.reply({
       embeds: [embed],
       components: [row],
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   }
 
@@ -188,7 +189,7 @@ export default class DynamicBadgesCommand implements Command {
     if (!rule) {
       await interaction.reply({
         content: `❌ Regra com ID \`${ruleId}\` não encontrada.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -224,12 +225,12 @@ export default class DynamicBadgesCommand implements Command {
 
       await interaction.reply({
         embeds: [embed],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     } else {
       await interaction.reply({
         content: `❌ Falha ao alterar status da regra \`${ruleId}\`.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   }
@@ -240,7 +241,7 @@ export default class DynamicBadgesCommand implements Command {
   ): Promise<void> {
     const user = interaction.options.getUser('user', true);
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     try {
       const awardedBadges = await service.processUserNow(user.id);
@@ -274,7 +275,7 @@ export default class DynamicBadgesCommand implements Command {
     interaction: ChatInputCommandInteraction,
     service: DynamicBadgeService
   ): Promise<void> {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     try {
       // Start processing in background
@@ -311,7 +312,7 @@ export default class DynamicBadgesCommand implements Command {
     interaction: ChatInputCommandInteraction,
     service: DynamicBadgeService
   ): Promise<void> {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     try {
       const stats = await service.getStatistics();
@@ -384,7 +385,7 @@ export default class DynamicBadgesCommand implements Command {
     if (!rule) {
       await interaction.reply({
         content: `❌ Regra com ID \`${ruleId}\` não encontrada.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -445,7 +446,7 @@ export default class DynamicBadgesCommand implements Command {
 
     await interaction.reply({
       embeds: [embed],
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   }
 

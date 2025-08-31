@@ -8,6 +8,7 @@ import {
   ComponentType,
   ChatInputCommandInteraction,
   CommandInteraction,
+  MessageFlags,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -96,7 +97,7 @@ const register: Command = {
         const response = await interaction.reply({
           embeds: [alreadyRegisteredEmbed],
           components: [updateRow],
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
 
         const collector = response.createMessageComponentCollector({
@@ -108,7 +109,7 @@ const register: Command = {
           if (i.user.id !== interaction.user.id) {
             await i.reply({
               content: '❌ Apenas quem executou o comando pode usar este botão.',
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
             return;
           }
@@ -426,7 +427,7 @@ async function handlePlayerNotFound(
     if (i.user.id !== interaction.user.id) {
       await i.reply({
         content: '❌ Apenas quem executou o comando pode usar este botão.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -511,7 +512,7 @@ async function handleRegistrationError(
     if (i.user.id !== interaction.user.id) {
       await i.reply({
         content: '❌ Apenas quem executou o comando pode usar este botão.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }

@@ -12,6 +12,7 @@ import {
   GuildMember,
   ButtonInteraction,
   Guild,
+  MessageFlags,
 } from 'discord.js';
 import { Logger } from '../utils/logger';
 import { DatabaseService } from '../database/database.service';
@@ -174,7 +175,7 @@ export class PersistentTicketService {
         this.logger.warn(`Invalid customId format: ${interaction.customId}`);
         await interaction.reply({
           content: '❌ Formato de botão inválido.',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -188,7 +189,7 @@ export class PersistentTicketService {
       if (!config) {
         await interaction.reply({
           content: '❌ Sistema de tickets não configurado neste servidor.',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -211,7 +212,7 @@ export class PersistentTicketService {
           this.logger.warn(`Unknown ticket action: ${action}`);
           await interaction.reply({
             content: '❌ Ação não reconhecida.',
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
       }
     } catch (error) {
@@ -221,7 +222,7 @@ export class PersistentTicketService {
         if (!interaction.replied && !interaction.deferred) {
           await interaction.reply({
             content: '❌ Ocorreu um erro ao processar sua solicitação.',
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
         } else if (interaction.deferred) {
           await interaction.editReply({
@@ -248,7 +249,7 @@ export class PersistentTicketService {
         this.logger.warn('Invalid parameters for ticket creation');
         await interaction.reply({
           content: '❌ Dados inválidos para criação de ticket.',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -258,7 +259,7 @@ export class PersistentTicketService {
         this.logger.warn(`No persistent ticket config found for guild ${guildId}`);
         await interaction.reply({
           content: '❌ Sistema de tickets não configurado neste servidor.',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -273,7 +274,7 @@ export class PersistentTicketService {
         this.logger.error('Error getting user tickets:', error);
         await interaction.reply({
           content: '❌ Erro ao verificar tickets existentes.',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -281,12 +282,12 @@ export class PersistentTicketService {
       if (userTickets.length >= config.maxTicketsPerUser) {
         await interaction.reply({
           content: `❌ Você já possui ${config.maxTicketsPerUser} ticket(s) aberto(s). Feche um ticket existente antes de criar um novo.`,
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
 
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       // Create ticket with default values
       const result = await this.ticketService.createTicket(
@@ -344,7 +345,7 @@ export class PersistentTicketService {
         if (!interaction.replied && !interaction.deferred) {
           await interaction.reply({
             content: '❌ Erro interno ao criar ticket.',
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
         } else if (interaction.deferred) {
           await interaction.editReply({
@@ -370,7 +371,7 @@ export class PersistentTicketService {
     if (!channel || !channel.name.startsWith('ticket-')) {
       await interaction.reply({
         content: '❌ Este botão só funciona em canais de ticket.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -380,7 +381,7 @@ export class PersistentTicketService {
     if (!ticketId) {
       await interaction.reply({
         content: '❌ Não foi possível identificar o ID do ticket.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -425,7 +426,7 @@ export class PersistentTicketService {
     if (config?.supportRoleId && !member.roles.cache.has(config.supportRoleId)) {
       await interaction.reply({
         content: '❌ Você não tem permissão para reivindicar tickets.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -435,7 +436,7 @@ export class PersistentTicketService {
     if (!channel || !channel.name.startsWith('ticket-')) {
       await interaction.reply({
         content: '❌ Este botão só funciona em canais de ticket.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -445,7 +446,7 @@ export class PersistentTicketService {
     if (!ticketId) {
       await interaction.reply({
         content: '❌ Não foi possível identificar o ID do ticket.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }

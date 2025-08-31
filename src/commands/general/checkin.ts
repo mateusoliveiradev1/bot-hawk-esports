@@ -12,6 +12,7 @@ import {
   TextChannel,
   PermissionFlagsBits,
   ComponentType,
+  MessageFlags,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -605,7 +606,7 @@ function setupButtonCollector(
           .setColor(0x00ff00)
           .setTimestamp();
 
-        await buttonInteraction.reply({ embeds: [inviteEmbed], ephemeral: true });
+        await buttonInteraction.reply({ embeds: [inviteEmbed], flags: MessageFlags.Ephemeral });
       } else if (buttonInteraction.customId === `confirm_presence_${userId}`) {
         // Handle presence confirmation
         const confirmingUser = buttonInteraction.user;
@@ -614,7 +615,7 @@ function setupButtonCollector(
         if (!isInVoiceChannel) {
           await buttonInteraction.reply({
             content: `❌ Você precisa estar no canal de voz ${channelResult.voiceChannel ? `<#${channelResult.voiceChannel.id}>` : ''} para confirmar presença!`,
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
           return;
         }
@@ -632,7 +633,7 @@ function setupButtonCollector(
           .setThumbnail(confirmingUser.displayAvatarURL())
           .setTimestamp();
 
-        await buttonInteraction.reply({ embeds: [confirmEmbed], ephemeral: true });
+        await buttonInteraction.reply({ embeds: [confirmEmbed], flags: MessageFlags.Ephemeral });
 
         // Notify in text channel if available
         if (channelResult.textChannel) {
@@ -660,12 +661,12 @@ function setupButtonCollector(
           .setColor(0x3498db)
           .setTimestamp();
 
-        await buttonInteraction.reply({ embeds: [participantsEmbed], ephemeral: true });
+        await buttonInteraction.reply({ embeds: [participantsEmbed], flags: MessageFlags.Ephemeral });
       } else if (buttonInteraction.customId === 'ranking_presence') {
         // Show presence ranking
         await buttonInteraction.reply({
           content: '🏆 Use o comando `/ranking presence` para ver o ranking completo de presença!',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       } else if (buttonInteraction.customId === `session_info_${userId}`) {
         // Show session info

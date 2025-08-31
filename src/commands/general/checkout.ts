@@ -11,6 +11,7 @@ import {
   TextChannel,
   CategoryChannel,
   ComponentType,
+  MessageFlags,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -287,7 +288,7 @@ const checkout: Command = {
       if (interaction.deferred) {
         await interaction.editReply({ embeds: [errorEmbed] });
       } else {
-        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       }
     }
   },
@@ -545,7 +546,7 @@ function setupButtonCollector(
     if (buttonInteraction.user.id !== userId) {
       await buttonInteraction.reply({
         content: '❌ Você não pode usar os botões de outro usuário!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -555,24 +556,24 @@ function setupButtonCollector(
         await buttonInteraction.reply({
           content:
             '🎮 Use o comando `/checkin` para iniciar uma nova sessão!\n\nEscolha o tipo de sessão e, se necessário, informe o nome da partida/evento.',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       } else if (buttonInteraction.customId === 'ranking_presence') {
         await buttonInteraction.reply({
           content: '🏆 Use o comando `/ranking presence` para ver o ranking completo de presença!',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       } else if (buttonInteraction.customId === `profile_${userId}`) {
         await buttonInteraction.reply({
           content: '👤 Use o comando `/profile` para ver suas estatísticas completas!',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
     } catch (error) {
       console.error('Error handling button interaction:', error);
       await buttonInteraction.reply({
         content: '❌ Erro ao processar ação. Tente novamente.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   });

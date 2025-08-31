@@ -6,6 +6,7 @@ import {
   ButtonStyle,
   ChatInputCommandInteraction,
   CommandInteraction,
+  MessageFlags,
 } from 'discord.js';
 import { PrismaClient } from '@prisma/client';
 import { BadgeService } from '../../services/badge.service';
@@ -153,7 +154,7 @@ async function execute(
       default:
         await interaction.reply({
           content: '❌ Subcomando não reconhecido.',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
     }
   } catch (error) {
@@ -161,9 +162,9 @@ async function execute(
     const errorMessage = '❌ Ocorreu um erro ao processar o comando.';
 
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({ content: errorMessage, ephemeral: true });
+      await interaction.followUp({ content: errorMessage, flags: MessageFlags.Ephemeral });
     } else {
-      await interaction.reply({ content: errorMessage, ephemeral: true });
+      await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral });
     }
   }
 }
@@ -408,7 +409,7 @@ async function handleVote(interaction: ChatInputCommandInteraction, badgeService
     if (!clip) {
       await interaction.reply({
         content: '❌ Clip não encontrado.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -428,7 +429,7 @@ async function handleVote(interaction: ChatInputCommandInteraction, badgeService
       if (existingVote.type === voteType) {
         await interaction.reply({
           content: '❌ Você já votou desta forma neste clip.',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -451,7 +452,7 @@ async function handleVote(interaction: ChatInputCommandInteraction, badgeService
     if (clip.userId === interaction.user.id) {
       await interaction.reply({
         content: '❌ Você não pode votar no seu próprio clip.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -544,7 +545,7 @@ async function handleInfo(interaction: ChatInputCommandInteraction) {
     if (!clip) {
       await interaction.reply({
         content: '❌ Clip não encontrado.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -621,7 +622,7 @@ async function handleInfo(interaction: ChatInputCommandInteraction) {
     console.error('Erro ao buscar informações do clip:', error);
     await interaction.reply({
       content: '❌ Erro ao carregar informações do clip.',
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   }
 }
@@ -638,7 +639,7 @@ async function handleDelete(interaction: ChatInputCommandInteraction) {
     if (!clip) {
       await interaction.reply({
         content: '❌ Clip não encontrado.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -650,7 +651,7 @@ async function handleDelete(interaction: ChatInputCommandInteraction) {
     if (!isAuthor && !isModerator) {
       await interaction.reply({
         content: '❌ Você só pode deletar seus próprios clips ou precisa ser moderador.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -667,13 +668,13 @@ async function handleDelete(interaction: ChatInputCommandInteraction) {
 
     await interaction.reply({
       content: `✅ Clip "**${clip.title}**" foi deletado com sucesso.`,
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   } catch (error) {
     console.error('Erro ao deletar clip:', error);
     await interaction.reply({
       content: '❌ Erro ao deletar o clip.',
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   }
 }

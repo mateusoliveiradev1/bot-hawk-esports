@@ -7,6 +7,7 @@ import {
   ComponentType,
   ChatInputCommandInteraction,
   ButtonInteraction,
+  MessageFlags,
 } from 'discord.js';
 import { Command } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -67,7 +68,7 @@ export default {
         default:
           await interaction.reply({
             content: '❌ Subcomando não reconhecido.',
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
       }
     } catch (error) {
@@ -103,9 +104,9 @@ export default {
         .setFooter({ text: 'Se o problema persistir, contate um administrador' });
 
       if (interaction.replied || interaction.deferred) {
-        await interaction.followUp({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.followUp({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       } else {
-        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       }
     }
   },
@@ -472,7 +473,7 @@ async function displayWeaponMastery(
     if (buttonInteraction.user.id !== interaction.user.id) {
       await buttonInteraction.reply({
         content: '❌ Apenas quem executou o comando pode usar estes botões.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -534,14 +535,14 @@ async function handleSyncFromButton(
     if (!user || !user.pubgUsername) {
       await buttonInteraction.followUp({
         content: '❌ Você precisa vincular sua conta PUBG primeiro.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
 
     await buttonInteraction.followUp({
       content: '🔄 Sincronizando dados de maestria de armas...',
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
 
     // Force sync weapon mastery
@@ -554,12 +555,12 @@ async function handleSyncFromButton(
       await buttonInteraction.followUp({
         content:
           '✅ Dados sincronizados com sucesso! Use o comando novamente para ver as atualizações.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     } else {
       await buttonInteraction.followUp({
         content: '❌ Falha na sincronização. Tente novamente mais tarde.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   } catch (error) {
@@ -567,7 +568,7 @@ async function handleSyncFromButton(
 
     await buttonInteraction.followUp({
       content: '❌ Erro durante a sincronização.',
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   }
 }

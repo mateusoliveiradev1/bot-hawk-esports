@@ -1,4 +1,4 @@
-import { CommandInteraction, GuildMember, PermissionFlagsBits } from 'discord.js';
+import { CommandInteraction, GuildMember, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { DatabaseService } from '../database/database.service';
 import { EmbedUtils } from './embed-builder.util';
 
@@ -225,7 +225,7 @@ export class ValidationUtils {
       if (interaction.replied || interaction.deferred) {
         await interaction.editReply({ embeds: [errorEmbed] });
       } else {
-        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       }
     } catch (replyError) {
       // If we can't reply, log the error

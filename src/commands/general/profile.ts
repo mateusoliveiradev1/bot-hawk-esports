@@ -5,6 +5,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   AttachmentBuilder,
+  MessageFlags,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -249,19 +250,19 @@ const profile: Command = {
         switch (i.customId) {
           case 'profile_badges':
             const badgesEmbed = await createBadgesEmbed(targetUser, userBadges);
-            await i.reply({ embeds: [badgesEmbed], ephemeral: true });
+            await i.reply({ embeds: [badgesEmbed], flags: MessageFlags.Ephemeral });
             break;
 
           case 'profile_stats':
             if (pubgStats) {
               const statsEmbed = await createPUBGStatsEmbed(targetUser, pubgStats, userData);
-              await i.reply({ embeds: [statsEmbed], ephemeral: true });
+              await i.reply({ embeds: [statsEmbed], flags: MessageFlags.Ephemeral });
             }
             break;
 
           case 'profile_achievements':
             const achievementsEmbed = await createAchievementsEmbed(targetUser, userData);
-            await i.reply({ embeds: [achievementsEmbed], ephemeral: true });
+            await i.reply({ embeds: [achievementsEmbed], flags: MessageFlags.Ephemeral });
             break;
 
           case 'profile_compare':
@@ -271,7 +272,7 @@ const profile: Command = {
                 'Funcionalidade em desenvolvimento!\nEm breve você poderá comparar estatísticas entre jogadores.'
               )
               .setColor('#FFA500');
-            await i.reply({ embeds: [compareEmbed], ephemeral: true });
+            await i.reply({ embeds: [compareEmbed], flags: MessageFlags.Ephemeral });
             break;
         }
       });
@@ -290,7 +291,7 @@ const profile: Command = {
       if (interaction.deferred) {
         await interaction.editReply({ embeds: [errorEmbed] });
       } else {
-        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       }
     }
   },

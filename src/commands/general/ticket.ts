@@ -10,6 +10,7 @@ import {
   TextInputStyle,
   PermissionFlagsBits,
   ComponentType,
+  MessageFlags,
 } from 'discord.js';
 import { Command } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -102,7 +103,7 @@ export default {
           .setDescription('Serviço de tickets não está disponível.')
           .setColor('#FF0000');
 
-        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         return;
       }
 
@@ -123,7 +124,7 @@ export default {
           await handleTicketStats(interaction, ticketService);
           break;
         default:
-          await interaction.reply({ content: 'Subcomando não reconhecido.', ephemeral: true });
+          await interaction.reply({ content: 'Subcomando não reconhecido.', flags: MessageFlags.Ephemeral });
       }
     } catch (error) {
       logger.error('Error in ticket command:', error);
@@ -136,7 +137,7 @@ export default {
       if (interaction.replied || interaction.deferred) {
         await interaction.editReply({ embeds: [errorEmbed] });
       } else {
-        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       }
     }
   },
@@ -152,7 +153,7 @@ async function handleCreateTicket(interaction: ChatInputCommandInteraction, tick
     (interaction.options.getString('prioridade') as 'low' | 'medium' | 'high' | 'urgent') ||
     'medium';
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const result = await ticketService.createTicket(
     interaction.guildId!,
@@ -197,7 +198,7 @@ async function handleListTickets(interaction: ChatInputCommandInteraction, ticke
     | 'closed'
     | null;
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const userTickets = ticketService.getUserTickets(interaction.guildId!, interaction.user.id);
   let filteredTickets = userTickets;
@@ -262,7 +263,7 @@ async function handleCloseTicket(interaction: ChatInputCommandInteraction, ticke
   const ticketId = interaction.options.getString('ticket_id', true);
   const motivo = interaction.options.getString('motivo') || 'Não especificado';
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   // Check if user owns the ticket or has permission to close it
   const ticket = ticketService.getTicketData(interaction.guildId!, ticketId);
@@ -345,7 +346,7 @@ async function handleCreatePanel(interaction: ChatInputCommandInteraction, ticke
       )
       .setColor('#FF0000');
 
-    await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -396,11 +397,11 @@ async function handleTicketStats(interaction: ChatInputCommandInteraction, ticke
       .setDescription('Você precisa ter permissão de moderação para ver estatísticas de tickets.')
       .setColor('#FF0000');
 
-    await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const stats = await ticketService.getTicketStats(interaction.guildId!);
 

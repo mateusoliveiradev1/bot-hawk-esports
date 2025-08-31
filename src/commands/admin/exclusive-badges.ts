@@ -4,6 +4,7 @@ import {
   EmbedBuilder,
   PermissionFlagsBits,
   User,
+  MessageFlags,
 } from 'discord.js';
 import { ExtendedClient } from '../../types/client';
 import { Command, CommandCategory } from '../../types/command';
@@ -76,7 +77,7 @@ export const exclusiveBadges: Command = {
     if (!badgeOptimizationService || !badgeService) {
       await interaction.reply({
         content: '❌ Serviços não disponíveis no momento.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -85,7 +86,7 @@ export const exclusiveBadges: Command = {
     if (!badgeOptimizationService || !badgeService) {
       await interaction.reply({
         content: '❌ Serviços de badges não estão disponíveis.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -115,7 +116,7 @@ export const exclusiveBadges: Command = {
       default:
         await interaction.reply({
           content: '❌ Subcomando não reconhecido.',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         break;
     }

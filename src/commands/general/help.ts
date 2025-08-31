@@ -6,6 +6,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ComponentType,
+  MessageFlags,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -45,7 +46,7 @@ const help: Command = {
             .setColor('#FF0000')
             .setFooter({ text: 'Use /help para ver todos os comandos disponíveis' });
 
-          await interaction.reply({ embeds: [notFoundEmbed], ephemeral: true });
+          await interaction.reply({ embeds: [notFoundEmbed], flags: MessageFlags.Ephemeral });
           return;
         }
 
@@ -73,7 +74,7 @@ const help: Command = {
 
         // Usage and examples would need to be added to Command interface if needed
 
-        await interaction.reply({ embeds: [commandEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [commandEmbed], flags: MessageFlags.Ephemeral });
         return;
       }
 
@@ -178,7 +179,7 @@ const help: Command = {
       const response = await interaction.reply({
         embeds: [mainEmbed],
         components: [selectRow, buttonsRow],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
 
       // Handle interactions
@@ -190,7 +191,7 @@ const help: Command = {
         if (i.user.id !== interaction.user.id) {
           await i.reply({
             content: '❌ Apenas quem executou o comando pode usar este menu.',
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
           return;
         }
@@ -227,7 +228,7 @@ const help: Command = {
         .setDescription('Ocorreu um erro ao carregar a ajuda.')
         .setColor('#FF0000');
 
-      await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+      await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
     }
   },
 

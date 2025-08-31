@@ -4,6 +4,7 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  MessageFlags,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -56,7 +57,7 @@ const play: Command = {
           .setDescription('Você precisa estar em um canal de voz para tocar música!')
           .setColor('#FF0000');
 
-        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         return;
       }
 
@@ -70,7 +71,7 @@ const play: Command = {
           .setDescription('Não tenho permissão para conectar ou falar neste canal de voz!')
           .setColor('#FF0000');
 
-        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         return;
       }
 
@@ -252,7 +253,7 @@ const play: Command = {
         if (!memberVoice || memberVoice.id !== botVoice?.id) {
           await i.reply({
             content: '❌ Você precisa estar no mesmo canal de voz que eu para usar os controles!',
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
           return;
         }
@@ -262,27 +263,27 @@ const play: Command = {
             const paused = await musicService.pause(interaction.guildId!);
             await i.reply({
               content: paused ? '⏸️ Música pausada!' : '▶️ Música retomada!',
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
             break;
 
           case 'music_skip':
             const skipped = await musicService.skip(interaction.guildId!);
             if (skipped) {
-              await i.reply({ content: '⏭️ Música pulada!', ephemeral: true });
+              await i.reply({ content: '⏭️ Música pulada!', flags: MessageFlags.Ephemeral });
             } else {
-              await i.reply({ content: '❌ Não há próxima música na fila!', ephemeral: true });
+              await i.reply({ content: '❌ Não há próxima música na fila!', flags: MessageFlags.Ephemeral });
             }
             break;
 
           case 'music_queue':
             const queueEmbed = await createQueueEmbed(interaction.guildId!, musicService);
-            await i.reply({ embeds: [queueEmbed], ephemeral: true });
+            await i.reply({ embeds: [queueEmbed], flags: MessageFlags.Ephemeral });
             break;
 
           case 'music_stop':
             await musicService.stop(interaction.guildId!);
-            await i.reply({ content: '⏹️ Música parada e fila limpa!', ephemeral: true });
+            await i.reply({ content: '⏹️ Música parada e fila limpa!', flags: MessageFlags.Ephemeral });
             break;
         }
       });
@@ -306,7 +307,7 @@ const play: Command = {
       if (interaction.deferred) {
         await interaction.editReply({ embeds: [errorEmbed] });
       } else {
-        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       }
     }
   },

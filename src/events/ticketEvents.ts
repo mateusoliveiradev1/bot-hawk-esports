@@ -9,6 +9,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   PermissionFlagsBits,
+  MessageFlags,
 } from 'discord.js';
 import { ExtendedClient } from '../types/client';
 import { Logger } from '../utils/logger';
@@ -25,7 +26,7 @@ export async function handleTicketButtonInteraction(
   try {
     const ticketService = client.services?.ticket;
     if (!ticketService) {
-      await interaction.reply({ content: 'Serviço de tickets não disponível.', ephemeral: true });
+      await interaction.reply({ content: 'Serviço de tickets não disponível.', flags: MessageFlags.Ephemeral });
       return;
     }
 
@@ -49,7 +50,7 @@ export async function handleTicketButtonInteraction(
     logger.error('Error handling ticket button interaction:', error);
 
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: 'Erro ao processar interação.', ephemeral: true });
+      await interaction.reply({ content: 'Erro ao processar interação.', flags: MessageFlags.Ephemeral });
     }
   }
 }
@@ -64,7 +65,7 @@ export async function handleTicketModalSubmission(
   try {
     const ticketService = client.services?.ticket;
     if (!ticketService) {
-      await interaction.reply({ content: 'Serviço de tickets não disponível.', ephemeral: true });
+      await interaction.reply({ content: 'Serviço de tickets não disponível.', flags: MessageFlags.Ephemeral });
       return;
     }
 
@@ -80,7 +81,7 @@ export async function handleTicketModalSubmission(
     logger.error('Error handling ticket modal submission:', error);
 
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: 'Erro ao processar modal.', ephemeral: true });
+      await interaction.reply({ content: 'Erro ao processar modal.', flags: MessageFlags.Ephemeral });
     }
   }
 }
@@ -145,7 +146,7 @@ async function handleCreateTicketModal(
     ? (priorityInput.toLowerCase() as 'low' | 'medium' | 'high' | 'urgent')
     : 'medium';
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const result = await ticketService.createTicket(
     interaction.guildId!,
@@ -198,12 +199,12 @@ async function handleClaimTicket(
   ) {
     await interaction.reply({
       content: 'Você precisa ter permissão de moderação para assumir tickets.',
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const result = await ticketService.assignTicket(
     interaction.guildId!,
@@ -247,7 +248,7 @@ async function handleChangePriority(
   ) {
     await interaction.reply({
       content: 'Você precisa ter permissão de moderação para alterar prioridade.',
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
     return;
   }
@@ -280,7 +281,7 @@ async function handleChangePriority(
       .setEmoji('🔴')
   );
 
-  await interaction.reply({ embeds: [priorityEmbed], components: [row], ephemeral: true });
+  await interaction.reply({ embeds: [priorityEmbed], components: [row], flags: MessageFlags.Ephemeral });
 }
 
 /**
@@ -295,7 +296,7 @@ async function handlePrioritySelection(
   const ticketId = parts[2];
 
   if (!priority || !ticketId) {
-    await interaction.reply({ content: 'Erro ao processar prioridade.', ephemeral: true });
+    await interaction.reply({ content: 'Erro ao processar prioridade.', flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -365,7 +366,7 @@ async function handleCloseTicketButton(
 ): Promise<void> {
   const ticket = ticketService.getTicketData(interaction.guildId!, ticketId);
   if (!ticket) {
-    await interaction.reply({ content: 'Ticket não encontrado.', ephemeral: true });
+    await interaction.reply({ content: 'Ticket não encontrado.', flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -381,7 +382,7 @@ async function handleCloseTicketButton(
   if (!canClose) {
     await interaction.reply({
       content: 'Você só pode fechar seus próprios tickets ou precisa ter permissão de moderação.',
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
     return;
   }
@@ -414,7 +415,7 @@ async function handleCloseTicketModal(
 ): Promise<void> {
   const reason = interaction.fields.getTextInputValue('close_reason') || 'Não especificado';
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const result = await ticketService.closeTicket(
     interaction.guildId!,

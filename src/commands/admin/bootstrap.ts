@@ -14,6 +14,7 @@ import {
   CategoryChannel,
   ChatInputCommandInteraction,
   ColorResolvable,
+  MessageFlags,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -109,13 +110,13 @@ const bootstrap: Command = {
     if (!interaction.guild) {
       await interaction.reply({
         content: '❌ Este comando só pode ser usado em servidores!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
 
     try {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       const guild = interaction.guild;
       const setupResults: string[] = [];
@@ -295,7 +296,7 @@ const bootstrap: Command = {
       if (interaction.deferred || interaction.replied) {
         await interaction.editReply({ embeds: [errorEmbed] });
       } else {
-        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       }
     }
   },

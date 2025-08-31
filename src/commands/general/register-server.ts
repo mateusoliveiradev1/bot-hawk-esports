@@ -5,6 +5,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ChatInputCommandInteraction,
+  MessageFlags,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -30,7 +31,7 @@ const registerServer: Command = {
       if (!member || !interaction.guild) {
         await interaction.reply({
           content: '❌ Este comando só pode ser usado em um servidor.',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -44,7 +45,7 @@ const registerServer: Command = {
         await interaction.reply({
           content:
             '✅ Você já está registrado no servidor! Use `/register` para registrar seu PUBG.',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }

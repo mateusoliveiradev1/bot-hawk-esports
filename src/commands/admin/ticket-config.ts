@@ -3,6 +3,7 @@ import {
   ChatInputCommandInteraction,
   EmbedBuilder,
   PermissionFlagsBits,
+  MessageFlags,
 } from 'discord.js';
 import { Command } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -111,7 +112,7 @@ export default {
           .setDescription('Serviço de tickets não está disponível.')
           .setColor('#FF0000');
 
-        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         return;
       }
 
@@ -135,7 +136,7 @@ export default {
           await handleViewConfig(interaction, ticketService);
           break;
         default:
-          await interaction.reply({ content: 'Subcomando não reconhecido.', ephemeral: true });
+          await interaction.reply({ content: 'Subcomando não reconhecido.', flags: MessageFlags.Ephemeral });
       }
     } catch (error) {
       logger.error('Error in ticket-config command:', error);
@@ -148,7 +149,7 @@ export default {
       if (interaction.replied || interaction.deferred) {
         await interaction.editReply({ embeds: [errorEmbed] });
       } else {
-        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       }
     }
   },
@@ -161,7 +162,7 @@ async function handleTimeoutConfig(interaction: ChatInputCommandInteraction, tic
   const horas = interaction.options.getInteger('horas', true);
   const guildId = interaction.guildId!;
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   try {
     const currentSettings = ticketService.getTicketSettings(guildId);
@@ -213,7 +214,7 @@ async function handleMaxTicketsConfig(
   const quantidade = interaction.options.getInteger('quantidade', true);
   const guildId = interaction.guildId!;
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   try {
     const currentSettings = ticketService.getTicketSettings(guildId);
@@ -257,7 +258,7 @@ async function handleAutoAssignConfig(
   const ativo = interaction.options.getBoolean('ativo', true);
   const guildId = interaction.guildId!;
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   try {
     const currentSettings = ticketService.getTicketSettings(guildId);
@@ -309,7 +310,7 @@ async function handleRequireReasonConfig(
   const obrigatorio = interaction.options.getBoolean('obrigatorio', true);
   const guildId = interaction.guildId!;
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   try {
     const currentSettings = ticketService.getTicketSettings(guildId);
@@ -364,7 +365,7 @@ async function handleNotificationsConfig(
   const reabrir = interaction.options.getBoolean('reabrir');
   const guildId = interaction.guildId!;
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   try {
     const currentSettings = ticketService.getTicketSettings(guildId);
@@ -429,7 +430,7 @@ async function handleNotificationsConfig(
 async function handleViewConfig(interaction: ChatInputCommandInteraction, ticketService: any) {
   const guildId = interaction.guildId!;
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   try {
     const settings = ticketService.getTicketSettings(guildId);

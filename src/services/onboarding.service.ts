@@ -7,6 +7,7 @@ import {
   ButtonStyle,
   TextChannel,
   ButtonInteraction,
+  MessageFlags,
 } from 'discord.js';
 import { ExtendedClient } from '../types/client';
 import { Logger } from '../utils/logger';
@@ -358,7 +359,7 @@ export class OnboardingService {
       .setColor(0xff9900)
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   }
 
   /**
@@ -382,7 +383,7 @@ export class OnboardingService {
       .setColor(0x00ff00)
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   }
 
   /**
@@ -411,7 +412,7 @@ export class OnboardingService {
       .setColor(0x0099ff)
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   }
 
   /**
@@ -489,7 +490,7 @@ export class OnboardingService {
           .setColor(0x00ff00)
           .setTimestamp();
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
       } else if (interaction.customId === 'registration_help') {
         const embed = new EmbedBuilder()
           .setTitle('❓ Ajuda com Registro')
@@ -508,7 +509,7 @@ export class OnboardingService {
           .setColor(0x0099ff)
           .setTimestamp();
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
       } else if (interaction.customId === 'view_rules') {
         // Find rules channel
         const rulesChannel = interaction.guild?.channels.cache.find(
@@ -527,7 +528,7 @@ export class OnboardingService {
           .setColor(0xff9900)
           .setTimestamp();
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
       }
     } catch (error) {
       this.logger.error('Failed to handle registration button interaction:', error);
@@ -535,7 +536,7 @@ export class OnboardingService {
       await interaction
         .reply({
           content: '❌ Ocorreu um erro ao processar sua solicitação. Tente novamente.',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         })
         .catch(() => {});
     }

@@ -3,6 +3,7 @@ import {
   SlashCommandBuilder,
   EmbedBuilder,
   PermissionFlagsBits,
+  MessageFlags,
 } from 'discord.js';
 import { ExtendedClient } from '../../types/client';
 import { Command, CommandCategory } from '../../types/command';
@@ -66,7 +67,7 @@ export const badgeOptimization: Command = {
     if (!badgeOptimizationService) {
       await interaction.reply({
         content: '❌ Serviço de otimização de badges não está disponível.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -96,7 +97,7 @@ export const badgeOptimization: Command = {
         default:
           await interaction.reply({
             content: '❌ Subcomando não reconhecido.',
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
           break;
       }
@@ -104,7 +105,7 @@ export const badgeOptimization: Command = {
       console.error('Erro no comando badge-optimization:', error);
       await interaction.reply({
         content: '❌ Erro interno do servidor. Tente novamente mais tarde.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 

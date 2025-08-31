@@ -5,6 +5,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   StringSelectMenuBuilder,
+  MessageFlags,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -315,7 +316,7 @@ const ranking: Command = {
         if (i.user.id !== interaction.user.id) {
           await i.reply({
             content: '❌ Apenas quem executou o comando pode usar estes controles.',
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
           return;
         }
@@ -406,7 +407,7 @@ const ranking: Command = {
       if (interaction.deferred) {
         await interaction.editReply({ embeds: [errorEmbed], components: [] });
       } else {
-        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       }
     }
   },

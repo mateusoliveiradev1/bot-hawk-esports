@@ -3,6 +3,7 @@ import {
   ChatInputCommandInteraction,
   ContextMenuCommandInteraction,
   AutocompleteInteraction,
+  MessageFlags,
 } from 'discord.js';
 import { Command, ContextMenuCommand } from '../types/command';
 import { ExtendedClient } from '../types/client';
@@ -292,7 +293,7 @@ export class CommandManager {
       if (cooldownCheck.onCooldown) {
         await interaction.reply({
           content: `⏰ Você deve aguardar ${Math.ceil(cooldownCheck.timeLeft! / 1000)} segundos antes de usar este comando novamente.`,
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -303,9 +304,9 @@ export class CommandManager {
 
       const errorMessage = 'Ocorreu um erro ao executar este comando!';
       if (interaction.replied || interaction.deferred) {
-        await interaction.followUp({ content: errorMessage, ephemeral: true });
+        await interaction.followUp({ content: errorMessage, flags: MessageFlags.Ephemeral });
       } else {
-        await interaction.reply({ content: errorMessage, ephemeral: true });
+        await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral });
       }
     }
   }
@@ -329,9 +330,9 @@ export class CommandManager {
 
       const errorMessage = 'Ocorreu um erro ao executar este comando!';
       if (interaction.replied || interaction.deferred) {
-        await interaction.followUp({ content: errorMessage, ephemeral: true });
+        await interaction.followUp({ content: errorMessage, flags: MessageFlags.Ephemeral });
       } else {
-        await interaction.reply({ content: errorMessage, ephemeral: true });
+        await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral });
       }
     }
   }

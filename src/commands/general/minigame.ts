@@ -6,6 +6,7 @@ import {
   ButtonStyle,
   ComponentType,
   ChatInputCommandInteraction,
+  MessageFlags,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -57,7 +58,7 @@ const minigame: Command = {
           .setColor(0xff0000)
           .setTimestamp();
 
-        return interaction.reply({ embeds: [embed], ephemeral: true });
+        return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       // Get selected game or show selection
@@ -81,7 +82,7 @@ const minigame: Command = {
           .setColor(0xffa500)
           .setTimestamp();
 
-        return interaction.reply({ embeds: [embed], ephemeral: true });
+        return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       // Get game info
@@ -101,7 +102,7 @@ const minigame: Command = {
           .setColor(0xff0000)
           .setTimestamp();
 
-        return interaction.reply({ embeds: [embed], ephemeral: true });
+        return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       // Start the mini-game
@@ -119,7 +120,7 @@ const minigame: Command = {
           .setColor(0xff0000)
           .setTimestamp();
 
-        return interaction.reply({ embeds: [embed], ephemeral: true });
+        return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       // Handle different game types
@@ -149,9 +150,9 @@ const minigame: Command = {
         .setTimestamp();
 
       if (interaction.replied || interaction.deferred) {
-        await interaction.followUp({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.followUp({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       } else {
-        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       }
     }
   },
@@ -224,7 +225,7 @@ async function showGameSelection(
     if (buttonInteraction.user.id !== interaction.user.id) {
       await buttonInteraction.reply({
         content: '❌ Apenas quem iniciou o comando pode selecionar o jogo!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -329,7 +330,7 @@ async function startReactionTest(
 
       await buttonInteraction.reply({
         content: `${emoji} ${reactionTime}ms ${isWinner ? '(PRIMEIRO!)' : ''}`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     });
 

@@ -8,6 +8,7 @@ import {
   ButtonInteraction,
   User,
   InteractionCollector,
+  MessageFlags,
 } from 'discord.js';
 import { ComponentFactory } from './component-factory';
 import { EmbedUtils } from './embed-builder.util';
@@ -106,7 +107,7 @@ export class PaginationUtil {
         'Nenhum item encontrado',
         'Não há itens para exibir.'
       );
-      await interaction.reply({ embeds: [emptyEmbed], ephemeral: true });
+      await interaction.reply({ embeds: [emptyEmbed], flags: MessageFlags.Ephemeral });
       return;
     }
 
@@ -162,7 +163,7 @@ export class PaginationUtil {
         if (authorOnly && i.user.id !== interaction.user.id) {
           i.reply({
             content: '❌ Apenas quem executou o comando pode navegar pelas páginas.',
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
           return false;
         }
@@ -436,7 +437,7 @@ export class PaginationUtil {
         'Nenhum resultado encontrado',
         `Não foram encontrados resultados para: **${query}**`
       );
-      await interaction.reply({ embeds: [noResultsEmbed], ephemeral: true });
+      await interaction.reply({ embeds: [noResultsEmbed], flags: MessageFlags.Ephemeral });
       return;
     }
 

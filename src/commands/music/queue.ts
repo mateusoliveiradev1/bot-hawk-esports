@@ -5,6 +5,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   StringSelectMenuBuilder,
+  MessageFlags,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -113,7 +114,7 @@ const queue: Command = {
             )
             .setColor('#FF0000');
 
-          await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+          await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
           return;
         }
       }
@@ -158,7 +159,7 @@ const queue: Command = {
       if (interaction.deferred) {
         await interaction.editReply({ embeds: [errorEmbed] });
       } else {
-        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       }
     }
   },
@@ -198,7 +199,7 @@ async function handleShowQueue(interaction: any, musicService: MusicService) {
     if (i.user.id !== interaction.user.id) {
       await i.reply({
         content: '❌ Apenas quem executou o comando pode usar estes controles.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -224,7 +225,7 @@ async function handleShowQueue(interaction: any, musicService: MusicService) {
           if (!memberVoice || memberVoice.id !== botVoice?.id) {
             await i.reply({
               content: '❌ Você precisa estar no mesmo canal de voz que eu para usar os controles!',
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
             return;
           }
@@ -234,27 +235,27 @@ async function handleShowQueue(interaction: any, musicService: MusicService) {
               const paused = await musicService.pause(interaction.guildId!);
               await i.reply({
                 content: paused ? '⏸️ Música pausada!' : '▶️ Música retomada!',
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
               });
               break;
 
             case 'skip':
               const skipped = await musicService.skip(interaction.guildId!);
               if (skipped) {
-                await i.reply({ content: '⏭️ Música pulada!', ephemeral: true });
+                await i.reply({ content: '⏭️ Música pulada!', flags: MessageFlags.Ephemeral });
               } else {
-                await i.reply({ content: '❌ Não há próxima música na fila!', ephemeral: true });
+                await i.reply({ content: '❌ Não há próxima música na fila!', flags: MessageFlags.Ephemeral });
               }
               break;
 
             case 'shuffle':
               await musicService.toggleShuffle(interaction.guildId!);
-              await i.reply({ content: '🔀 Fila embaralhada!', ephemeral: true });
+              await i.reply({ content: '🔀 Fila embaralhada!', flags: MessageFlags.Ephemeral });
               break;
 
             case 'clear':
               await musicService.clearQueue(interaction.guildId!);
-              await i.reply({ content: '🗑️ Fila limpa!', ephemeral: true });
+              await i.reply({ content: '🗑️ Fila limpa!', flags: MessageFlags.Ephemeral });
               break;
           }
           break;
@@ -266,9 +267,9 @@ async function handleShowQueue(interaction: any, musicService: MusicService) {
       const removed = await musicService.removeFromQueue(interaction.guildId!, position - 1);
 
       if (removed) {
-        await i.reply({ content: `🗑️ Música removida da posição #${position}!`, ephemeral: true });
+        await i.reply({ content: `🗑️ Música removida da posição #${position}!`, flags: MessageFlags.Ephemeral });
       } else {
-        await i.reply({ content: '❌ Não foi possível remover a música!', ephemeral: true });
+        await i.reply({ content: '❌ Não foi possível remover a música!', flags: MessageFlags.Ephemeral });
       }
     }
   });
@@ -290,7 +291,7 @@ async function handleClearQueue(interaction: any, musicService: MusicService) {
       .setDescription('Não há músicas na fila para limpar.')
       .setColor('#FF0000');
 
-    await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -319,7 +320,7 @@ async function handleShuffleQueue(interaction: any, musicService: MusicService) 
       .setDescription('É necessário pelo menos 2 músicas na fila para embaralhar.')
       .setColor('#FF0000');
 
-    await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -377,7 +378,7 @@ async function handleRemoveTrack(interaction: any, musicService: MusicService) {
       .setDescription(`A posição ${position} não existe na fila.`)
       .setColor('#FF0000');
 
-    await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -388,7 +389,7 @@ async function handleRemoveTrack(interaction: any, musicService: MusicService) {
       .setDescription('Música não encontrada na posição especificada.')
       .setColor('#FF0000');
 
-    await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -420,7 +421,7 @@ async function handleMoveTrack(interaction: any, musicService: MusicService) {
       .setDescription('Uma ou ambas as posições não existem na fila.')
       .setColor('#FF0000');
 
-    await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -430,7 +431,7 @@ async function handleMoveTrack(interaction: any, musicService: MusicService) {
       .setDescription('A posição de origem e destino não podem ser iguais.')
       .setColor('#FF0000');
 
-    await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -441,7 +442,7 @@ async function handleMoveTrack(interaction: any, musicService: MusicService) {
       .setDescription('Música não encontrada na posição especificada.')
       .setColor('#FF0000');
 
-    await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -472,7 +473,7 @@ async function handleSavePlaylist(interaction: any, musicService: MusicService) 
       .setDescription('Não há músicas na fila para salvar como playlist.')
       .setColor('#FF0000');
 
-    await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
     return;
   }
 

@@ -6,6 +6,7 @@ import {
   ButtonStyle,
   ComponentType,
   ChatInputCommandInteraction,
+  MessageFlags,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -90,7 +91,7 @@ const quiz: Command = {
           .setColor(0xff0000)
           .setTimestamp();
 
-        return interaction.reply({ embeds: [embed], ephemeral: true });
+        return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       // Check if there's already an active quiz in this channel
@@ -106,7 +107,7 @@ const quiz: Command = {
           .setColor(0xffa500)
           .setTimestamp();
 
-        return interaction.reply({ embeds: [embed], ephemeral: true });
+        return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       // Create quiz settings
@@ -181,12 +182,12 @@ const quiz: Command = {
           if (joined) {
             await buttonInteraction.reply({
               content: '✅ Você entrou no quiz! Prepare-se para as perguntas.',
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
           } else {
             await buttonInteraction.reply({
               content: '❌ Não foi possível entrar no quiz. Você já pode estar participando.',
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
           }
         } else if (buttonInteraction.customId === `quiz_info_${session.id}`) {
@@ -210,7 +211,7 @@ const quiz: Command = {
             .setColor(0x0099ff)
             .setTimestamp();
 
-          await buttonInteraction.reply({ embeds: [infoEmbed], ephemeral: true });
+          await buttonInteraction.reply({ embeds: [infoEmbed], flags: MessageFlags.Ephemeral });
         }
       });
 
@@ -229,9 +230,9 @@ const quiz: Command = {
         .setTimestamp();
 
       if (interaction.replied || interaction.deferred) {
-        await interaction.followUp({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.followUp({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       } else {
-        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       }
     }
   },
@@ -292,7 +293,7 @@ async function startQuizQuestions(
     if (answeredUsers.has(buttonInteraction.user.id)) {
       await buttonInteraction.reply({
         content: '❌ Você já respondeu esta pergunta!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -312,7 +313,7 @@ async function startQuizQuestions(
 
       await buttonInteraction.reply({
         content: `${emoji} ${result.correct ? 'Correto' : 'Incorreto'}! +${result.points} pontos${streakText}`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   });
