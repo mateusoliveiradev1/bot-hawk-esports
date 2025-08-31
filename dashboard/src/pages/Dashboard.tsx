@@ -74,6 +74,13 @@ function StatCard({ title, value, icon: Icon, trend, trendValue, isLoading }: {
   )
 }
 
+const mockGuildTypes = [
+  { name: 'Gaming', value: 45, color: '#3B82F6' },
+  { name: 'Community', value: 30, color: '#10B981' },
+  { name: 'Music', value: 15, color: '#8B5CF6' },
+  { name: 'Other', value: 10, color: '#F59E0B' }
+];
+
 export default function Dashboard() {
   const [stats, setStats] = useState<GuildStats | null>(null)
   const [commandUsage, setCommandUsage] = useState<any[]>([])
@@ -307,7 +314,7 @@ export default function Dashboard() {
                 paddingAngle={5}
                 dataKey="value"
               >
-                {mockGuildTypes.map((entry, index) => (
+                {mockGuildTypes.map((entry: any, index: number) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
@@ -315,7 +322,7 @@ export default function Dashboard() {
             </PieChart>
           </ResponsiveContainer>
           <div className="mt-4 space-y-2">
-            {mockGuildTypes.map((type) => (
+            {mockGuildTypes.map((type: any) => (
               <div key={type.name} className="flex items-center justify-between">
                 <div className="flex items-center">
                   <div

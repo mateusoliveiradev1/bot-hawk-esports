@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import {
   BarChart,
   Bar,
@@ -36,6 +35,11 @@ export default function Analytics() {
   const { stats } = useDashboardWebSocket(user?.guildId || '')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Suppress unused variable warnings for now
+  void stats;
+  void isLoading;
+  void error;
   const [dailyStats, setDailyStats] = useState<any[]>([])
   const [hourlyActivity, setHourlyActivity] = useState<any[]>([])
   const [commandCategories, setCommandCategories] = useState<any[]>([])
@@ -52,7 +56,7 @@ export default function Analytics() {
       const response = await apiService.get('/stats/analytics')
       
       if (response.success) {
-        const data = response.data
+        const data = response.data as any
         
         // Set daily stats (last 7 days)
         setDailyStats(data.dailyStats || [])
@@ -66,7 +70,7 @@ export default function Analytics() {
         // Set top commands
         setTopCommands(data.topCommands || [])
         
-        // Set growth data (last 6 months)
+        // Set growth data
         setGrowthData(data.growthData || [])
       }
       

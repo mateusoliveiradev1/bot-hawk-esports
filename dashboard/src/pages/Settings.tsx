@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import {
   Save,
@@ -17,13 +17,25 @@ import {
 
 type SettingsSection = 'bot' | 'database' | 'features' | 'notifications' | 'api'
 
+interface BotSettings {
+  features: Record<string, boolean>;
+  notifications: Record<string, boolean>;
+  [key: string]: any;
+}
+
 export default function Settings() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('bot')
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [settings, setSettings] = useState<any>({})
-  const [error, setError] = useState<string | null>(null)
+  const [settings, setSettings] = useState<BotSettings>({
+    features: {},
+    notifications: {}
+  })
   const [hasChanges, setHasChanges] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Suppress unused variable warnings for now
+  void isLoading;
+  void error;
 
   const fetchSettings = async () => {
     try {
@@ -52,7 +64,7 @@ export default function Settings() {
   // Settings are managed locally with mockSettings
 
   const saveSettingsMutation = useMutation({
-    mutationFn: (newSettings: typeof mockSettings) => {
+    mutationFn: (newSettings: typeof settings) => {
       // Simular salvamento
       return new Promise((resolve) => {
         setTimeout(() => resolve(newSettings), 1000)
@@ -310,7 +322,7 @@ export default function Settings() {
                         <input
                           type="checkbox"
                           className="sr-only peer"
-                          checked={value}
+                          checked={Boolean(value)}
                           onChange={(e) => updateSetting('features', key, e.target.checked)}
                         />
                         <div className="w-11 h-6 bg-secondary-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-secondary-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
@@ -351,7 +363,7 @@ export default function Settings() {
                         <input
                           type="checkbox"
                           className="sr-only peer"
-                          checked={value}
+                          checked={Boolean(value)}
                           onChange={(e) => updateSetting('notifications', key, e.target.checked)}
                         />
                         <div className="w-11 h-6 bg-secondary-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-secondary-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>

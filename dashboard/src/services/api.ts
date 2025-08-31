@@ -226,6 +226,11 @@ class ApiService {
     const response = await fetch(`${baseUrl}/health`);
     return response.json();
   }
+
+  async get<T>(endpoint: string): Promise<ApiResponse<T>> {
+    const data = await this.request<T>(endpoint);
+    return { success: true, data };
+  }
 }
 
 export const apiService = new ApiService();
