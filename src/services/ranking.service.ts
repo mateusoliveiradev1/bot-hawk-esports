@@ -361,6 +361,15 @@ export class RankingService {
       // Salvar no banco
       await this.saveUserRanking(guildId, userData);
 
+      // Notify BadgeService about ranking update
+      const badgeService = this.client?.services?.badge;
+      if (badgeService) {
+        const userRank = this.getUserRank(guildId, userId, 'internal', 'level');
+        if (userRank) {
+          await badgeService.onRankingUpdated(userId, userRank);
+        }
+      }
+
       await this.logRankingOperation(
         'updateUserRanking',
         'success',

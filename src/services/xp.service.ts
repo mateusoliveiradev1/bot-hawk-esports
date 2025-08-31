@@ -29,6 +29,7 @@ export class XPService {
   private prisma: PrismaClient;
   private logger: Logger;
   private cache: CacheService;
+  private client: any;
 
   // XP base por tipo de atividade (REBALANCEADO)
   private readonly ACTIVITY_XP: Record<string, number> = {
@@ -238,6 +239,12 @@ export class XPService {
         });
       });
 
+      // Notify BadgeService about XP gain
+      const badgeService = this.client?.services?.badge;
+      if (badgeService) {
+        await badgeService.onXPGained(userId, totalXPGain, newLevel);
+      }
+
       // Limpar cache do usuário
       const cacheKeys = [
         `user:${userId}`,
@@ -380,6 +387,16 @@ export class XPService {
         return;
       }
 
+      // Use BadgeService if available
+      const badgeService = this.client?.services?.badge;
+      if (badgeService) {
+        await badgeService.onXPGained(userId, 0, level);
+        return;
+      }
+
+      // Fallback to legacy badge logic if BadgeService is not available
+      this.logger.warn('⚠️ BadgeService not available, using legacy badge logic');
+      
       const levelBadges = [
         { level: 5, badge: 'novato', name: 'Novato' },
         { level: 15, badge: 'experiente', name: 'Experiente' },

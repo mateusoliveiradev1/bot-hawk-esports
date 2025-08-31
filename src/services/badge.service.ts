@@ -104,6 +104,41 @@ export class BadgeService {
     mythic: '🔴',
   };
 
+  // Mensagens padronizadas do sistema
+  private readonly MESSAGES = {
+    BADGE_EARNED: {
+      TITLE: '🏆 Nova Badge Conquistada!',
+      DESCRIPTION: (badgeName: string) => `Parabéns! Você conquistou a badge **${badgeName}**!`,
+      REWARDS: {
+        XP: (amount: number) => `+${amount} XP`,
+        COINS: (amount: number) => `+${amount} moedas`,
+        ROLE: (roleName: string) => `Cargo desbloqueado: ${roleName}`
+      }
+    },
+    BADGE_REMOVED: {
+      TITLE: '🗑️ Badge Removida',
+      DESCRIPTION: (badgeName: string) => `A badge **${badgeName}** foi removida da sua coleção.`
+    },
+    ERRORS: {
+      BADGE_NOT_FOUND: (badgeId: string) => `Badge ${badgeId} não encontrada`,
+      USER_ALREADY_HAS_BADGE: (userId: string, badgeId: string) => `Usuário ${userId} já possui a badge ${badgeId}`,
+      USER_DOESNT_HAVE_BADGE: (userId: string, badgeId: string) => `Usuário ${userId} não possui a badge ${badgeId}`,
+      DATABASE_ERROR: (operation: string, error: string) => `Erro no banco de dados durante ${operation}: ${error}`,
+      CACHE_ERROR: (operation: string, error: string) => `Erro no cache durante ${operation}: ${error}`
+    },
+    SUCCESS: {
+      BADGE_AWARDED: (badgeName: string, userId: string) => `🏆 Badge '${badgeName}' concedida ao usuário ${userId}`,
+      BADGE_REMOVED: (badgeId: string, userId: string) => `🗑️ Badge ${badgeId} removida do usuário ${userId}`,
+      CACHE_CLEARED: (userId?: string) => `🧹 Cache de badges limpo${userId ? ` para usuário ${userId}` : ' globalmente'}`,
+      WEEKLY_BADGES_PROCESSED: (awarded: number, removed: number) => `📅 Badges semanais processadas: ${awarded} concedidas, ${removed} removidas`
+    },
+    INFO: {
+      PROGRESS_UPDATED: (userId: string, requirementType: string, value: number) => `📊 Progresso atualizado para ${userId}: ${requirementType} = ${value}`,
+      VALIDATION_STARTED: 'Iniciando validação automática de badges...',
+      WEEKLY_PROCESSOR_STARTED: 'Processador de badges semanais iniciado'
+    }
+  };
+
   constructor(client: ExtendedClient, xpService: XPService, loggingService: LoggingService) {
     this.client = client;
     this.xpService = xpService;
@@ -125,8 +160,11 @@ export class BadgeService {
     try {
       await this.initializeBadges();
       await this.loadUserBadges();
+      await this.createWeeklyBadges();
       this.startProgressTracker();
-      this.logger.info('✅ BadgeService initialized successfully');
+      this.startAutomaticValidation();
+      this.startWeeklyBadgeProcessor();
+      this.logger.info('✅ BadgeService initialized successfully with automatic validation and dynamic badges');
     } catch (error) {
       this.logger.error('❌ Failed to initialize BadgeService:', error);
       throw error;
@@ -627,13 +665,13 @@ export class BadgeService {
       // Check if badge exists
       const badge = this.badges.get(badgeId);
       if (!badge) {
-        this.logger.warn(`Badge ${badgeId} not found`);
+        this.logger.warn(this.MESSAGES.ERRORS.BADGE_NOT_FOUND(badgeId));
         return false;
       }
 
       // Check if user already has this badge
-      if (this.hasBadge(userId, badgeId)) {
-        this.logger.debug(`User ${userId} already has badge ${badgeId}`);
+      if (await this.hasBadge(userId, badgeId)) {
+        this.logger.debug(this.MESSAGES.ERRORS.USER_ALREADY_HAS_BADGE(userId, badgeId));
         return false;
       }
 
@@ -656,7 +694,7 @@ export class BadgeService {
             },
           });
         } catch (dbError) {
-          this.logger.error(`Failed to save badge ${badgeId} for user ${userId} to database:`, dbError);
+          this.logger.error(this.MESSAGES.ERRORS.DATABASE_ERROR('save badge', dbError instanceof Error ? dbError.message : String(dbError)));
           // Continue anyway, badge is still awarded in memory
         }
       }
@@ -674,7 +712,7 @@ export class BadgeService {
       // Clear user cache
       await this.clearBadgeCache(userId);
 
-      this.logger.info(`🏆 Awarded badge '${badge.name}' to user ${userId}`);
+      this.logger.info(this.MESSAGES.SUCCESS.BADGE_AWARDED(badge.name, userId));
       return true;
     } catch (error) {
       this.logger.error(`❌ Failed to award badge ${badgeId} to user ${userId}:`, error);
@@ -755,9 +793,9 @@ export class BadgeService {
       if (!user) {return;}
 
       const embed = new EmbedBuilder()
-        .setTitle('🏆 Nova Badge Conquistada!')
+        .setTitle(this.MESSAGES.BADGE_EARNED.TITLE)
         .setDescription(
-          `Parabéns! Você conquistou a badge **${badge.name}**!\n\n` +
+          `${this.MESSAGES.BADGE_EARNED.DESCRIPTION(badge.name)}\n\n` +
           `${badge.icon} **${badge.name}**\n` +
           `${badge.description}\n\n` +
           `**Raridade:** ${this.getRarityEmoji(badge.rarity)} ${badge.rarity.toUpperCase()}`,
@@ -768,9 +806,9 @@ export class BadgeService {
       // Add rewards info if any
       if (badge.rewards) {
         const rewardText: string[] = [];
-        if (badge.rewards.xp) {rewardText.push(`+${badge.rewards.xp} XP`);}
-        if (badge.rewards.coins) {rewardText.push(`+${badge.rewards.coins} Moedas`);}   
-        if (badge.rewards.role) {rewardText.push(`Role: ${badge.rewards.role}`);}
+        if (badge.rewards.xp) {rewardText.push(this.MESSAGES.BADGE_EARNED.REWARDS.XP(badge.rewards.xp));}
+        if (badge.rewards.coins) {rewardText.push(this.MESSAGES.BADGE_EARNED.REWARDS.COINS(badge.rewards.coins));}   
+        if (badge.rewards.role) {rewardText.push(this.MESSAGES.BADGE_EARNED.REWARDS.ROLE(badge.rewards.role));}
         
         if (rewardText.length > 0) {
           embed.addFields({
@@ -781,45 +819,101 @@ export class BadgeService {
         }
       }
 
-      // Try to send DM first, then find a suitable channel
-      try {
-        await user.send({ embeds: [embed] });
-      } catch (dmError) {
-        // If DM fails, try to find a suitable channel in guilds
-        const guilds = this.client.guilds.cache;
-        for (const guild of guilds.values()) {
-          const member = await guild.members.fetch(userId).catch(() => null);
-          if (member) {
-            // Look for badge/achievement channel
-            const badgeChannel = guild.channels.cache.find(
-              (channel): channel is TextChannel =>
-                channel.type === 0 && // Text channel
-                (channel.name.includes('badge') ||
-                  channel.name.includes('achievement') ||
-                  channel.name.includes('conquista')),
-            );
-
-            if (badgeChannel) {
-              await badgeChannel.send({
-                content: `${member}`,
-                embeds: [embed],
-              });
-              break;
-            }
-          }
-        }
-      }
+      await this.sendNotificationToUser(user, embed, 'badge_earned');
     } catch (error) {
       this.logger.error(`❌ Failed to send badge notification to user ${userId}:`, error);
     }
   }
 
   /**
+   * Send badge removal notification
+   */
+  private async sendBadgeRemovalNotification(userId: string, badge: BadgeDefinition): Promise<void> {
+    try {
+      if (!this.client) {return;}
+
+      const user = await this.client.users.fetch(userId).catch(() => null);
+      if (!user) {return;}
+
+      const embed = new EmbedBuilder()
+        .setTitle(this.MESSAGES.BADGE_REMOVED.TITLE)
+        .setDescription(
+          `${this.MESSAGES.BADGE_REMOVED.DESCRIPTION(badge.name)}\n\n` +
+          `${badge.icon} **${badge.name}**\n` +
+          `${badge.description}\n\n` +
+          `**Motivo:** Requisitos não atendidos\n` +
+          `**Raridade:** ${this.getRarityEmoji(badge.rarity)} ${badge.rarity.toUpperCase()}`,
+        )
+        .setColor('#E74C3C') // Red color for removal
+        .setTimestamp();
+
+      await this.sendNotificationToUser(user, embed, 'badge_removed');
+    } catch (error) {
+      this.logger.error(`❌ Failed to send badge removal notification to user ${userId}:`, error);
+    }
+  }
+
+  /**
+   * Generic method to send notifications to users
+   */
+  private async sendNotificationToUser(user: User, embed: EmbedBuilder, type: 'badge_earned' | 'badge_removed'): Promise<void> {
+    try {
+      // Try to send DM first
+      await user.send({ embeds: [embed] });
+    } catch (dmError) {
+      // If DM fails, try to find a suitable channel in guilds
+      const guilds = this.client.guilds.cache;
+      for (const guild of guilds.values()) {
+        const member = await guild.members.fetch(user.id).catch(() => null);
+        if (member) {
+          // Look for badge/achievement channel
+          const badgeChannel = guild.channels.cache.find(
+            (channel): channel is TextChannel =>
+              channel.type === 0 && // Text channel
+              (channel.name.includes('badge') ||
+                channel.name.includes('achievement') ||
+                channel.name.includes('conquista') ||
+                channel.name.includes('notifica')),
+          );
+
+          if (badgeChannel) {
+            const content = type === 'badge_earned' ? `${member} 🎉` : `${member}`;
+            await badgeChannel.send({
+              content,
+              embeds: [embed],
+            });
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * Get user's badges
    */
-  public getUserBadges(userId: string): BadgeDefinition[] {
+  public async getUserBadges(userId: string): Promise<BadgeDefinition[]> {
+    const cacheKey = `user_badges:${userId}`;
+    
+    // Tentar buscar do cache primeiro
+    if (this.cache) {
+      try {
+        const cached = await this.cache.get(cacheKey);
+        if (cached) {
+          return JSON.parse(cached as string).map((badgeData: any) => ({
+            ...badgeData,
+            createdAt: new Date(badgeData.createdAt)
+          }));
+        }
+      } catch (error) {
+        this.logger.warn('Erro ao buscar badges do cache', { userId, error });
+      }
+    }
+
     const userBadgeIds = this.userBadges.get(userId);
-    if (!userBadgeIds) {return [];}
+    if (!userBadgeIds) {
+      return [];
+    }
 
     const badges: BadgeDefinition[] = [];
     for (const badgeId of userBadgeIds) {
@@ -829,7 +923,18 @@ export class BadgeService {
       }
     }
 
-    return badges.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    const sortedBadges = badges.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    
+    // Salvar no cache por 5 minutos
+    if (this.cache && sortedBadges.length > 0) {
+      try {
+        await this.cache.set(cacheKey, JSON.stringify(sortedBadges), 300);
+      } catch (error) {
+        this.logger.warn('Erro ao salvar badges no cache', { userId, error });
+      }
+    }
+
+    return sortedBadges;
   }
 
   /**
@@ -855,9 +960,34 @@ export class BadgeService {
   /**
    * Check if user has a specific badge
    */
-  public hasBadge(userId: string, badgeId: string): boolean {
+  public async hasBadge(userId: string, badgeId: string): Promise<boolean> {
+    const cacheKey = `has_badge:${userId}:${badgeId}`;
+    
+    // Tentar buscar do cache primeiro
+    if (this.cache) {
+      try {
+        const cached = await this.cache.get(cacheKey);
+        if (cached !== null) {
+          return cached === 'true';
+        }
+      } catch (error) {
+        this.logger.warn('Erro ao buscar badge do cache', { userId, error, metadata: { badgeId } });
+      }
+    }
+
     const userBadges = this.userBadges.get(userId);
-    return userBadges ? userBadges.has(badgeId) : false;
+    const hasBadgeResult = userBadges ? userBadges.has(badgeId) : false;
+    
+    // Salvar no cache por 10 minutos
+    if (this.cache) {
+      try {
+        await this.cache.set(cacheKey, hasBadgeResult.toString(), 600);
+      } catch (error) {
+        this.logger.warn('Erro ao salvar badge no cache', { userId, error, metadata: { badgeId } });
+      }
+    }
+
+    return hasBadgeResult;
   }
 
   /**
@@ -929,10 +1059,371 @@ export class BadgeService {
         // For now, we'll use the basic user stats from the database
 
         await this.checkUserBadgeProgress(user.id, userStats);
+        
+        // Validate existing badges
+        await this.validateUserBadges(user.id, userStats);
       }
     } catch (error) {
       this.logger.error('❌ Failed to check all badge progress:', error);
     }
+  }
+
+  /**
+   * Validate if user still meets requirements for their current badges
+   */
+  public async validateUserBadges(userId: string, userStats: Record<string, number>): Promise<void> {
+    try {
+      const userBadgeSet = this.userBadges.get(userId);
+      if (!userBadgeSet) return;
+
+      const badgesToRemove: string[] = [];
+
+      for (const badgeId of userBadgeSet) {
+        const badge = this.getBadge(badgeId);
+        if (!badge || !badge.isActive) {
+          badgesToRemove.push(badgeId);
+          continue;
+        }
+
+        // Skip validation for certain badge types that shouldn't be removed
+        if (badge.category === 'special' || badge.id === 'founder' || badge.id.includes('achievement')) {
+          continue;
+        }
+
+        // Check if user still meets requirements
+        const userProgress = new Map<string, number>();
+        for (const [key, value] of Object.entries(userStats)) {
+          userProgress.set(key, value);
+        }
+
+        const stillMeetsRequirements = this.checkBadgeRequirements(badge, userProgress);
+        if (!stillMeetsRequirements) {
+          badgesToRemove.push(badgeId);
+        }
+      }
+
+      // Remove badges that no longer meet requirements
+      for (const badgeId of badgesToRemove) {
+        await this.removeBadge(userId, badgeId, true);
+        this.logger.info(`🔄 Auto-removed badge ${badgeId} from user ${userId} - requirements no longer met`);
+      }
+    } catch (error) {
+      this.logger.error(`❌ Error validating badges for user ${userId}:`, error);
+    }
+  }
+
+  /**
+   * Start automatic badge validation process
+   */
+  public startAutomaticValidation(): void {
+    // Run validation every 30 minutes
+    setInterval(async () => {
+      this.logger.info('🔄 Starting automatic badge validation...');
+      await this.checkAllBadgeProgress();
+      this.logger.info('✅ Automatic badge validation completed');
+    }, 30 * 60 * 1000); // 30 minutes
+
+    // Also run validation every hour for more thorough check
+    setInterval(async () => {
+      this.logger.info('🔍 Starting thorough badge validation...');
+      await this.runThoroughValidation();
+      this.logger.info('✅ Thorough badge validation completed');
+    }, 60 * 60 * 1000); // 1 hour
+  }
+
+  /**
+   * Run thorough validation including database sync
+   */
+  private async runThoroughValidation(): Promise<void> {
+    try {
+      // Validate badge integrity
+      const integrity = await this.validateBadgeIntegrity();
+      if (!integrity.isValid) {
+        this.logger.warn('⚠️ Badge integrity issues found:', { metadata: { issues: integrity.issues } });
+      }
+
+      // Clean up orphaned badges
+      const cleanup = await this.cleanupOrphanedBadges();
+      if (cleanup.cleaned > 0) {
+        this.logger.info(`🧹 Cleaned up ${cleanup.cleaned} orphaned badges`);
+      }
+
+      // Run full badge progress check
+      await this.checkAllBadgeProgress();
+    } catch (error) {
+      this.logger.error('❌ Error in thorough validation:', error);
+    }
+  }
+
+  /**
+   * Integration methods for other services
+   */
+
+  /**
+   * Update badge progress when user gains XP
+   */
+  public async onXPGained(userId: string, xpGained: number, newLevel: number, oldLevel: number): Promise<void> {
+    try {
+      // Update XP-related progress
+      await this.updateProgress(userId, 'level', newLevel, 'set');
+      
+      // Check for level-based badges
+      if (newLevel > oldLevel) {
+        this.logger.info(`🎯 User ${userId} leveled up from ${oldLevel} to ${newLevel}`);
+        
+        // Award level milestone badges
+        const levelMilestones = [5, 10, 15, 25, 30, 50, 75, 100];
+        for (const milestone of levelMilestones) {
+          if (newLevel >= milestone && oldLevel < milestone) {
+            const badgeId = `level_${milestone}`;
+            if (this.getBadge(badgeId)) {
+              await this.awardBadge(userId, badgeId, true);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.error(`❌ Error handling XP gain for user ${userId}:`, error);
+    }
+  }
+
+  /**
+   * Update badge progress when user ranking changes
+   */
+  public async onRankingUpdated(userId: string, rankingData: any): Promise<void> {
+    try {
+      // Update ranking-related progress
+      if (rankingData.rank) {
+        await this.updateProgress(userId, 'rank', rankingData.rank, 'set');
+      }
+      
+      // Check for ranking-based badges
+      if (rankingData.rank <= 10) {
+        await this.awardBadge(userId, 'top_10_player', true);
+      }
+      if (rankingData.rank === 1) {
+        await this.awardBadge(userId, 'rank_1_champion', true);
+      }
+      
+      // Update badge count in ranking data
+      const userBadges = await this.getUserBadges(userId);
+      rankingData.badgeCount = userBadges.length;
+    } catch (error) {
+      this.logger.error(`❌ Error handling ranking update for user ${userId}:`, error);
+    }
+  }
+
+  /**
+   * Update badge progress when user activity occurs
+   */
+  public async onUserActivity(userId: string, activityType: string, value: number = 1): Promise<void> {
+    try {
+      const activityMappings: Record<string, string> = {
+        'message_sent': 'messages',
+        'voice_joined': 'voice_time',
+        'reaction_added': 'reactions',
+        'invite_created': 'invites',
+        'quiz_completed': 'quiz_score',
+        'minigame_won': 'mini_game_wins',
+        'clip_uploaded': 'clips_uploaded',
+        'clip_voted': 'clips_votes',
+        'check_in': 'check_ins',
+        'consecutive_day': 'consecutive_days'
+      };
+      
+      const mappedType = activityMappings[activityType];
+      if (mappedType) {
+        await this.updateProgress(userId, mappedType, value, 'increment');
+      }
+    } catch (error) {
+      this.logger.error(`❌ Error handling user activity for user ${userId}:`, error);
+    }
+  }
+
+  /**
+   * Update badge progress when PUBG stats change
+   */
+  public async onPUBGStatsUpdated(userId: string, pubgStats: any): Promise<void> {
+    try {
+      const statMappings = {
+        kills: pubgStats.kills || 0,
+        wins: pubgStats.wins || 0,
+        games: pubgStats.games || 0,
+        damage: pubgStats.damage || 0,
+        headshots: pubgStats.headshots || 0
+      };
+      
+      // Update all PUBG-related progress
+      for (const [statType, value] of Object.entries(statMappings)) {
+        if (value > 0) {
+          await this.updateProgress(userId, statType, value, 'set');
+        }
+      }
+      
+      // Check for PUBG achievement badges
+      await this.checkPUBGBadges(userId, pubgStats);
+    } catch (error) {
+      this.logger.error(`❌ Error handling PUBG stats update for user ${userId}:`, error);
+    }
+  }
+
+  /**
+   * Create dynamic weekly badges
+   */
+  public async createWeeklyBadges(): Promise<void> {
+    try {
+      const weeklyBadges: Omit<BadgeDefinition, 'createdAt'>[] = [
+        {
+          id: 'top_1_weekly',
+          name: 'Top 1 da Semana',
+          description: 'Seja o jogador #1 do ranking semanal',
+          icon: '👑',
+          category: 'special',
+          rarity: 'legendary',
+          requirements: [
+            {
+              type: 'rank',
+              operator: 'eq',
+              value: 1,
+              timeframe: 'weekly'
+            }
+          ],
+          rewards: {
+            xp: 500,
+            coins: 1000,
+            role: 'weekly_champion'
+          },
+          isSecret: false,
+          isActive: true
+        },
+        {
+          id: 'mvp_pubg_weekly',
+          name: 'MVP PUBG Semanal',
+          description: 'Seja o jogador com mais vitórias PUBG na semana',
+          icon: '🏆',
+          category: 'pubg',
+          rarity: 'epic',
+          requirements: [
+            {
+              type: 'wins',
+              operator: 'gte',
+              value: 10,
+              timeframe: 'weekly'
+            }
+          ],
+          rewards: {
+            xp: 300,
+            coins: 500
+          },
+          isSecret: false,
+          isActive: true
+        },
+        {
+          id: 'rapid_evolution',
+          name: 'Evolução Rápida',
+          description: 'Suba 3 ou mais níveis em uma semana',
+          icon: '📈',
+          category: 'achievement',
+          rarity: 'rare',
+          requirements: [
+            {
+              type: 'level',
+              operator: 'gte',
+              value: 3,
+              timeframe: 'weekly'
+            }
+          ],
+          rewards: {
+            xp: 200,
+            coins: 300
+          },
+          isSecret: false,
+          isActive: true
+        }
+      ];
+      
+      for (const badgeData of weeklyBadges) {
+        await this.createCustomBadge(badgeData);
+      }
+      
+      this.logger.info('✅ Weekly dynamic badges created successfully');
+    } catch (error) {
+      this.logger.error('❌ Error creating weekly badges:', error);
+    }
+  }
+
+  /**
+   * Process weekly badge assignments and removals
+   */
+  public async processWeeklyBadges(): Promise<void> {
+    try {
+      // Get ranking service if available
+      const rankingService = this.client.services?.ranking;
+      if (!rankingService) {
+        this.logger.warn('⚠️ Ranking service not available for weekly badge processing');
+        return;
+      }
+      
+      // Process each guild
+      for (const guild of this.client.guilds.cache.values()) {
+        // Get weekly ranking
+        const weeklyRanking = rankingService.getInternalRanking(
+          guild.id,
+          {
+            type: 'weekly',
+            startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+            endDate: new Date()
+          },
+          'level',
+          50
+        );
+        
+        // Remove previous weekly badges
+        const weeklyBadgeIds = ['top_1_weekly', 'mvp_pubg_weekly', 'rapid_evolution'];
+        for (const userId of this.userBadges.keys()) {
+          for (const badgeId of weeklyBadgeIds) {
+            if (this.hasBadge(userId, badgeId)) {
+              await this.removeBadge(userId, badgeId, true);
+            }
+          }
+        }
+        
+        // Award new weekly badges
+        if (weeklyRanking.length > 0) {
+          const topPlayer = weeklyRanking[0];
+          await this.awardBadge(topPlayer.userId, 'top_1_weekly', true);
+        }
+      }
+      
+      this.logger.info('✅ Weekly badges processed successfully');
+    } catch (error) {
+      this.logger.error('❌ Error processing weekly badges:', error);
+    }
+  }
+
+  /**
+   * Start weekly badge processor
+   */
+  private startWeeklyBadgeProcessor(): void {
+    // Process weekly badges every Sunday at midnight
+    const now = new Date();
+    const nextSunday = new Date(now);
+    nextSunday.setDate(now.getDate() + (7 - now.getDay()));
+    nextSunday.setHours(0, 0, 0, 0);
+    
+    const timeUntilNextSunday = nextSunday.getTime() - now.getTime();
+    
+    // Set initial timeout for next Sunday
+    setTimeout(() => {
+      this.processWeeklyBadges();
+      
+      // Then run every week
+      setInterval(() => {
+        this.processWeeklyBadges();
+      }, 7 * 24 * 60 * 60 * 1000); // 7 days
+    }, timeUntilNextSunday);
+    
+    this.logger.info(`${this.MESSAGES.INFO.WEEKLY_PROCESSOR_STARTED} - Agendado para ${nextSunday.toISOString()}`);
   }
 
   /**
@@ -999,15 +1490,20 @@ export class BadgeService {
   /**
    * Remove a badge from a user
    */
-  public async removeBadge(userId: string, badgeId: string): Promise<boolean> {
+  public async removeBadge(userId: string, badgeId: string, notify: boolean = true): Promise<boolean> {
     try {
       const userBadges = this.userBadges.get(userId);
       if (!userBadges || !userBadges.has(badgeId)) {
         return false;
       }
 
+      const badge = this.getBadge(badgeId);
+
       // Remove from memory
       userBadges.delete(badgeId);
+      if (userBadges.size === 0) {
+        this.userBadges.delete(userId);
+      }
 
       // Remove from database if available
       if (this.database?.client) {
@@ -1019,9 +1515,28 @@ export class BadgeService {
         });
       }
 
-      this.logger.info(`🗑️ Removed badge ${badgeId} from user ${userId}`);
+      // Clear user cache
+      await this.clearBadgeCache(userId);
+
+      // Send removal notification if requested and badge exists
+      if (notify && badge) {
+        await this.sendBadgeRemovalNotification(userId, badge);
+      }
+
+      await this.logBadgeOperation('remove', 'success', this.MESSAGES.SUCCESS.BADGE_REMOVED(badgeId, userId), {
+        userId,
+        badgeId,
+        badgeName: badge?.name || 'Unknown',
+      });
+
+      this.logger.info(this.MESSAGES.SUCCESS.BADGE_REMOVED(badgeId, userId));
       return true;
     } catch (error) {
+      await this.logBadgeOperation('remove', 'error', `Failed to remove badge ${badgeId} from user ${userId}`, {
+        userId,
+        badgeId,
+        error: error instanceof Error ? error.message : String(error),
+      });
       this.logger.error(`❌ Failed to remove badge ${badgeId} from user ${userId}:`, error);
       return false;
     }
@@ -1304,7 +1819,7 @@ export class BadgeService {
       }
 
       // Check for newly earned badges
-      const userBadges = this.getUserBadges(userId);
+      const userBadges = await this.getUserBadges(userId);
       const userBadgeIds = new Set(userBadges.map(b => b.id));
       
       // Get all PUBG badges
@@ -1399,7 +1914,7 @@ export class BadgeService {
     byCategory: Record<string, number>;
     rarest: BadgeDefinition | null;
   }> {
-    const userBadges = this.getUserBadges(userId);
+    const userBadges = await this.getUserBadges(userId);
     const byRarity: Record<string, number> = {};
     const byCategory: Record<string, number> = {};
     let rarest: BadgeDefinition | null = null;
@@ -1440,23 +1955,36 @@ export class BadgeService {
       if (userId) {
         // Clear specific user cache
         const cacheKeys = [
-          `badges:user:${userId}`,
+          `user_badges:${userId}`,
           `badges:progress:${userId}`,
           `badges:stats:${userId}`,
         ];
+        
+        // Clear all has_badge cache for this user
+        const badgeIds = Array.from(this.badges.keys());
+        for (const badgeId of badgeIds) {
+          cacheKeys.push(`has_badge:${userId}:${badgeId}`);
+        }
         
         for (const key of cacheKeys) {
           await this.cache.del(key);
         }
       } else {
-        // Clear all badge-related cache
-        const pattern = 'badges:*';
-        await this.cache.clearPattern(pattern);
+        // Clear all badge-related cache patterns
+        const patterns = [
+          'user_badges:*',
+          'has_badge:*',
+          'badges:*'
+        ];
+        
+        for (const pattern of patterns) {
+          await this.cache.clearPattern(pattern);
+        }
       }
 
-      this.logger.debug(`🧹 Cleared badge cache${userId ? ` for user ${userId}` : ' globally'}`);
+      this.logger.debug(this.MESSAGES.SUCCESS.CACHE_CLEARED(userId));
     } catch (error) {
-      this.logger.error('❌ Failed to clear badge cache:', error);
+      this.logger.error(this.MESSAGES.ERRORS.CACHE_ERROR('clear cache', error instanceof Error ? error.message : String(error)));
     }
   }
 
@@ -1716,9 +2244,9 @@ export class BadgeService {
   /**
    * Export user badges data
    */
-  public exportUserBadges(userId?: string): any {
+  public async exportUserBadges(userId?: string): Promise<any> {
     if (userId) {
-      const userBadges = this.getUserBadges(userId);
+      const userBadges = await this.getUserBadges(userId);
       const userProgress = this.badgeProgress.get(userId);
       
       return {

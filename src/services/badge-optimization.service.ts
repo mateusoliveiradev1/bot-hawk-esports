@@ -605,7 +605,7 @@ export class BadgeOptimizationService {
   public async checkCollectionCompletion(userId: string): Promise<string[]> {
     try {
       const awardedCollections: string[] = [];
-      const userBadges = this.badgeService.getUserBadges(userId);
+      const userBadges = await this.badgeService.getUserBadges(userId);
       const userBadgeIds = new Set(userBadges.map(b => b.id));
 
       for (const [collectionId, collection] of this.collections) {
@@ -1078,7 +1078,7 @@ export class BadgeOptimizationService {
     >
   > {
     try {
-      const userBadges = this.badgeService.getUserBadges(userId);
+      const userBadges = await this.badgeService.getUserBadges(userId);
       const userBadgeIds = new Set(userBadges.map(b => b.id));
       const progress: Record<string, any> = {};
 
