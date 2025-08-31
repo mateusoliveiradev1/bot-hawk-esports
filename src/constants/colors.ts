@@ -141,7 +141,7 @@ export class ColorUtils {
         colors = [THEME_COLORS.INFO];
     }
 
-    return colors[Math.floor(Math.random() * colors.length)];
+    return colors[Math.floor(Math.random() * colors.length)] || 0x000000;
   }
 
   /**

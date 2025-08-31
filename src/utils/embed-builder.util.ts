@@ -273,7 +273,7 @@ export class EmbedUtils {
   ): EmbedBuilder {
     return new EmbedBuilder()
       .setTitle(`👑 ${title}`)
-      .setDescription(description)
+      .setDescription(description || null)
       .setColor(THEME_COLORS.PREMIUM)
       .setTimestamp();
   }
@@ -287,7 +287,7 @@ export class EmbedUtils {
   ): EmbedBuilder {
     return new EmbedBuilder()
       .setTitle(`🎉 ${title}`)
-      .setDescription(description)
+      .setDescription(description || null)
       .setColor(THEME_COLORS.EVENT)
       .setTimestamp();
   }
