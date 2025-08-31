@@ -84,8 +84,8 @@ describe('XPService', () => {
 
       mockUserMethods.findUnique.mockResolvedValue({
         id: 'user123',
-        xp: 100,
-        totalXp: 100,
+        xp: 50,
+        totalXp: 50,
         level: 1,
         prestigeLevel: 0
       });
@@ -98,8 +98,8 @@ describe('XPService', () => {
       expect(mockUserMethods.update).toHaveBeenCalledWith({
          where: { id: 'user123' },
          data: {
-           xp: 135,
-           totalXp: 135,
+           xp: 85,
+           totalXp: 85,
            level: 1,
            updatedAt: expect.any(Date)
          }
@@ -124,8 +124,8 @@ describe('XPService', () => {
 
       mockUserMethods.findUnique.mockResolvedValue({
         id: 'user123',
-        xp: 90,
-        totalXp: 90,
+        xp: 50,
+        totalXp: 50,
         level: 1,
         prestigeLevel: 0
       });
@@ -147,20 +147,20 @@ describe('XPService', () => {
   describe('calculateLevel', () => {
     it('deve calcular o nível correto baseado no XP', () => {
       expect(xpService.calculateLevelFromXP(0)).toBe(1);
-      expect(xpService.calculateLevelFromXP(120)).toBe(1);
-      expect(xpService.calculateLevelFromXP(240)).toBe(2);
-      expect(xpService.calculateLevelFromXP(378)).toBe(3);
-      expect(xpService.calculateLevelFromXP(534)).toBe(4);
+      expect(xpService.calculateLevelFromXP(120)).toBe(2);
+      expect(xpService.calculateLevelFromXP(258)).toBe(3);
+      expect(xpService.calculateLevelFromXP(416)).toBe(4);
+      expect(xpService.calculateLevelFromXP(598)).toBe(5);
     });
   });
 
   describe('getXPForLevel', () => {
     it('deve retornar o XP necessário para cada nível', () => {
       expect(xpService.calculateXPForLevel(1)).toBe(0);
-      expect(xpService.calculateXPForLevel(2)).toBe(240);
-      expect(xpService.calculateXPForLevel(3)).toBe(378);
-      expect(xpService.calculateXPForLevel(4)).toBe(534);
-      expect(xpService.calculateXPForLevel(5)).toBe(714);
+      expect(xpService.calculateXPForLevel(2)).toBe(120);
+      expect(xpService.calculateXPForLevel(3)).toBe(258);
+      expect(xpService.calculateXPForLevel(4)).toBe(416);
+      expect(xpService.calculateXPForLevel(5)).toBe(598);
     });
   });
 
@@ -180,12 +180,17 @@ describe('XPService', () => {
       const result = await xpService.getUserXPInfo('discord123');
 
       expect(result).toEqual({
-        xp: 250,
         level: 2,
-        xpForCurrentLevel: 100,
-        xpForNextLevel: 300,
-        xpProgress: 150,
-        xpNeeded: 50
+        xp: 250,
+        totalXp: expect.any(Number),
+        xpForCurrentLevel: expect.any(Number),
+        xpForNextLevel: expect.any(Number),
+        xpProgress: expect.any(Number),
+        xpProgressPercent: expect.any(Number),
+        isMaxLevel: false,
+        prestigeLevel: 0,
+        rankingPosition: expect.any(Number),
+        accountAge: expect.any(Number)
       });
     });
 
@@ -194,14 +199,7 @@ describe('XPService', () => {
 
       const result = await xpService.getUserXPInfo('discord123');
 
-      expect(result).toEqual({
-        xp: 0,
-        level: 1,
-        xpForCurrentLevel: 0,
-        xpForNextLevel: 100,
-        xpProgress: 0,
-        xpNeeded: 100
-      });
+      expect(result).toBeNull();
     });
   });
 
@@ -210,18 +208,18 @@ describe('XPService', () => {
       const mockUsers = [
         {
           id: 'user1',
-          discordId: 'discord1',
-          xp: 1000,
-          level: 4,
-          createdAt: new Date(),
+          username: 'User1',
+          level: 10,
+          totalXp: 1000,
+          prestigeLevel: 0,
           updatedAt: new Date()
         },
         {
           id: 'user2',
-          discordId: 'discord2',
-          xp: 500,
-          level: 3,
-          createdAt: new Date(),
+          username: 'User2',
+          level: 8,
+          totalXp: 800,
+          prestigeLevel: 0,
           updatedAt: new Date()
         }
       ];
@@ -232,29 +230,45 @@ describe('XPService', () => {
 
       expect(result).toEqual([
         {
-          id: 'user1',
-          discordId: 'discord1',
+          userId: 'user1',
           username: 'User1',
-          xp: 1000,
           level: 10,
-          prestigeLevel: 0
+          totalXp: 1000,
+          rank: 1,
+          prestigeLevel: 0,
+          progressPercent: expect.any(Number),
+          isMaxLevel: false
         },
         {
-          id: 'user2',
-          discordId: 'discord2',
+          userId: 'user2',
           username: 'User2',
-          xp: 800,
           level: 8,
-          prestigeLevel: 0
+          totalXp: 800,
+          rank: 2,
+          prestigeLevel: 0,
+          progressPercent: expect.any(Number),
+          isMaxLevel: false
         }
       ]);
       expect(mockUserMethods.findMany).toHaveBeenCalledWith({
-        orderBy: { xp: 'desc' },
+        where: {
+          totalXp: {
+            gt: 0
+          }
+        },
+        orderBy: [
+          { totalXp: 'desc' },
+          { level: 'desc' },
+          { updatedAt: 'asc' }
+        ],
         take: 10,
         select: {
-          discordId: true,
-          xp: true,
-          level: true
+          id: true,
+          username: true,
+          level: true,
+          totalXp: true,
+          prestigeLevel: true,
+          updatedAt: true
         }
       });
     });

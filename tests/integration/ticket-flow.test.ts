@@ -50,7 +50,10 @@ const mockClient = {
     create: jest.fn()
   },
   database: mockDatabaseService,
-  cache: mockCacheService
+  cache: mockCacheService,
+  on: jest.fn(),
+  off: jest.fn(),
+  emit: jest.fn()
 } as unknown as ExtendedClient;
 
 describe('Ticket Flow Integration', () => {
