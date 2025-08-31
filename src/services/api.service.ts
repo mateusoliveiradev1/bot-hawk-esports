@@ -317,8 +317,8 @@ export class APIService {
           games: '/api/games',
           clips: '/api/clips',
           guilds: '/api/guilds',
-          stats: '/api/stats'
-        }
+          stats: '/api/stats',
+        },
       });
     });
 
