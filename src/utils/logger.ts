@@ -1,9 +1,10 @@
 import * as winston from 'winston';
 import * as path from 'path';
 import * as fs from 'fs';
+import { THEME_COLORS } from '../constants/colors';
 
 /**
- * Logger levels
+ * Logger levels with enhanced categorization
  */
 export enum LogLevel {
   ERROR = 'error',
@@ -13,6 +14,42 @@ export enum LogLevel {
   VERBOSE = 'verbose',
   DEBUG = 'debug',
   SILLY = 'silly',
+}
+
+/**
+ * Log categories for better organization
+ */
+export enum LogCategory {
+  SYSTEM = 'system',
+  COMMAND = 'command',
+  API = 'api',
+  DATABASE = 'database',
+  CACHE = 'cache',
+  PUBG = 'pubg',
+  MUSIC = 'music',
+  GAME = 'game',
+  BADGE = 'badge',
+  SECURITY = 'security',
+  PERFORMANCE = 'performance',
+  TICKET = 'ticket',
+  XP = 'xp',
+  MODERATION = 'moderation',
+  EVENT = 'event',
+}
+
+/**
+ * Enhanced log context interface
+ */
+export interface LogContext {
+  userId?: string;
+  guildId?: string;
+  channelId?: string;
+  commandName?: string;
+  category?: LogCategory;
+  duration?: number;
+  statusCode?: number;
+  error?: Error;
+  metadata?: Record<string, any>;
 }
 
 /**
@@ -82,12 +119,36 @@ export class Logger {
   }
 
   /**
-   * Create Winston logger instance
+   * Get category badge for console output
+   */
+  private getCategoryBadge(category: LogCategory): string {
+    const badges: Record<LogCategory, string> = {
+      [LogCategory.SYSTEM]: '🔧',
+      [LogCategory.COMMAND]: '⚡',
+      [LogCategory.API]: '🌐',
+      [LogCategory.DATABASE]: '💾',
+      [LogCategory.CACHE]: '⚡',
+      [LogCategory.PUBG]: '🎮',
+      [LogCategory.MUSIC]: '🎵',
+      [LogCategory.GAME]: '🎯',
+      [LogCategory.BADGE]: '🏆',
+      [LogCategory.SECURITY]: '🔒',
+      [LogCategory.PERFORMANCE]: '📊',
+      [LogCategory.TICKET]: '🎫',
+      [LogCategory.XP]: '⭐',
+      [LogCategory.MODERATION]: '🛡️',
+      [LogCategory.EVENT]: '📅',
+    };
+    return badges[category] || '📝';
+  }
+
+  /**
+   * Create Winston logger instance with enhanced formatting
    */
   private createLogger(): void {
     const transports: winston.transport[] = [];
 
-    // Console transport
+    // Enhanced console transport with category support
     transports.push(
       new winston.transports.Console({
         level: this.config.level,
@@ -96,8 +157,26 @@ export class Logger {
           winston.format.timestamp({
             format: 'HH:mm:ss',
           }),
-          winston.format.printf(({ timestamp, level, message, ...meta }) => {
-            let log = `${timestamp} [${level}]: ${message}`;
+          winston.format.printf(({ timestamp, level, message, category, userId, guildId, ...meta }) => {
+            let log = `${timestamp}`;
+            
+            // Add category badge if present
+            if (category) {
+              const categoryBadge = this.getCategoryBadge(category);
+              log += ` ${categoryBadge}`;
+            }
+            
+            log += ` [${level}]`;
+            
+            // Add context info if present
+            if (userId || guildId) {
+              const context = [];
+              if (guildId) context.push(`G:${guildId.slice(-4)}`);
+              if (userId) context.push(`U:${userId.slice(-4)}`);
+              log += ` (${context.join('|')})`;
+            }
+            
+            log += `: ${message}`;
 
             if (Object.keys(meta).length > 0) {
               try {
@@ -147,194 +226,327 @@ export class Logger {
   }
 
   /**
-   * Log error message
+   * Enhanced log methods with context support
    */
-  public error(message: string, meta?: any): void {
-    this.logger.error(message, meta);
+  public error(message: string, context?: LogContext): void {
+    this.logger.error(message, this.formatContext(context));
+  }
+
+  public warn(message: string, context?: LogContext): void {
+    this.logger.warn(message, this.formatContext(context));
+  }
+
+  public info(message: string, context?: LogContext): void {
+    this.logger.info(message, this.formatContext(context));
+  }
+
+  public http(message: string, context?: LogContext): void {
+    this.logger.http(message, this.formatContext(context));
+  }
+
+  public verbose(message: string, context?: LogContext): void {
+    this.logger.verbose(message, this.formatContext(context));
+  }
+
+  public debug(message: string, context?: LogContext): void {
+    this.logger.debug(message, this.formatContext(context));
+  }
+
+  public silly(message: string, context?: LogContext): void {
+    this.logger.silly(message, this.formatContext(context));
   }
 
   /**
-   * Log warning message
+   * Format log context for winston
    */
-  public warn(message: string, meta?: any): void {
-    this.logger.warn(message, meta);
+  private formatContext(context?: LogContext): any {
+    if (!context) return {};
+    
+    const formatted: any = {};
+    
+    // Add context fields to the log entry
+    if (context.userId) formatted.userId = context.userId;
+    if (context.guildId) formatted.guildId = context.guildId;
+    if (context.channelId) formatted.channelId = context.channelId;
+    if (context.commandName) formatted.commandName = context.commandName;
+    if (context.category) formatted.category = context.category;
+    if (context.duration !== undefined) formatted.duration = context.duration;
+    if (context.statusCode) formatted.statusCode = context.statusCode;
+    if (context.error) {
+      formatted.error = {
+        name: context.error.name,
+        message: context.error.message,
+        stack: context.error.stack,
+      };
+    }
+    if (context.metadata) formatted.metadata = context.metadata;
+    
+    return formatted;
   }
 
   /**
-   * Log info message
+   * Enhanced specialized logging methods
    */
-  public info(message: string, meta?: any): void {
-    this.logger.info(message, meta);
-  }
-
-  /**
-   * Log HTTP message
-   */
-  public http(message: string, meta?: any): void {
-    this.logger.http(message, meta);
-  }
-
-  /**
-   * Log verbose message
-   */
-  public verbose(message: string, meta?: any): void {
-    this.logger.verbose(message, meta);
-  }
-
-  /**
-   * Log debug message
-   */
-  public debug(message: string, meta?: any): void {
-    this.logger.debug(message, meta);
-  }
-
-  /**
-   * Log silly message
-   */
-  public silly(message: string, meta?: any): void {
-    this.logger.silly(message, meta);
-  }
-
-  /**
-   * Log command usage
-   */
-  public command(commandName: string, userId: string, guildId?: string, meta?: any): void {
-    this.info(`Command executed: ${commandName}`, {
+  public command(commandName: string, userId: string, guildId?: string, duration?: number, error?: Error): void {
+    const level = error ? 'error' : 'info';
+    const message = error 
+      ? `Command failed: ${commandName} - ${error.message}`
+      : `Command executed: ${commandName}`;
+    
+    const context: LogContext = {
+      category: LogCategory.COMMAND,
+      commandName,
       userId,
       guildId,
-      type: 'command',
-      ...meta,
-    });
+      duration,
+      error,
+    };
+    
+    this[level](message, context);
   }
 
-  /**
-   * Log API request
-   */
   public api(
     method: string,
     endpoint: string,
     statusCode: number,
     responseTime: number,
-    meta?: any
+    userId?: string,
+    error?: Error
   ): void {
-    this.http(`API ${method} ${endpoint} - ${statusCode}`, {
-      method,
-      endpoint,
+    const level = statusCode >= 400 ? 'error' : statusCode >= 300 ? 'warn' : 'http';
+    const message = `API ${method} ${endpoint} - ${statusCode} (${responseTime}ms)`;
+    
+    const context: LogContext = {
+      category: LogCategory.API,
       statusCode,
-      responseTime,
-      type: 'api',
-      ...meta,
-    });
+      duration: responseTime,
+      userId,
+      error,
+      metadata: { method, endpoint },
+    };
+    
+    this[level](message, context);
   }
 
-  /**
-   * Log database operation
-   */
-  public database(operation: string, table: string, duration: number, meta?: any): void {
-    this.debug(`Database ${operation} on ${table}`, {
-      operation,
-      table,
+  public database(operation: string, table: string, duration: number, userId?: string, error?: Error): void {
+    const level = error ? 'error' : duration > 1000 ? 'warn' : 'debug';
+    const message = error 
+      ? `Database ${operation} failed on ${table} - ${error.message}`
+      : `Database ${operation} on ${table} (${duration}ms)`;
+    
+    const context: LogContext = {
+      category: LogCategory.DATABASE,
       duration,
-      type: 'database',
-      ...meta,
-    });
+      userId,
+      error,
+      metadata: { operation, table },
+    };
+    
+    this[level](message, context);
   }
 
-  /**
-   * Log cache operation
-   */
-  public cache(operation: string, key: string, hit: boolean, meta?: any): void {
-    this.debug(`Cache ${operation} for ${key}`, {
-      operation,
-      key,
-      hit,
-      type: 'cache',
-      ...meta,
-    });
+  public cache(operation: string, key: string, hit: boolean, userId?: string): void {
+    const message = `Cache ${operation} for ${key} - ${hit ? 'HIT' : 'MISS'}`;
+    
+    const context: LogContext = {
+      category: LogCategory.CACHE,
+      userId,
+      metadata: { operation, key, hit },
+    };
+    
+    this.debug(message, context);
   }
 
-  /**
-   * Log PUBG API operation
-   */
-  public pubg(operation: string, playerId?: string, responseTime?: number, meta?: any): void {
-    this.info(`PUBG API ${operation}`, {
-      operation,
-      playerId,
-      responseTime,
-      type: 'pubg',
-      ...meta,
-    });
+  public pubg(operation: string, playerId?: string, responseTime?: number, userId?: string, error?: Error): void {
+    const level = error ? 'error' : responseTime && responseTime > 5000 ? 'warn' : 'info';
+    const message = error 
+      ? `PUBG API ${operation} failed - ${error.message}`
+      : `PUBG API ${operation}${responseTime ? ` (${responseTime}ms)` : ''}`;
+    
+    const context: LogContext = {
+      category: LogCategory.PUBG,
+      duration: responseTime,
+      userId,
+      error,
+      metadata: { operation, playerId },
+    };
+    
+    this[level](message, context);
   }
 
-  /**
-   * Log music operation
-   */
-  public music(operation: string, guildId: string, track?: string, meta?: any): void {
-    this.info(`Music ${operation}`, {
-      operation,
+  public music(operation: string, guildId: string, userId?: string, track?: string, error?: Error): void {
+    const level = error ? 'error' : 'info';
+    const message = error 
+      ? `Music ${operation} failed - ${error.message}`
+      : `Music ${operation}${track ? `: ${track}` : ''}`;
+    
+    const context: LogContext = {
+      category: LogCategory.MUSIC,
       guildId,
-      track,
-      type: 'music',
-      ...meta,
-    });
-  }
-
-  /**
-   * Log game operation
-   */
-  public game(operation: string, gameType: string, userId: string, meta?: any): void {
-    this.info(`Game ${operation}: ${gameType}`, {
-      operation,
-      gameType,
       userId,
-      type: 'game',
-      ...meta,
-    });
+      error,
+      metadata: { operation, track },
+    };
+    
+    this[level](message, context);
   }
 
-  /**
-   * Log badge operation
-   */
-  public badge(operation: string, badgeId: string, userId: string, meta?: any): void {
-    this.info(`Badge ${operation}: ${badgeId}`, {
-      operation,
-      badgeId,
+  public game(operation: string, gameType: string, userId: string, guildId?: string, error?: Error): void {
+    const level = error ? 'error' : 'info';
+    const message = error 
+      ? `Game ${operation} failed: ${gameType} - ${error.message}`
+      : `Game ${operation}: ${gameType}`;
+    
+    const context: LogContext = {
+      category: LogCategory.GAME,
       userId,
-      type: 'badge',
-      ...meta,
-    });
+      guildId,
+      error,
+      metadata: { operation, gameType },
+    };
+    
+    this[level](message, context);
   }
 
-  /**
-   * Log security event
-   */
+  public badge(operation: string, badgeId: string, userId: string, guildId?: string, error?: Error): void {
+    const level = error ? 'error' : 'info';
+    const message = error 
+      ? `Badge ${operation} failed: ${badgeId} - ${error.message}`
+      : `Badge ${operation}: ${badgeId}`;
+    
+    const context: LogContext = {
+      category: LogCategory.BADGE,
+      userId,
+      guildId,
+      error,
+      metadata: { operation, badgeId },
+    };
+    
+    this[level](message, context);
+  }
+
   public security(
     event: string,
     userId: string,
     severity: 'low' | 'medium' | 'high' | 'critical',
-    meta?: any
+    guildId?: string,
+    channelId?: string,
+    metadata?: Record<string, any>
   ): void {
-    const logMethod = severity === 'critical' || severity === 'high' ? 'error' : 'warn';
-    this[logMethod](`Security event: ${event}`, {
-      event,
+    const level = severity === 'critical' || severity === 'high' ? 'error' : 'warn';
+    const message = `Security event: ${event} [${severity.toUpperCase()}]`;
+    
+    const context: LogContext = {
+      category: LogCategory.SECURITY,
       userId,
-      severity,
-      type: 'security',
-      ...meta,
-    });
+      guildId,
+      channelId,
+      metadata: { event, severity, ...metadata },
+    };
+    
+    this[level](message, context);
+  }
+
+  public performance(metric: string, value: number, unit: string, userId?: string, guildId?: string): void {
+    const level = this.getPerformanceLevel(metric, value, unit);
+    const message = `Performance: ${metric} = ${value}${unit}`;
+    
+    const context: LogContext = {
+      category: LogCategory.PERFORMANCE,
+      userId,
+      guildId,
+      metadata: { metric, value, unit },
+    };
+    
+    this[level](message, context);
+  }
+
+  public ticket(operation: string, ticketId: string, userId?: string, guildId?: string, error?: Error): void {
+    const level = error ? 'error' : 'info';
+    const message = error 
+      ? `Ticket ${operation} failed: ${ticketId} - ${error.message}`
+      : `Ticket ${operation}: ${ticketId}`;
+    
+    const context: LogContext = {
+      category: LogCategory.TICKET,
+      userId,
+      guildId,
+      error,
+      metadata: { operation, ticketId },
+    };
+    
+    this[level](message, context);
+  }
+
+  public xp(operation: string, userId: string, guildId?: string, amount?: number, error?: Error): void {
+    const level = error ? 'error' : 'info';
+    const message = error 
+      ? `XP ${operation} failed for user - ${error.message}`
+      : `XP ${operation}: ${amount ? `${amount} XP` : 'processed'}`;
+    
+    const context: LogContext = {
+      category: LogCategory.XP,
+      userId,
+      guildId,
+      error,
+      metadata: { operation, amount },
+    };
+    
+    this[level](message, context);
+  }
+
+  public moderation(action: string, targetUserId: string, moderatorId: string, guildId?: string, reason?: string, error?: Error): void {
+    const level = error ? 'error' : 'info';
+    const message = error 
+      ? `Moderation ${action} failed - ${error.message}`
+      : `Moderation ${action}: ${reason || 'No reason provided'}`;
+    
+    const context: LogContext = {
+      category: LogCategory.MODERATION,
+      userId: targetUserId,
+      guildId,
+      error,
+      metadata: { action, moderatorId, reason },
+    };
+    
+    this[level](message, context);
+  }
+
+  public event(eventName: string, guildId?: string, userId?: string, metadata?: Record<string, any>, error?: Error): void {
+    const level = error ? 'error' : 'info';
+    const message = error 
+      ? `Event ${eventName} failed - ${error.message}`
+      : `Event: ${eventName}`;
+    
+    const context: LogContext = {
+      category: LogCategory.EVENT,
+      userId,
+      guildId,
+      error,
+      metadata: { eventName, ...metadata },
+    };
+    
+    this[level](message, context);
   }
 
   /**
-   * Log performance metrics
+   * Get appropriate log level based on performance metrics
    */
-  public performance(metric: string, value: number, unit: string, meta?: any): void {
-    this.debug(`Performance: ${metric} = ${value}${unit}`, {
-      metric,
-      value,
-      unit,
-      type: 'performance',
-      ...meta,
-    });
+  private getPerformanceLevel(metric: string, value: number, unit: string): 'debug' | 'warn' | 'error' {
+    // Define performance thresholds
+    const thresholds: Record<string, { warn: number; error: number }> = {
+      'response_time_ms': { warn: 1000, error: 5000 },
+      'memory_usage_mb': { warn: 500, error: 1000 },
+      'cpu_usage_percent': { warn: 80, error: 95 },
+      'database_query_ms': { warn: 500, error: 2000 },
+    };
+    
+    const threshold = thresholds[`${metric}_${unit}`];
+    if (!threshold) return 'debug';
+    
+    if (value >= threshold.error) return 'error';
+    if (value >= threshold.warn) return 'warn';
+    return 'debug';
   }
 
   /**

@@ -16,7 +16,7 @@ import {
   GuildBan,
   ColorResolvable,
 } from 'discord.js';
-import { Logger } from '../utils/logger';
+import { Logger, LogCategory } from '../utils/logger';
 import { DatabaseService } from '../database/database.service';
 import { ExtendedClient } from '../types/client';
 
@@ -155,9 +155,16 @@ export class LoggingService {
     try {
       this.setupEventListeners();
       this.startQueueProcessor();
-      this.logger.info('LoggingService initialized successfully');
+      this.logger.info('LoggingService initialized successfully', {
+        category: LogCategory.SYSTEM,
+        metadata: { service: 'LoggingService', status: 'initialized' }
+      });
     } catch (error) {
-      this.logger.error('Failed to initialize LoggingService:', error);
+      this.logger.error('Failed to initialize LoggingService', {
+        category: LogCategory.SYSTEM,
+        error: error as Error,
+        metadata: { service: 'LoggingService', status: 'failed' }
+      });
       throw error;
     }
   }
@@ -202,19 +209,31 @@ export class LoggingService {
   private getGuildConfig(guildId: string): LogConfig {
     try {
       if (!guildId || typeof guildId !== 'string') {
-        this.logger.warn('Invalid guildId provided to getGuildConfig');
+        this.logger.warn('Invalid guildId provided to getGuildConfig', {
+          category: LogCategory.SYSTEM,
+          metadata: { method: 'getGuildConfig', providedGuildId: guildId }
+        });
         return this.getDefaultConfig('unknown');
       }
 
       if (!this.guildConfigs.has(guildId)) {
         const newConfig = this.getDefaultConfig(guildId);
         this.guildConfigs.set(guildId, newConfig);
-        this.logger.debug(`Created new log config for guild ${guildId}`);
+        this.logger.debug(`Created new log config for guild ${guildId}`, {
+          category: LogCategory.SYSTEM,
+          guildId,
+          metadata: { method: 'getGuildConfig', action: 'created_config' }
+        });
       }
 
       return this.guildConfigs.get(guildId) || this.getDefaultConfig(guildId);
     } catch (error) {
-      this.logger.error('Error getting guild config:', error);
+      this.logger.error('Error getting guild config', {
+        category: LogCategory.SYSTEM,
+        guildId,
+        error: error as Error,
+        metadata: { method: 'getGuildConfig' }
+      });
       return this.getDefaultConfig(guildId || 'unknown');
     }
   }
@@ -264,7 +283,10 @@ export class LoggingService {
     try {
       // Validate inputs
       if (!guildId || typeof guildId !== 'string') {
-        this.logger.warn('Invalid guildId provided to shouldLog');
+        this.logger.warn('Invalid guildId provided to shouldLog', {
+          category: LogCategory.SYSTEM,
+          metadata: { method: 'shouldLog', type, providedGuildId: guildId }
+        });
         return false;
       }
 
@@ -290,7 +312,14 @@ export class LoggingService {
 
       return true;
     } catch (error) {
-      this.logger.error('Error in shouldLog:', error);
+      this.logger.error('Error in shouldLog', {
+        category: LogCategory.SYSTEM,
+        guildId,
+        userId,
+        channelId,
+        error: error as Error,
+        metadata: { method: 'shouldLog', type }
+      });
       return false;
     }
   }
