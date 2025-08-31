@@ -817,6 +817,14 @@ export class PUBGService {
         return cached;
       }
 
+      // Check if API key is available
+      if (!this.apiKey || this.apiKey === 'your-pubg-api-key-here') {
+        this.logger.warn('PUBG API key not configured, using fallback season');
+        const fallbackSeason = 'division.bro.official.pc-2018-01';
+        await this.cache.set(cacheKey, fallbackSeason, 3600); // Cache for 1 hour
+        return fallbackSeason;
+      }
+
       const response = await this.api.get<PUBGAPIResponse<PUBGSeason[]>>(
         `/shards/${platform}/seasons`
       );
@@ -825,8 +833,10 @@ export class PUBGService {
       const currentSeason = seasons.find(season => season.isCurrentSeason);
 
       if (!currentSeason) {
-        this.logger.error('No current season found');
-        return null;
+        this.logger.warn('No current season found from API, using fallback');
+        const fallbackSeason = 'division.bro.official.pc-2018-01';
+        await this.cache.set(cacheKey, fallbackSeason, 3600); // Cache for 1 hour
+        return fallbackSeason;
       }
 
       // Cache for 24 hours
@@ -834,8 +844,11 @@ export class PUBGService {
 
       return currentSeason.id;
     } catch (error) {
-      this.logger.error('Failed to get current season:', error);
-      return null;
+      this.logger.warn('Failed to get current season from API, using fallback:', error.message);
+      const fallbackSeason = 'division.bro.official.pc-2018-01';
+      const cacheKey = `pubg:season:current:${platform}`;
+      await this.cache.set(cacheKey, fallbackSeason, 3600); // Cache for 1 hour
+      return fallbackSeason;
     }
   }
 

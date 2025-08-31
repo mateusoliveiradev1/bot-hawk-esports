@@ -397,6 +397,24 @@ class HawkEsportsBot {
         this.logger.error('Failed to initialize persistent ticket service:', error);
       }
 
+      // Services are initialized automatically in their constructors
+      this.logger.info('✅ Badge and Challenge services ready');
+
+      // Initialize challenge service
+      try {
+        const challengeService = this.services.challenge;
+        if (challengeService) {
+          await challengeService.initializeChallengeTemplates();
+          this.logger.info(`✅ Initialized ${challengeService.getChallengeTemplates().size} challenge templates`);
+          
+          // Schedule daily challenge rotation
+          await challengeService.scheduleDailyRotation();
+          this.logger.info('✅ Scheduled daily challenge rotation');
+        }
+      } catch (error) {
+        this.logger.error('Failed to initialize challenge service:', error);
+      }
+
       this.logger.info('🎉 Hawk Esports Bot is ready!');
     });
 

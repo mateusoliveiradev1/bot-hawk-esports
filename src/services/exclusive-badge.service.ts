@@ -224,32 +224,52 @@ export class ExclusiveBadgeService {
       // Get all guilds the bot is in
       for (const [guildId, guild] of this.client.guilds.cache) {
         try {
-          // Fetch all members
-          const members = await guild.members.fetch();
+          // Check if guild is available and accessible
+          if (!guild.available) {
+            this.logger.debug(`Guild ${guildId} is not available, skipping`);
+            continue;
+          }
+
+          // Fetch all members with error handling
+          const members = await guild.members.fetch().catch(err => {
+            this.logger.warn(`Failed to fetch members for guild ${guildId}: ${err.message}`);
+            return new Map();
+          });
+
+          if (members.size === 0) {
+            this.logger.debug(`No members found in guild ${guildId}`);
+            continue;
+          }
 
           // Filter and sort by join date
           const eligibleMembers = members
-            .filter(member => !member.user.bot)
+            .filter(member => !member.user.bot && member.joinedTimestamp)
             .sort((a, b) => (a.joinedTimestamp || 0) - (b.joinedTimestamp || 0))
             .first(maxCount);
 
           // Award badges to eligible members who don't have it
           for (const member of eligibleMembers.values()) {
-            if (!this.badgeService.hasBadge(member.id, 'early_adopter')) {
-              const awarded = await this.badgeService.awardBadge(member.id, 'early_adopter', false);
-              if (awarded) {
-                awardedCount++;
-                this.earlyAdopterCache.add(member.id);
+            try {
+              if (!this.badgeService.hasBadge(member.id, 'early_adopter')) {
+                const awarded = await this.badgeService.awardBadge(member.id, 'early_adopter', false);
+                if (awarded) {
+                  awardedCount++;
+                  this.earlyAdopterCache.add(member.id);
 
-                // Send notification
-                await this.sendEarlyAdopterNotification(member);
+                  // Send notification with error handling
+                  await this.sendEarlyAdopterNotification(member).catch(err => {
+                    this.logger.warn(`Failed to send early adopter notification to ${member.id}: ${err.message}`);
+                  });
+                }
+              } else {
+                this.earlyAdopterCache.add(member.id);
               }
-            } else {
-              this.earlyAdopterCache.add(member.id);
+            } catch (memberError) {
+              this.logger.warn(`Error processing member ${member.id} in guild ${guildId}: ${memberError.message}`);
             }
           }
         } catch (error) {
-          this.logger.error(`Error processing guild ${guildId}:`, error);
+          this.logger.warn(`Error processing guild ${guildId}: ${error.message}`);
         }
       }
 

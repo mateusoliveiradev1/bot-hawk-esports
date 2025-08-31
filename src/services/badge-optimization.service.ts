@@ -262,7 +262,7 @@ export class BadgeOptimizationService {
     try {
       const currentSeason = await this.pubgService.getCurrentSeason(PUBGPlatform.STEAM);
       if (!currentSeason) {
-        this.logger.warn('No current PUBG season found');
+        this.logger.info('No current PUBG season found, skipping seasonal badges initialization');
         return;
       }
 
