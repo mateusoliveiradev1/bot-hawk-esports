@@ -13,6 +13,9 @@ import {
 } from 'discord.js';
 import { ExtendedClient } from '../types/client';
 import { Logger } from '../utils/logger';
+import { HawkEmbedBuilder } from '../utils/hawk-embed-builder';
+import { HawkComponentFactory } from '../utils/hawk-component-factory';
+import { HAWK_EMOJIS } from '../constants/hawk-emojis';
 
 const logger = new Logger();
 
@@ -130,6 +133,19 @@ async function handleCreateTicketFromPanel(
 }
 
 /**
+ * Get priority emoji based on priority level
+ */
+function getPriorityEmoji(priority: string): string {
+  switch (priority.toLowerCase()) {
+    case 'low': return HAWK_EMOJIS.TICKETS.PRIORITY_LOW;
+    case 'medium': return HAWK_EMOJIS.TICKETS.PRIORITY_MEDIUM;
+    case 'high': return HAWK_EMOJIS.TICKETS.PRIORITY_HIGH;
+    case 'urgent': return HAWK_EMOJIS.TICKETS.PRIORITY_URGENT;
+    default: return HAWK_EMOJIS.TICKETS.PRIORITY_MEDIUM;
+  }
+}
+
+/**
  * Handle create ticket modal submission
  */
 async function handleCreateTicketModal(
@@ -157,27 +173,58 @@ async function handleCreateTicketModal(
   );
 
   if (result.success) {
-    const successEmbed = new EmbedBuilder()
-      .setTitle('✅ Ticket Criado!')
-      .setDescription(
-        `Seu ticket foi criado com sucesso!\n\n**Canal:** ${result.channel}\n**ID:** #${result.ticket!.id.slice(-8)}`,
-      )
-      .setColor('#00FF00')
+    const successEmbed = HawkEmbedBuilder.createSuccess(
+      'Ticket Criado com Sucesso!',
+      `${HAWK_EMOJIS.TICKETS.CREATED} Seu ticket foi criado e nossa equipe será notificada!\n\n${HAWK_EMOJIS.CHANNELS.TEXT} **Canal:** ${result.channel}\n${HAWK_EMOJIS.TICKETS.ID} **ID:** \`#${result.ticket!.id.slice(-8)}\``,
+    )
       .addFields(
-        { name: '📝 Assunto', value: title, inline: true },
-        { name: '📊 Prioridade', value: priority.toUpperCase(), inline: true },
-        { name: '⏰ Criado em', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: false },
+        { 
+          name: `${HAWK_EMOJIS.TICKETS.SUBJECT} Assunto`, 
+          value: `\`${title}\``, 
+          inline: true 
+        },
+        { 
+           name: `${HAWK_EMOJIS.TICKETS.PRIORITY} Prioridade`, 
+           value: `${getPriorityEmoji(priority)} ${priority.toUpperCase()}`, 
+           inline: true 
+         },
+        { 
+          name: `${HAWK_EMOJIS.TIME.CREATED} Criado em`, 
+          value: `<t:${Math.floor(Date.now() / 1000)}:F>`, 
+          inline: false 
+        },
       )
-      .setFooter({ text: 'Nossa equipe irá atendê-lo em breve!' });
+      .setFooter({ 
+        text: `${HAWK_EMOJIS.HELP} Nossa equipe irá atendê-lo em breve!`,
+        iconURL: interaction.guild?.iconURL() || undefined
+      });
 
-    await interaction.editReply({ embeds: [successEmbed] });
+    const actionRow = HawkComponentFactory.createActionRow([
+      HawkComponentFactory.createButton({
+        customId: `ticket_view_${result.ticket!.id}`,
+        label: 'Ver Ticket',
+        style: ButtonStyle.Primary,
+        emoji: '👁️'
+      })
+    ]);
+
+    await interaction.editReply({ embeds: [successEmbed], components: [actionRow] });
   } else {
-    const errorEmbed = new EmbedBuilder()
-      .setTitle('❌ Erro ao Criar Ticket')
-      .setDescription(result.message)
-      .setColor('#FF0000');
+    const errorEmbed = HawkEmbedBuilder.createError(
+      'Erro ao Criar Ticket',
+      `${HAWK_EMOJIS.ERROR} ${result.message}\n\n${HAWK_EMOJIS.HELP} Tente novamente ou entre em contato com um administrador.`
+    );
 
-    await interaction.editReply({ embeds: [errorEmbed] });
+    const retryRow = HawkComponentFactory.createActionRow([
+      HawkComponentFactory.createButton({
+        customId: 'create_ticket_panel',
+        label: 'Tentar Novamente',
+        style: ButtonStyle.Secondary,
+        emoji: '🔄'
+      })
+    ]);
+
+    await interaction.editReply({ embeds: [errorEmbed], components: [retryRow] });
   }
 }
 
@@ -213,20 +260,54 @@ async function handleClaimTicket(
   );
 
   if (result.success) {
-    const successEmbed = new EmbedBuilder()
-      .setTitle('✅ Ticket Assumido')
-      .setDescription(`Você assumiu o ticket #${ticketId.slice(-8)} com sucesso!`)
-      .setColor('#00FF00')
-      .setFooter({ text: 'Boa sorte resolvendo o problema!' });
+    const successEmbed = HawkEmbedBuilder.createSuccess(
+      'Ticket Assumido',
+      `${HAWK_EMOJIS.TICKETS.CLAIMED} Você assumiu o ticket #${ticketId.slice(-8)} com sucesso!\n\n${HAWK_EMOJIS.SUPPORT_SYSTEM.TEAM} Boa sorte resolvendo o problema!`
+    )
+    .addFields(
+      { 
+        name: `${HAWK_EMOJIS.TICKETS.ID} ID do Ticket`, 
+        value: `\`#${ticketId.slice(-8)}\``, 
+        inline: true 
+      },
+      { 
+        name: `${HAWK_EMOJIS.MODERATOR} Responsável`, 
+        value: `${interaction.user}`, 
+        inline: true 
+      },
+      { 
+        name: `${HAWK_EMOJIS.TIME.CLAIMED} Assumido em`, 
+        value: `<t:${Math.floor(Date.now() / 1000)}:F>`, 
+        inline: false 
+      }
+    );
 
-    await interaction.editReply({ embeds: [successEmbed] });
+    const actionRow = HawkComponentFactory.createActionRow([
+      HawkComponentFactory.createButton({
+        customId: `ticket_view_${ticketId}`,
+        label: 'Ver Ticket',
+        style: ButtonStyle.Primary,
+        emoji: '👁️'
+      })
+    ]);
+
+    await interaction.editReply({ embeds: [successEmbed], components: [actionRow] });
   } else {
-    const errorEmbed = new EmbedBuilder()
-      .setTitle('❌ Erro')
-      .setDescription(result.message)
-      .setColor('#FF0000');
+    const errorEmbed = HawkEmbedBuilder.createError(
+      'Erro ao Assumir Ticket',
+      `${HAWK_EMOJIS.ERROR} ${result.message}\n\n${HAWK_EMOJIS.HELP} Tente novamente ou verifique se o ticket ainda está disponível.`
+    );
 
-    await interaction.editReply({ embeds: [errorEmbed] });
+    const retryRow = HawkComponentFactory.createActionRow([
+      HawkComponentFactory.createButton({
+        customId: `ticket_claim_${ticketId}`,
+        label: 'Tentar Novamente',
+        style: ButtonStyle.Secondary,
+        emoji: '🔄'
+      })
+    ]);
+
+    await interaction.editReply({ embeds: [errorEmbed], components: [retryRow] });
   }
 }
 
@@ -253,33 +334,49 @@ async function handleChangePriority(
     return;
   }
 
-  const priorityEmbed = new EmbedBuilder()
-    .setTitle('📊 Alterar Prioridade')
-    .setDescription(`Selecione a nova prioridade para o ticket #${ticketId.slice(-8)}:`)
-    .setColor('#0099FF');
-
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`priority_low_${ticketId}`)
-      .setLabel('Baixa')
-      .setStyle(ButtonStyle.Success)
-      .setEmoji('🟢'),
-    new ButtonBuilder()
-      .setCustomId(`priority_medium_${ticketId}`)
-      .setLabel('Média')
-      .setStyle(ButtonStyle.Primary)
-      .setEmoji('🟡'),
-    new ButtonBuilder()
-      .setCustomId(`priority_high_${ticketId}`)
-      .setLabel('Alta')
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji('🟠'),
-    new ButtonBuilder()
-      .setCustomId(`priority_urgent_${ticketId}`)
-      .setLabel('Urgente')
-      .setStyle(ButtonStyle.Danger)
-      .setEmoji('🔴'),
+  const priorityEmbed = HawkEmbedBuilder.createInfo(
+    'Alterar Prioridade',
+    `${HAWK_EMOJIS.TICKETS.PRIORITY} Selecione a nova prioridade para o ticket #${ticketId.slice(-8)}:\n\n${HAWK_EMOJIS.SUPPORT_SYSTEM.HELP} Escolha a prioridade que melhor representa a urgência do problema.`
+  )
+  .addFields(
+    { 
+      name: `${HAWK_EMOJIS.TICKETS.ID} Ticket`, 
+      value: `\`#${ticketId.slice(-8)}\``, 
+      inline: true 
+    },
+    { 
+      name: `${HAWK_EMOJIS.MODERATOR} Alterado por`, 
+      value: `${interaction.user}`, 
+      inline: true 
+    },
   );
+
+  const row = HawkComponentFactory.createActionRow([
+    HawkComponentFactory.createButton({
+      customId: `priority_low_${ticketId}`,
+      label: 'Baixa',
+      style: ButtonStyle.Success,
+      emoji: '🟢',
+    }),
+    HawkComponentFactory.createButton({
+      customId: `priority_medium_${ticketId}`,
+      label: 'Média',
+      style: ButtonStyle.Primary,
+      emoji: '🟡', 
+    }),
+    HawkComponentFactory.createButton({
+      customId: `priority_high_${ticketId}`,
+      label: 'Alta',
+      style: ButtonStyle.Secondary,
+      emoji: '🟠',
+    }),
+    HawkComponentFactory.createButton({
+      customId: `priority_urgent_${ticketId}`,
+      label: 'Urgente',
+      style: ButtonStyle.Danger,
+      emoji: '🔴',
+    }),
+  ]);
 
   await interaction.reply({ embeds: [priorityEmbed], components: [row], flags: MessageFlags.Ephemeral });
 }
@@ -312,12 +409,27 @@ async function handlePrioritySelection(
       },
     });
 
-    const successEmbed = new EmbedBuilder()
-      .setTitle('✅ Prioridade Alterada')
-      .setDescription(
-        `A prioridade do ticket #${ticketId.slice(-8)} foi alterada para **${priority.toUpperCase()}**.`,
-      )
-      .setColor('#00FF00');
+    const successEmbed = HawkEmbedBuilder.createSuccess(
+      'Prioridade Alterada',
+      `${HAWK_EMOJIS.TICKETS.PRIORITY} A prioridade do ticket foi alterada com sucesso!`
+    )
+    .addFields(
+      { 
+        name: `${HAWK_EMOJIS.TICKET} Ticket`, 
+        value: `\`#${ticketId.slice(-8)}\``, 
+        inline: true 
+      },
+      { 
+        name: `${HAWK_EMOJIS.TICKETS.PRIORITY} Nova Prioridade`, 
+        value: `**${priority.toUpperCase()}**`, 
+        inline: true 
+      },
+      { 
+        name: `${HAWK_EMOJIS.MODERATOR} Alterado por`, 
+        value: `${interaction.user}`, 
+        inline: true 
+      }
+    );
 
     await interaction.editReply({ embeds: [successEmbed], components: [] });
 
@@ -327,19 +439,29 @@ async function handlePrioritySelection(
       const channel = interaction.client.channels.cache.get(ticket.channelId);
       if (channel && 'send' in channel) {
         const priorityEmojis = {
-          low: '🟢',
-          medium: '🟡',
-          high: '🟠',
-          urgent: '🔴',
+          low: HAWK_EMOJIS.TICKETS.PRIORITY_LOW,
+          medium: HAWK_EMOJIS.TICKETS.PRIORITY_MEDIUM,
+          high: HAWK_EMOJIS.TICKETS.PRIORITY_HIGH,
+          urgent: HAWK_EMOJIS.TICKETS.PRIORITY_URGENT,
         };
 
-        const updateEmbed = new EmbedBuilder()
-          .setTitle('📊 Prioridade Atualizada')
-          .setDescription(
-            `A prioridade deste ticket foi alterada para ${priorityEmojis[priority as keyof typeof priorityEmojis]} **${priority.toUpperCase()}** por ${interaction.user}.`,
-          )
-          .setColor('#FFA500')
-          .setTimestamp();
+        const updateEmbed = HawkEmbedBuilder.createInfo(
+          'Prioridade Atualizada',
+          `${HAWK_EMOJIS.TICKETS.PRIORITY} A prioridade deste ticket foi alterada!`
+        )
+        .addFields(
+          { 
+            name: `${HAWK_EMOJIS.TICKETS.PRIORITY} Nova Prioridade`, 
+            value: `${priorityEmojis[priority as keyof typeof priorityEmojis]} **${priority.toUpperCase()}**`, 
+            inline: true 
+          },
+          { 
+            name: `${HAWK_EMOJIS.MODERATOR} Alterado por`, 
+            value: `${interaction.user}`, 
+            inline: true 
+          }
+        )
+        .setTimestamp();
 
         await channel.send({ embeds: [updateEmbed] });
       }
@@ -347,10 +469,22 @@ async function handlePrioritySelection(
   } catch (error) {
     logger.error('Error updating ticket priority:', error);
 
-    const errorEmbed = new EmbedBuilder()
-      .setTitle('❌ Erro')
-      .setDescription('Erro ao alterar prioridade do ticket.')
-      .setColor('#FF0000');
+    const errorEmbed = HawkEmbedBuilder.createError(
+      'Erro ao Alterar Prioridade',
+      `${HAWK_EMOJIS.ERROR} Ocorreu um erro ao tentar alterar a prioridade do ticket. Tente novamente.`
+    )
+    .addFields(
+      { 
+        name: `${HAWK_EMOJIS.TICKETS.ID} Ticket`, 
+        value: `\`#${ticketId.slice(-8)}\``, 
+        inline: true 
+      },
+      { 
+        name: `${HAWK_EMOJIS.SUPPORT} Suporte`, 
+        value: 'Entre em contato com a administração se o problema persistir.', 
+        inline: false 
+      }
+    );
 
     await interaction.editReply({ embeds: [errorEmbed], components: [] });
   }
@@ -425,22 +559,51 @@ async function handleCloseTicketModal(
   );
 
   if (result.success) {
-    const successEmbed = new EmbedBuilder()
-      .setTitle('✅ Ticket Fechado')
-      .setDescription(`Ticket #${ticketId.slice(-8)} foi fechado com sucesso.`)
-      .setColor('#00FF00')
-      .addFields(
-        { name: '📝 Motivo', value: reason, inline: false },
-        { name: '👤 Fechado por', value: interaction.user.tag, inline: true },
-        { name: '⏰ Fechado em', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true },
-      );
+    const successEmbed = HawkEmbedBuilder.createSuccess(
+      'Ticket Fechado',
+      `${HAWK_EMOJIS.TICKETS.CLOSE} O ticket foi fechado com sucesso!`
+    )
+    .addFields(
+      { 
+        name: `${HAWK_EMOJIS.TICKETS.ID} Ticket`, 
+        value: `\`#${ticketId.slice(-8)}\``, 
+        inline: true 
+      },
+      { 
+        name: `${HAWK_EMOJIS.MODERATOR} Fechado por`, 
+        value: `${interaction.user}`, 
+        inline: true 
+      },
+      { 
+        name: `${HAWK_EMOJIS.CLOCK} Fechado em`, 
+        value: `<t:${Math.floor(Date.now() / 1000)}:F>`, 
+        inline: true 
+      },
+      { 
+        name: `${HAWK_EMOJIS.TICKETS.REASON} Motivo`, 
+        value: reason, 
+        inline: false 
+      }
+    );
 
     await interaction.editReply({ embeds: [successEmbed] });
   } else {
-    const errorEmbed = new EmbedBuilder()
-      .setTitle('❌ Erro ao Fechar Ticket')
-      .setDescription(result.message)
-      .setColor('#FF0000');
+    const errorEmbed = HawkEmbedBuilder.createError(
+      'Erro ao Fechar Ticket',
+      `${HAWK_EMOJIS.ERROR} ${result.message}`
+    )
+    .addFields(
+      { 
+        name: `${HAWK_EMOJIS.TICKETS.ID} Ticket`, 
+        value: `\`#${ticketId.slice(-8)}\``, 
+        inline: true 
+      },
+      { 
+        name: `${HAWK_EMOJIS.SUPPORT_SYSTEM.HELP} Suporte`, 
+        value: 'Entre em contato com a administração se o problema persistir.', 
+        inline: false 
+      },
+    );
 
     await interaction.editReply({ embeds: [errorEmbed] });
   }

@@ -4,44 +4,49 @@
  */
 
 export const THEME_COLORS = {
-  // State Colors - For system feedback
-  ERROR: 0xFF0000,      // Red - Errors, failures, critical issues
-  SUCCESS: 0x00FF00,    // Green - Success messages, confirmations
-  WARNING: 0xFFFF00,    // Yellow - Warnings, cautions, attention needed
-  INFO: 0x0099FF,       // Blue - General information, neutral messages
-  PRIMARY: 0x5865F2,    // Discord Purple - Primary actions, branding
+  // 🦅 Cores da Marca Hawk Esports
+  HAWK_PRIMARY: 0x9B59B6,    // Roxo Hawk - Cor principal da marca
+  HAWK_SECONDARY: 0x3498DB,  // Azul Hawk - Cor secundária
+  HAWK_ACCENT: 0x00D4AA,     // Verde Hawk - Destaque e sucesso
+  
+  // Estados do sistema
+  ERROR: 0xE74C3C,           // Vermelho - Erros, falhas
+  SUCCESS: 0x2ECC71,         // Verde - Sucessos, confirmações
+  WARNING: 0xF39C12,         // Laranja - Avisos, atenção
+  INFO: 0x3498DB,            // Azul - Informações gerais
+  PRIMARY: 0x9B59B6,         // Roxo Hawk - Ações primárias
+  
+  // Categorias funcionais
+  PUBG: 0x9B59B6,            // Roxo - Sistema PUBG (Hawk Primary)
+  MUSIC: 0x1DB954,           // Verde Spotify - Sistema de música
+  ECONOMY: 0xF39C12,         // Dourado - Economia e moedas
+  ADMIN: 0xE74C3C,           // Vermelho - Comandos administrativos
+  PROFILE: 0x3498DB,         // Azul - Perfis e estatísticas
+  GENERAL: 0x9B59B6,         // Roxo Hawk - Comandos gerais
+  GAMES: 0xFF6B35,           // Laranja - Mini-games
+  TICKETS: 0x2ECC71,         // Verde - Sistema de tickets
+  BADGES: 0xF1C40F,          // Ouro - Badges e conquistas
+  RANKING: 0x8E44AD,         // Roxo escuro - Rankings
 
-  // Category Colors - For different bot functionalities
-  PUBG: 0x9B59B6,       // Purple - PUBG related commands and features
-  MUSIC: 0x00AE86,      // Teal - Music system, playlists, audio
-  ECONOMY: 0xFF6B35,    // Orange - Economy, coins, transactions
-  ADMIN: 0x3498DB,      // Blue - Administrative commands and tools
-  PROFILE: 0x0099FF,    // Light Blue - User profiles and statistics
-  GENERAL: 0x5865F2,    // Discord Purple - General purpose commands
-  GAMES: 0xE74C3C,      // Red - Gaming activities, challenges
-  TICKETS: 0x2ECC71,    // Green - Support tickets, help system
-  BADGES: 0xF39C12,     // Gold - Achievements, rewards, badges
-  RANKING: 0x8E44AD,    // Dark Purple - Rankings, leaderboards
+  // Raridades (Badges/Items)
+  COMMON: 0x95A5A6,          // Cinza - Comum
+  UNCOMMON: 0x2ECC71,        // Verde - Incomum
+  RARE: 0x3498DB,            // Azul - Raro
+  EPIC: 0x9B59B6,            // Roxo - Épico (Hawk Primary)
+  LEGENDARY: 0xF39C12,       // Dourado - Lendário
+  MYTHIC: 0xE74C3C,          // Vermelho - Mítico
 
-  // Rarity Colors - For badges and special items
-  COMMON: 0x95A5A6,     // Gray - Common items
-  UNCOMMON: 0x2ECC71,   // Green - Uncommon items
-  RARE: 0x3498DB,       // Blue - Rare items
-  EPIC: 0x9B59B6,       // Purple - Epic items
-  LEGENDARY: 0xF39C12,  // Gold - Legendary items
-  MYTHIC: 0xE74C3C,     // Red - Mythic items
+  // Estados de usuário
+  ONLINE: 0x2ECC71,          // Verde - Online
+  OFFLINE: 0x95A5A6,         // Cinza - Offline
+  IDLE: 0xF39C12,            // Laranja - Ausente
+  DND: 0xE74C3C,             // Vermelho - Não perturbe
 
-  // Status Colors - For various states
-  ONLINE: 0x2ECC71,     // Green - Online, active, available
-  OFFLINE: 0x95A5A6,    // Gray - Offline, inactive, unavailable
-  IDLE: 0xF39C12,       // Orange - Idle, away, partially active
-  DND: 0xE74C3C,        // Red - Do not disturb, busy
-
-  // Special Colors - For unique contexts
-  PREMIUM: 0xF1C40F,    // Gold - Premium features, VIP
-  BOOST: 0xFF69B4,      // Pink - Server boosts, special perks
-  EVENT: 0x9B59B6,      // Purple - Special events, limited time
-  MAINTENANCE: 0x95A5A6, // Gray - Maintenance mode, downtime
+  // Cores especiais
+  PREMIUM: 0xF1C40F,         // Ouro - Recursos premium
+  BOOST: 0xFF69B4,           // Rosa - Boosts do servidor
+  EVENT: 0x9B59B6,           // Roxo - Eventos especiais
+  MAINTENANCE: 0x95A5A6,     // Cinza - Modo manutenção
 } as const;
 
 /**
@@ -174,9 +179,22 @@ export class ColorUtils {
  * Predefined color schemes for common use cases
  */
 export const COLOR_SCHEMES = {
+  // 🦅 Esquema da Marca Hawk
+  HAWK_BRAND: {
+    primary: THEME_COLORS.HAWK_PRIMARY,
+    secondary: THEME_COLORS.HAWK_SECONDARY,
+    accent: THEME_COLORS.HAWK_ACCENT,
+  },
+  
+  // Esquemas Funcionais
+  DEFAULT: {
+    primary: THEME_COLORS.HAWK_PRIMARY,
+    secondary: THEME_COLORS.HAWK_SECONDARY,
+    accent: THEME_COLORS.HAWK_ACCENT,
+  },
   SUCCESS_SCHEME: {
     primary: THEME_COLORS.SUCCESS,
-    secondary: THEME_COLORS.ONLINE,
+    secondary: THEME_COLORS.HAWK_ACCENT,
     accent: THEME_COLORS.UNCOMMON,
   },
   ERROR_SCHEME: {
@@ -186,7 +204,7 @@ export const COLOR_SCHEMES = {
   },
   INFO_SCHEME: {
     primary: THEME_COLORS.INFO,
-    secondary: THEME_COLORS.ADMIN,
+    secondary: THEME_COLORS.HAWK_SECONDARY,
     accent: THEME_COLORS.RARE,
   },
   GAMING_SCHEME: {
@@ -205,6 +223,9 @@ export const COLOR_SCHEMES = {
  * Export individual colors for backward compatibility
  */
 export const {
+  HAWK_PRIMARY,
+  HAWK_SECONDARY,
+  HAWK_ACCENT,
   ERROR,
   SUCCESS,
   WARNING,

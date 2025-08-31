@@ -1,17 +1,17 @@
 import {
   SlashCommandBuilder,
-  EmbedBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   ChatInputCommandInteraction,
   CommandInteraction,
   ComponentType,
+  ButtonStyle,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
 import { Logger } from '../../utils/logger';
 import { DatabaseService } from '../../database/database.service';
+import { HawkEmbedBuilder } from '../../utils/hawk-embed-builder';
+import { HawkComponentFactory } from '../../utils/hawk-component-factory';
+import { HAWK_EMOJIS } from '../../constants/hawk-emojis';
 
 interface SessionRankingData {
   userId: string;
@@ -38,16 +38,16 @@ interface SessionRankingData {
 const sessionRanking: Command = {
   data: new SlashCommandBuilder()
     .setName('session-ranking')
-    .setDescription('🏆 Ver ranking baseado na participação em sessões')
+    .setDescription(`${HAWK_EMOJIS.TROPHY} Ver ranking baseado na participação em sessões`)
     .addStringOption(option =>
       option
         .setName('periodo')
         .setDescription('Período para o ranking')
         .setRequired(false)
         .addChoices(
-          { name: '📅 Semanal', value: 'weekly' },
-          { name: '📆 Mensal', value: 'monthly' },
-          { name: '📊 Geral', value: 'all_time' },
+          { name: `${HAWK_EMOJIS.TIME.CALENDAR} Semanal`, value: 'weekly' },
+          { name: `${HAWK_EMOJIS.TIME.CALENDAR} Mensal`, value: 'monthly' },
+          { name: `${HAWK_EMOJIS.STATS} Geral`, value: 'all_time' },
         ),
     )
     .addStringOption(option =>
@@ -56,10 +56,10 @@ const sessionRanking: Command = {
         .setDescription('Filtrar por tipo de sessão')
         .setRequired(false)
         .addChoices(
-          { name: '🎯 Matchmaking (MM)', value: 'mm' },
-          { name: '⚔️ Scrim', value: 'scrim' },
-          { name: '🏆 Campeonato', value: 'campeonato' },
-          { name: '🎖️ Ranked', value: 'ranked' },
+          { name: `${HAWK_EMOJIS.GAMING.GAME} Matchmaking (MM)`, value: 'mm' },
+          { name: `${HAWK_EMOJIS.GAMING.CONTROLLER} Scrim`, value: 'scrim' },
+          { name: `${HAWK_EMOJIS.TROPHY} Campeonato`, value: 'campeonato' },
+          { name: `${HAWK_EMOJIS.MEDAL} Ranked`, value: 'ranked' },
         ),
     ) as SlashCommandBuilder,
 
@@ -102,11 +102,10 @@ const sessionRanking: Command = {
       const sessionData = await getSessionRankingData(database, guildId, startDate, tipoFiltro);
 
       if (sessionData.length === 0) {
-        const noDataEmbed = new EmbedBuilder()
-          .setTitle('📊 Ranking de Sessões')
-          .setDescription('Nenhum dado de sessão encontrado para o período selecionado.')
-          .setColor(0xffa500)
-          .setTimestamp();
+        const noDataEmbed = HawkEmbedBuilder.createWarning(
+          `${HAWK_EMOJIS.CHART} Ranking de Sessões`,
+          'Nenhum dado de sessão encontrado para o período selecionado.'
+        );
 
         await interaction.editReply({ embeds: [noDataEmbed] });
         return;
@@ -116,23 +115,26 @@ const sessionRanking: Command = {
       const embed = await createRankingEmbed(sessionData, periodo, tipoFiltro, interaction.user.id);
 
       // Create navigation buttons
-      const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder()
-          .setCustomId('session_ranking_details')
-          .setLabel('Ver Detalhes')
-          .setStyle(ButtonStyle.Primary)
-          .setEmoji('📋'),
-        new ButtonBuilder()
-          .setCustomId('session_ranking_personal')
-          .setLabel('Meu Ranking')
-          .setStyle(ButtonStyle.Secondary)
-          .setEmoji('👤'),
-        new ButtonBuilder()
-          .setCustomId('session_ranking_refresh')
-          .setLabel('Atualizar')
-          .setStyle(ButtonStyle.Success)
-          .setEmoji('🔄'),
-      );
+      const buttons = HawkComponentFactory.createButtonRow([
+        HawkComponentFactory.createButton({
+          customId: 'session_ranking_details',
+          label: 'Ver Detalhes',
+          style: ButtonStyle.Primary,
+          emoji: HAWK_EMOJIS.STATS
+        }),
+        HawkComponentFactory.createButton({
+          customId: 'session_ranking_personal',
+          label: 'Meu Ranking',
+          style: ButtonStyle.Secondary,
+          emoji: HAWK_EMOJIS.USER
+        }),
+        HawkComponentFactory.createButton({
+          customId: 'session_ranking_refresh',
+          label: 'Atualizar',
+          style: ButtonStyle.Success,
+          emoji: HAWK_EMOJIS.REFRESH
+        })
+      ]);
 
       const response = await interaction.editReply({
         embeds: [embed],
@@ -148,7 +150,7 @@ const sessionRanking: Command = {
       collector.on('collect', async buttonInteraction => {
         if (buttonInteraction.user.id !== interaction.user.id) {
           await buttonInteraction.reply({
-            content: '❌ Apenas quem executou o comando pode usar estes botões.',
+            content: `${HAWK_EMOJIS.ERROR} Apenas quem executou o comando pode usar estes botões.`,
             ephemeral: true,
           });
           return;
@@ -189,8 +191,15 @@ const sessionRanking: Command = {
 
       collector.on('end', async () => {
         try {
-          const disabledButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-            buttons.components.map(button => ButtonBuilder.from(button).setDisabled(true)),
+          const disabledButtons = HawkComponentFactory.createButtonRow(
+            buttons.components.map(button => 
+              HawkComponentFactory.createButton({
+                customId: (button as any).customId || (button as any).data?.custom_id,
+                label: (button as any).label || (button as any).data?.label || 'Button',
+                style: ButtonStyle.Secondary,
+                disabled: true
+              })
+            )
           );
 
           await interaction.editReply({ components: [disabledButtons] });
@@ -201,10 +210,10 @@ const sessionRanking: Command = {
     } catch (error) {
       logger.error('Error in session-ranking command:', error);
 
-      const errorEmbed = new EmbedBuilder()
-        .setTitle('❌ Erro')
-        .setDescription('Ocorreu um erro ao buscar o ranking de sessões.')
-        .setColor(0xff0000);
+      const errorEmbed = HawkEmbedBuilder.createError(
+        `${HAWK_EMOJIS.ERROR} Erro`,
+        'Ocorreu um erro ao buscar o ranking de sessões.'
+      );
 
       await interaction.editReply({ embeds: [errorEmbed] });
     }
@@ -382,7 +391,7 @@ async function createRankingEmbed(
   period: string,
   typeFilter: string | null,
   requesterId: string,
-): Promise<EmbedBuilder> {
+): Promise<any> {
   const periodNames = {
     weekly: 'Semanal',
     monthly: 'Mensal',
@@ -396,16 +405,15 @@ async function createRankingEmbed(
     ranked: 'Ranked',
   };
 
-  const embed = new EmbedBuilder()
-    .setTitle(
-      `🏆 Ranking de Sessões - ${periodNames[period as keyof typeof periodNames] || 'Geral'}`,
-    )
-    .setColor(0xffd700)
-    .setTimestamp();
+  const embed = HawkEmbedBuilder.createInfo(
+    `Ranking de Sessões - ${periodNames[period as keyof typeof periodNames] || 'Geral'}`,
+    `${HAWK_EMOJIS.TROPHY} Confira os jogadores mais ativos do servidor!`
+  )
+  .setTimestamp();
 
   if (typeFilter) {
     embed.setDescription(
-      `**Filtro:** ${typeNames[typeFilter as keyof typeof typeNames] || typeFilter}\n`,
+      `${HAWK_EMOJIS.TROPHY} Confira os jogadores mais ativos do servidor!\n\n${HAWK_EMOJIS.FILTERS.TYPE} **Filtro:** ${typeNames[typeFilter as keyof typeof typeNames] || typeFilter}\n`,
     );
   }
 
@@ -413,20 +421,21 @@ async function createRankingEmbed(
   let description = embed.data.description || '';
 
   if (top10.length === 0) {
-    description += 'Nenhum dado encontrado para o período selecionado.';
+    description += `${HAWK_EMOJIS.ERROR} Nenhum dado encontrado para o período selecionado.`;
   } else {
-    description += '\n**🏅 Top 10 Participantes:**\n\n';
+    description += `\n${HAWK_EMOJIS.MEDAL} **Top 10 Participantes:**\n\n`;
 
     top10.forEach((user, index) => {
-      const medal = index < 3 ? ['🥇', '🥈', '🥉'][index] : `${index + 1}º`;
+      const medals = [HAWK_EMOJIS.FIRST_PLACE, HAWK_EMOJIS.SECOND_PLACE, HAWK_EMOJIS.THIRD_PLACE];
+      const medal = index < 3 ? medals[index] : `${index + 1}º`;
       const hours = Math.floor(user.totalDuration / 60);
       const minutes = user.totalDuration % 60;
 
       description += `${medal} **${user.username}**\n`;
-      description += `📊 ${user.points} pts | 🎮 ${user.totalSessions} sessões | ⏱️ ${hours}h${minutes}m\n`;
+      description += `${HAWK_EMOJIS.STAR} ${user.points} pts | ${HAWK_EMOJIS.GAMING.SESSION} ${user.totalSessions} sessões | ${HAWK_EMOJIS.TIME.DURATION} ${hours}h${minutes}m\n`;
 
       if (user.userId === requesterId) {
-        description += '👤 **(Você está aqui!)**\n';
+        description += `${HAWK_EMOJIS.PROFILE} **(Você está aqui!)**\n`;
       }
 
       description += '\n';
@@ -435,7 +444,7 @@ async function createRankingEmbed(
     // Show requester's position if not in top 10
     const requesterData = data.find(u => u.userId === requesterId);
     if (requesterData && requesterData.rank > 10) {
-      description += `\n📍 **Sua Posição:** ${requesterData.rank}º lugar (${requesterData.points} pts)`;
+      description += `\n${HAWK_EMOJIS.RANKING} **Sua Posição:** ${requesterData.rank}º lugar (${requesterData.points} pts)`;
     }
   }
 
@@ -456,42 +465,44 @@ async function createRankingEmbed(
 /**
  * Create details embed for top users
  */
-async function createDetailsEmbed(topUsers: SessionRankingData[]): Promise<EmbedBuilder> {
-  const embed = new EmbedBuilder()
-    .setTitle('📋 Detalhes dos Top Participantes')
-    .setColor(0x00ff00)
-    .setTimestamp();
+async function createDetailsEmbed(topUsers: SessionRankingData[]): Promise<any> {
+  const embed = HawkEmbedBuilder.createSuccess(
+    'Detalhes dos Top Participantes',
+    `${HAWK_EMOJIS.STATS} Estatísticas detalhadas dos melhores jogadores`
+  )
+  .setTimestamp();
 
   let description = '';
 
   topUsers.forEach((user, index) => {
-    const medal = ['🥇', '🥈', '🥉', '4º', '5º'][index] || `${index + 1}º`;
+    const medals = [HAWK_EMOJIS.FIRST_PLACE, HAWK_EMOJIS.SECOND_PLACE, HAWK_EMOJIS.THIRD_PLACE];
+    const medal = index < 3 ? medals[index] : `${index + 1}º`;
 
     description += `${medal} **${user.username}**\n`;
-    description += `📊 **Pontos:** ${user.points}\n`;
-    description += `🎮 **Sessões:** ${user.totalSessions}\n`;
-    description += `⏱️ **Tempo Total:** ${Math.floor(user.totalDuration / 60)}h ${user.totalDuration % 60}m\n`;
-    description += `📈 **Média por Sessão:** ${user.averageDuration}min\n`;
-    description += `🔥 **Streak:** ${user.streak}\n`;
-    description += `📅 **Última Sessão:** <t:${Math.floor(user.lastSession.getTime() / 1000)}:R>\n`;
+    description += `${HAWK_EMOJIS.STAR} **Pontos:** ${user.points}\n`;
+    description += `${HAWK_EMOJIS.GAMING.SESSION} **Sessões:** ${user.totalSessions}\n`;
+    description += `${HAWK_EMOJIS.TIME.DURATION} **Tempo Total:** ${Math.floor(user.totalDuration / 60)}h ${user.totalDuration % 60}m\n`;
+    description += `${HAWK_EMOJIS.SYSTEM.AVERAGE} **Média por Sessão:** ${user.averageDuration}min\n`;
+    description += `${HAWK_EMOJIS.SYSTEM.STREAK} **Streak:** ${user.streak}\n`;
+    description += `${HAWK_EMOJIS.TIME.LAST_SEEN} **Última Sessão:** <t:${Math.floor(user.lastSession.getTime() / 1000)}:R>\n`;
 
     // Session type breakdown
     const types = [];
     if (user.sessionTypes.mm > 0) {
-      types.push(`MM: ${user.sessionTypes.mm}`);
+      types.push(`${HAWK_EMOJIS.GAMING.GAME} MM: ${user.sessionTypes.mm}`);
     }
     if (user.sessionTypes.scrim > 0) {
-      types.push(`Scrim: ${user.sessionTypes.scrim}`);
+      types.push(`${HAWK_EMOJIS.GAMING.CONTROLLER} Scrim: ${user.sessionTypes.scrim}`);
     }
     if (user.sessionTypes.campeonato > 0) {
-      types.push(`Camp: ${user.sessionTypes.campeonato}`);
+      types.push(`${HAWK_EMOJIS.TROPHY} Camp: ${user.sessionTypes.campeonato}`);
     }
     if (user.sessionTypes.ranked > 0) {
-      types.push(`Ranked: ${user.sessionTypes.ranked}`);
+      types.push(`${HAWK_EMOJIS.MEDAL} Ranked: ${user.sessionTypes.ranked}`);
     }
 
     if (types.length > 0) {
-      description += `🎯 **Tipos:** ${types.join(', ')}\n`;
+      description += `${HAWK_EMOJIS.GAMING.TYPES} **Tipos:** ${types.join(', ')}\n`;
     }
 
     description += '\n';
@@ -507,44 +518,46 @@ async function createDetailsEmbed(topUsers: SessionRankingData[]): Promise<Embed
 async function createPersonalRankingEmbed(
   data: SessionRankingData[],
   userId: string,
-): Promise<EmbedBuilder> {
+): Promise<any> {
   const userStats = data.find(u => u.userId === userId);
 
-  const embed = new EmbedBuilder()
-    .setTitle('👤 Seu Ranking Pessoal')
-    .setColor(0x0099ff)
-    .setTimestamp();
+  const embed = HawkEmbedBuilder.createInfo(
+    'Seu Ranking Pessoal',
+    `${HAWK_EMOJIS.PROFILE} Confira suas estatísticas de participação`
+  )
+  .setTimestamp();
 
   if (!userStats) {
-    embed.setDescription('❌ Você ainda não possui dados de sessão registrados.');
+    embed.setDescription(`${HAWK_EMOJIS.ERROR} Você ainda não possui dados de sessão registrados.`);
     return embed;
   }
 
   const hours = Math.floor(userStats.totalDuration / 60);
   const minutes = userStats.totalDuration % 60;
 
-  let description = `**🏆 Posição:** ${userStats.rank}º lugar\n`;
-  description += `**📊 Pontos:** ${userStats.points}\n\n`;
+  let description = `${HAWK_EMOJIS.PROFILE} Confira suas estatísticas de participação\n\n`;
+  description += `${HAWK_EMOJIS.TROPHY} **Posição:** ${userStats.rank}º lugar\n`;
+  description += `${HAWK_EMOJIS.STAR} **Pontos:** ${userStats.points}\n\n`;
 
-  description += '**📈 Estatísticas:**\n';
-  description += `• 🎮 **Sessões Totais:** ${userStats.totalSessions}\n`;
-  description += `• ⏱️ **Tempo Total:** ${hours}h ${minutes}m\n`;
-  description += `• 📊 **Média por Sessão:** ${userStats.averageDuration} minutos\n`;
-  description += `• 🔥 **Streak Atual:** ${userStats.streak}\n`;
-  description += `• 📅 **Última Sessão:** <t:${Math.floor(userStats.lastSession.getTime() / 1000)}:R>\n\n`;
+  description += `${HAWK_EMOJIS.CHART} **Estatísticas:**\n`;
+  description += `• ${HAWK_EMOJIS.GAMING.SESSION} **Sessões Totais:** ${userStats.totalSessions}\n`;
+  description += `• ${HAWK_EMOJIS.TIME.DURATION} **Tempo Total:** ${hours}h ${minutes}m\n`;
+  description += `• ${HAWK_EMOJIS.SYSTEM.AVERAGE} **Média por Sessão:** ${userStats.averageDuration} minutos\n`;
+  description += `• ${HAWK_EMOJIS.SYSTEM.STREAK} **Streak Atual:** ${userStats.streak}\n`;
+  description += `• ${HAWK_EMOJIS.TIME.LAST_SEEN} **Última Sessão:** <t:${Math.floor(userStats.lastSession.getTime() / 1000)}:R>\n\n`;
 
-  description += '**🎯 Sessões por Tipo:**\n';
-  description += `• 🎯 **MM:** ${userStats.sessionTypes.mm}\n`;
-  description += `• ⚔️ **Scrim:** ${userStats.sessionTypes.scrim}\n`;
-  description += `• 🏆 **Campeonato:** ${userStats.sessionTypes.campeonato}\n`;
-  description += `• 🎖️ **Ranked:** ${userStats.sessionTypes.ranked}\n\n`;
+  description += `${HAWK_EMOJIS.GAMING.TYPES} **Sessões por Tipo:**\n`;
+  description += `• ${HAWK_EMOJIS.GAMING.GAME} **MM:** ${userStats.sessionTypes.mm}\n`;
+  description += `• ${HAWK_EMOJIS.GAMING.CONTROLLER} **Scrim:** ${userStats.sessionTypes.scrim}\n`;
+  description += `• ${HAWK_EMOJIS.TROPHY} **Campeonato:** ${userStats.sessionTypes.campeonato}\n`;
+  description += `• ${HAWK_EMOJIS.MEDAL} **Ranked:** ${userStats.sessionTypes.ranked}\n\n`;
 
   // Show position relative to others
   if (userStats.rank > 1) {
     const userAbove = data[userStats.rank - 2];
     if (userAbove) {
       const pointsDiff = userAbove.points - userStats.points;
-      description += `📈 **Para subir:** ${pointsDiff} pontos (${userAbove.username})\n`;
+      description += `${HAWK_EMOJIS.UP} **Para subir:** ${pointsDiff} pontos (${userAbove.username})\n`;
     }
   }
 
@@ -552,7 +565,7 @@ async function createPersonalRankingEmbed(
     const userBelow = data[userStats.rank];
     if (userBelow) {
       const pointsLead = userStats.points - userBelow.points;
-      description += `📉 **Vantagem:** ${pointsLead} pontos sobre ${userBelow.username}\n`;
+      description += `${HAWK_EMOJIS.DOWN} **Vantagem:** ${pointsLead} pontos sobre ${userBelow.username}\n`;
     }
   }
 

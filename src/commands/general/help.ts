@@ -1,16 +1,20 @@
 import {
   SlashCommandBuilder,
-  EmbedBuilder,
-  ActionRowBuilder,
+  ChatInputCommandInteraction,
   StringSelectMenuBuilder,
-  ButtonBuilder,
   ButtonStyle,
   ComponentType,
   MessageFlags,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
 import { Logger } from '../../utils/logger';
+import { HawkEmbedBuilder } from '../../utils/hawk-embed-builder';
+import { HawkComponentFactory } from '../../utils/hawk-component-factory';
+import { HAWK_EMOJIS } from '../../constants/hawk-emojis';
 
 /**
  * Help command - Shows all available commands organized by category
@@ -18,7 +22,7 @@ import { Logger } from '../../utils/logger';
 const help: Command = {
   data: new SlashCommandBuilder()
     .setName('help')
-    .setDescription('📚 Mostra todos os comandos disponíveis')
+    .setDescription(`${HAWK_EMOJIS.HELP} Mostra todos os comandos disponíveis`)
     .addStringOption(option =>
       option
         .setName('command')
@@ -40,25 +44,24 @@ const help: Command = {
         const command = client.commands.get(specificCommand);
 
         if (!command) {
-          const notFoundEmbed = new EmbedBuilder()
-            .setTitle('❌ Comando não encontrado')
-            .setDescription(`O comando \`${specificCommand}\` não existe.`)
-            .setColor('#FF0000')
-            .setFooter({ text: 'Use /help para ver todos os comandos disponíveis' });
+          const notFoundEmbed = HawkEmbedBuilder.createError(
+          `${HAWK_EMOJIS.SYSTEM.ERROR} Comando Não Encontrado`,
+          `O comando \`${specificCommand}\` não existe.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Use \`/help\` para ver todos os comandos disponíveis.`
+        );
 
           await interaction.reply({ embeds: [notFoundEmbed], flags: MessageFlags.Ephemeral });
           return;
         }
 
-        const commandEmbed = new EmbedBuilder()
-          .setTitle(`📖 Ajuda: /${command.data.name}`)
-          .setDescription((command.data as any).description)
-          .setColor('#0099FF')
+        const commandEmbed = HawkEmbedBuilder.createInfo(
+          `${HAWK_EMOJIS.SYSTEM.HELP} Ajuda: /${command.data.name}`,
+          (command.data as any).description
+        )
           .addFields(
-            { name: '📂 Categoria', value: getCategoryName(command.category), inline: true },
-            { name: '⏱️ Cooldown', value: `${command.cooldown || 0} segundos`, inline: true },
+            { name: `${HAWK_EMOJIS.SYSTEM.CATEGORY} Categoria`, value: getCategoryName(command.category), inline: true },
+            { name: `${HAWK_EMOJIS.SYSTEM.TIME} Cooldown`, value: `${command.cooldown || 0} segundos`, inline: true },
             {
-              name: '🔒 Permissões',
+              name: `${HAWK_EMOJIS.SYSTEM.PERMISSIONS} Permissões`,
               value: command.permissions?.join(', ') || 'Nenhuma',
               inline: true,
             },
@@ -79,26 +82,24 @@ const help: Command = {
       }
 
       // Show general help with categories
-      const mainEmbed = new EmbedBuilder()
-        .setTitle('📚 Central de Ajuda - Hawk Esports Bot')
-        .setDescription(
-          'Selecione uma categoria abaixo para ver os comandos disponíveis ou use o menu para navegar.',
-        )
-        .setColor('#0099FF')
+      const mainEmbed = HawkEmbedBuilder.createInfo(
+        `${HAWK_EMOJIS.SYSTEM.HELP} Central de Ajuda - Hawk Esports Bot`,
+        `${HAWK_EMOJIS.SYSTEM.INFO} Selecione uma categoria abaixo para ver os comandos disponíveis ou use o menu para navegar.`
+      )
         .setThumbnail(client.user?.displayAvatarURL() ?? null)
         .addFields(
           {
-            name: '🎮 PUBG',
+            name: `${HAWK_EMOJIS.PUBG} PUBG`,
             value: 'Comandos relacionados ao PUBG, rankings e estatísticas',
             inline: true,
           },
-          { name: '🎵 Música', value: 'Sistema de música com playlists e controles', inline: true },
-          { name: '🎯 Jogos', value: 'Mini-games, quizzes e desafios interativos', inline: true },
-          { name: '🎬 Clips', value: 'Sistema de clips e highlights', inline: true },
-          { name: '👤 Perfil', value: 'Comandos de perfil e estatísticas pessoais', inline: true },
-          { name: '🔧 Admin', value: 'Comandos administrativos (apenas admins)', inline: true },
+          { name: `${HAWK_EMOJIS.MUSIC} Música`, value: 'Sistema de música com playlists e controles', inline: true },
+          { name: `${HAWK_EMOJIS.GAMING.CONTROLLER} Jogos`, value: 'Mini-games, quizzes e desafios interativos', inline: true },
+          { name: `${HAWK_EMOJIS.VIDEO} Clips`, value: 'Sistema de clips e highlights', inline: true },
+          { name: `${HAWK_EMOJIS.SYSTEM.USER} Perfil`, value: 'Comandos de perfil e estatísticas pessoais', inline: true },
+          { name: `${HAWK_EMOJIS.SYSTEM.ADMIN} Admin`, value: 'Comandos administrativos (apenas admins)', inline: true },
         )
-        .setFooter({ text: 'Use /help <comando> para ajuda específica' })
+        .setFooter({ text: `Use /help <comando> para ajuda específica • Hawk Esports`, iconURL: client.user?.displayAvatarURL() })
         .setTimestamp();
 
       const categorySelect = new StringSelectMenuBuilder()
@@ -149,32 +150,34 @@ const help: Command = {
           },
         ]);
 
-      const buttonsRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder()
-          .setCustomId('help_quick_start')
-          .setLabel('Início Rápido')
-          .setStyle(ButtonStyle.Primary)
-          .setEmoji('🚀'),
-        new ButtonBuilder()
-          .setCustomId('help_features')
-          .setLabel('Funcionalidades')
-          .setStyle(ButtonStyle.Secondary)
-          .setEmoji('⭐'),
-        new ButtonBuilder()
-          .setLabel('Dashboard')
-          .setStyle(ButtonStyle.Link)
-          .setURL('https://your-dashboard-url.com')
-          .setEmoji('🌐'),
-        new ButtonBuilder()
-          .setLabel('Suporte')
-          .setStyle(ButtonStyle.Link)
-          .setURL('https://discord.gg/your-support-server')
-          .setEmoji('💬'),
-      );
+      const buttonsRow = HawkComponentFactory.createButtonRow([
+        HawkComponentFactory.createButton({
+          id: 'help_quick_start',
+          label: 'Início Rápido',
+          style: ButtonStyle.Primary,
+          emoji: '🚀'
+        }),
+        HawkComponentFactory.createButton({
+          id: 'help_features',
+          label: 'Funcionalidades',
+          style: ButtonStyle.Secondary,
+          emoji: '⭐'
+        }),
+        HawkComponentFactory.createButton({
+          label: 'Dashboard',
+          style: ButtonStyle.Link,
+          url: 'https://your-dashboard-url.com',
+          emoji: '🌐'
+        }),
+        HawkComponentFactory.createButton({
+          label: 'Suporte',
+          style: ButtonStyle.Link,
+          url: 'https://discord.gg/your-support-server',
+          emoji: '💬'
+        })
+      ]);
 
-      const selectRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-        categorySelect,
-      );
+      const selectRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(categorySelect);
 
       const response = await interaction.reply({
         embeds: [mainEmbed],
@@ -190,7 +193,7 @@ const help: Command = {
       collector.on('collect', async (i: any) => {
         if (i.user.id !== interaction.user.id) {
           await i.reply({
-            content: '❌ Apenas quem executou o comando pode usar este menu.',
+            content: `${HAWK_EMOJIS.ERROR} Apenas quem executou o comando pode usar este menu.`,
             flags: MessageFlags.Ephemeral,
           });
           return;
@@ -251,7 +254,7 @@ const help: Command = {
 /**
  * Get category embed
  */
-async function getCategoryEmbed(category: string, client: ExtendedClient): Promise<EmbedBuilder> {
+async function getCategoryEmbed(category: string, client: ExtendedClient): Promise<any> {
   const categoryMap: { [key: string]: CommandCategory } = {
     general: CommandCategory.GENERAL,
     pubg: CommandCategory.PUBG,
@@ -267,15 +270,17 @@ async function getCategoryEmbed(category: string, client: ExtendedClient): Promi
     (cmd: any) => cmd.category === categoryEnum,
   );
 
-  const embed = new EmbedBuilder()
-    .setTitle(`📖 Comandos - ${getCategoryName(categoryEnum)}`)
-    .setColor('#0099FF')
-    .setTimestamp();
-
   if (commands.length === 0) {
-    embed.setDescription('Nenhum comando encontrado nesta categoria.');
-    return embed;
+    return HawkEmbedBuilder.createWarning(
+      `${HAWK_EMOJIS.SYSTEM.HELP} Comandos - ${getCategoryName(categoryEnum)}`,
+      `${HAWK_EMOJIS.WARNING} Nenhum comando encontrado nesta categoria.`
+    );
   }
+
+  const embed = HawkEmbedBuilder.createInfo(
+    `${HAWK_EMOJIS.SYSTEM.HELP} Comandos - ${getCategoryName(categoryEnum)}`,
+    ''
+  );
 
   const commandList = commands
     .map((cmd: any) => {
@@ -288,7 +293,9 @@ async function getCategoryEmbed(category: string, client: ExtendedClient): Promi
   embed.setDescription(commandList);
 
   if (categoryEnum === CommandCategory.ADMIN) {
-    embed.setFooter({ text: '🔒 = Requer permissões especiais' });
+    embed.setFooter({ text: `${HAWK_EMOJIS.SYSTEM.LOCK} = Requer permissões especiais • Hawk Esports` });
+  } else {
+    embed.setFooter({ text: 'Hawk Esports' });
   }
 
   return embed;
@@ -297,89 +304,89 @@ async function getCategoryEmbed(category: string, client: ExtendedClient): Promi
 /**
  * Get quick start embed
  */
-function getQuickStartEmbed(): EmbedBuilder {
-  return new EmbedBuilder()
-    .setTitle('🚀 Início Rápido')
-    .setDescription('Siga estes passos para começar a usar o bot:')
-    .setColor('#00FF00')
+function getQuickStartEmbed(): any {
+  return HawkEmbedBuilder.createSuccess(
+    `${HAWK_EMOJIS.SYSTEM.ROCKET} Início Rápido`,
+    `${HAWK_EMOJIS.SYSTEM.INFO} Siga estes passos para começar a usar o bot:`
+  )
     .addFields(
       {
-        name: '1️⃣ Registro',
+        name: `${HAWK_EMOJIS.USER} Registro`,
         value: 'Use `/register` para cadastrar seu nick PUBG e plataforma',
         inline: false,
       },
       {
-        name: '2️⃣ Perfil',
+        name: `${HAWK_EMOJIS.PROFILE} Perfil`,
         value: 'Veja seu perfil com `/profile` e suas estatísticas',
         inline: false,
       },
       {
-        name: '3️⃣ Rankings',
+        name: `${HAWK_EMOJIS.TROPHY} Rankings`,
         value: 'Confira os rankings com `/ranking pubg` ou `/ranking internal`',
         inline: false,
       },
       {
-        name: '4️⃣ Música',
+        name: `${HAWK_EMOJIS.MUSIC} Música`,
         value: 'Toque música com `/play <música>` e controle com `/queue`',
         inline: false,
       },
       {
-        name: '5️⃣ Jogos',
+        name: `${HAWK_EMOJIS.GAME} Jogos`,
         value: 'Participe de quizzes com `/quiz start` e mini-games',
         inline: false,
       },
       {
-        name: '6️⃣ Clips',
+        name: `${HAWK_EMOJIS.VIDEO} Clips`,
         value: 'Envie seus clips com `/clip upload` e vote nos melhores',
         inline: false,
       },
     )
-    .setFooter({ text: 'Dica: Use /help <comando> para ajuda específica' });
+    .setFooter({ text: `${HAWK_EMOJIS.SYSTEM.TIP} Dica: Use /help <comando> para ajuda específica • Hawk Esports` });
 }
 
 /**
  * Get features embed
  */
-function getFeaturesEmbed(): EmbedBuilder {
-  return new EmbedBuilder()
-    .setTitle('⭐ Funcionalidades Principais')
-    .setDescription('Conheça todas as funcionalidades do Hawk Esports Bot:')
-    .setColor('#FFD700')
+function getFeaturesEmbed(): any {
+  return HawkEmbedBuilder.createInfo(
+    `${HAWK_EMOJIS.SYSTEM.STAR} Funcionalidades Principais`,
+    `${HAWK_EMOJIS.SYSTEM.INFO} Conheça todas as funcionalidades do Hawk Esports Bot:`
+  )
     .addFields(
       {
-        name: '🎮 Sistema PUBG Completo',
+        name: `${HAWK_EMOJIS.PUBG} Sistema PUBG Completo`,
         value:
-          '• Rankings diários, semanais e mensais\n• Estatísticas detalhadas\n• Cargos automáticos por rank\n• Integração com API oficial',
+          `${HAWK_EMOJIS.SYSTEM.BULLET} Rankings diários, semanais e mensais\n${HAWK_EMOJIS.SYSTEM.BULLET} Estatísticas detalhadas\n${HAWK_EMOJIS.SYSTEM.BULLET} Cargos automáticos por rank\n${HAWK_EMOJIS.SYSTEM.BULLET} Integração com API oficial`,
         inline: false,
       },
       {
-        name: '🎵 Player de Música Avançado',
+        name: `${HAWK_EMOJIS.MUSIC} Player de Música Avançado`,
         value:
-          '• Suporte a YouTube e Spotify\n• Playlists personalizadas\n• Filtros de áudio\n• Queue persistente',
+          `${HAWK_EMOJIS.SYSTEM.BULLET} Suporte a YouTube e Spotify\n${HAWK_EMOJIS.SYSTEM.BULLET} Playlists personalizadas\n${HAWK_EMOJIS.SYSTEM.BULLET} Filtros de áudio\n${HAWK_EMOJIS.SYSTEM.BULLET} Queue persistente`,
         inline: false,
       },
       {
-        name: '🎯 Sistema de Gamificação',
+        name: `${HAWK_EMOJIS.GAMING.CONTROLLER} Sistema de Gamificação`,
         value:
-          '• Mini-games interativos\n• Quizzes com rankings\n• Badges automáticas\n• Sistema de XP e moedas',
+          `${HAWK_EMOJIS.SYSTEM.BULLET} Mini-games interativos\n${HAWK_EMOJIS.SYSTEM.BULLET} Quizzes com rankings\n${HAWK_EMOJIS.SYSTEM.BULLET} Badges automáticas\n${HAWK_EMOJIS.SYSTEM.BULLET} Sistema de XP e moedas`,
         inline: false,
       },
       {
-        name: '🎬 Clips e Highlights',
+        name: `${HAWK_EMOJIS.VIDEO} Clips e Highlights`,
         value:
-          '• Upload de vídeos\n• Sistema de votação\n• Rankings semanais\n• Moderação automática',
+          `${HAWK_EMOJIS.SYSTEM.BULLET} Upload de vídeos\n${HAWK_EMOJIS.SYSTEM.BULLET} Sistema de votação\n${HAWK_EMOJIS.SYSTEM.BULLET} Rankings semanais\n${HAWK_EMOJIS.SYSTEM.BULLET} Moderação automática`,
         inline: false,
       },
       {
-        name: '📊 Dashboard Web',
+        name: `${HAWK_EMOJIS.SYSTEM.CHART} Dashboard Web`,
         value:
-          '• Interface moderna\n• Estatísticas em tempo real\n• Controles administrativos\n• Visualização de dados',
+          `${HAWK_EMOJIS.SYSTEM.BULLET} Interface moderna\n${HAWK_EMOJIS.SYSTEM.BULLET} Estatísticas em tempo real\n${HAWK_EMOJIS.SYSTEM.BULLET} Controles administrativos\n${HAWK_EMOJIS.SYSTEM.BULLET} Visualização de dados`,
         inline: false,
       },
       {
-        name: '🔧 Administração Completa',
+        name: `${HAWK_EMOJIS.SYSTEM.ADMIN} Administração Completa`,
         value:
-          '• Auto-setup do servidor\n• Sistema de logs\n• Moderação automática\n• Backup de dados',
+          `${HAWK_EMOJIS.SYSTEM.BULLET} Auto-setup do servidor\n${HAWK_EMOJIS.SYSTEM.BULLET} Sistema de logs\n${HAWK_EMOJIS.SYSTEM.BULLET} Moderação automática\n${HAWK_EMOJIS.SYSTEM.BULLET} Backup de dados`,
         inline: false,
       },
     )

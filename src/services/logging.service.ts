@@ -19,6 +19,8 @@ import {
 import { Logger, LogCategory } from '../utils/logger';
 import { DatabaseService } from '../database/database.service';
 import { ExtendedClient } from '../types/client';
+import { HawkEmbedBuilder } from '../utils/hawk-embed-builder';
+import { HAWK_EMOJIS } from '../constants/hawk-emojis';
 
 export interface LogConfig {
   guildId: string;
@@ -515,258 +517,291 @@ export class LoggingService {
    * Create log embed
    */
   private createLogEmbed(entry: LogEntry): EmbedBuilder {
-    const embed = new EmbedBuilder()
+    const baseEmbed = new EmbedBuilder()
       .setTimestamp(entry.timestamp)
-      .setFooter({ text: `ID: ${entry.id}` });
+      .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
     switch (entry.type) {
       case LogType.MESSAGE_DELETE:
-        return embed
-          .setTitle('🗑️ Mensagem Deletada')
-          .setColor(0xff4757)
-          .setDescription(entry.content)
-          .addFields(
-            { name: '👤 Autor', value: entry.metadata?.author || 'Desconhecido', inline: true },
-            { name: '📍 Canal', value: entry.metadata?.channel || 'Desconhecido', inline: true },
-          );
+        return HawkEmbedBuilder.createError(
+          'Mensagem Deletada',
+          entry.content
+        )
+        .addFields(
+          { name: `${HAWK_EMOJIS.USER} Autor`, value: entry.metadata?.author || 'Desconhecido', inline: true },
+          { name: `${HAWK_EMOJIS.CHANNEL} Canal`, value: entry.metadata?.channel || 'Desconhecido', inline: true },
+        )
+        .setTimestamp(entry.timestamp)
+        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       case LogType.MESSAGE_EDIT:
-        return embed
-          .setTitle('✏️ Mensagem Editada')
-          .setColor(0xffa502)
-          .addFields(
-            { name: '👤 Autor', value: entry.metadata?.author || 'Desconhecido', inline: true },
-            { name: '📍 Canal', value: entry.metadata?.channel || 'Desconhecido', inline: true },
-            {
-              name: '📝 Antes',
-              value: entry.metadata?.oldContent?.substring(0, 1024) || 'Sem conteúdo',
-              inline: false,
-            },
-            {
-              name: '📝 Depois',
-              value: entry.metadata?.newContent?.substring(0, 1024) || 'Sem conteúdo',
-              inline: false,
-            },
-          );
+        return HawkEmbedBuilder.createWarning(
+          'Mensagem Editada',
+          `${HAWK_EMOJIS.EDIT} Uma mensagem foi modificada`
+        )
+        .addFields(
+          { name: `${HAWK_EMOJIS.USER} Autor`, value: entry.metadata?.author || 'Desconhecido', inline: true },
+          { name: `${HAWK_EMOJIS.CHANNEL} Canal`, value: entry.metadata?.channel || 'Desconhecido', inline: true },
+          {
+            name: `${HAWK_EMOJIS.LOG} Antes`,
+            value: entry.metadata?.oldContent?.substring(0, 1024) || 'Sem conteúdo',
+            inline: false,
+          },
+          {
+            name: `${HAWK_EMOJIS.LOG} Depois`,
+            value: entry.metadata?.newContent?.substring(0, 1024) || 'Sem conteúdo',
+            inline: false,
+          },
+        )
+        .setTimestamp(entry.timestamp)
+        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       case LogType.MEMBER_JOIN:
-        return embed
-          .setTitle('👋 Membro Entrou')
-          .setColor(0x2ed573)
-          .setDescription(entry.content)
-          .addFields(
-            { name: '👤 Usuário', value: entry.metadata?.user || 'Desconhecido', inline: true },
-            {
-              name: '📅 Conta Criada',
-              value: entry.metadata?.accountAge || 'Desconhecido',
-              inline: true,
-            },
-            {
-              name: '👥 Total de Membros',
-              value: entry.metadata?.memberCount?.toString() || '0',
-              inline: true,
-            },
-          );
+        return HawkEmbedBuilder.createSuccess(
+          'Membro Entrou',
+          `${HAWK_EMOJIS.ADD} ${entry.content}`
+        )
+        .addFields(
+          { name: `${HAWK_EMOJIS.USER} Usuário`, value: entry.metadata?.user || 'Desconhecido', inline: true },
+          {
+            name: `${HAWK_EMOJIS.TIMER} Conta Criada`,
+            value: entry.metadata?.accountAge || 'Desconhecido',
+            inline: true,
+          },
+          {
+            name: `${HAWK_EMOJIS.STATS} Total de Membros`,
+            value: entry.metadata?.memberCount?.toString() || '0',
+            inline: true,
+          },
+        )
+        .setTimestamp(entry.timestamp)
+        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       case LogType.MEMBER_LEAVE:
-        return embed
-          .setTitle('👋 Membro Saiu')
-          .setColor(0xff6b81)
-          .setDescription(entry.content)
-          .addFields(
-            { name: '👤 Usuário', value: entry.metadata?.user || 'Desconhecido', inline: true },
-            {
-              name: '⏱️ Tempo no Servidor',
-              value: entry.metadata?.timeInServer || 'Desconhecido',
-              inline: true,
-            },
-            {
-              name: '👥 Total de Membros',
-              value: entry.metadata?.memberCount?.toString() || '0',
-              inline: true,
-            },
-          );
+        return HawkEmbedBuilder.createWarning(
+          'Membro Saiu',
+          `${HAWK_EMOJIS.REMOVE} ${entry.content}`
+        )
+        .addFields(
+          { name: `${HAWK_EMOJIS.USER} Usuário`, value: entry.metadata?.user || 'Desconhecido', inline: true },
+          {
+            name: `${HAWK_EMOJIS.TIMER} Tempo no Servidor`,
+            value: entry.metadata?.timeInServer || 'Desconhecido',
+            inline: true,
+          },
+          {
+            name: `${HAWK_EMOJIS.STATS} Total de Membros`,
+            value: entry.metadata?.memberCount?.toString() || '0',
+            inline: true,
+          },
+        )
+        .setTimestamp(entry.timestamp)
+        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       case LogType.MODERATION_WARN:
       case LogType.MODERATION_MUTE:
       case LogType.MODERATION_KICK:
       case LogType.MODERATION_BAN:
-        return embed
-          .setTitle(`🔨 ${entry.type.split('_')[1]?.toUpperCase() || 'MODERAÇÃO'}`)
-          .setColor(0xff3838)
-          .setDescription(entry.content)
-          .addFields(
-            { name: '👤 Usuário', value: entry.metadata?.target || 'Desconhecido', inline: true },
-            {
-              name: '👮 Moderador',
-              value: entry.metadata?.moderator || 'Desconhecido',
-              inline: true,
-            },
-            {
-              name: '📝 Motivo',
-              value: entry.metadata?.reason || 'Não especificado',
-              inline: false,
-            },
-          );
+        const moderationAction = entry.type.split('_')[1]?.toUpperCase() || 'MODERAÇÃO';
+        const moderationEmoji = {
+          'WARN': HAWK_EMOJIS.WARNING,
+        'MUTE': HAWK_EMOJIS.MUTE,
+        'KICK': HAWK_EMOJIS.REMOVE,
+        'BAN': HAWK_EMOJIS.BANNED
+      }[moderationAction] || HAWK_EMOJIS.WARNING;
+        
+        return HawkEmbedBuilder.createError(
+          `${moderationAction} Aplicado`,
+          `${moderationEmoji} ${entry.content}`
+        )
+        .addFields(
+          { name: `${HAWK_EMOJIS.USER} Usuário`, value: entry.metadata?.target || 'Desconhecido', inline: true },
+          {
+            name: `${HAWK_EMOJIS.MODERATOR} Moderador`,
+            value: entry.metadata?.moderator || 'Desconhecido',
+            inline: true,
+          },
+          {
+            name: `${HAWK_EMOJIS.LOG} Motivo`,
+            value: entry.metadata?.reason || 'Não especificado',
+            inline: false,
+          },
+        )
+        .setTimestamp(entry.timestamp)
+        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       case LogType.TICKET_CREATE:
-        return embed
-          .setTitle('🎫 Ticket Criado')
-          .setColor(0x2ed573)
-          .setDescription(entry.content)
-          .addFields(
-            { name: '👤 Usuário', value: entry.metadata?.user || 'Desconhecido', inline: true },
-            { name: '📍 Canal', value: entry.metadata?.channel || 'Desconhecido', inline: true },
-            { name: '🏷️ Título', value: entry.metadata?.title || 'Sem título', inline: false },
-            {
-              name: '📝 Descrição',
-              value: entry.metadata?.description?.substring(0, 1024) || 'Sem descrição',
-              inline: false,
-            },
-            { name: '⚡ Prioridade', value: entry.metadata?.priority || 'Baixa', inline: true },
-          );
+        return HawkEmbedBuilder.createSuccess(
+          'Ticket Criado',
+          `${HAWK_EMOJIS.TICKET} ${entry.content}`
+        )
+        .addFields(
+          { name: `${HAWK_EMOJIS.USER} Usuário`, value: entry.metadata?.user || 'Desconhecido', inline: true },
+          { name: `${HAWK_EMOJIS.CHANNEL} Canal`, value: entry.metadata?.channel || 'Desconhecido', inline: true },
+          { name: `${HAWK_EMOJIS.TICKET} Título`, value: entry.metadata?.title || 'Sem título', inline: false },
+          {
+            name: `${HAWK_EMOJIS.TICKET} Descrição`,
+            value: entry.metadata?.description?.substring(0, 1024) || 'Sem descrição',
+            inline: false,
+          },
+          { name: `${HAWK_EMOJIS.STAR} Prioridade`, value: entry.metadata?.priority || 'Baixa', inline: true },
+        )
+        .setTimestamp(entry.timestamp)
+        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       case LogType.TICKET_CLOSE:
-        return embed
-          .setTitle('🎫 Ticket Fechado')
-          .setColor(0xff4757)
-          .setDescription(entry.content)
-          .addFields(
-            { name: '👤 Usuário', value: entry.metadata?.user || 'Desconhecido', inline: true },
-            { name: '👮 Fechado por', value: entry.metadata?.closedBy || 'Sistema', inline: true },
-            { name: '📍 Canal', value: entry.metadata?.channel || 'Desconhecido', inline: true },
-            {
-              name: '📝 Motivo',
-              value: entry.metadata?.reason || 'Não especificado',
-              inline: false,
-            },
-            { name: '⏱️ Duração', value: entry.metadata?.duration || 'Desconhecido', inline: true },
-          );
+        return HawkEmbedBuilder.createWarning(
+          'Ticket Fechado',
+          `${HAWK_EMOJIS.TICKET} ${entry.content}`
+        )
+        .addFields(
+          { name: `${HAWK_EMOJIS.USER} Usuário`, value: entry.metadata?.user || 'Desconhecido', inline: true },
+          { name: `${HAWK_EMOJIS.MODERATOR} Fechado por`, value: entry.metadata?.closedBy || 'Sistema', inline: true },
+          { name: `${HAWK_EMOJIS.CHANNEL} Canal`, value: entry.metadata?.channel || 'Desconhecido', inline: true },
+          {
+            name: `${HAWK_EMOJIS.LOG} Motivo`,
+            value: entry.metadata?.reason || 'Não especificado',
+            inline: false,
+          },
+          { name: `${HAWK_EMOJIS.TIMER} Duração`, value: entry.metadata?.duration || 'Desconhecido', inline: true },
+        )
+        .setTimestamp(entry.timestamp)
+        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       case LogType.CHANGELOG:
-        return embed
-          .setTitle('📋 Changelog')
-          .setColor(0x3742fa)
-          .setDescription(entry.content)
-          .addFields(
-            { name: '🏷️ Versão', value: entry.metadata?.version || 'N/A', inline: true },
-            { name: '📝 Tipo', value: entry.metadata?.type || 'N/A', inline: true },
-            { name: '👤 Autor', value: entry.metadata?.author || 'Sistema', inline: true },
-          );
+        return HawkEmbedBuilder.createInfo(
+          'Changelog',
+          `${HAWK_EMOJIS.LOG} ${entry.content}`
+        )
+        .addFields(
+          { name: `${HAWK_EMOJIS.LOG} Versão`, value: entry.metadata?.version || 'N/A', inline: true },
+          { name: `${HAWK_EMOJIS.LOG} Tipo`, value: entry.metadata?.type || 'N/A', inline: true },
+          { name: `${HAWK_EMOJIS.ADMIN} Autor`, value: entry.metadata?.author || 'Sistema', inline: true },
+        )
+        .setTimestamp(entry.timestamp)
+        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       case LogType.API_SUCCESS:
-        return embed
-          .setTitle('✅ API Success')
-          .setColor(0x2ed573)
-          .setDescription(entry.content)
-          .addFields(
-            { name: '🔧 Serviço', value: entry.metadata?.service || 'API', inline: true },
-            { name: '⚡ Operação', value: entry.metadata?.operation || 'N/A', inline: true },
-            { name: '📊 Status', value: entry.metadata?.status || 'Success', inline: true },
-            ...(entry.metadata?.method
-              ? [{ name: '🌐 Método', value: entry.metadata.method, inline: true }]
-              : []),
-            ...(entry.metadata?.endpoint
-              ? [{ name: '🔗 Endpoint', value: entry.metadata.endpoint, inline: true }]
-              : []),
-            ...(entry.metadata?.statusCode
-              ? [{ name: '📋 Código', value: entry.metadata.statusCode.toString(), inline: true }]
-              : []),
-            ...(entry.metadata?.responseTime
-              ? [{ name: '⏱️ Tempo', value: `${entry.metadata.responseTime}ms`, inline: true }]
-              : []),
-            ...(entry.metadata?.playerId
-              ? [{ name: '🆔 Player ID', value: entry.metadata.playerId, inline: true }]
-              : []),
-            ...(entry.metadata?.playerName
-              ? [{ name: '🎮 Nome', value: entry.metadata.playerName, inline: true }]
-              : []),
-            ...(entry.metadata?.platform
-              ? [{ name: '🖥️ Plataforma', value: entry.metadata.platform, inline: true }]
-              : []),
-            ...(entry.metadata?.badgeType
-              ? [{ name: '🏆 Badge', value: entry.metadata.badgeType, inline: true }]
-              : []),
-            ...(entry.metadata?.weaponName
-              ? [{ name: '🔫 Arma', value: entry.metadata.weaponName, inline: true }]
-              : []),
-          );
+        return HawkEmbedBuilder.createSuccess(
+          'API Success',
+          `${HAWK_EMOJIS.SUCCESS} ${entry.content}`
+        )
+        .addFields(
+          { name: `${HAWK_EMOJIS.SETTINGS} Serviço`, value: entry.metadata?.service || 'API', inline: true },
+          { name: `${HAWK_EMOJIS.SETTINGS} Operação`, value: entry.metadata?.operation || 'N/A', inline: true },
+          { name: `${HAWK_EMOJIS.SUCCESS} Status`, value: entry.metadata?.status || 'Success', inline: true },
+          ...(entry.metadata?.method
+            ? [{ name: `${HAWK_EMOJIS.SETTINGS} Método`, value: entry.metadata.method, inline: true }]
+            : []),
+          ...(entry.metadata?.endpoint
+            ? [{ name: `${HAWK_EMOJIS.LINK} Endpoint`, value: entry.metadata.endpoint, inline: true }]
+            : []),
+          ...(entry.metadata?.statusCode
+            ? [{ name: `${HAWK_EMOJIS.INFO} Código`, value: entry.metadata.statusCode.toString(), inline: true }]
+            : []),
+          ...(entry.metadata?.responseTime
+            ? [{ name: `${HAWK_EMOJIS.TIMER} Tempo`, value: `${entry.metadata.responseTime}ms`, inline: true }]
+            : []),
+          ...(entry.metadata?.playerId
+            ? [{ name: `${HAWK_EMOJIS.USER} Player ID`, value: entry.metadata.playerId, inline: true }]
+            : []),
+          ...(entry.metadata?.playerName
+            ? [{ name: `${HAWK_EMOJIS.PROFILE} Nome`, value: entry.metadata.playerName, inline: true }]
+            : []),
+          ...(entry.metadata?.platform
+            ? [{ name: `${HAWK_EMOJIS.GAME} Plataforma`, value: entry.metadata.platform, inline: true }]
+            : []),
+          ...(entry.metadata?.badgeType
+            ? [{ name: `${HAWK_EMOJIS.BADGE} Badge`, value: entry.metadata.badgeType, inline: true }]
+            : []),
+          ...(entry.metadata?.weaponName
+            ? [{ name: `${HAWK_EMOJIS.WEAPON} Arma`, value: entry.metadata.weaponName, inline: true }]
+            : []),
+        )
+        .setTimestamp(entry.timestamp)
+        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       case LogType.API_ERROR:
-        return embed
-          .setTitle('❌ API Error')
-          .setColor(0xff4757)
-          .setDescription(entry.content)
-          .addFields(
-            { name: '🔧 Serviço', value: entry.metadata?.service || 'API', inline: true },
-            { name: '⚡ Operação', value: entry.metadata?.operation || 'N/A', inline: true },
-            { name: '📊 Status', value: entry.metadata?.status || 'Error', inline: true },
-            ...(entry.metadata?.method
-              ? [{ name: '🌐 Método', value: entry.metadata.method, inline: true }]
-              : []),
-            ...(entry.metadata?.endpoint
-              ? [{ name: '🔗 Endpoint', value: entry.metadata.endpoint, inline: true }]
-              : []),
-            ...(entry.metadata?.statusCode
-              ? [{ name: '📋 Código', value: entry.metadata.statusCode.toString(), inline: true }]
-              : []),
-            ...(entry.metadata?.responseTime
-              ? [{ name: '⏱️ Tempo', value: `${entry.metadata.responseTime}ms`, inline: true }]
-              : []),
-            ...(entry.metadata?.playerId
-              ? [{ name: '🆔 Player ID', value: entry.metadata.playerId, inline: true }]
-              : []),
-            ...(entry.metadata?.playerName
-              ? [{ name: '🎮 Nome', value: entry.metadata.playerName, inline: true }]
-              : []),
-            ...(entry.metadata?.platform
-              ? [{ name: '🖥️ Plataforma', value: entry.metadata.platform, inline: true }]
-              : []),
-            ...(entry.metadata?.badgeType
-              ? [{ name: '🏆 Badge', value: entry.metadata.badgeType, inline: true }]
-              : []),
-            ...(entry.metadata?.weaponName
-              ? [{ name: '🔫 Arma', value: entry.metadata.weaponName, inline: true }]
-              : []),
-            ...(entry.metadata?.error
-              ? [
-                  {
-                    name: '🚨 Erro',
-                    value: `\`\`\`${entry.metadata.error.substring(0, 1000)}\`\`\``,
-                    inline: false,
-                  },
-                ]
-              : []),
-          );
+        return HawkEmbedBuilder.createError(
+          `${HAWK_EMOJIS.LOG} API Error`,
+          entry.content
+        )
+        .addFields(
+          { name: `${HAWK_EMOJIS.LOG} Serviço`, value: entry.metadata?.service || 'API', inline: true },
+          { name: `${HAWK_EMOJIS.LOG} Operação`, value: entry.metadata?.operation || 'N/A', inline: true },
+          { name: `${HAWK_EMOJIS.LOG} Status`, value: entry.metadata?.status || 'Error', inline: true },
+          ...(entry.metadata?.method
+            ? [{ name: `${HAWK_EMOJIS.LOG} Método`, value: entry.metadata.method, inline: true }]
+            : []),
+          ...(entry.metadata?.endpoint
+            ? [{ name: `${HAWK_EMOJIS.LOG} Endpoint`, value: entry.metadata.endpoint, inline: true }]
+            : []),
+          ...(entry.metadata?.statusCode
+            ? [{ name: `${HAWK_EMOJIS.LOG} Código`, value: entry.metadata.statusCode.toString(), inline: true }]
+            : []),
+          ...(entry.metadata?.responseTime
+            ? [{ name: `${HAWK_EMOJIS.LOG} Tempo`, value: `${entry.metadata.responseTime}ms`, inline: true }]
+            : []),
+          ...(entry.metadata?.playerId
+            ? [{ name: `${HAWK_EMOJIS.LOG} Player ID`, value: entry.metadata.playerId, inline: true }]
+            : []),
+          ...(entry.metadata?.playerName
+            ? [{ name: `${HAWK_EMOJIS.LOG} Nome`, value: entry.metadata.playerName, inline: true }]
+            : []),
+          ...(entry.metadata?.platform
+            ? [{ name: `${HAWK_EMOJIS.LOG} Plataforma`, value: entry.metadata.platform, inline: true }]
+            : []),
+          ...(entry.metadata?.badgeType
+            ? [{ name: `${HAWK_EMOJIS.LOG} Badge`, value: entry.metadata.badgeType, inline: true }]
+            : []),
+          ...(entry.metadata?.weaponName
+            ? [{ name: `${HAWK_EMOJIS.LOG} Arma`, value: entry.metadata.weaponName, inline: true }]
+            : []),
+          ...(entry.metadata?.error
+            ? [
+                {
+                  name: `${HAWK_EMOJIS.LOG} Erro`,
+                  value: `\`\`\`${entry.metadata.error.substring(0, 1000)}\`\`\``,
+                  inline: false,
+                },
+              ]
+            : []),
+        )
+        .setTimestamp(entry.timestamp)
+        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       case LogType.API_REQUEST:
-        return embed
-          .setTitle('🔄 API Request')
-          .setColor(0x5352ed)
-          .setDescription(entry.content)
-          .addFields(
-            { name: '🔧 Serviço', value: entry.metadata?.service || 'API', inline: true },
-            { name: '⚡ Operação', value: entry.metadata?.operation || 'N/A', inline: true },
-            { name: '📊 Status', value: entry.metadata?.status || 'Processing', inline: true },
-            ...(entry.metadata?.method
-              ? [{ name: '🌐 Método', value: entry.metadata.method, inline: true }]
-              : []),
-            ...(entry.metadata?.endpoint
-              ? [{ name: '🔗 Endpoint', value: entry.metadata.endpoint, inline: true }]
-              : []),
-            ...(entry.metadata?.statusCode
-              ? [{ name: '📋 Código', value: entry.metadata.statusCode.toString(), inline: true }]
-              : []),
-            ...(entry.metadata?.responseTime
-              ? [{ name: '⏱️ Tempo', value: `${entry.metadata.responseTime}ms`, inline: true }]
-              : []),
-          );
+        return HawkEmbedBuilder.createInfo(
+          `${HAWK_EMOJIS.LOG} API Request`,
+          entry.content
+        )
+        .addFields(
+          { name: `${HAWK_EMOJIS.LOG} Serviço`, value: entry.metadata?.service || 'API', inline: true },
+          { name: `${HAWK_EMOJIS.LOG} Operação`, value: entry.metadata?.operation || 'N/A', inline: true },
+          { name: `${HAWK_EMOJIS.LOG} Status`, value: entry.metadata?.status || 'Processing', inline: true },
+          ...(entry.metadata?.method
+            ? [{ name: `${HAWK_EMOJIS.LOG} Método`, value: entry.metadata.method, inline: true }]
+            : []),
+          ...(entry.metadata?.endpoint
+            ? [{ name: `${HAWK_EMOJIS.LOG} Endpoint`, value: entry.metadata.endpoint, inline: true }]
+            : []),
+          ...(entry.metadata?.statusCode
+            ? [{ name: `${HAWK_EMOJIS.LOG} Código`, value: entry.metadata.statusCode.toString(), inline: true }]
+            : []),
+          ...(entry.metadata?.responseTime
+            ? [{ name: `${HAWK_EMOJIS.LOG} Tempo`, value: `${entry.metadata.responseTime}ms`, inline: true }]
+            : []),
+        )
+        .setTimestamp(entry.timestamp)
+        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       default:
-        return embed
-          .setTitle('📊 Log do Servidor')
-          .setColor(0x747d8c)
-          .setDescription(entry.content);
+        return HawkEmbedBuilder.createInfo(
+          `${HAWK_EMOJIS.LOG} Log do Servidor`,
+          entry.content
+        )
+        .setTimestamp(entry.timestamp)
+        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
     }
   }
 

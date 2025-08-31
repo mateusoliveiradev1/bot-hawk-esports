@@ -2,10 +2,6 @@ import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   ChannelType,
-  EmbedBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   TextChannel,
   Collection,
   Guild,
@@ -15,10 +11,16 @@ import {
   ChatInputCommandInteraction,
   ColorResolvable,
   MessageFlags,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
 import { Logger } from '../../utils/logger';
+import { HawkEmbedBuilder } from '../../utils/hawk-embed-builder';
+import { HAWK_EMOJIS } from '../../constants/hawk-emojis';
 
 /**
  * Clean old messages from channels
@@ -61,19 +63,16 @@ async function cleanOldMessages(guild: Guild): Promise<string> {
 /**
  * Create progress embed with visual progress bar
  */
-function createProgressEmbed(step: number, total: number, currentTask: string): EmbedBuilder {
+function createProgressEmbed(step: number, total: number, currentTask: string): any {
   const percentage = Math.round((step / total) * 100);
   const progressBar =
     '█'.repeat(Math.floor(percentage / 10)) + '░'.repeat(10 - Math.floor(percentage / 10));
 
-  return new EmbedBuilder()
-    .setTitle('🚀 Configurando Servidor Perfeito')
-    .setDescription(
-      `**${currentTask}**\n\n🔄 Progresso: ${percentage}%\n\`${progressBar}\` ${step}/${total}`,
-    )
-    .setColor(0x00d4aa as ColorResolvable)
-    .setFooter({ text: 'Criando a experiência Discord perfeita...' })
-    .setTimestamp();
+  return HawkEmbedBuilder.createInfo(
+    `${HAWK_EMOJIS.SYSTEM.ROCKET} Configurando Servidor Perfeito`,
+    `**${currentTask}**\n\n${HAWK_EMOJIS.SYSTEM.LOADING} Progresso: ${percentage}%\n\`${progressBar}\` ${step}/${total}`,
+    { footer: 'Criando a experiência Discord perfeita...' }
+  );
 }
 
 /**
@@ -82,18 +81,18 @@ function createProgressEmbed(step: number, total: number, currentTask: string): 
 const bootstrap: Command = {
   data: new SlashCommandBuilder()
     .setName('bootstrap')
-    .setDescription('🚀 Configura automaticamente o servidor com canais, cargos e conteúdos')
+    .setDescription(`${HAWK_EMOJIS.SYSTEM.ROCKET} Configura automaticamente o servidor com canais, cargos e conteúdos`)
     .addStringOption(option =>
       option
         .setName('mode')
         .setDescription('Modo de configuração')
         .setRequired(false)
         .addChoices(
-          { name: '🔧 Completo (Recomendado)', value: 'full' },
-          { name: '🏗️ Configuração Inicial', value: 'initial' },
-          { name: '📝 Apenas Canais', value: 'channels' },
-          { name: '👥 Apenas Cargos', value: 'roles' },
-          { name: '⚙️ Apenas Configurações', value: 'config' },
+          { name: `${HAWK_EMOJIS.SYSTEM.SETTINGS} Completo (Recomendado)`, value: 'full' },
+          { name: `${HAWK_EMOJIS.SYSTEM.SETUP} Configuração Inicial`, value: 'initial' },
+          { name: `${HAWK_EMOJIS.SYSTEM.CHANNEL} Apenas Canais`, value: 'channels' },
+          { name: `${HAWK_EMOJIS.USER} Apenas Cargos`, value: 'roles' },
+          { name: `${HAWK_EMOJIS.SYSTEM.CONFIG} Apenas Configurações`, value: 'config' },
         ),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)

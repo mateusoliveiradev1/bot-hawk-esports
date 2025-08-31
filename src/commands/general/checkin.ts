@@ -1,9 +1,5 @@
 import {
   SlashCommandBuilder,
-  EmbedBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   ChatInputCommandInteraction,
   CommandInteraction,
   ChannelType,
@@ -13,6 +9,10 @@ import {
   PermissionFlagsBits,
   ComponentType,
   MessageFlags,
+  EmbedBuilder,
+  ButtonStyle,
+  ActionRowBuilder,
+  ButtonBuilder,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -22,6 +22,9 @@ import { BadgeService } from '../../services/badge.service';
 import { DatabaseService } from '../../database/database.service';
 import { PresenceEnhancementsService } from '../../services/presence-enhancements.service';
 import { getChannelConfig, formatCleanupTime } from '../../config/channels.config.js';
+import { HawkEmbedBuilder } from '../../utils/hawk-embed-builder';
+import { HawkComponentFactory } from '../../utils/hawk-component-factory';
+import { HAWK_EMOJIS } from '../../constants/hawk-emojis';
 
 /**
  * Check-in command - Start presence tracking session
@@ -29,17 +32,17 @@ import { getChannelConfig, formatCleanupTime } from '../../config/channels.confi
 const checkin: Command = {
   data: new SlashCommandBuilder()
     .setName('checkin')
-    .setDescription('🎮 Fazer check-in para iniciar uma sessão de presença')
+    .setDescription(`${HAWK_EMOJIS.GAMING.CONTROLLER} Fazer check-in para iniciar uma sessão de presença`)
     .addStringOption(option =>
       option
         .setName('tipo')
         .setDescription('Tipo de sessão')
         .setRequired(true)
         .addChoices(
-          { name: '🎯 Matchmaking (MM)', value: 'mm' },
-          { name: '⚔️ Scrim', value: 'scrim' },
-          { name: '🏆 Campeonato', value: 'campeonato' },
-          { name: '🎖️ Ranked', value: 'ranked' },
+          { name: `${HAWK_EMOJIS.GAMING.GAME} Matchmaking (MM)`, value: 'mm' },
+          { name: `${HAWK_EMOJIS.GAMING.CONTROLLER} Scrim`, value: 'scrim' },
+          { name: `${HAWK_EMOJIS.TROPHY} Campeonato`, value: 'campeonato' },
+          { name: `${HAWK_EMOJIS.MEDAL} Ranked`, value: 'ranked' },
         ),
     )
     .addStringOption(option =>

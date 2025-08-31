@@ -1,15 +1,16 @@
 import {
   SlashCommandBuilder,
   EmbedBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   AttachmentBuilder,
   MessageFlags,
+  ButtonStyle,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
 import { Logger } from '../../utils/logger';
+import { HawkEmbedBuilder } from '../../utils/hawk-embed-builder';
+import { HawkComponentFactory } from '../../utils/hawk-component-factory';
+import { HAWK_EMOJIS } from '../../constants/hawk-emojis';
 import { DatabaseService } from '../../database/database.service';
 import { PUBGService } from '../../services/pubg.service';
 import { BadgeService } from '../../services/badge.service';
@@ -59,12 +60,10 @@ const profile: Command = {
       const userData = await db.users.findById(targetUser.id);
 
       if (!userData) {
-        const notFoundEmbed = new EmbedBuilder()
-          .setTitle('❌ Usuário não encontrado')
-          .setDescription(
-            `${isOwnProfile ? 'Você ainda não está' : 'Este usuário não está'} registrado no sistema.\n\nUse \`/register\` para se cadastrar!`,
-          )
-          .setColor('#FF0000');
+        const notFoundEmbed = HawkEmbedBuilder.createError(
+          `${HAWK_EMOJIS.ERROR} Usuário não encontrado`,
+          `${isOwnProfile ? 'Você ainda não está' : 'Este usuário não está'} registrado no sistema.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Use \`/register\` para se cadastrar!`
+        );
 
         await interaction.editReply({ embeds: [notFoundEmbed] });
         return;
@@ -84,11 +83,11 @@ const profile: Command = {
       ]);
 
       // Create main profile embed
-      const profileEmbed = new EmbedBuilder()
-        .setTitle(`👤 Perfil de ${targetUser.displayName}`)
-        .setThumbnail(targetUser.displayAvatarURL({ size: 256 }))
-        .setColor('#0099FF')
-        .setTimestamp();
+      const profileEmbed = HawkEmbedBuilder.createInfo(
+        `${HAWK_EMOJIS.SYSTEM.USER} Perfil de ${targetUser.displayName}`,
+        ''
+      )
+        .setThumbnail(targetUser.displayAvatarURL({ size: 256 }));
 
       // Basic info
       const createdAt = userData.createdAt
@@ -99,32 +98,32 @@ const profile: Command = {
         : 'Nunca';
 
       profileEmbed.addFields(
-        { name: '📅 Membro desde', value: createdAt, inline: true },
-        { name: '🔄 Última atualização', value: updatedAt, inline: true },
-        { name: '🎯 Nível', value: `${userData.level} (${userData.xp} XP)`, inline: true },
+        { name: `${HAWK_EMOJIS.SYSTEM.CALENDAR} Membro desde`, value: createdAt, inline: true },
+        { name: `${HAWK_EMOJIS.SYSTEM.REFRESH} Última atualização`, value: updatedAt, inline: true },
+        { name: `${HAWK_EMOJIS.SYSTEM.LEVEL} Nível`, value: `${userData.level} (${userData.xp} XP)`, inline: true },
       );
 
       // PUBG Info
       if (userData.pubgUsername) {
         const platformEmoji =
-          userData.pubgPlatform === 'steam' ? '💻' : userData.pubgPlatform === 'xbox' ? '🎮' : '🎮';
+          userData.pubgPlatform === 'steam' ? HAWK_EMOJIS.DESKTOP : userData.pubgPlatform === 'xbox' ? HAWK_EMOJIS.GAMING.CONTROLLER : HAWK_EMOJIS.GAMING.CONTROLLER;
         profileEmbed.addFields({
-          name: '🎮 PUBG',
-          value: `${platformEmoji} ${userData.pubgUsername}\n🏆 Sem rank disponível`,
+          name: `${HAWK_EMOJIS.PUBG} PUBG`,
+          value: `${platformEmoji} ${userData.pubgUsername}\n${HAWK_EMOJIS.TROPHY} Sem rank disponível`,
           inline: true,
         });
       } else {
         profileEmbed.addFields({
-          name: '🎮 PUBG',
-          value: '❌ Não registrado\nUse `/register` para cadastrar',
+          name: `${HAWK_EMOJIS.PUBG} PUBG`,
+          value: `${HAWK_EMOJIS.ERROR} Não registrado\nUse \`/register\` para cadastrar`,
           inline: true,
         });
       }
 
       // Economy
       profileEmbed.addFields({
-        name: '💰 Economia',
-        value: `🪙 ${userData.coins || 0} moedas`,
+        name: `${HAWK_EMOJIS.MONEY} Economia`,
+        value: `${HAWK_EMOJIS.COIN} ${userData.coins || 0} moedas`,
         inline: true,
       });
 
@@ -134,13 +133,13 @@ const profile: Command = {
         const badgeText = topBadges.map((badge: any) => `${badge.emoji} ${badge.name}`).join('\n');
         const totalBadges = userBadges.length;
         profileEmbed.addFields({
-          name: `🏅 Badges (${totalBadges})`,
+          name: `${HAWK_EMOJIS.BADGES.BADGE} Badges (${totalBadges})`,
           value: `${badgeText}${totalBadges > 3 ? `\n... e mais ${totalBadges - 3}` : ''}`,
           inline: true,
         });
       } else {
         profileEmbed.addFields({
-          name: '🏅 Badges (0)',
+          name: `${HAWK_EMOJIS.BADGES.BADGE} Badges (0)`,
           value: 'Nenhuma badge conquistada',
           inline: true,
         });
@@ -149,24 +148,24 @@ const profile: Command = {
       // Rankings
       if (rankingData) {
         profileEmbed.addFields({
-          name: '📊 Rankings',
-          value: `🎮 PUBG: #${rankingData.rank}/${rankingData.total}\n⭐ Interno: #${rankingData.rank}/${rankingData.total}`,
+          name: `${HAWK_EMOJIS.CHART} Rankings`,
+          value: `${HAWK_EMOJIS.PUBG} PUBG: #${rankingData.rank}/${rankingData.total}\n${HAWK_EMOJIS.STAR} Interno: #${rankingData.rank}/${rankingData.total}`,
           inline: true,
         });
       }
 
       // Presence stats not available yet
-      profileEmbed.addFields({ name: '⏰ Presença', value: 'Dados não disponíveis', inline: true });
+      profileEmbed.addFields({ name: `${HAWK_EMOJIS.CLOCK} Presença`, value: 'Dados não disponíveis', inline: true });
 
       // Activity stats
       const activityStats = [
-        `🎵 ${userData.stats?.commandsUsed || 0} comandos usados`,
-        `🎯 ${userData.stats?.gamesPlayed || 0} jogos jogados`,
-        `🎬 ${userData.stats?.clipsUploaded || 0} clips enviados`,
-        `💬 ${userData.stats?.messagesCount || 0} mensagens`,
+        `${HAWK_EMOJIS.MUSIC} ${userData.stats?.commandsUsed || 0} comandos usados`,
+        `${HAWK_EMOJIS.GAMING.TARGET} ${userData.stats?.gamesPlayed || 0} jogos jogados`,
+        `${HAWK_EMOJIS.CAMERA} ${userData.stats?.clipsUploaded || 0} clips enviados`,
+        `${HAWK_EMOJIS.MESSAGE} ${userData.stats?.messagesCount || 0} mensagens`,
       ].join('\n');
 
-      profileEmbed.addFields({ name: '📈 Atividade', value: activityStats, inline: false });
+      profileEmbed.addFields({ name: `${HAWK_EMOJIS.CHART} Atividade`, value: activityStats, inline: false });
 
       // Progress bar for next level
       const xpForNextLevel = (userData.level + 1) * 1000; // Simple formula
@@ -175,58 +174,63 @@ const profile: Command = {
       const progressBar = createProgressBar(progressPercentage, 20);
 
       profileEmbed.addFields({
-        name: '📊 Progresso para o próximo nível',
+        name: `${HAWK_EMOJIS.PROGRESS} Progresso para o próximo nível`,
         value: `${progressBar} ${progressPercentage}%\n${xpProgress}/1000 XP`,
         inline: false,
       });
 
       // Footer with additional info
       profileEmbed.setFooter({
-        text: `ID: ${targetUser.id} • ${isOwnProfile ? 'Seu perfil' : `Perfil de ${targetUser.username}`}`,
+        text: `${HAWK_EMOJIS.SYSTEM.ID} ID: ${targetUser.id} • ${isOwnProfile ? 'Seu perfil' : `Perfil de ${targetUser.username}`}`,
         iconURL: client.user?.displayAvatarURL(),
       });
 
       // Create action buttons
-      const buttonsRow = new ActionRowBuilder<ButtonBuilder>();
+      let buttonsRow;
 
       if (isOwnProfile) {
-        buttonsRow.addComponents(
-          new ButtonBuilder()
-            .setCustomId('profile_badges')
-            .setLabel('Ver Badges')
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji('🏅'),
-          new ButtonBuilder()
-            .setCustomId('profile_stats')
-            .setLabel('Estatísticas PUBG')
-            .setStyle(ButtonStyle.Secondary)
-            .setEmoji('🎮')
-            .setDisabled(!userData.pubgUsername),
-          new ButtonBuilder()
-            .setCustomId('profile_achievements')
-            .setLabel('Conquistas')
-            .setStyle(ButtonStyle.Secondary)
-            .setEmoji('🏆'),
-          new ButtonBuilder()
-            .setLabel('Dashboard')
-            .setStyle(ButtonStyle.Link)
-            .setURL('https://your-dashboard-url.com/profile')
-            .setEmoji('🌐'),
-        );
+        buttonsRow = HawkComponentFactory.createButtonRow([
+          HawkComponentFactory.createButton({
+              customId: 'profile_badges',
+              label: 'Ver Badges',
+              style: ButtonStyle.Primary,
+              emoji: HAWK_EMOJIS.BADGE
+            }),
+          HawkComponentFactory.createButton({
+               customId: 'profile_pubg',
+               label: 'Estatísticas PUBG',
+               style: ButtonStyle.Secondary,
+               emoji: HAWK_EMOJIS.PUBG,
+               disabled: !userData.pubgUsername
+             }),
+           HawkComponentFactory.createButton({
+              customId: 'profile_achievements',
+              label: 'Conquistas',
+              style: ButtonStyle.Secondary,
+              emoji: HAWK_EMOJIS.TROPHY
+            }),
+           HawkComponentFactory.createLinkButton(
+             'Dashboard',
+             'https://your-dashboard-url.com/profile',
+             HAWK_EMOJIS.WEB
+           )
+         ]);
       } else {
-        buttonsRow.addComponents(
-          new ButtonBuilder()
-            .setCustomId('profile_badges')
-            .setLabel('Ver Badges')
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji('🏅'),
-          new ButtonBuilder()
-            .setCustomId('profile_compare')
-            .setLabel('Comparar')
-            .setStyle(ButtonStyle.Secondary)
-            .setEmoji('⚖️'),
-        );
-      }
+         buttonsRow = HawkComponentFactory.createButtonRow([
+           HawkComponentFactory.createButton({
+              customId: 'profile_badges_other',
+              label: 'Ver Badges',
+              style: ButtonStyle.Primary,
+              emoji: HAWK_EMOJIS.BADGE
+            }),
+           HawkComponentFactory.createButton({
+              customId: 'profile_compare',
+              label: 'Comparar',
+              style: ButtonStyle.Secondary,
+              emoji: HAWK_EMOJIS.MONEY
+            })
+         ]);
+       }
 
       const response = await interaction.editReply({
         embeds: [profileEmbed],
@@ -241,7 +245,7 @@ const profile: Command = {
       collector.on('collect', async (i: any) => {
         if (i.user.id !== interaction.user.id) {
           await i.reply({
-            content: '❌ Apenas quem executou o comando pode usar estes botões.',
+            content: `${HAWK_EMOJIS.ERROR} Apenas quem executou o comando pode usar estes botões.`,
             ephemeral: true,
           });
           return;
@@ -301,18 +305,17 @@ const profile: Command = {
  * Create badges embed
  */
 async function createBadgesEmbed(user: any, badges: any[]): Promise<EmbedBuilder> {
-  const embed = new EmbedBuilder()
-    .setTitle(`🏅 Badges de ${user.displayName}`)
-    .setThumbnail(user.displayAvatarURL())
-    .setColor('#FFD700')
-    .setTimestamp();
-
   if (badges.length === 0) {
-    embed.setDescription(
-      'Este usuário ainda não possui badges.\n\nParticipe das atividades do servidor para conquistar badges!',
-    );
-    return embed;
+    return HawkEmbedBuilder.createWarning(
+      `${HAWK_EMOJIS.BADGE} Badges de ${user.displayName}`,
+      'Este usuário ainda não possui badges.\n\nParticipe das atividades do servidor para conquistar badges!'
+    ).setThumbnail(user.displayAvatarURL());
   }
+
+  const embed = HawkEmbedBuilder.createSuccess(
+    `${HAWK_EMOJIS.BADGE} Badges de ${user.displayName}`,
+    ''
+  ).setThumbnail(user.displayAvatarURL());
 
   // Group badges by category
   const categories: { [key: string]: any[] } = {};
@@ -337,7 +340,7 @@ async function createBadgesEmbed(user: any, badges: any[]): Promise<EmbedBuilder
     });
   });
 
-  embed.setFooter({ text: `Total: ${badges.length} badges conquistadas` });
+  embed.setFooter({ text: `${HAWK_EMOJIS.SYSTEM.COUNT} Total: ${badges.length} badges conquistadas` });
 
   return embed;
 }
@@ -346,29 +349,28 @@ async function createBadgesEmbed(user: any, badges: any[]): Promise<EmbedBuilder
  * Create PUBG stats embed
  */
 async function createPUBGStatsEmbed(user: any, stats: any, userData: any): Promise<EmbedBuilder> {
-  const embed = new EmbedBuilder()
-    .setTitle(`🎮 Estatísticas PUBG - ${user.displayName}`)
-    .setThumbnail(user.displayAvatarURL())
-    .setColor('#FF6B35')
-    .setTimestamp();
+  const embed = HawkEmbedBuilder.createInfo(
+    `${HAWK_EMOJIS.PUBG} Estatísticas PUBG - ${user.displayName}`,
+    ''
+  ).setThumbnail(user.displayAvatarURL());
 
   // Current season stats
   if (stats.currentSeason) {
     const season = stats.currentSeason;
     embed.addFields(
       {
-        name: '🏆 Temporada Atual',
-        value: `**${season.seasonId}**\n🥇 Rank: ${season.tier}\n📊 RP: ${season.rankPoints}`,
+        name: `${HAWK_EMOJIS.TROPHY} Temporada Atual`,
+        value: `**${season.seasonId}**\n${HAWK_EMOJIS.CROWN} Rank: ${season.tier}\n${HAWK_EMOJIS.CHART} RP: ${season.rankPoints}`,
         inline: true,
       },
       {
-        name: '🎯 Partidas',
-        value: `🎮 Jogadas: ${season.roundsPlayed}\n🏆 Vitórias: ${season.wins}\n📈 Top 10: ${season.top10s}`,
+        name: `${HAWK_EMOJIS.GAMING.TARGET} Partidas`,
+        value: `${HAWK_EMOJIS.PUBG} Jogadas: ${season.roundsPlayed}\n${HAWK_EMOJIS.TROPHY} Vitórias: ${season.wins}\n${HAWK_EMOJIS.CHART} Top 10: ${season.top10s}`,
         inline: true,
       },
       {
-        name: '⚔️ Combate',
-        value: `💀 Kills: ${season.kills}\n💥 Dano: ${Math.round(season.damageDealt)}\n🎯 K/D: ${season.kdr?.toFixed(2)}`,
+        name: `${HAWK_EMOJIS.WEAPON} Combate`,
+        value: `${HAWK_EMOJIS.KILL} Kills: ${season.kills}\n${HAWK_EMOJIS.DAMAGE} Dano: ${Math.round(season.damageDealt)}\n${HAWK_EMOJIS.GAMING.TARGET} K/D: ${season.kdr?.toFixed(2)}`,
         inline: true,
       },
     );
@@ -379,18 +381,18 @@ async function createPUBGStatsEmbed(user: any, stats: any, userData: any): Promi
     const lifetime = stats.lifetime;
     embed.addFields(
       {
-        name: '📊 Estatísticas Gerais',
-        value: `🎮 Partidas: ${lifetime.roundsPlayed}\n🏆 Vitórias: ${lifetime.wins}\n💀 Kills: ${lifetime.kills}`,
+        name: `${HAWK_EMOJIS.CHART} Estatísticas Gerais`,
+        value: `${HAWK_EMOJIS.PUBG} Partidas: ${lifetime.roundsPlayed}\n${HAWK_EMOJIS.TROPHY} Vitórias: ${lifetime.wins}\n${HAWK_EMOJIS.KILL} Kills: ${lifetime.kills}`,
         inline: true,
       },
       {
-        name: '🏅 Performance',
-        value: `🎯 K/D: ${lifetime.kdr?.toFixed(2)}\n💥 Dano Médio: ${Math.round(lifetime.avgDamage)}\n⏱️ Sobrevivência: ${Math.round(lifetime.avgSurvivalTime)}min`,
+        name: `${HAWK_EMOJIS.BADGES.PERFORMANCE} Performance`,
+        value: `${HAWK_EMOJIS.GAMING.TARGET} K/D: ${lifetime.kdr?.toFixed(2)}\n${HAWK_EMOJIS.GAMING.TARGET} Dano Médio: ${Math.round(lifetime.avgDamage)}\n${HAWK_EMOJIS.SYSTEM.CLOCK} Sobrevivência: ${Math.round(lifetime.avgSurvivalTime)}min`,
         inline: true,
       },
       {
-        name: '🎖️ Conquistas',
-        value: `🥇 Chicken Dinners: ${lifetime.wins}\n📈 Top 10: ${lifetime.top10s}\n🔫 Headshots: ${lifetime.headshotKills}`,
+        name: `${HAWK_EMOJIS.BADGES.ACHIEVEMENT} Conquistas`,
+        value: `${HAWK_EMOJIS.TROPHY} Chicken Dinners: ${lifetime.wins}\n${HAWK_EMOJIS.CHART} Top 10: ${lifetime.top10s}\n${HAWK_EMOJIS.GAMING.TARGET} Headshots: ${lifetime.headshotKills}`,
         inline: true,
       },
     );
@@ -417,11 +419,10 @@ async function createPUBGStatsEmbed(user: any, stats: any, userData: any): Promi
  * Create achievements embed
  */
 async function createAchievementsEmbed(user: any, userData: any): Promise<EmbedBuilder> {
-  const embed = new EmbedBuilder()
-    .setTitle(`🏆 Conquistas de ${user.displayName}`)
-    .setThumbnail(user.displayAvatarURL())
-    .setColor('#9B59B6')
-    .setTimestamp();
+  const embed = HawkEmbedBuilder.createInfo(
+    `${HAWK_EMOJIS.ACHIEVEMENT} Conquistas de ${user.displayName}`,
+    ''
+  ).setThumbnail(user.displayAvatarURL());
 
   // Mock achievements data - replace with actual data from database
   const achievements = [
@@ -464,18 +465,18 @@ async function createAchievementsEmbed(user: any, userData: any): Promise<EmbedB
   const pending = achievements.filter(a => !a.completed);
 
   if (completed.length > 0) {
-    const completedList = completed.map(a => `✅ **${a.name}**\n${a.description}`).join('\n\n');
+    const completedList = completed.map(a => `${HAWK_EMOJIS.SUCCESS} **${a.name}**\n${a.description}`).join('\n\n');
     embed.addFields({
-      name: `🏆 Conquistadas (${completed.length})`,
+      name: `${HAWK_EMOJIS.ACHIEVEMENT} Conquistadas (${completed.length})`,
       value: completedList,
       inline: false,
     });
   }
 
   if (pending.length > 0) {
-    const pendingList = pending.map(a => `⏳ **${a.name}**\n${a.description}`).join('\n\n');
+    const pendingList = pending.map(a => `${HAWK_EMOJIS.CLOCK} **${a.name}**\n${a.description}`).join('\n\n');
     embed.addFields({
-      name: `⏳ Em Progresso (${pending.length})`,
+      name: `${HAWK_EMOJIS.CLOCK} Em Progresso (${pending.length})`,
       value: pendingList,
       inline: false,
     });
@@ -485,7 +486,7 @@ async function createAchievementsEmbed(user: any, userData: any): Promise<EmbedB
   const progressBar = createProgressBar(progressPercentage, 20);
 
   embed.addFields({
-    name: '📊 Progresso Geral',
+    name: `${HAWK_EMOJIS.PROGRESS} Progresso Geral`,
     value: `${progressBar} ${progressPercentage}%\n${completed.length}/${achievements.length} conquistas`,
     inline: false,
   });
