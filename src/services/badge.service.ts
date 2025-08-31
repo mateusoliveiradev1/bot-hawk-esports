@@ -112,31 +112,31 @@ export class BadgeService {
       REWARDS: {
         XP: (amount: number) => `+${amount} XP`,
         COINS: (amount: number) => `+${amount} moedas`,
-        ROLE: (roleName: string) => `Cargo desbloqueado: ${roleName}`
-      }
+        ROLE: (roleName: string) => `Cargo desbloqueado: ${roleName}`,
+      },
     },
     BADGE_REMOVED: {
       TITLE: '🗑️ Badge Removida',
-      DESCRIPTION: (badgeName: string) => `A badge **${badgeName}** foi removida da sua coleção.`
+      DESCRIPTION: (badgeName: string) => `A badge **${badgeName}** foi removida da sua coleção.`,
     },
     ERRORS: {
       BADGE_NOT_FOUND: (badgeId: string) => `Badge ${badgeId} não encontrada`,
       USER_ALREADY_HAS_BADGE: (userId: string, badgeId: string) => `Usuário ${userId} já possui a badge ${badgeId}`,
       USER_DOESNT_HAVE_BADGE: (userId: string, badgeId: string) => `Usuário ${userId} não possui a badge ${badgeId}`,
       DATABASE_ERROR: (operation: string, error: string) => `Erro no banco de dados durante ${operation}: ${error}`,
-      CACHE_ERROR: (operation: string, error: string) => `Erro no cache durante ${operation}: ${error}`
+      CACHE_ERROR: (operation: string, error: string) => `Erro no cache durante ${operation}: ${error}`,
     },
     SUCCESS: {
       BADGE_AWARDED: (badgeName: string, userId: string) => `🏆 Badge '${badgeName}' concedida ao usuário ${userId}`,
       BADGE_REMOVED: (badgeId: string, userId: string) => `🗑️ Badge ${badgeId} removida do usuário ${userId}`,
       CACHE_CLEARED: (userId?: string) => `🧹 Cache de badges limpo${userId ? ` para usuário ${userId}` : ' globalmente'}`,
-      WEEKLY_BADGES_PROCESSED: (awarded: number, removed: number) => `📅 Badges semanais processadas: ${awarded} concedidas, ${removed} removidas`
+      WEEKLY_BADGES_PROCESSED: (awarded: number, removed: number) => `📅 Badges semanais processadas: ${awarded} concedidas, ${removed} removidas`,
     },
     INFO: {
       PROGRESS_UPDATED: (userId: string, requirementType: string, value: number) => `📊 Progresso atualizado para ${userId}: ${requirementType} = ${value}`,
       VALIDATION_STARTED: 'Iniciando validação automática de badges...',
-      WEEKLY_PROCESSOR_STARTED: 'Processador de badges semanais iniciado'
-    }
+      WEEKLY_PROCESSOR_STARTED: 'Processador de badges semanais iniciado',
+    },
   };
 
   constructor(client: ExtendedClient, xpService: XPService, loggingService: LoggingService) {
@@ -841,7 +841,7 @@ export class BadgeService {
           `${this.MESSAGES.BADGE_REMOVED.DESCRIPTION(badge.name)}\n\n` +
           `${badge.icon} **${badge.name}**\n` +
           `${badge.description}\n\n` +
-          `**Motivo:** Requisitos não atendidos\n` +
+          '**Motivo:** Requisitos não atendidos\n' +
           `**Raridade:** ${this.getRarityEmoji(badge.rarity)} ${badge.rarity.toUpperCase()}`,
         )
         .setColor('#E74C3C') // Red color for removal
@@ -902,7 +902,7 @@ export class BadgeService {
         if (cached) {
           return JSON.parse(cached as string).map((badgeData: any) => ({
             ...badgeData,
-            createdAt: new Date(badgeData.createdAt)
+            createdAt: new Date(badgeData.createdAt),
           }));
         }
       } catch (error) {
@@ -1074,7 +1074,7 @@ export class BadgeService {
   public async validateUserBadges(userId: string, userStats: Record<string, number>): Promise<void> {
     try {
       const userBadgeSet = this.userBadges.get(userId);
-      if (!userBadgeSet) return;
+      if (!userBadgeSet) {return;}
 
       const badgesToRemove: string[] = [];
 
@@ -1228,7 +1228,7 @@ export class BadgeService {
         'clip_uploaded': 'clips_uploaded',
         'clip_voted': 'clips_votes',
         'check_in': 'check_ins',
-        'consecutive_day': 'consecutive_days'
+        'consecutive_day': 'consecutive_days',
       };
       
       const mappedType = activityMappings[activityType];
@@ -1250,7 +1250,7 @@ export class BadgeService {
         wins: pubgStats.wins || 0,
         games: pubgStats.games || 0,
         damage: pubgStats.damage || 0,
-        headshots: pubgStats.headshots || 0
+        headshots: pubgStats.headshots || 0,
       };
       
       // Update all PUBG-related progress
@@ -1285,16 +1285,16 @@ export class BadgeService {
               type: 'rank',
               operator: 'eq',
               value: 1,
-              timeframe: 'weekly'
-            }
+              timeframe: 'weekly',
+            },
           ],
           rewards: {
             xp: 500,
             coins: 1000,
-            role: 'weekly_champion'
+            role: 'weekly_champion',
           },
           isSecret: false,
-          isActive: true
+          isActive: true,
         },
         {
           id: 'mvp_pubg_weekly',
@@ -1308,15 +1308,15 @@ export class BadgeService {
               type: 'wins',
               operator: 'gte',
               value: 10,
-              timeframe: 'weekly'
-            }
+              timeframe: 'weekly',
+            },
           ],
           rewards: {
             xp: 300,
-            coins: 500
+            coins: 500,
           },
           isSecret: false,
-          isActive: true
+          isActive: true,
         },
         {
           id: 'rapid_evolution',
@@ -1330,16 +1330,16 @@ export class BadgeService {
               type: 'level',
               operator: 'gte',
               value: 3,
-              timeframe: 'weekly'
-            }
+              timeframe: 'weekly',
+            },
           ],
           rewards: {
             xp: 200,
-            coins: 300
+            coins: 300,
           },
           isSecret: false,
-          isActive: true
-        }
+          isActive: true,
+        },
       ];
       
       for (const badgeData of weeklyBadges) {
@@ -1372,10 +1372,10 @@ export class BadgeService {
           {
             type: 'weekly',
             startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-            endDate: new Date()
+            endDate: new Date(),
           },
           'level',
-          50
+          50,
         );
         
         // Remove previous weekly badges
@@ -1974,7 +1974,7 @@ export class BadgeService {
         const patterns = [
           'user_badges:*',
           'has_badge:*',
-          'badges:*'
+          'badges:*',
         ];
         
         for (const pattern of patterns) {
