@@ -198,8 +198,8 @@ describe('RankService', () => {
        
        // Mock para PUBGStats aggregate e count
        (mockDatabaseService.client as any).pUBGStats = {
-         aggregate: jest.fn().mockResolvedValue(mockAggregate),
-         count: jest.fn().mockResolvedValue(10)
+         aggregate: jest.fn().mockResolvedValue(mockAggregate as any),
+         count: jest.fn().mockResolvedValue(10 as any)
        };
 
       const result = await rankService.getRankStatistics();

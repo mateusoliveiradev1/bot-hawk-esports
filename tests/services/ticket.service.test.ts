@@ -76,7 +76,7 @@ describe('TicketService', () => {
            fetch: jest.fn().mockResolvedValue(new Map([[
           'user123',
           { user: { id: 'user123', username: 'testuser' } }
-        ]])) as any
+        ]]) as any) as any
          }
        };
        

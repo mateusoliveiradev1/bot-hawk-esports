@@ -66,6 +66,7 @@ describe('Ticket Flow Integration', () => {
   describe('Fluxo completo de ticket', () => {
     it('deve criar ticket, processar interações e fechar com recompensa XP', async () => {
       // Dados do teste
+      const guildId = 'guild123';
       const userId = 'user123';
       const channelId = 'channel123';
       const staffId = 'staff456';
