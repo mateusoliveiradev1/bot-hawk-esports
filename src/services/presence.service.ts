@@ -121,7 +121,7 @@ export class PresenceService {
     this.cache = client.cache;
     this.database = client.database;
     this.badgeService =
-      (client as any).services?.badge || new BadgeService(client, (client as any).services?.xp);
+      (client as any).services?.badge || new BadgeService(client, (client as any).services?.xp, (client as any).services?.logging);
     this.pubgService = client.pubgService; // Added PUBG service integration
     this.client = client;
 

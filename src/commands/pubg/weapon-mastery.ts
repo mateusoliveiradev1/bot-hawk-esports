@@ -74,11 +74,19 @@ export default {
       console.error('Error in weapon-mastery command:', error);
 
       // Log detalhado para o canal de logs da API
-      if (client.services?.pubg) {
-        await client.services.pubg.logToChannel(
-          '❌ Erro no Comando Weapon Mastery',
-          `**Usuário:** ${interaction.user.tag}\n**Subcomando:** ${subcommand}\n**Erro:** ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
-          'error'
+      if (client.services?.logging) {
+        await client.services.logging.logApiOperation(
+          interaction.guildId!,
+          'WeaponMastery',
+          'weapon_mastery_command',
+          false,
+          error instanceof Error ? error.message : 'Erro desconhecido',
+          undefined,
+          {
+            userId: interaction.user.id,
+            command: 'weapon-mastery',
+            subcommand,
+          }
         );
       }
 

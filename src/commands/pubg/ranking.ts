@@ -371,10 +371,18 @@ const ranking: Command = {
 
       // Log detalhado para o canal de logs da API se for erro relacionado ao PUBG
       if (client.services?.pubg && rankingType.startsWith('pubg_')) {
-        await client.services.pubg.logToChannel(
-          '❌ Erro no Ranking PUBG',
-          `**Usuário:** ${interaction.user.tag}\n**Tipo:** ${rankingType}\n**Página:** ${page}\n**Erro:** ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
-          'error'
+        await client.services.logging?.logApiOperation(
+          interaction.guildId!,
+          'PUBG',
+          'get_pubg_ranking',
+          false,
+          interaction.user.id,
+          error instanceof Error ? error.message : 'Erro desconhecido',
+          {
+            rankingType,
+            page,
+            command: 'ranking',
+          }
         );
       }
 

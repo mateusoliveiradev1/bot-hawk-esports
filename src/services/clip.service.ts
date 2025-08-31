@@ -161,13 +161,13 @@ export class ClipService {
       // Initialize badge service with fallback
       try {
         this.badgeService =
-          (client as any).services?.badge || new BadgeService(client, (client as any).services?.xp);
+          (client as any).services?.badge || new BadgeService(client, (client as any).services?.xp, (client as any).services?.logging);
       } catch (badgeError) {
         this.logger.warn(
           'Failed to initialize BadgeService, creating fallback instance:',
           badgeError
         );
-        this.badgeService = new BadgeService(client, (client as any).services?.xp);
+        this.badgeService = new BadgeService(client, (client as any).services?.xp, (client as any).services?.logging);
       }
 
       // Initialize directories and data

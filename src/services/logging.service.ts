@@ -30,6 +30,7 @@ export interface LogConfig {
     voice?: string;
     server?: string;
     changelog?: string;
+    api?: string;
   };
   events: {
     messageDelete: boolean;
@@ -100,6 +101,9 @@ export enum LogType {
   TICKET_CREATE = 'ticket_create',
   TICKET_CLOSE = 'ticket_close',
   CHANGELOG = 'changelog',
+  API_REQUEST = 'api_request',
+  API_ERROR = 'api_error',
+  API_SUCCESS = 'api_success',
 }
 
 export interface ModerationLogData {
@@ -464,6 +468,11 @@ export class LoggingService {
         case LogType.CHANGELOG:
           return config.channels.changelog;
 
+        case LogType.API_REQUEST:
+        case LogType.API_ERROR:
+        case LogType.API_SUCCESS:
+          return config.channels.api;
+
         default:
           return config.channels.server;
       }
@@ -614,6 +623,114 @@ export class LoggingService {
             { name: '🏷️ Versão', value: entry.metadata?.version || 'N/A', inline: true },
             { name: '📝 Tipo', value: entry.metadata?.type || 'N/A', inline: true },
             { name: '👤 Autor', value: entry.metadata?.author || 'Sistema', inline: true }
+          );
+
+      case LogType.API_SUCCESS:
+        return embed
+          .setTitle('✅ API Success')
+          .setColor(0x2ed573)
+          .setDescription(entry.content)
+          .addFields(
+            { name: '🔧 Serviço', value: entry.metadata?.service || 'API', inline: true },
+            { name: '⚡ Operação', value: entry.metadata?.operation || 'N/A', inline: true },
+            { name: '📊 Status', value: entry.metadata?.status || 'Success', inline: true },
+            ...(entry.metadata?.method
+              ? [{ name: '🌐 Método', value: entry.metadata.method, inline: true }]
+              : []),
+            ...(entry.metadata?.endpoint
+              ? [{ name: '🔗 Endpoint', value: entry.metadata.endpoint, inline: true }]
+              : []),
+            ...(entry.metadata?.statusCode
+              ? [{ name: '📋 Código', value: entry.metadata.statusCode.toString(), inline: true }]
+              : []),
+            ...(entry.metadata?.responseTime
+              ? [{ name: '⏱️ Tempo', value: `${entry.metadata.responseTime}ms`, inline: true }]
+              : []),
+            ...(entry.metadata?.playerId
+              ? [{ name: '🆔 Player ID', value: entry.metadata.playerId, inline: true }]
+              : []),
+            ...(entry.metadata?.playerName
+              ? [{ name: '🎮 Nome', value: entry.metadata.playerName, inline: true }]
+              : []),
+            ...(entry.metadata?.platform
+              ? [{ name: '🖥️ Plataforma', value: entry.metadata.platform, inline: true }]
+              : []),
+            ...(entry.metadata?.badgeType
+              ? [{ name: '🏆 Badge', value: entry.metadata.badgeType, inline: true }]
+              : []),
+            ...(entry.metadata?.weaponName
+              ? [{ name: '🔫 Arma', value: entry.metadata.weaponName, inline: true }]
+              : [])
+          );
+
+      case LogType.API_ERROR:
+        return embed
+          .setTitle('❌ API Error')
+          .setColor(0xff4757)
+          .setDescription(entry.content)
+          .addFields(
+            { name: '🔧 Serviço', value: entry.metadata?.service || 'API', inline: true },
+            { name: '⚡ Operação', value: entry.metadata?.operation || 'N/A', inline: true },
+            { name: '📊 Status', value: entry.metadata?.status || 'Error', inline: true },
+            ...(entry.metadata?.method
+              ? [{ name: '🌐 Método', value: entry.metadata.method, inline: true }]
+              : []),
+            ...(entry.metadata?.endpoint
+              ? [{ name: '🔗 Endpoint', value: entry.metadata.endpoint, inline: true }]
+              : []),
+            ...(entry.metadata?.statusCode
+              ? [{ name: '📋 Código', value: entry.metadata.statusCode.toString(), inline: true }]
+              : []),
+            ...(entry.metadata?.responseTime
+              ? [{ name: '⏱️ Tempo', value: `${entry.metadata.responseTime}ms`, inline: true }]
+              : []),
+            ...(entry.metadata?.playerId
+              ? [{ name: '🆔 Player ID', value: entry.metadata.playerId, inline: true }]
+              : []),
+            ...(entry.metadata?.playerName
+              ? [{ name: '🎮 Nome', value: entry.metadata.playerName, inline: true }]
+              : []),
+            ...(entry.metadata?.platform
+              ? [{ name: '🖥️ Plataforma', value: entry.metadata.platform, inline: true }]
+              : []),
+            ...(entry.metadata?.badgeType
+              ? [{ name: '🏆 Badge', value: entry.metadata.badgeType, inline: true }]
+              : []),
+            ...(entry.metadata?.weaponName
+              ? [{ name: '🔫 Arma', value: entry.metadata.weaponName, inline: true }]
+              : []),
+            ...(entry.metadata?.error
+              ? [
+                  {
+                    name: '🚨 Erro',
+                    value: `\`\`\`${entry.metadata.error.substring(0, 1000)}\`\`\``,
+                    inline: false,
+                  },
+                ]
+              : [])
+          );
+
+      case LogType.API_REQUEST:
+        return embed
+          .setTitle('🔄 API Request')
+          .setColor(0x5352ed)
+          .setDescription(entry.content)
+          .addFields(
+            { name: '🔧 Serviço', value: entry.metadata?.service || 'API', inline: true },
+            { name: '⚡ Operação', value: entry.metadata?.operation || 'N/A', inline: true },
+            { name: '📊 Status', value: entry.metadata?.status || 'Processing', inline: true },
+            ...(entry.metadata?.method
+              ? [{ name: '🌐 Método', value: entry.metadata.method, inline: true }]
+              : []),
+            ...(entry.metadata?.endpoint
+              ? [{ name: '🔗 Endpoint', value: entry.metadata.endpoint, inline: true }]
+              : []),
+            ...(entry.metadata?.statusCode
+              ? [{ name: '📋 Código', value: entry.metadata.statusCode.toString(), inline: true }]
+              : []),
+            ...(entry.metadata?.responseTime
+              ? [{ name: '⏱️ Tempo', value: `${entry.metadata.responseTime}ms`, inline: true }]
+              : [])
           );
 
       default:
@@ -1281,6 +1398,169 @@ export class LoggingService {
         configuredGuilds: 0,
       };
     }
+  }
+
+  /**
+   * Log API request
+   */
+  public async logApiRequest(
+    guildId: string,
+    method: string,
+    endpoint: string,
+    statusCode: number,
+    responseTime: number,
+    userId?: string,
+    additionalData?: any
+  ): Promise<void> {
+    const logType = statusCode >= 400 ? LogType.API_ERROR : LogType.API_SUCCESS;
+    const status = statusCode >= 400 ? 'Error' : 'Success';
+
+    await this.queueLog({
+      guildId,
+      type: logType,
+      userId,
+      content: `API ${method} ${endpoint} - ${statusCode}`,
+      metadata: {
+        method,
+        endpoint,
+        statusCode,
+        responseTime,
+        status,
+        timestamp: new Date().toISOString(),
+        ...additionalData,
+      },
+    });
+  }
+
+  /**
+   * Log PUBG API operation
+   */
+  public async logPubgApi(
+    guildId: string,
+    operation: string,
+    playerId?: string,
+    playerName?: string,
+    platform?: string,
+    success: boolean = true,
+    responseTime?: number,
+    error?: string,
+    additionalData?: any
+  ): Promise<void> {
+    const logType = success ? LogType.API_SUCCESS : LogType.API_ERROR;
+    const status = success ? 'Success' : 'Error';
+
+    await this.queueLog({
+      guildId,
+      type: logType,
+      content: `PUBG API ${operation} - ${status}`,
+      metadata: {
+        service: 'PUBG',
+        operation,
+        playerId,
+        playerName,
+        platform,
+        status,
+        responseTime,
+        error,
+        timestamp: new Date().toISOString(),
+        ...additionalData,
+      },
+    });
+  }
+
+  /**
+   * Log badge system operation
+   */
+  public async logBadgeOperation(
+    guildId: string,
+    operation: string,
+    userId: string,
+    badgeType?: string,
+    success: boolean = true,
+    error?: string,
+    additionalData?: any
+  ): Promise<void> {
+    const logType = success ? LogType.API_SUCCESS : LogType.API_ERROR;
+    const status = success ? 'Success' : 'Error';
+
+    await this.queueLog({
+      guildId,
+      type: logType,
+      userId,
+      content: `Badge ${operation} - ${status}`,
+      metadata: {
+        service: 'Badge System',
+        operation,
+        badgeType,
+        status,
+        error,
+        timestamp: new Date().toISOString(),
+        ...additionalData,
+      },
+    });
+  }
+
+  /**
+   * Log weapon mastery operation
+   */
+  public async logWeaponMastery(
+    guildId: string,
+    operation: string,
+    userId: string,
+    weaponName?: string,
+    success: boolean = true,
+    error?: string,
+    additionalData?: any
+  ): Promise<void> {
+    const logType = success ? LogType.API_SUCCESS : LogType.API_ERROR;
+    const status = success ? 'Success' : 'Error';
+
+    await this.queueLog({
+      guildId,
+      type: logType,
+      userId,
+      content: `Weapon Mastery ${operation} - ${status}`,
+      metadata: {
+        service: 'Weapon Mastery',
+        operation,
+        weaponName,
+        status,
+        error,
+        timestamp: new Date().toISOString(),
+        ...additionalData,
+      },
+    });
+  }
+
+  /**
+   * Log general API operation with custom service name
+   */
+  public async logApiOperation(
+    guildId: string,
+    serviceName: string,
+    operation: string,
+    success: boolean = true,
+    userId?: string,
+    error?: string,
+    additionalData?: any
+  ): Promise<void> {
+    const logType = success ? LogType.API_SUCCESS : LogType.API_ERROR;
+    const status = success ? 'Success' : 'Error';
+
+    await this.queueLog({
+      guildId,
+      type: logType,
+      userId,
+      content: `${serviceName} ${operation} - ${status}`,
+      metadata: {
+        service: serviceName,
+        operation,
+        status,
+        error,
+        timestamp: new Date().toISOString(),
+        ...additionalData,
+      },
+    });
   }
 
   /**

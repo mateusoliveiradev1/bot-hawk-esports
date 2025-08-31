@@ -5,6 +5,7 @@ import { PUBGService } from './pubg.service';
 import { PunishmentService } from './punishment.service';
 import { PresenceService } from './presence.service';
 import { BadgeService } from './badge.service';
+import { LoggingService } from './logging.service';
 import { EmbedBuilder, TextChannel, GuildMember } from 'discord.js';
 import { PUBGPlatform, PUBGGameMode } from '../types/pubg';
 
@@ -54,6 +55,7 @@ export class PresenceEnhancementsService {
   private punishmentService: PunishmentService;
   private presenceService: PresenceService;
   private badgeService: BadgeService;
+  private loggingService: LoggingService;
 
   private enhancements: Map<string, PresenceEnhancement[]> = new Map(); // userId -> enhancements
   private pubgValidations: Map<string, PUBGPresenceValidation> = new Map(); // userId -> validation
@@ -69,7 +71,8 @@ export class PresenceEnhancementsService {
     this.pubgService = new PUBGService(client.cache);
     this.punishmentService = new PunishmentService(client, client.database);
     this.presenceService = new PresenceService(client);
-    this.badgeService = new BadgeService(client, (client as any).xpService);
+    this.loggingService = new LoggingService(client, client.database);
+    this.badgeService = new BadgeService(client, (client as any).xpService, this.loggingService);
 
     this.autoPunishmentConfig = {
       enabled: true,
@@ -159,13 +162,16 @@ export class PresenceEnhancementsService {
 
       // Check PUBG service availability
       if (!(await this.pubgService.isAPIAvailable())) {
-        await this.logToChannel('⚠️ PUBG Service Unavailable', {
-          event: 'PUBG Validation',
-          status: 'Warning',
-          userId,
-          message: 'PUBG service is not available for validation',
-          details: { reason: 'Service unavailable' },
-        });
+        await this.logPresenceEnhancementOperation(
+          'PUBG Validation',
+          'warning',
+          'PUBG service is not available for validation',
+          {
+            userId,
+            reason: 'Service unavailable',
+            event: 'PUBG Validation',
+          }
+        );
 
         validation = {
           userId,
@@ -181,13 +187,16 @@ export class PresenceEnhancementsService {
       // Check PUBG service health
       const isHealthy = await this.pubgService.healthCheck();
       if (!isHealthy) {
-        await this.logToChannel('⚠️ PUBG Service Unhealthy', {
-          event: 'PUBG Validation',
-          status: 'Warning',
-          userId,
-          message: 'PUBG service failed health check',
-          details: { reason: 'Health check failed' },
-        });
+        await this.logPresenceEnhancementOperation(
+          'PUBG Validation',
+          'warning',
+          'PUBG service failed health check',
+          {
+            userId,
+            reason: 'Health check failed',
+            event: 'PUBG Validation',
+          }
+        );
 
         validation = {
           userId,
@@ -210,16 +219,16 @@ export class PresenceEnhancementsService {
       });
 
       if (!user?.pubgUsername || !user?.pubgPlatform) {
-        await this.logToChannel('⚠️ PUBG Configuration Missing', {
-          event: 'PUBG Validation',
-          status: 'Warning',
-          userId,
-          message: 'User has not configured PUBG username or platform',
-          details: {
+        await this.logPresenceEnhancementOperation(
+          'PUBG Validation',
+          'warning',
+          'User has not configured PUBG username or platform',
+          {
+            userId,
             hasUsername: !!user?.pubgUsername,
             hasPlatform: !!user?.pubgPlatform,
-          },
-        });
+          }
+        );
 
         validation = {
           userId,
@@ -239,18 +248,17 @@ export class PresenceEnhancementsService {
       );
 
       if (!pubgPlayer) {
-        await this.logToChannel('❌ PUBG Player Not Found', {
-          event: 'PUBG Validation',
-          status: 'Error',
-          userId,
-          pubgName: user.pubgUsername,
-          platform: user.pubgPlatform,
-          message: 'PUBG player not found in API',
-          details: {
-            username: user.pubgUsername,
+        await this.logPresenceEnhancementOperation(
+          'PUBG Validation',
+          'error',
+          'PUBG player not found in API',
+          {
+            userId,
+            pubgName: user.pubgUsername,
             platform: user.pubgPlatform,
-          },
-        });
+            username: user.pubgUsername,
+          }
+        );
 
         validation = {
           userId,
@@ -290,21 +298,19 @@ export class PresenceEnhancementsService {
         };
 
         // Log successful validation
-        await this.logToChannel('✅ PUBG Validation Success', {
-          event: 'PUBG Validation',
-          status: 'Success',
-          userId,
-          pubgName: user.pubgUsername,
-          playerId: pubgPlayer.id,
-          platform: user.pubgPlatform,
-          message: 'PUBG integration validated successfully',
-          details: {
-            username: user.pubgUsername,
-            platform: user.pubgPlatform,
+        await this.logPresenceEnhancementOperation(
+          'PUBG Validation',
+          'success',
+          'PUBG integration validated successfully',
+          {
+            userId,
+            pubgName: user.pubgUsername,
             playerId: pubgPlayer.id,
+            platform: user.pubgPlatform,
+            username: user.pubgUsername,
             stats: validation.stats,
-          },
-        });
+          }
+        );
       }
 
       this.pubgValidations.set(userId, validation);
@@ -326,16 +332,16 @@ export class PresenceEnhancementsService {
       this.logger.error(`Failed to validate PUBG integration for user ${userId}:`, error);
 
       // Log error to Discord
-      await this.logToChannel('❌ PUBG Validation Error', {
-        event: 'PUBG Validation',
-        status: 'Error',
-        userId,
-        message: 'Failed to validate PUBG integration',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        details: {
+      await this.logPresenceEnhancementOperation(
+        'PUBG Validation',
+        'error',
+        'Failed to validate PUBG integration',
+        {
+          userId,
+          error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
-        },
-      });
+        }
+      );
 
       const validation: PUBGPresenceValidation = {
         userId,
@@ -933,66 +939,33 @@ export class PresenceEnhancementsService {
   }
 
   /**
-   * Log events to Discord channel
+   * Log presence enhancement operations using LoggingService
    */
-  private async logToChannel(title: string, data: any): Promise<void> {
+  private async logPresenceEnhancementOperation(
+    operation: string,
+    status: 'success' | 'warning' | 'error',
+    message: string,
+    additionalData?: Record<string, any>
+  ): Promise<void> {
     try {
-      const logChannelId = process.env.LOGS_API_CHANNEL_ID;
-      if (!logChannelId) {
-        this.logger.warn('LOGS_API_CHANNEL_ID not configured');
+      const guild = this.client.guilds.cache.first();
+      if (!guild) {
+        this.logger.warn('No guild found for logging presence enhancement operation');
         return;
       }
 
-      const channel = (await this.client.channels.fetch(logChannelId)) as TextChannel;
-      if (!channel) {
-        this.logger.warn(`Log channel ${logChannelId} not found`);
-        return;
-      }
-
-      const embed = new EmbedBuilder()
-        .setTitle(title)
-        .setTimestamp()
-        .setColor(
-          data.status === 'Success' ? '#00FF00' : data.status === 'Warning' ? '#FFA500' : '#FF0000'
-        );
-
-      // Add fields based on data
-      if (data.event) {
-        embed.addFields({ name: 'Event', value: data.event, inline: true });
-      }
-      if (data.status) {
-        embed.addFields({ name: 'Status', value: data.status, inline: true });
-      }
-      if (data.userId) {
-        embed.addFields({ name: 'User ID', value: data.userId, inline: true });
-      }
-      if (data.pubgName) {
-        embed.addFields({ name: 'PUBG Name', value: data.pubgName, inline: true });
-      }
-      if (data.playerId) {
-        embed.addFields({ name: 'Player ID', value: data.playerId, inline: true });
-      }
-      if (data.platform) {
-        embed.addFields({ name: 'Platform', value: data.platform, inline: true });
-      }
-      if (data.message) {
-        embed.addFields({ name: 'Message', value: data.message, inline: false });
-      }
-      if (data.error) {
-        embed.addFields({ name: 'Error', value: `\`\`\`${data.error}\`\`\``, inline: false });
-      }
-
-      if (data.details) {
-        embed.addFields({
-          name: 'Details',
-          value: `\`\`\`json\n${JSON.stringify(data.details, null, 2)}\`\`\``,
-          inline: false,
-        });
-      }
-
-      await channel.send({ embeds: [embed] });
+      const success = status === 'success';
+      await this.loggingService.logApiOperation(
+        guild.id,
+        'PresenceEnhancements',
+        operation,
+        success,
+        undefined,
+        status === 'error' ? message : undefined,
+        additionalData
+      );
     } catch (error) {
-      this.logger.error('Failed to log to Discord channel:', error);
+      this.logger.error('Failed to log presence enhancement operation:', error);
     }
   }
 }

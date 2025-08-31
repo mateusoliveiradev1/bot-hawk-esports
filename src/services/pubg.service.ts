@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { Logger } from '../utils/logger';
 import { CacheService } from './cache.service';
+import { LoggingService } from './logging.service';
 import { EmbedBuilder, TextChannel } from 'discord.js';
 
 import {
@@ -40,13 +41,13 @@ export class PUBGService {
   private readonly maxRetries: number = 3;
   private readonly baseRetryDelay: number = 1000; // 1 second
 
-  // Logging channel
-  private logsChannel: TextChannel | null = null;
+  // Logging service
+  private loggingService: LoggingService | null = null;
 
-  constructor(cache?: CacheService, logsChannel?: TextChannel) {
+  constructor(cache?: CacheService, loggingService?: LoggingService) {
     this.logger = new Logger();
     this.cache = cache || new CacheService();
-    this.logsChannel = logsChannel || null;
+    this.loggingService = loggingService || null;
     this.baseURL = process.env.PUBG_API_BASE_URL || 'https://api.pubg.com';
     this.apiKey = process.env.PUBG_API_KEY || '';
 
@@ -54,20 +55,25 @@ export class PUBGService {
       this.logger.warn(
         '⚠️ PUBG API key not found in environment variables. Some features may not work.'
       );
-      this.logToChannel(
-        '⚠️ PUBG API Configuration',
+      this.logApiOperation(
+        'PUBG API Configuration',
+        'warning',
         'API key not found in environment variables',
-        'warning'
+        { service: 'PUBG', operation: 'Configuration' }
       );
     } else if (this.apiKey.length < 20) {
       this.logger.warn('⚠️ PUBG API key appears to be invalid (too short).');
-      this.logToChannel(
-        '⚠️ PUBG API Configuration',
+      this.logApiOperation(
+        'PUBG API Configuration',
+        'warning',
         'API key appears to be invalid (too short)',
-        'warning'
+        { service: 'PUBG', operation: 'Configuration' }
       );
     } else {
-      this.logToChannel('✅ PUBG API Configuration', 'API key configured successfully', 'success');
+      this.logApiOperation('PUBG API Configuration', 'success', 'API key configured successfully', {
+        service: 'PUBG',
+        operation: 'Configuration',
+      });
     }
 
     this.api = axios.create({
@@ -85,39 +91,31 @@ export class PUBGService {
   }
 
   /**
-   * Log events to Discord channel with embed
+   * Log API operations using the LoggingService
    */
-  public async logToChannel(
-    title: string,
-    description: string,
-    type: 'success' | 'error' | 'warning' | 'info' = 'info',
-    additionalFields?: { name: string; value: string; inline?: boolean }[]
+  private async logApiOperation(
+    operation: string,
+    status: 'success' | 'error' | 'warning',
+    message: string,
+    metadata?: Record<string, any>
   ): Promise<void> {
-    if (!this.logsChannel) {
+    if (!this.loggingService) {
       return;
     }
 
     try {
-      const colors = {
-        success: 0x00ff00,
-        error: 0xff0000,
-        warning: 0xffaa00,
-        info: 0x0099ff,
-      };
-
-      const embed = new EmbedBuilder()
-        .setTitle(title)
-        .setDescription(description)
-        .setColor(colors[type])
-        .setTimestamp();
-
-      if (additionalFields) {
-        embed.addFields(additionalFields);
-      }
-
-      await this.logsChannel.send({ embeds: [embed] });
+      const success = status === 'success';
+      await this.loggingService.logApiOperation(
+        'default-guild', // TODO: Get actual guild ID
+        'PUBG',
+        operation,
+        success,
+        undefined,
+        status === 'error' ? message : undefined,
+        metadata
+      );
     } catch (error) {
-      this.logger.error('Failed to log to Discord channel:', error);
+      this.logger.error('Failed to log API operation:', error);
     }
   }
 
@@ -141,7 +139,7 @@ export class PUBGService {
   /**
    * Record circuit breaker failure
    */
-  private recordCircuitBreakerFailure(): void {
+  private async recordCircuitBreakerFailure(): Promise<void> {
     this.circuitBreakerFailures++;
     this.circuitBreakerLastFailure = Date.now();
 
@@ -149,10 +147,17 @@ export class PUBGService {
       this.logger.warn(
         `🔴 PUBG API Circuit breaker opened after ${this.circuitBreakerFailures} failures`
       );
-      this.logToChannel(
-        '🔴 PUBG API Circuit Breaker',
+      await this.logApiOperation(
+        'PUBG API Circuit Breaker Opened',
+        'error',
         `Circuit breaker opened after ${this.circuitBreakerFailures} consecutive failures. API calls will be blocked for ${this.circuitBreakerTimeout / 1000} seconds.`,
-        'error'
+        {
+          service: 'PUBG',
+          operation: 'Circuit Breaker',
+          failures: this.circuitBreakerFailures,
+          timeoutSeconds: this.circuitBreakerTimeout / 1000,
+          status: 'opened',
+        }
       );
     }
   }
@@ -160,13 +165,19 @@ export class PUBGService {
   /**
    * Reset circuit breaker on successful request
    */
-  private resetCircuitBreaker(): void {
+  private async resetCircuitBreaker(): Promise<void> {
     if (this.circuitBreakerFailures > 0) {
       this.logger.info('🟢 PUBG API Circuit breaker reset after successful request');
-      this.logToChannel(
-        '🟢 PUBG API Circuit Breaker',
+      await this.logApiOperation(
+        'PUBG API Circuit Breaker Reset',
+        'success',
         'Circuit breaker reset after successful API request',
-        'success'
+        {
+          service: 'PUBG',
+          operation: 'Circuit Breaker',
+          previousFailures: this.circuitBreakerFailures,
+          status: 'reset',
+        }
       );
     }
     this.circuitBreakerFailures = 0;
@@ -207,7 +218,7 @@ export class PUBGService {
 
         return config;
       },
-      error => {
+      async (error) => {
         this.logger.error('PUBG API request error:', error);
         return Promise.reject(error);
       }
@@ -215,25 +226,28 @@ export class PUBGService {
 
     // Response interceptor
     this.api.interceptors.response.use(
-      (response: AxiosResponse) => {
+      async (response: AxiosResponse) => {
         const duration = Date.now() - this.lastRequestTime;
         this.logger.debug(
           `✅ PUBG API Response: ${response.status} ${response.config.url} (${duration}ms)`
         );
 
         // Log successful request to channel
-        this.logToChannel('✅ PUBG API Success', 'Request completed successfully', 'success', [
-          { name: 'Endpoint', value: response.config.url || 'Unknown', inline: true },
-          { name: 'Status', value: response.status.toString(), inline: true },
-          { name: 'Duration', value: `${duration}ms`, inline: true },
-        ]);
+        this.logApiOperation('PUBG API Request', 'success', 'Request completed successfully', {
+          service: 'PUBG',
+          operation: 'API Request',
+          method: response.config.method?.toUpperCase(),
+          endpoint: response.config.url,
+          statusCode: response.status,
+          responseTime: duration,
+        });
 
         // Reset circuit breaker on success
-        this.resetCircuitBreaker();
+        await this.resetCircuitBreaker();
 
         return response;
       },
-      error => {
+      async (error) => {
         const duration = Date.now() - this.lastRequestTime;
         const status = error.response?.status;
         const message = error.response?.data?.errors?.[0]?.detail || error.message;
@@ -271,21 +285,20 @@ export class PUBGService {
         }
 
         // Log error to channel
-        const fields = [
-          { name: 'Endpoint', value: error.config?.url || 'Unknown', inline: true },
-          { name: 'Status', value: status?.toString() || 'Unknown', inline: true },
-          { name: 'Duration', value: `${duration}ms`, inline: true },
-        ];
-
-        if (retryAfter) {
-          fields.push({ name: 'Retry After', value: `${retryAfter}s`, inline: true });
-        }
-
-        this.logToChannel('❌ PUBG API Error', errorMessage, 'error', fields);
+        this.logApiOperation('PUBG API Request', 'error', errorMessage, {
+          service: 'PUBG',
+          operation: 'API Request',
+          method: error.config?.method?.toUpperCase(),
+          endpoint: error.config?.url,
+          statusCode: status,
+          responseTime: duration,
+          error: message,
+          ...(retryAfter && { retryAfter: `${retryAfter}s` }),
+        });
 
         // Record circuit breaker failure for server errors
         if (status && status >= 500) {
-          this.recordCircuitBreakerFailure();
+          await this.recordCircuitBreakerFailure();
         }
 
         return Promise.reject(error);
@@ -322,14 +335,16 @@ export class PUBGService {
           this.logger.info(
             `✅ ${operationName}: Succeeded on attempt ${attempt + 1} (${duration}ms)`
           );
-          this.logToChannel(
-            '✅ PUBG API Retry Success',
-            `${operationName} succeeded after ${attempt} retries`,
+          this.logApiOperation(
+            'PUBG API Retry',
             'success',
-            [
-              { name: 'Attempts', value: (attempt + 1).toString(), inline: true },
-              { name: 'Duration', value: `${duration}ms`, inline: true },
-            ]
+            `${operationName} succeeded after ${attempt} retries`,
+            {
+              service: 'PUBG',
+              operation: operationName,
+              attempts: attempt + 1,
+              responseTime: duration,
+            }
           );
         }
 
@@ -352,15 +367,17 @@ export class PUBGService {
             }
           );
 
-          this.logToChannel(
-            '⚠️ PUBG API Retry',
-            `${operationName} failed, retrying in ${Math.round(delay)}ms`,
+          this.logApiOperation(
+            'PUBG API Retry',
             'warning',
-            [
-              { name: 'Attempt', value: `${attempt + 1}/${maxRetries + 1}`, inline: true },
-              { name: 'Error', value: error.message.substring(0, 100), inline: true },
-              { name: 'Delay', value: `${Math.round(delay)}ms`, inline: true },
-            ]
+            `${operationName} failed, retrying in ${Math.round(delay)}ms`,
+            {
+              service: 'PUBG',
+              operation: operationName,
+              attempt: `${attempt + 1}/${maxRetries + 1}`,
+              error: error.message.substring(0, 100),
+              delay: `${Math.round(delay)}ms`,
+            }
           );
 
           await new Promise(resolve => setTimeout(resolve, delay));
@@ -374,11 +391,16 @@ export class PUBGService {
       status: lastError.response?.status,
     });
 
-    this.logToChannel(
-      '❌ PUBG API All Retries Failed',
-      `${operationName} failed after ${maxRetries + 1} attempts`,
+    this.logApiOperation(
+      'PUBG API Retry Failed',
       'error',
-      [{ name: 'Final Error', value: lastError.message.substring(0, 100), inline: false }]
+      `${operationName} failed after ${maxRetries + 1} attempts`,
+      {
+        service: 'PUBG',
+        operation: operationName,
+        attempts: maxRetries + 1,
+        error: lastError.message.substring(0, 100),
+      }
     );
 
     throw lastError;
@@ -412,10 +434,18 @@ export class PUBGService {
 
       if (cached) {
         this.logger.pubg('PLAYER_CACHE_HIT', cached.id);
-        this.logToChannel('📦 PUBG API Cache Hit', 'Player data served from cache', 'info', [
-          { name: 'Player', value: playerName, inline: true },
-          { name: 'Platform', value: platform, inline: true },
-        ]);
+        await this.logApiOperation(
+          'PUBG Player Cache Hit',
+          'success',
+          'Player data served from cache',
+          {
+            service: 'PUBG',
+            operation: 'Get Player',
+            player: playerName,
+            platform: platform,
+            cached: true,
+          }
+        );
         return cached;
       }
 
@@ -473,14 +503,18 @@ export class PUBGService {
       const staleCache = await this.cache.get<PUBGPlayer>(cacheKey);
       if (staleCache) {
         this.logger.info(`📦 Returning stale cache for player: ${playerName}`);
-        this.logToChannel(
-          '📦 PUBG API Stale Cache',
-          'Serving stale cached data due to API failure',
+        await this.logApiOperation(
+          'PUBG API Stale Cache',
           'warning',
-          [
-            { name: 'Player', value: playerName, inline: true },
-            { name: 'Platform', value: platform, inline: true },
-          ]
+          'Serving stale cached data due to API failure',
+          {
+            service: 'PUBG',
+            operation: 'Get Player',
+            player: playerName,
+            platform: platform,
+            cached: true,
+            stale: true,
+          }
         );
         return staleCache;
       }
@@ -514,11 +548,19 @@ export class PUBGService {
 
       if (cached) {
         this.logger.pubg('STATS_CACHE_HIT', playerId);
-        this.logToChannel('📦 PUBG API Cache Hit', 'Player stats served from cache', 'info', [
-          { name: 'Player ID', value: playerId.substring(0, 20) + '...', inline: true },
-          { name: 'Platform', value: platform, inline: true },
-          { name: 'Season', value: currentSeason, inline: true },
-        ]);
+        await this.logApiOperation(
+          'PUBG Player Stats Cache Hit',
+          'success',
+          'Player stats served from cache',
+          {
+            service: 'PUBG',
+            operation: 'Get Player Stats',
+            playerId: playerId.substring(0, 20) + '...',
+            platform: platform,
+            season: currentSeason,
+            cached: true,
+          }
+        );
         return cached;
       }
 
@@ -551,14 +593,18 @@ export class PUBGService {
       const staleCache = await this.cache.get<PUBGPlayerStats>(cacheKey);
       if (staleCache) {
         this.logger.info(`📦 Returning stale cache for player stats: ${playerId}`);
-        this.logToChannel(
-          '📦 PUBG API Stale Cache',
-          'Serving stale cached stats due to API failure',
+        await this.logApiOperation(
+          'PUBG API Stale Cache',
           'warning',
-          [
-            { name: 'Player ID', value: playerId.substring(0, 20) + '...', inline: true },
-            { name: 'Platform', value: platform, inline: true },
-          ]
+          'Serving stale cached stats due to API failure',
+          {
+            service: 'PUBG',
+            operation: 'Get Player Stats',
+            playerId: playerId.substring(0, 20) + '...',
+            platform: platform,
+            cached: true,
+            stale: true,
+          }
         );
         return staleCache;
       }
@@ -613,11 +659,19 @@ export class PUBGService {
 
       if (cached) {
         this.logger.pubg('MATCHES_CACHE_HIT', playerId);
-        this.logToChannel('📦 PUBG API Cache Hit', 'Player matches served from cache', 'info', [
-          { name: 'Player ID', value: playerId.substring(0, 20) + '...', inline: true },
-          { name: 'Platform', value: platform, inline: true },
-          { name: 'Matches Count', value: cached.length.toString(), inline: true },
-        ]);
+        await this.logApiOperation(
+          'PUBG Player Matches Cache Hit',
+          'success',
+          'Player matches served from cache',
+          {
+            service: 'PUBG',
+            operation: 'Get Player Matches',
+            playerId: playerId.substring(0, 20) + '...',
+            platform: platform,
+            matchesCount: cached.length,
+            cached: true,
+          }
+        );
         return cached;
       }
 
@@ -658,15 +712,19 @@ export class PUBGService {
       const staleCache = await this.cache.get<PUBGMatch[]>(cacheKey);
       if (staleCache) {
         this.logger.info(`📦 Returning stale cache for player matches: ${playerId}`);
-        this.logToChannel(
-          '📦 PUBG API Stale Cache',
-          'Serving stale cached matches due to API failure',
+        await this.logApiOperation(
+          'PUBG Player Matches Stale Cache',
           'warning',
-          [
-            { name: 'Player ID', value: playerId.substring(0, 20) + '...', inline: true },
-            { name: 'Platform', value: platform, inline: true },
-            { name: 'Matches Count', value: staleCache.length.toString(), inline: true },
-          ]
+          'Serving stale cached matches due to API failure',
+          {
+            service: 'PUBG',
+            operation: 'Get Player Matches',
+            playerId: playerId.substring(0, 20) + '...',
+            platform: platform,
+            matchesCount: staleCache.length,
+            cached: true,
+            stale: true,
+          }
         );
         return staleCache;
       }
@@ -757,12 +815,20 @@ export class PUBGService {
 
       if (cached) {
         this.logger.pubg('LEADERBOARD_CACHE_HIT');
-        this.logToChannel('📦 PUBG API Cache Hit', 'Leaderboard served from cache', 'info', [
-          { name: 'Platform', value: platform, inline: true },
-          { name: 'Game Mode', value: gameMode, inline: true },
-          { name: 'Season', value: currentSeason, inline: true },
-          { name: 'Entries', value: cached.length.toString(), inline: true },
-        ]);
+        await this.logApiOperation(
+          'PUBG Leaderboard Cache Hit',
+          'success',
+          'Leaderboard served from cache',
+          {
+            service: 'PUBG',
+            operation: 'Get Leaderboard',
+            platform: platform,
+            gameMode: gameMode,
+            season: currentSeason,
+            entries: cached.length,
+            cached: true,
+          }
+        );
         return cached;
       }
 
@@ -813,15 +879,19 @@ export class PUBGService {
       const staleCache = await this.cache.get<PUBGLeaderboardEntry[]>(cacheKey);
       if (staleCache) {
         this.logger.info(`📦 Returning stale cache for leaderboard: ${platform}/${gameMode}`);
-        this.logToChannel(
-          '📦 PUBG API Stale Cache',
-          'Serving stale cached leaderboard due to API failure',
+        await this.logApiOperation(
+          'PUBG Leaderboard Stale Cache',
           'warning',
-          [
-            { name: 'Platform', value: platform, inline: true },
-            { name: 'Game Mode', value: gameMode, inline: true },
-            { name: 'Entries', value: staleCache.length.toString(), inline: true },
-          ]
+          'Serving stale cached leaderboard due to API failure',
+          {
+            service: 'PUBG',
+            operation: 'Get Leaderboard',
+            platform: platform,
+            gameMode: gameMode,
+            entries: staleCache.length,
+            cached: true,
+            stale: true,
+          }
         );
         return staleCache;
       }
@@ -1468,7 +1538,7 @@ export class PUBGService {
 
           if (health.api) {
             // Reset circuit breaker on successful health check
-            this.resetCircuitBreaker();
+            await this.resetCircuitBreaker();
           }
         } catch (error: any) {
           this.logger.warn('PUBG API health check failed:', {
@@ -1479,7 +1549,7 @@ export class PUBGService {
 
           // Record failure for server errors
           if (error.response?.status >= 500) {
-            this.recordCircuitBreakerFailure();
+            await this.recordCircuitBreakerFailure();
           }
         }
       } else if (!this.apiKey) {
@@ -1507,25 +1577,23 @@ export class PUBGService {
     this.logger.info(`PUBG Service health check: ${health.status} (${duration}ms)`, health);
 
     // Log health check to channel
-    this.logToChannel(
-      '🏥 PUBG API Health Check',
-      `Service health: ${health.status}`,
+    this.logApiOperation(
+      'PUBG API Health Check',
       health.status === 'healthy' ? 'success' : health.status === 'degraded' ? 'warning' : 'error',
-      [
-        { name: 'API Status', value: health.api ? '✅ Online' : '❌ Offline', inline: true },
-        { name: 'Cache Status', value: health.cache ? '✅ Online' : '❌ Offline', inline: true },
-        { name: 'Circuit Breaker', value: health.circuitBreaker, inline: true },
-        { name: 'Duration', value: `${duration}ms`, inline: true },
-        { name: 'Failures', value: health.metrics.failures.toString(), inline: true },
-        {
-          name: 'Timeout Remaining',
-          value:
-            health.metrics.timeoutRemaining > 0
-              ? `${Math.round(health.metrics.timeoutRemaining / 1000)}s`
-              : 'N/A',
-          inline: true,
-        },
-      ]
+      `Service health: ${health.status}`,
+      {
+        service: 'PUBG',
+        operation: 'Health Check',
+        apiStatus: health.api ? 'Online' : 'Offline',
+        cacheStatus: health.cache ? 'Online' : 'Offline',
+        circuitBreaker: health.circuitBreaker,
+        responseTime: duration,
+        failures: health.metrics.failures,
+        timeoutRemaining:
+          health.metrics.timeoutRemaining > 0
+            ? `${Math.round(health.metrics.timeoutRemaining / 1000)}s`
+            : 'N/A',
+      }
     );
 
     return health;

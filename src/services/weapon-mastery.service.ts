@@ -4,6 +4,7 @@ import { CacheService } from './cache.service';
 import { PUBGService } from './pubg.service';
 import { BadgeService } from './badge.service';
 import { XPService } from './xp.service';
+import { LoggingService } from './logging.service';
 import { ExtendedClient } from '../types/client';
 import { PUBGPlatform } from '../types/pubg';
 import { TextChannel, EmbedBuilder } from 'discord.js';
@@ -69,12 +70,13 @@ export class WeaponMasteryService {
   private pubg: PUBGService;
   private badge: BadgeService;
   private xp: XPService;
+  private loggingService: LoggingService;
 
   private syncJob?: cron.ScheduledTask;
   private readonly CACHE_TTL = 3600; // 1 hour
   private readonly SYNC_INTERVAL = 21600; // 6 hours
 
-  constructor(client: ExtendedClient) {
+  constructor(client: ExtendedClient, loggingService?: LoggingService) {
     this.client = client;
     this.logger = new Logger();
     this.database = client.database;
@@ -82,6 +84,11 @@ export class WeaponMasteryService {
     this.pubg = (client as any).pubgService;
     this.badge = (client as any).badgeService;
     this.xp = (client as any).xpService;
+    this.loggingService = loggingService || (client as any).loggingService;
+
+    if (!this.loggingService) {
+      throw new Error('LoggingService is required for WeaponMasteryService');
+    }
 
     this.startSyncScheduler();
   }
@@ -164,13 +171,16 @@ export class WeaponMasteryService {
       // Check if PUBG service is available
       if (!this.pubg) {
         this.logger.error('PUBG service not available for weapon mastery sync');
-        await this.logToChannel('❌ **Weapon Mastery Sync Error**', {
-          event: 'Weapon Mastery Sync',
-          status: 'Error',
-          userId: discordId,
-          pubgName: pubgName,
+        await this.logWeaponMasteryOperation({
+          operation: 'Weapon Mastery Sync',
+          status: 'error',
           message: 'PUBG service not available',
-          timestamp: new Date().toISOString(),
+          data: {
+            event: 'Weapon Mastery Sync',
+            userId: discordId,
+            pubgName: pubgName,
+            timestamp: new Date().toISOString(),
+          },
         });
         return false;
       }
@@ -180,27 +190,33 @@ export class WeaponMasteryService {
         const healthCheck = await this.pubg.healthCheck();
         if (healthCheck.status !== 'healthy' || !healthCheck.api) {
           this.logger.warn('PUBG service is unhealthy, skipping weapon mastery sync');
-          await this.logToChannel('⚠️ **Weapon Mastery Sync Warning**', {
-            event: 'Weapon Mastery Sync',
-            status: 'Warning',
-            userId: discordId,
-            pubgName: pubgName,
+          await this.logWeaponMasteryOperation({
+            operation: 'Weapon Mastery Sync',
+            status: 'warning',
             message: 'PUBG service is unhealthy',
-            details: healthCheck,
-            timestamp: new Date().toISOString(),
+            data: {
+              event: 'Weapon Mastery Sync',
+              userId: discordId,
+              pubgName: pubgName,
+              details: healthCheck,
+              timestamp: new Date().toISOString(),
+            },
           });
           return false;
         }
       } catch (error) {
         this.logger.error('Failed to check PUBG service health:', error);
-        await this.logToChannel('❌ **Weapon Mastery Sync Error**', {
-          event: 'Weapon Mastery Sync',
-          status: 'Error',
-          userId: discordId,
-          pubgName: pubgName,
+        await this.logWeaponMasteryOperation({
+          operation: 'Weapon Mastery Sync',
+          status: 'error',
           message: 'Failed to check PUBG service health',
-          error: error instanceof Error ? error.message : String(error),
-          timestamp: new Date().toISOString(),
+          data: {
+            event: 'Weapon Mastery Sync',
+            userId: discordId,
+            pubgName: pubgName,
+            error: error instanceof Error ? error.message : String(error),
+            timestamp: new Date().toISOString(),
+          },
         });
         return false;
       }
@@ -229,13 +245,16 @@ export class WeaponMasteryService {
       const player = await this.pubg.getPlayerByName(pubgName);
       if (!player) {
         this.logger.warn(`Player not found: ${pubgName}`);
-        await this.logToChannel('⚠️ **Weapon Mastery Sync Warning**', {
-          event: 'Weapon Mastery Sync',
-          status: 'Warning',
-          userId: discordId,
-          pubgName: pubgName,
+        await this.logWeaponMasteryOperation({
+          operation: 'Weapon Mastery Sync',
+          status: 'warning',
           message: 'PUBG player not found',
-          timestamp: new Date().toISOString(),
+          data: {
+            event: 'Weapon Mastery Sync',
+            userId: discordId,
+            pubgName: pubgName,
+            timestamp: new Date().toISOString(),
+          },
         });
         return false;
       }
@@ -244,14 +263,17 @@ export class WeaponMasteryService {
       const weaponMasteryData = await this.pubg.getWeaponMastery(player.id, PUBGPlatform.STEAM);
       if (!weaponMasteryData) {
         this.logger.warn(`No weapon mastery data found for player: ${pubgName}`);
-        await this.logToChannel('⚠️ **Weapon Mastery Sync Warning**', {
-          event: 'Weapon Mastery Sync',
-          status: 'Warning',
-          userId: discordId,
-          pubgName: pubgName,
-          playerId: player.id,
+        await this.logWeaponMasteryOperation({
+          operation: 'Weapon Mastery Sync',
+          status: 'warning',
           message: 'No weapon mastery data found',
-          timestamp: new Date().toISOString(),
+          data: {
+            event: 'Weapon Mastery Sync',
+            userId: discordId,
+            pubgName: pubgName,
+            playerId: player.id,
+            timestamp: new Date().toISOString(),
+          },
         });
         return false;
       }
@@ -308,18 +330,22 @@ export class WeaponMasteryService {
       await this.cache.set(cacheKey, JSON.stringify(userMastery), this.CACHE_TTL);
 
       // Log successful sync
-      await this.logToChannel('✅ **Weapon Mastery Sync Success**', {
-        event: 'Weapon Mastery Sync',
-        status: 'Success',
-        userId: discordId,
-        pubgName: pubgName,
-        details: {
-          weaponsCount: weapons.length,
-          totalLevel: totalLevel,
-          totalXP: totalXP,
-          favoriteWeapon: favoriteWeapon,
+      await this.logWeaponMasteryOperation({
+        operation: 'Weapon Mastery Sync',
+        status: 'success',
+        message: 'Weapon mastery synchronized successfully',
+        data: {
+          event: 'Weapon Mastery Sync',
+          userId: discordId,
+          pubgName: pubgName,
+          details: {
+            weaponsCount: weapons.length,
+            totalLevel: totalLevel,
+            totalXP: totalXP,
+            favoriteWeapon: favoriteWeapon,
+          },
+          timestamp: new Date().toISOString(),
         },
-        timestamp: new Date().toISOString(),
       });
 
       this.logger.info(
@@ -330,14 +356,17 @@ export class WeaponMasteryService {
       this.logger.error(`Failed to sync weapon mastery for user ${discordId}:`, error);
 
       // Log error to Discord
-      await this.logToChannel('❌ **Weapon Mastery Sync Error**', {
-        event: 'Weapon Mastery Sync',
-        status: 'Error',
-        userId: discordId,
-        pubgName: pubgName,
+      await this.logWeaponMasteryOperation({
+        operation: 'Weapon Mastery Sync',
+        status: 'error',
         message: 'Failed to sync weapon mastery',
-        error: error instanceof Error ? error.message : String(error),
-        timestamp: new Date().toISOString(),
+        data: {
+          event: 'Weapon Mastery Sync',
+          userId: discordId,
+          pubgName: pubgName,
+          error: error instanceof Error ? error.message : String(error),
+          timestamp: new Date().toISOString(),
+        },
       });
 
       return false;
@@ -662,63 +691,36 @@ export class WeaponMasteryService {
   }
 
   /**
-   * Log events to Discord channel
+   * Log weapon mastery operations using LoggingService
    */
-  private async logToChannel(title: string, data: any): Promise<void> {
+  private async logWeaponMasteryOperation({
+    operation,
+    status,
+    message,
+    data,
+  }: {
+    operation: string;
+    status: 'success' | 'warning' | 'error';
+    message: string;
+    data?: any;
+  }): Promise<void> {
     try {
-      const logChannelId = process.env.LOGS_API_CHANNEL_ID;
-      if (!logChannelId) {
-        this.logger.warn('LOGS_API_CHANNEL_ID not configured');
+      const guildId = this.client.guilds.cache.first()?.id;
+      if (!guildId) {
         return;
       }
 
-      const channel = (await this.client.channels.fetch(logChannelId)) as TextChannel;
-      if (!channel) {
-        this.logger.warn(`Log channel ${logChannelId} not found`);
-        return;
-      }
-
-      const embed = new EmbedBuilder()
-        .setTitle(title)
-        .setTimestamp()
-        .setColor(
-          data.status === 'Success' ? '#00FF00' : data.status === 'Warning' ? '#FFA500' : '#FF0000'
-        );
-
-      // Add fields based on data
-      if (data.event) {
-        embed.addFields({ name: 'Event', value: data.event, inline: true });
-      }
-      if (data.status) {
-        embed.addFields({ name: 'Status', value: data.status, inline: true });
-      }
-      if (data.userId) {
-        embed.addFields({ name: 'User ID', value: data.userId, inline: true });
-      }
-      if (data.pubgName) {
-        embed.addFields({ name: 'PUBG Name', value: data.pubgName, inline: true });
-      }
-      if (data.playerId) {
-        embed.addFields({ name: 'Player ID', value: data.playerId, inline: true });
-      }
-      if (data.message) {
-        embed.addFields({ name: 'Message', value: data.message, inline: false });
-      }
-      if (data.error) {
-        embed.addFields({ name: 'Error', value: `\`\`\`${data.error}\`\`\``, inline: false });
-      }
-
-      if (data.details) {
-        embed.addFields({
-          name: 'Details',
-          value: `\`\`\`json\n${JSON.stringify(data.details, null, 2)}\`\`\``,
-          inline: false,
-        });
-      }
-
-      await channel.send({ embeds: [embed] });
+      await this.loggingService.logWeaponMastery(
+        guildId,
+        operation,
+        data?.userId || 'system',
+        data?.weaponName,
+        status === 'success',
+        status === 'error' ? message : undefined,
+        data
+      );
     } catch (error) {
-      this.logger.error('Failed to log to Discord channel:', error);
+      this.logger.error('Failed to log weapon mastery operation:', error);
     }
   }
 }

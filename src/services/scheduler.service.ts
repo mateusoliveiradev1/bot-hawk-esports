@@ -87,7 +87,7 @@ export class SchedulerService {
 
     try {
       this.rankingService = new RankingService(client);
-      this.badgeService = new BadgeService(client, (client as any).xpService);
+      this.badgeService = new BadgeService(client, (client as any).xpService, (client as any).services?.logging);
       this.presenceService = new PresenceService(client);
       this.clipService = new ClipService(client);
       this.weaponMasteryService = new WeaponMasteryService(client);
