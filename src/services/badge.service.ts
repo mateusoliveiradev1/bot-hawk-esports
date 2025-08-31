@@ -1273,7 +1273,7 @@ export class BadgeService {
         'error',
         'Failed to complete PUBG badge sync',
         {
-          error: error instanceof Error ? error.message : String(error),
+          error: error instanceof Error ? error : new Error(String(error)),
           timestamp: new Date().toISOString(),
         }
       );

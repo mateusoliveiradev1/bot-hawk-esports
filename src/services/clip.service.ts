@@ -1731,7 +1731,9 @@ export class ClipService {
         }
       }
 
-      this.logger.info('Clip cleanup completed', cleanupStats);
+      this.logger.info('Clip cleanup completed', {
+        metadata: cleanupStats
+      });
     } catch (error) {
       this.logger.error('Failed to cleanup old files:', error);
     }

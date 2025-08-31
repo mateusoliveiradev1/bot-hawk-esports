@@ -617,21 +617,29 @@ class HawkEsportsBot {
 
     // Error handling
     this.client.on('error', error => {
-      this.logger.error('Discord client error:', error);
+      this.logger.error('Discord client error:', {
+        error: error instanceof Error ? error : new Error(String(error))
+      });
     });
 
     this.client.on('warn', warning => {
-      this.logger.warn('Discord client warning:', warning);
+      this.logger.warn('Discord client warning:', {
+        metadata: { warning: String(warning) }
+      });
     });
 
     // Graceful shutdown handling
     process.on('SIGINT', () => this.shutdown('SIGINT'));
     process.on('SIGTERM', () => this.shutdown('SIGTERM'));
     process.on('unhandledRejection', (reason, promise) => {
-      this.logger.error('Unhandled Promise Rejection:', { reason, promise });
+      this.logger.error('Unhandled Promise Rejection:', {
+        metadata: { reason, promise }
+      });
     });
     process.on('uncaughtException', error => {
-      this.logger.error('Uncaught Exception:', error);
+      this.logger.error('Uncaught Exception:', {
+        error: error instanceof Error ? error : new Error(String(error))
+      });
       this.shutdown('UNCAUGHT_EXCEPTION');
     });
   }

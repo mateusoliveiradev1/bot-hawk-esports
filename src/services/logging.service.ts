@@ -801,9 +801,11 @@ export class LoggingService {
 
       // Placeholder for actual database insertion
       this.logger.debug('Would save log entry to database:', {
-        id: logData.id,
-        type: logData.type,
         guildId: logData.guildId,
+        metadata: {
+          id: logData.id,
+          type: logData.type
+        }
       });
     } catch (error) {
       this.logger.error(`Error saving log entry ${entry.id} to database:`, error);

@@ -259,12 +259,7 @@ export class APIService {
       const startTime = Date.now();
 
       // Log request
-      this.logger.api(req.method, req.path, 0, 0, {
-        ip: req.ip,
-        userAgent: req.get('User-Agent'),
-        contentLength: req.get('Content-Length'),
-        referer: req.get('Referer'),
-      });
+      this.logger.api(req.method, req.path, 0, 0);
 
       // Override res.json to log response
       const originalJson = res.json;
@@ -338,12 +333,13 @@ export class APIService {
   private setupErrorHandling(): void {
     this.app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
       this.logger.error('API Error:', {
-        message: error.message,
-        stack: error.stack,
-        url: req.url,
-        method: req.method,
-        ip: req.ip,
-        userAgent: req.get('User-Agent'),
+        error: error,
+        metadata: {
+          url: req.url,
+          method: req.method,
+          ip: req.ip,
+          userAgent: req.get('User-Agent')
+        }
       });
 
       // Handle specific error types
@@ -671,7 +667,7 @@ export class APIService {
                 lastUsed = commandLogs[0].createdAt;
                 // Calculate success rate based on error logs
                 const errorLogs = commandLogs.filter(
-                  log => log.metadata && typeof log.metadata === 'object' && 'error' in log.metadata
+                  log => log.metadata && typeof log.metadata === 'object' && log.metadata !== null && 'error' in (log.metadata as any)
                 );
                 successRate = Math.max(
                   0,
@@ -1343,7 +1339,7 @@ export class APIService {
         let totalCommands = 0;
 
         commandLogs.forEach(log => {
-          if (log.metadata && typeof log.metadata === 'object' && 'command' in log.metadata) {
+          if (log.metadata && typeof log.metadata === 'object' && log.metadata !== null && 'command' in (log.metadata as any)) {
             const commandName = (log.metadata as any).command;
             commandStats.set(commandName, (commandStats.get(commandName) || 0) + 1);
             totalCommands++;
@@ -2930,9 +2926,11 @@ export class APIService {
 
         this.server = this.app.listen(this.config.port, this.config.host, () => {
           this.logger.info(`🚀 API server started on ${this.config.host}:${this.config.port}`, {
-            environment: process.env.NODE_ENV || 'development',
-            corsOrigins: this.config.corsOrigins,
-            rateLimitMax: this.config.rateLimitMax,
+            metadata: {
+              environment: process.env.NODE_ENV || 'development',
+              corsOrigins: this.config.corsOrigins,
+              rateLimitMax: this.config.rateLimitMax
+            }
           });
 
           // Setup WebSocket
@@ -2956,10 +2954,12 @@ export class APIService {
 
         this.server.on('error', (error: any) => {
           this.logger.error('API server error:', {
-            message: error.message,
-            code: error.code,
-            port: this.config.port,
-            host: this.config.host,
+            error: error instanceof Error ? error : new Error(String(error)),
+            metadata: {
+              code: error.code,
+              port: this.config.port,
+              host: this.config.host
+            }
           });
 
           if (error.code === 'EADDRINUSE') {
@@ -3104,7 +3104,9 @@ export class APIService {
       if (this.server) {
         this.server.close(error => {
           if (error) {
-            this.logger.error('Error stopping HTTP server:', error);
+            this.logger.error('Error stopping HTTP server:', {
+              error: error instanceof Error ? error : new Error(String(error))
+            });
           } else {
             this.logger.info('🌐 HTTP server stopped');
           }

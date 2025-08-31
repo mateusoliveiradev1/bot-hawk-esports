@@ -423,8 +423,9 @@ export class RankService {
             return 'no_username';
           } catch (error) {
             this.logger.error(`Failed to update rank for user ${user.id}:`, {
-              error: error instanceof Error ? error.message : String(error),
-              pubgUsername: user.pubgUsername,
+              error: error instanceof Error ? error : new Error(String(error)),
+              userId: user.id,
+              metadata: { pubgUsername: user.pubgUsername },
             });
             return 'error';
           }
@@ -480,8 +481,8 @@ export class RankService {
     } catch (error) {
       const duration = Date.now() - startTime;
       this.logger.error('❌ Failed to update all user ranks:', {
-        error: error instanceof Error ? error.message : String(error),
-        duration,
+        error: error instanceof Error ? error : new Error(String(error)),
+        metadata: { duration },
       });
       throw error;
     }
@@ -546,10 +547,10 @@ export class RankService {
         } catch (error) {
           retryCount++;
           if (retryCount >= maxRetries) {
-            this.logger.warn(
-              `Failed to get PUBG stats for ${sanitizedPubgName} after ${maxRetries} retries:`,
-              error instanceof Error ? error.message : String(error)
-            );
+            this.logger.warn(`Failed to get PUBG stats for ${sanitizedPubgName} after ${maxRetries} retries:`, {
+              error: error instanceof Error ? error : new Error(String(error)),
+              metadata: { pubgName: sanitizedPubgName, maxRetries },
+            });
             return false;
           }
           // Wait before retry (exponential backoff)
@@ -653,10 +654,10 @@ export class RankService {
 
       // Update Discord roles (non-blocking)
       this.updateDiscordRoles(discordId, rankMapping).catch(error => {
-        this.logger.error(
-          `Failed to update Discord roles for user ${discordId}:`,
-          error instanceof Error ? error.message : String(error)
-        );
+        this.logger.error(`Failed to update Discord roles for user ${discordId}:`, {
+          userId: discordId,
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
       });
 
       // Cache the result
@@ -680,9 +681,9 @@ export class RankService {
       return true;
     } catch (error) {
       this.logger.error(`❌ Failed to update rank for user ${discordId}:`, {
-        error: error instanceof Error ? error.message : String(error),
-        pubgName: pubgName,
-        discordId,
+        error: error instanceof Error ? error : new Error(String(error)),
+        userId: discordId,
+        metadata: { pubgName },
       });
       return false;
     }
@@ -733,16 +734,17 @@ export class RankService {
             `✅ Updated Discord roles for ${member.user.tag}: ${rankMapping.roleName}`
           );
         } catch (error) {
-          this.logger.error(
-            `Failed to update roles in guild ${guild.name}:`,
-            error instanceof Error ? error.message : String(error)
-          );
+          this.logger.error(`Failed to update roles in guild ${guild.name}:`, {
+            error: error instanceof Error ? error : new Error(String(error)),
+            metadata: { guildName: guild.name },
+          });
         }
       }
     } catch (error) {
       this.logger.error(`❌ Failed to update Discord roles for ${discordId}:`, {
-        error: error instanceof Error ? error.message : String(error),
-        rankMapping: rankMapping?.roleName,
+        error: error instanceof Error ? error : new Error(String(error)),
+        userId: discordId,
+        metadata: { rankMapping: rankMapping?.roleName },
       });
       // Don't throw error to prevent breaking the rank update process
     }
@@ -766,10 +768,10 @@ export class RankService {
         this.logger.debug(`Removed ${rolesToRemove.size} old rank roles from ${member.user.tag}`);
       }
     } catch (error) {
-      this.logger.error(
-        `Failed to remove old rank roles from ${member?.user?.tag}:`,
-        error instanceof Error ? error.message : String(error)
-      );
+      this.logger.error(`Failed to remove old rank roles from ${member?.user?.tag}:`, {
+        error: error instanceof Error ? error : new Error(String(error)),
+        metadata: { userTag: member?.user?.tag },
+      });
       // Don't throw to prevent breaking the process
     }
   }
@@ -803,10 +805,10 @@ export class RankService {
 
           this.logger.info(`Created new rank role: ${rankMapping.roleName} in guild ${guild.name}`);
         } catch (createError) {
-          this.logger.error(
-            `Failed to create role ${rankMapping.roleName}:`,
-            createError instanceof Error ? createError.message : String(createError)
-          );
+          this.logger.error(`Failed to create role ${rankMapping.roleName}:`, {
+            error: createError instanceof Error ? createError : new Error(String(createError)),
+            metadata: { roleName: rankMapping.roleName },
+          });
           return;
         }
       }
@@ -817,16 +819,17 @@ export class RankService {
           await member.roles.add(role, `PUBG Rank Update: ${rankMapping.roleName}`);
           this.logger.debug(`Added rank role ${rankMapping.roleName} to ${member.user.tag}`);
         } catch (addError) {
-          this.logger.error(
-            `Failed to add role ${rankMapping.roleName} to ${member.user.tag}:`,
-            addError instanceof Error ? addError.message : String(addError)
-          );
+          this.logger.error(`Failed to add role ${rankMapping.roleName} to ${member.user.tag}:`, {
+            error: addError instanceof Error ? addError : new Error(String(addError)),
+            metadata: { roleName: rankMapping.roleName, userTag: member.user.tag },
+          });
         }
       }
     } catch (error) {
       this.logger.error(`Failed to add rank role to ${member?.user?.tag}:`, {
-        error: error instanceof Error ? error.message : String(error),
-        roleName: rankMapping?.roleName,
+        error: error instanceof Error ? error : new Error(String(error)),
+        userId: member?.user?.id,
+        metadata: { roleName: rankMapping?.roleName },
       });
     }
   }
@@ -857,8 +860,8 @@ export class RankService {
       return null;
     } catch (error) {
       this.logger.error('Error finding rank mapping by RP:', {
-        error: error instanceof Error ? error.message : String(error),
-        rp,
+        error: error instanceof Error ? error : new Error(String(error)),
+        metadata: { rp },
       });
       return null;
     }
@@ -889,10 +892,10 @@ export class RankService {
           await this.cache.del(cacheKey);
         }
       } catch (cacheError) {
-        this.logger.warn(
-          `Cache error for user ${discordId}:`,
-          cacheError instanceof Error ? cacheError.message : String(cacheError)
-        );
+        this.logger.warn(`Cache error for user ${discordId}:`, {
+          userId: discordId,
+          error: cacheError instanceof Error ? cacheError : new Error(String(cacheError)),
+        });
         await this.cache.del(cacheKey);
       }
 
@@ -931,8 +934,8 @@ export class RankService {
       return rankData;
     } catch (error) {
       this.logger.error(`❌ Failed to get rank data for user ${discordId}:`, {
-        error: error instanceof Error ? error.message : String(error),
-        discordId,
+        error: error instanceof Error ? error : new Error(String(error)),
+        userId: discordId,
       });
       return null;
     }
@@ -966,10 +969,9 @@ export class RankService {
           await this.cache.del(cacheKey);
         }
       } catch (cacheError) {
-        this.logger.warn(
-          'Cache error for leaderboard:',
-          cacheError instanceof Error ? cacheError.message : String(cacheError)
-        );
+        this.logger.warn('Cache error for leaderboard:', {
+          error: cacheError instanceof Error ? cacheError : new Error(String(cacheError)),
+        });
         await this.cache.del(cacheKey);
       }
 
@@ -1045,9 +1047,9 @@ export class RankService {
       return leaderboard;
     } catch (error) {
       this.logger.error('❌ Failed to get rank leaderboard:', {
-        error: error instanceof Error ? error.message : String(error),
-        limit,
+        error: error instanceof Error ? error : new Error(String(error)),
         guildId,
+        metadata: { limit },
       });
       return [];
     }
@@ -1086,9 +1088,9 @@ export class RankService {
       return result;
     } catch (error) {
       this.logger.error(`❌ Failed to force update rank for user ${discordId}:`, {
-        error: error instanceof Error ? error.message : String(error),
-        discordId,
-        pubgName,
+        error: error instanceof Error ? error : new Error(String(error)),
+        userId: discordId,
+        metadata: { pubgName },
       });
       return false;
     }
@@ -1108,10 +1110,9 @@ export class RankService {
         .filter(mapping => mapping && typeof mapping.priority === 'number')
         .sort((a, b) => a.priority - b.priority);
     } catch (error) {
-      this.logger.error(
-        'Error getting rank mappings:',
-        error instanceof Error ? error.message : String(error)
-      );
+      this.logger.error('Error getting rank mappings:', {
+        error: error instanceof Error ? error : new Error(String(error)),
+      });
       return [];
     }
   }
@@ -1128,10 +1129,9 @@ export class RankService {
         this.logger.debug('No scheduled updates to stop');
       }
     } catch (error) {
-      this.logger.error(
-        'Error stopping scheduled updates:',
-        error instanceof Error ? error.message : String(error)
-      );
+      this.logger.error('Error stopping scheduled updates:', {
+        error: error instanceof Error ? error : new Error(String(error)),
+      });
     }
   }
 
@@ -1160,7 +1160,9 @@ export class RankService {
     } catch (error) {
       this.logger.error(
         'Error calculating next update time:',
-        error instanceof Error ? error.message : String(error)
+        {
+          error: error instanceof Error ? error : new Error(String(error))
+        }
       );
       // Return a default time (1 hour from now)
       const fallback = new Date();
@@ -1248,7 +1250,9 @@ export class RankService {
     } catch (error) {
       this.logger.error(
         '❌ Failed to get rank statistics:',
-        error instanceof Error ? error.message : String(error)
+        {
+          error: error instanceof Error ? error : new Error(String(error))
+        }
       );
       return {
         totalUsers: 0,
@@ -1279,7 +1283,7 @@ export class RankService {
       }
     } catch (error) {
       this.logger.error('❌ Failed to clear rank cache:', {
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error : new Error(String(error)),
         userId,
       });
     }
@@ -1321,7 +1325,10 @@ export class RankService {
     } catch (error) {
       this.logger.error(
         `❌ Failed to get rank position for user ${discordId}:`,
-        error instanceof Error ? error.message : String(error)
+        {
+          error: error instanceof Error ? error : new Error(String(error)),
+          userId: discordId
+        }
       );
       return null;
     }
@@ -1372,7 +1379,9 @@ export class RankService {
       }
 
       if (errors.length > 0) {
-        this.logger.error('Rank mapping validation errors:', errors);
+        this.logger.error('Rank mapping validation errors:', {
+          metadata: { errors }
+        });
         return false;
       }
 
@@ -1381,7 +1390,9 @@ export class RankService {
     } catch (error) {
       this.logger.error(
         'Error validating rank mappings:',
-        error instanceof Error ? error.message : String(error)
+        {
+          error: error instanceof Error ? error : new Error(String(error))
+        }
       );
       return false;
     }

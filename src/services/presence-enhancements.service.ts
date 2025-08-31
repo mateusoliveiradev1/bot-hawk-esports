@@ -869,7 +869,11 @@ export class PresenceEnhancementsService {
    */
   public updateAutoPunishmentConfig(config: Partial<AutoPunishmentConfig>): void {
     this.autoPunishmentConfig = { ...this.autoPunishmentConfig, ...config };
-    this.logger.info('Auto punishment configuration updated:', this.autoPunishmentConfig);
+    this.logger.info('Auto punishment configuration updated:', {
+      metadata: {
+        config: this.autoPunishmentConfig
+      }
+    });
   }
 
   /**

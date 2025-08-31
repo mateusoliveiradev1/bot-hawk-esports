@@ -1,4 +1,4 @@
-import { Logger } from '../utils/logger';
+import { Logger, LogCategory } from '../utils/logger';
 import { CacheService } from './cache.service';
 import { DatabaseService } from '../database/database.service';
 import {
@@ -253,7 +253,9 @@ export class GameService {
 
       this.logger.info('GameService initialized successfully');
     } catch (error) {
-      this.logger.error('Failed to initialize GameService:', error);
+      this.logger.error('Failed to initialize GameService:', {
+        error: error instanceof Error ? error : new Error(String(error))
+      });
       throw error;
     }
   }
@@ -608,15 +610,14 @@ export class GameService {
 
       this.activeChallenges.set(challenge.id, newChallenge);
 
-      this.logger.game('CHALLENGE_CREATED', challenge.id, 'system', {
-        name: challenge.name,
-        type: challenge.type,
-        guildId: guildId || '1',
-      });
+      this.logger.game('CHALLENGE_CREATED', 'challenge', 'system', guildId || '1');
 
       return newChallenge;
     } catch (error) {
-      this.logger.error('Failed to create challenge:', error);
+      this.logger.error('Failed to create challenge:', {
+        error: error instanceof Error ? error : new Error(String(error)),
+        metadata: { guildId: guildId || '1', category: LogCategory.GAME }
+      });
       throw error;
     }
   }
@@ -736,17 +737,14 @@ export class GameService {
         throw new Error('Failed to save quiz session to database');
       }
 
-      this.logger.game('QUIZ_STARTED', sessionId, hostId, {
-        guildId,
-        channelId,
-        questionCount: questions.length,
-        difficulty: settings.difficulty,
-        category: settings.category,
-      });
+      this.logger.game('QUIZ_STARTED', sessionId, hostId, guildId);
 
       return session;
     } catch (error) {
-      this.logger.error('Failed to start quiz:', error);
+      this.logger.error('Failed to start quiz:', {
+        error: error instanceof Error ? error : new Error(String(error)),
+        metadata: { guildId, channelId, hostId }
+      });
       throw error;
     }
   }
@@ -856,14 +854,23 @@ export class GameService {
       }
 
       this.logger.debug(`Selected ${selectedQuestions.length} questions for quiz`, {
-        category: settings.category,
-        difficulty: settings.difficulty,
-        totalAvailable: availableQuestions.length,
+        category: LogCategory.GAME,
+        metadata: {
+          quizCategory: settings.category,
+          difficulty: settings.difficulty,
+          totalAvailable: availableQuestions.length
+        }
       });
 
       return selectedQuestions;
     } catch (error) {
-      this.logger.error('Failed to get quiz questions:', error);
+      this.logger.error('Failed to get quiz questions:', {
+        error: error instanceof Error ? error : new Error(String(error)),
+        metadata: {
+          category: settings.category,
+          difficulty: settings.difficulty
+        }
+      });
       throw error;
     }
   }
@@ -931,11 +938,7 @@ export class GameService {
         lastAnswerTime: 0,
       });
 
-      this.logger.game('QUIZ_JOINED', cleanSessionId, cleanUserId, {
-        username: cleanUsername,
-        participantCount: session.participants.size,
-        guildId: session.guildId,
-      });
+      this.logger.game('QUIZ_JOINED', cleanSessionId, cleanUserId, session.guildId);
 
       return true;
     } catch (error) {
@@ -1039,14 +1042,7 @@ export class GameService {
         participant.streak = 0;
       }
 
-      this.logger.game('QUIZ_ANSWER', cleanSessionId, cleanUserId, {
-        questionIndex: session.currentQuestionIndex,
-        answerIndex,
-        correct: isCorrect,
-        points,
-        streak: participant.streak,
-        guildId: session.guildId,
-      });
+      this.logger.game('QUIZ_ANSWER', cleanSessionId, cleanUserId, session.guildId);
 
       return {
         correct: isCorrect,
@@ -1054,7 +1050,10 @@ export class GameService {
         streak: participant.streak,
       };
     } catch (error) {
-      this.logger.error('Failed to submit quiz answer:', error);
+      this.logger.error('Failed to submit quiz answer:', {
+        error: error instanceof Error ? error : new Error(String(error)),
+        metadata: { sessionId, userId, answerIndex }
+      });
       return null;
     }
   }
@@ -1102,10 +1101,7 @@ export class GameService {
 
     this.quizSessions.delete(sessionId);
 
-    this.logger.game('QUIZ_ENDED', sessionId, results[0]?.userId || 'none', {
-      participantCount: results.length,
-      winner: results[0]?.username,
-    });
+    this.logger.game('QUIZ_ENDED', sessionId, results[0]?.userId || 'none', session.guildId);
 
     return results;
   }
@@ -1148,10 +1144,7 @@ export class GameService {
       await this.endMiniGame(sessionId);
     }, game.duration * 1000);
 
-    this.logger.game('MINI_GAME_STARTED', sessionId, hostId, {
-      gameId,
-      guildId,
-    });
+    this.logger.game('MINI_GAME_STARTED', sessionId, hostId, guildId);
 
     return session;
   }
@@ -1264,7 +1257,7 @@ export class GameService {
         data: {},
       });
 
-      this.logger.game('MINI_GAME_JOINED', sessionId, userId, { username });
+      this.logger.game('MINI_GAME_JOINED', sessionId, userId, session.guildId);
     }
 
     return true;
@@ -1307,10 +1300,7 @@ export class GameService {
 
     this.gameSessions.delete(sessionId);
 
-    this.logger.game('MINI_GAME_ENDED', sessionId, results[0]?.userId || 'none', {
-      participantCount: results.length,
-      winner: results[0]?.username,
-    });
+    this.logger.game('MINI_GAME_ENDED', sessionId, results[0]?.userId || 'none', session.guildId);
 
     return results;
   }
@@ -1377,9 +1367,7 @@ export class GameService {
         progress.completed = true;
         progress.completedAt = new Date();
 
-        this.logger.game('CHALLENGE_COMPLETED', challenge.id, userId, {
-          challengeName: challenge.name,
-        });
+        this.logger.game('CHALLENGE_COMPLETED', challenge.id, userId);
 
         // Notify user about completion
         // This would typically send a DM or channel message
@@ -1409,9 +1397,7 @@ export class GameService {
     progress.claimed = true;
 
     // Award rewards (this would integrate with economy/badge systems)
-    this.logger.game('CHALLENGE_REWARDS_CLAIMED', challengeId, userId, {
-      rewards: challenge.rewards,
-    });
+    this.logger.game('CHALLENGE_REWARDS_CLAIMED', challengeId, userId);
 
     return true;
   }

@@ -213,17 +213,19 @@ async function handleAuditRun(interaction: any, auditService: BadgeAuditService,
   await interaction.editReply({ embeds: [embed], components });
 
   logger.info('Badge audit completed:', {
-    duration,
-    issues: Object.entries(results).reduce(
-      (acc, [key, value]) => {
-        if (key !== 'fixedIssues') {
-          acc[key] = Array.isArray(value) ? value.length : value;
+    metadata: {
+      duration,
+      issues: Object.entries(results).reduce(
+        (acc, [key, value]) => {
+          if (key !== 'fixedIssues') {
+            acc[key] = Array.isArray(value) ? value.length : value;
         }
         return acc;
       },
       {} as Record<string, any>
     ),
-    fixedIssues: results.fixedIssues,
+      fixedIssues: results.fixedIssues
+    }
   });
 }
 
@@ -307,11 +309,13 @@ async function handleHealthReport(
   await interaction.editReply({ embeds: [embed] });
 
   logger.info('Badge health report generated:', {
-    totalBadges: report.totalBadges,
-    activeBadges: report.activeBadges,
-    totalUserBadges: report.totalUserBadges,
-    uniqueUsers: report.uniqueUsersWithBadges,
-    issuesFound: issuesCount,
+    metadata: {
+      totalBadges: report.totalBadges,
+      activeBadges: report.activeBadges,
+      totalUserBadges: report.totalUserBadges,
+      uniqueUsers: report.uniqueUsersWithBadges,
+      issuesFound: issuesCount
+    }
   });
 }
 
@@ -370,7 +374,9 @@ async function handleCleanup(interaction: any, auditService: BadgeAuditService, 
 
   await interaction.editReply({ embeds: [embed] });
 
-  logger.info(`Cleaned up ${cleanedCount} orphaned badges:`, auditResults.orphanedBadges);
+  logger.info(`Cleaned up ${cleanedCount} orphaned badges:`, {
+    metadata: { orphanedBadges: auditResults.orphanedBadges }
+  });
 }
 
 /**

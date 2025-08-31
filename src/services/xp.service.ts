@@ -267,13 +267,16 @@ export class XPService {
 
       // Log da atividade
       this.logger.info(`💫 XP gained for user ${userId}:`, {
-        activity: activityType,
-        baseXP,
-        bonusXP,
-        totalGain: totalXPGain,
-        newLevel,
-        leveledUp,
-        prestigeLevel: user.prestigeLevel || 0,
+        userId,
+        metadata: {
+          activity: activityType,
+          baseXP,
+          bonusXP,
+          totalGain: totalXPGain,
+          newLevel,
+          leveledUp,
+          prestigeLevel: user.prestigeLevel || 0,
+        },
       });
 
       // Se subiu de nível, processar recompensas
@@ -284,11 +287,9 @@ export class XPService {
       return result;
     } catch (error) {
       this.logger.error('Failed to add XP:', {
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error : new Error(String(error)),
         userId,
-        activityType,
-        timeSpent,
-        multiplier,
+        metadata: { activityType, timeSpent, multiplier },
       });
       throw error;
     }
@@ -357,17 +358,14 @@ export class XPService {
       await this.checkLevelBadges(userId, newLevel);
 
       this.logger.info(`🎉 Level up rewards processed for user ${userId}:`, {
-        oldLevel,
-        newLevel,
-        levelsGained,
-        totalCoinsReward,
+        userId,
+        metadata: { oldLevel, newLevel, levelsGained, totalCoinsReward },
       });
     } catch (error) {
       this.logger.error('Failed to process level up rewards:', {
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error : new Error(String(error)),
         userId,
-        oldLevel,
-        newLevel,
+        metadata: { oldLevel, newLevel },
       });
       // Não relançar o erro para não quebrar o fluxo principal de XP
     }
@@ -453,9 +451,9 @@ export class XPService {
       }
     } catch (error) {
       this.logger.error('Failed to check level badges:', {
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error : new Error(String(error)),
         userId,
-        level,
+        metadata: { level },
       });
     }
   }
@@ -568,7 +566,7 @@ export class XPService {
       return result;
     } catch (error) {
       this.logger.error('Failed to get user XP info:', {
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error : new Error(String(error)),
         userId,
       });
       return null;
@@ -713,16 +711,15 @@ export class XPService {
 
       this.logger.info('📊 XP Leaderboard generated:', {
         guildId: guildId || 'global',
-        userCount: leaderboard.length,
-        limit,
+        metadata: { userCount: leaderboard.length, limit },
       });
 
       return leaderboard;
     } catch (error) {
       this.logger.error('Failed to get XP leaderboard:', {
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error : new Error(String(error)),
         guildId,
-        limit,
+        metadata: { limit },
       });
       return [];
     }
@@ -770,7 +767,7 @@ export class XPService {
       return result;
     } catch (error) {
       this.logger.error('Failed to add check-in XP:', {
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error : new Error(String(error)),
         userId,
       });
       throw error;
@@ -813,9 +810,9 @@ export class XPService {
       return result;
     } catch (error) {
       this.logger.error('Failed to add daily challenge XP:', {
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error : new Error(String(error)),
         userId,
-        difficulty,
+        metadata: { difficulty },
       });
       throw error;
     }
@@ -857,9 +854,9 @@ export class XPService {
       return result;
     } catch (error) {
       this.logger.error('Failed to add achievement XP:', {
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error : new Error(String(error)),
         userId,
-        achievementPoints,
+        metadata: { achievementPoints },
       });
       throw error;
     }
@@ -916,10 +913,9 @@ export class XPService {
       return result;
     } catch (error) {
       this.logger.error('Failed to add challenge XP:', {
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error : new Error(String(error)),
         userId,
-        difficulty,
-        baseXP,
+        metadata: { difficulty, baseXP },
       });
       throw error;
     }
@@ -958,9 +954,9 @@ export class XPService {
       return result;
     } catch (error) {
       this.logger.error('Failed to add weapon mastery XP:', {
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error : new Error(String(error)),
         userId,
-        masteryLevel,
+        metadata: { masteryLevel },
       });
       throw error;
     }
@@ -1010,9 +1006,9 @@ export class XPService {
       return result;
     } catch (error) {
       this.logger.error('Failed to add tournament win XP:', {
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error : new Error(String(error)),
         userId,
-        tournamentTier,
+        metadata: { tournamentTier },
       });
       throw error;
     }
@@ -1055,9 +1051,9 @@ export class XPService {
       return result;
     } catch (error) {
       this.logger.error('Failed to add streak bonus XP:', {
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error : new Error(String(error)),
         userId,
-        streakCount,
+        metadata: { streakCount },
       });
       throw error;
     }
@@ -1175,7 +1171,7 @@ export class XPService {
       };
     } catch (error) {
       this.logger.error('Failed to prestige user:', {
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error : new Error(String(error)),
         userId,
       });
       throw error;
@@ -1206,9 +1202,9 @@ export class XPService {
       return Math.max(0, bonus);
     } catch (error) {
       this.logger.error('Failed to calculate prestige bonus:', {
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error : new Error(String(error)),
         userId,
-        baseXP,
+        metadata: { baseXP },
       });
       return 0;
     }
@@ -1305,7 +1301,7 @@ export class XPService {
       };
     } catch (error) {
       this.logger.error('Failed to get user prestige info:', {
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error : new Error(String(error)),
         userId,
       });
       return null;
@@ -1338,7 +1334,7 @@ export class XPService {
       this.logger.info(`🧹 XP cache cleared${userId ? ` for user ${userId}` : ' globally'}`);
     } catch (error) {
       this.logger.error('Failed to clear XP cache:', {
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error : new Error(String(error)),
         userId,
       });
     }
@@ -1395,7 +1391,7 @@ export class XPService {
       };
     } catch (error) {
       this.logger.error('Failed to get XP system stats:', {
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error : new Error(String(error)),
       });
       return {
         totalUsers: 0,

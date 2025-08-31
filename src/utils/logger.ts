@@ -162,7 +162,7 @@ export class Logger {
             
             // Add category badge if present
             if (category) {
-              const categoryBadge = this.getCategoryBadge(category);
+              const categoryBadge = this.getCategoryBadge(category as LogCategory);
               log += ` ${categoryBadge}`;
             }
             
@@ -171,8 +171,8 @@ export class Logger {
             // Add context info if present
             if (userId || guildId) {
               const context = [];
-              if (guildId) context.push(`G:${guildId.slice(-4)}`);
-              if (userId) context.push(`U:${userId.slice(-4)}`);
+              if (guildId && typeof guildId === 'string') context.push(`G:${guildId.slice(-4)}`);
+              if (userId && typeof userId === 'string') context.push(`U:${userId.slice(-4)}`);
               log += ` (${context.join('|')})`;
             }
             

@@ -737,15 +737,17 @@ export class SchedulerService {
       const uptimeHours = Math.round((stats.uptime / 1000 / 60 / 60) * 100) / 100;
 
       this.logger.info('Scheduler Statistics:', {
-        totalTasks: stats.totalTasks,
-        activeTasks: stats.activeTasks,
-        totalExecutions: stats.totalExecutions,
-        successfulExecutions: stats.successfulExecutions,
-        failedExecutions: stats.failedExecutions,
-        successRate: `${successRate}%`,
-        averageExecutionTime: `${Math.round(stats.averageExecutionTime)}ms`,
-        uptime: `${uptimeHours}h`,
-        lastUpdate: stats.lastUpdate.toISOString(),
+        metadata: {
+          totalTasks: stats.totalTasks,
+          activeTasks: stats.activeTasks,
+          totalExecutions: stats.totalExecutions,
+          successfulExecutions: stats.successfulExecutions,
+          failedExecutions: stats.failedExecutions,
+          successRate: `${successRate}%`,
+          averageExecutionTime: `${Math.round(stats.averageExecutionTime)}ms`,
+          uptime: `${uptimeHours}h`,
+          lastUpdate: stats.lastUpdate.toISOString(),
+        }
       });
 
       // Log individual task statistics for problematic tasks
@@ -767,10 +769,14 @@ export class SchedulerService {
         }));
 
       if (problematicTasks.length > 0) {
-        this.logger.warn('Tasks with issues:', problematicTasks);
+        this.logger.warn('Tasks with issues:', {
+          metadata: { problematicTasks }
+        });
       }
     } catch (error) {
-      this.logger.error('Error logging scheduler statistics:', error);
+      this.logger.error('Error logging scheduler statistics:', {
+        error
+      });
     }
   }
 
@@ -1039,9 +1045,13 @@ export class SchedulerService {
       const recentHistory = history.slice(-30);
       await this.cache.set('backup_history', JSON.stringify(recentHistory), 30 * 24 * 60 * 60);
 
-      this.logger.info('Daily backup completed', backupData);
+      this.logger.info('Daily backup completed', {
+        metadata: backupData
+      });
     } catch (error) {
-      this.logger.error('Failed to perform daily backup:', error);
+      this.logger.error('Failed to perform daily backup:', {
+        error
+      });
     }
   }
 
@@ -1132,9 +1142,13 @@ export class SchedulerService {
         this.logger.warn('Failed to clean cache:', error);
       }
 
-      this.logger.info('Monthly cleanup completed', cleanupStats);
+      this.logger.info('Monthly cleanup completed', {
+        metadata: cleanupStats
+      });
     } catch (error) {
-      this.logger.error('Failed to perform monthly cleanup:', error);
+      this.logger.error('Failed to perform monthly cleanup:', {
+        error
+      });
     }
   }
 

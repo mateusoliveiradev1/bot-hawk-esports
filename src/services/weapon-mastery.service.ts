@@ -214,7 +214,7 @@ export class WeaponMasteryService {
             event: 'Weapon Mastery Sync',
             userId: discordId,
             pubgName: pubgName,
-            error: error instanceof Error ? error.message : String(error),
+            error: error instanceof Error ? error : new Error(String(error)),
             timestamp: new Date().toISOString(),
           },
         });
@@ -364,7 +364,7 @@ export class WeaponMasteryService {
           event: 'Weapon Mastery Sync',
           userId: discordId,
           pubgName: pubgName,
-          error: error instanceof Error ? error.message : String(error),
+          error: error instanceof Error ? error : new Error(String(error)),
           timestamp: new Date().toISOString(),
         },
       });

@@ -177,7 +177,9 @@ export class MusicService {
     } catch (error) {
       this.logger.warn(
         '⚠️ Play-dl initialization failed, continuing without token:',
-        (error as Error).message || 'Unknown error'
+        {
+          error: error instanceof Error ? error : new Error(String(error))
+        }
       );
     }
   }
@@ -193,7 +195,9 @@ export class MusicService {
       }
       this.logger.debug('✅ Play-dl functionality test passed');
     } catch (error) {
-      this.logger.warn('⚠️ Play-dl functionality test failed:', (error as Error).message);
+      this.logger.warn('⚠️ Play-dl functionality test failed:', {
+        error: error instanceof Error ? error : new Error(String(error))
+      });
     }
   }
 
@@ -251,8 +255,9 @@ export class MusicService {
       await testConnection();
     } catch (error) {
       this.logger.warn(
-        '⚠️ Spotify API unavailable - continuing with YouTube-only mode:',
-        (error as Error).message || 'Connection failed'
+        '⚠️ Spotify API unavailable - continuing with YouTube-only mode:', {
+          error: error instanceof Error ? error : new Error(String(error))
+        }
       );
       this.spotify = null;
     }
@@ -623,7 +628,10 @@ export class MusicService {
       });
 
       connection.on('error', error => {
-        this.logger.error(`🚨 Voice connection error in guild ${guildId}:`, error);
+        this.logger.error(`🚨 Voice connection error in guild ${guildId}:`, {
+          error: error instanceof Error ? error : new Error(String(error)),
+          metadata: { guildId }
+        });
 
         // Attempt to recover from certain errors
         if (error.message.includes('VOICE_CONNECTION_TIMEOUT')) {
@@ -787,12 +795,18 @@ export class MusicService {
             });
           }
         } catch (error) {
-          this.logger.error(`Error handling Idle event for guild ${guildId}:`, error);
+          this.logger.error(`Error handling Idle event for guild ${guildId}:`, {
+            error: error instanceof Error ? error : new Error(String(error)),
+            metadata: { guildId }
+          });
         }
       });
 
       player.on('error', error => {
-        this.logger.error(`🚨 Audio player error in guild ${guildId}:`, error);
+        this.logger.error(`🚨 Audio player error in guild ${guildId}:`, {
+          error: error instanceof Error ? error : new Error(String(error)),
+          metadata: { guildId }
+        });
 
         try {
           const queue = this.queues.get(guildId);
@@ -974,10 +988,12 @@ export class MusicService {
           }
 
           this.logger.debug('📋 Video info retrieved:', {
-            id: videoInfo.video_details.id,
-            title: videoInfo.video_details.title,
-            channel: videoInfo.video_details.channel?.name,
-            duration: videoInfo.video_details.durationInSec,
+            metadata: {
+              id: videoInfo.video_details.id,
+              title: videoInfo.video_details.title,
+              channel: videoInfo.video_details.channel?.name,
+              duration: videoInfo.video_details.durationInSec,
+            }
           });
 
           const duration = (videoInfo.video_details.durationInSec || 0) * 1000;
@@ -1905,7 +1921,9 @@ export class MusicService {
 
       // Add resource error handling
       resource.playStream.on('error', error => {
-        this.logger.error('❌ Audio resource stream error:', error);
+        this.logger.error('❌ Audio resource stream error:', {
+          error: error instanceof Error ? error : new Error(String(error))
+        });
       });
 
       resource.playStream.on('end', () => {
@@ -1973,14 +1991,18 @@ export class MusicService {
           return false;
         }
       } else {
-        this.logger.error(`❌ Player failed to start playing. Status: ${player.state.status}`);
+        this.logger.error(`❌ Player failed to start playing. Status: ${player.state.status}`, {
+          error: new Error(`Player failed to start playing with status: ${player.state.status}`)
+        });
 
         // Log additional debug info
         this.logger.debug('🔍 Player state details:', {
-          status: player.state.status,
-          resource: resource ? 'exists' : 'null',
-          readable: resource?.readable,
-          ended: resource?.ended,
+          metadata: {
+            status: player.state.status,
+            resource: resource ? 'exists' : 'null',
+            readable: resource?.readable,
+            ended: resource?.ended,
+          }
         });
 
         return false;

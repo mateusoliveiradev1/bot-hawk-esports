@@ -266,22 +266,57 @@ export class PUBGService {
         if (status === 429) {
           retryAfter = error.response.headers['retry-after'];
           errorMessage = `Rate limit exceeded. Retry after: ${retryAfter || '60'}s`;
-          this.logger.warn('⏱️ PUBG API: Rate limit exceeded', errorInfo);
+          this.logger.warn('⏱️ PUBG API: Rate limit exceeded', {
+            error: new Error(errorInfo.message || 'Rate limit exceeded'),
+            metadata: {
+              url: errorInfo.url,
+              method: errorInfo.method,
+              status: errorInfo.status
+            }
+          });
           if (retryAfter) {
             this.logger.info(`Rate limit retry after: ${retryAfter} seconds`);
           }
         } else if (status === 404) {
           errorMessage = 'Resource not found';
-          this.logger.warn('🔍 PUBG API: Resource not found', errorInfo);
+          this.logger.warn('🔍 PUBG API: Resource not found', {
+            error: new Error(errorInfo.message || 'Resource not found'),
+            metadata: {
+              url: errorInfo.url,
+              method: errorInfo.method,
+              status: errorInfo.status
+            }
+          });
         } else if (status === 401) {
           errorMessage = 'Authentication failed. Check API key';
-          this.logger.error('🔐 PUBG API: Authentication failed', errorInfo);
+          this.logger.error('🔐 PUBG API: Authentication failed', {
+            error: new Error(errorInfo.message || 'Authentication failed'),
+            metadata: {
+              url: errorInfo.url,
+              method: errorInfo.method,
+              status: errorInfo.status
+            }
+          });
         } else if (status >= 500) {
           errorMessage = `Server error (${status}): ${message}`;
-          this.logger.error('🚨 PUBG API: Server error', errorInfo);
+          this.logger.error('🚨 PUBG API: Server error', {
+            error: new Error(errorInfo.message || 'Server error'),
+            metadata: {
+              url: errorInfo.url,
+              method: errorInfo.method,
+              status: errorInfo.status
+            }
+          });
         } else {
           errorMessage = `HTTP ${status}: ${message}`;
-          this.logger.error('❌ PUBG API response error:', errorInfo);
+          this.logger.error('❌ PUBG API response error:', {
+            error: new Error(errorInfo.message || 'API response error'),
+            metadata: {
+              url: errorInfo.url,
+              method: errorInfo.method,
+              status: errorInfo.status
+            }
+          });
         }
 
         // Log error to channel
@@ -362,8 +397,12 @@ export class PUBGService {
           this.logger.warn(
             `⚠️ ${operationName}: Attempt ${attempt + 1} failed, retrying in ${delay}ms`,
             {
-              error: error.message,
-              status: error.response?.status,
+              error: new Error(error.message || 'Operation failed'),
+              metadata: {
+                status: error.response?.status,
+                attempt: attempt + 1,
+                delay
+              }
             }
           );
 
@@ -387,8 +426,11 @@ export class PUBGService {
 
     // All retries failed
     this.logger.error(`❌ ${operationName}: All ${maxRetries + 1} attempts failed`, {
-      error: lastError.message,
-      status: lastError.response?.status,
+      error: new Error(lastError.message || 'All attempts failed'),
+      metadata: {
+        status: lastError.response?.status,
+        maxRetries: maxRetries + 1
+      }
     });
 
     this.logApiOperation(
@@ -491,9 +533,11 @@ export class PUBGService {
       return player;
     } catch (error) {
       this.logger.error(`Failed to get player ${playerName}:`, {
-        error: error instanceof Error ? error.message : String(error),
-        platform,
-        playerName,
+        error: error instanceof Error ? error : new Error(String(error)),
+        metadata: {
+          platform,
+          playerName
+        }
       });
 
       // Try to return stale cache data
@@ -1019,8 +1063,8 @@ export class PUBGService {
       return true;
     } catch (error) {
       this.logger.error('❌ PUBG API is not available:', {
-        message: error instanceof Error ? error.message : String(error),
-        hasApiKey: !!this.apiKey,
+        error: error instanceof Error ? error : new Error(String(error)),
+        metadata: { hasApiKey: !!this.apiKey },
       });
       return false;
     }
@@ -1542,8 +1586,8 @@ export class PUBGService {
           }
         } catch (error: any) {
           this.logger.warn('PUBG API health check failed:', {
-            status: error.response?.status,
-            message: error.message,
+            error: error instanceof Error ? error : new Error(String(error)),
+            metadata: { status: error.response?.status },
           });
           health.api = false;
 
@@ -1574,7 +1618,9 @@ export class PUBGService {
     }
 
     const duration = Date.now() - startTime;
-    this.logger.info(`PUBG Service health check: ${health.status} (${duration}ms)`, health);
+    this.logger.info(`PUBG Service health check: ${health.status} (${duration}ms)`, {
+      metadata: { health, duration },
+    });
 
     // Log health check to channel
     this.logApiOperation(

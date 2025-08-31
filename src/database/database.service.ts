@@ -57,9 +57,12 @@ export class DatabaseService {
           if (e.duration > 1000) {
             // Log slow queries (>1s)
             this.logger.warn(`Slow query detected (${e.duration}ms):`, {
-              query: e.query?.substring(0, 200) + '...',
-              params: e.params,
-              timestamp: new Date().toISOString(),
+              metadata: {
+                query: e.query?.substring(0, 200) + '...',
+                params: e.params,
+                timestamp: new Date().toISOString(),
+                duration: e.duration
+              }
             });
           }
         });
@@ -533,10 +536,12 @@ export class DatabaseService {
         });
 
         this.logger.info(`PUBG stats updated for user ${userId}:`, {
-          gameMode: stats.gameMode,
-          seasonId: stats.seasonId,
-          rankPoints: stats.currentRankPoint,
-          tier: stats.currentTier,
+          metadata: {
+            gameMode: stats.gameMode,
+            seasonId: stats.seasonId,
+            rankPoints: stats.currentRankPoint,
+            tier: stats.currentTier
+          }
         });
 
         return result;
@@ -722,10 +727,12 @@ export class DatabaseService {
       });
 
       this.logger.info('Database cleanup completed:', {
-        auditLogsDeleted: results.auditLogs,
-        rankingSnapshotsDeleted: results.rankingSnapshots,
-        transactionsDeleted: results.transactions,
-        retentionDays,
+        metadata: {
+          auditLogsDeleted: results.auditLogs,
+          rankingSnapshotsDeleted: results.rankingSnapshots,
+          transactionsDeleted: results.transactions,
+          retentionDays
+        }
       });
     } catch (error) {
       this.logger.error('Database cleanup failed:', error);

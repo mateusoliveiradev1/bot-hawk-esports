@@ -62,12 +62,14 @@ export class BadgeAuditService {
       results.fixedIssues = await this.autoFixIssues(results);
 
       this.logger.info('Badge audit completed:', {
-        orphanedBadges: results.orphanedBadges.length,
-        duplicatedUserBadges: results.duplicatedUserBadges.length,
-        invalidBadgeReferences: results.invalidBadgeReferences.length,
-        missingBadgeDefinitions: results.missingBadgeDefinitions.length,
-        inconsistentBadgeData: results.inconsistentBadgeData.length,
-        fixedIssues: results.fixedIssues,
+        metadata: {
+          orphanedBadges: results.orphanedBadges.length,
+          duplicatedUserBadges: results.duplicatedUserBadges.length,
+          invalidBadgeReferences: results.invalidBadgeReferences.length,
+          missingBadgeDefinitions: results.missingBadgeDefinitions.length,
+          inconsistentBadgeData: results.inconsistentBadgeData.length,
+          fixedIssues: results.fixedIssues
+        }
       });
 
       return results;
@@ -94,7 +96,9 @@ export class BadgeAuditService {
         .map(badge => badge.id);
 
       if (orphaned.length > 0) {
-        this.logger.warn(`Found ${orphaned.length} orphaned badges:`, orphaned);
+        this.logger.warn(`Found ${orphaned.length} orphaned badges:`, {
+          metadata: { orphanedBadges: orphaned }
+        });
       }
 
       return orphaned;
@@ -180,7 +184,9 @@ export class BadgeAuditService {
         .map(badge => badge.id);
 
       if (missing.length > 0) {
-        this.logger.warn(`Found ${missing.length} missing badge definitions in database:`, missing);
+        this.logger.warn(`Found ${missing.length} missing badge definitions in database:`, {
+          metadata: { missingBadges: missing }
+        });
       }
 
       return missing;
