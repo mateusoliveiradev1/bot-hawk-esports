@@ -1,0 +1,33 @@
+module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  roots: ['<rootDir>/src', '<rootDir>/tests'],
+  testMatch: [
+    '**/__tests__/**/*.+(ts|tsx|js)',
+    '**/*.(test|spec).+(ts|tsx|js)'
+  ],
+  transform: {
+    '^.+\\.(ts|tsx)$': 'ts-jest'
+  },
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/index.ts',
+    '!src/deploy-commands.ts',
+    '!src/types/**/*',
+    '!src/config/**/*'
+  ],
+  coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov', 'html'],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  testTimeout: 30000,
+  moduleNameMapping: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@services/(.*)$': '<rootDir>/src/services/$1',
+    '^@utils/(.*)$': '<rootDir>/src/utils/$1',
+    '^@database/(.*)$': '<rootDir>/src/database/$1',
+    '^@types/(.*)$': '<rootDir>/src/types/$1'
+  },
+  globalSetup: '<rootDir>/tests/global-setup.ts',
+  globalTeardown: '<rootDir>/tests/global-teardown.ts'
+};

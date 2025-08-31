@@ -1,16 +1,18 @@
-import { EmbedBuilder, ColorResolvable } from 'discord.js';
+import { EmbedBuilder, ColorResolvable, User } from 'discord.js';
+import { THEME_COLORS, ColorUtils } from '../constants/colors';
 
 /**
  * Utility class for creating standardized embeds
+ * Enhanced with centralized theming and category-specific methods
  */
 export class EmbedUtils {
-  // Standard colors
+  // Legacy colors for backward compatibility
   private static readonly COLORS = {
-    ERROR: 0xff0000,
-    SUCCESS: 0x00ff00,
-    WARNING: 0xffff00,
-    INFO: 0x0099ff,
-    PRIMARY: 0x5865f2,
+    ERROR: THEME_COLORS.ERROR,
+    SUCCESS: THEME_COLORS.SUCCESS,
+    WARNING: THEME_COLORS.WARNING,
+    INFO: THEME_COLORS.INFO,
+    PRIMARY: THEME_COLORS.PRIMARY,
   } as const;
 
   /**
@@ -142,5 +144,231 @@ export class EmbedUtils {
 
   static configurationUpdated(description?: string): EmbedBuilder {
     return this.createSuccessEmbed(this.COMMON_SUCCESS.CONFIGURATION_UPDATED, description);
+  }
+
+  /**
+   * Category-specific embed creators
+   */
+  static createCategoryEmbed(
+    category: string,
+    title: string,
+    description?: string
+  ): EmbedBuilder {
+    const embed = new EmbedBuilder()
+      .setTitle(title)
+      .setColor(ColorUtils.getCategoryColor(category))
+      .setTimestamp();
+
+    if (description) {
+      embed.setDescription(description);
+    }
+
+    return embed;
+  }
+
+  static createPUBGEmbed(title: string, description?: string): EmbedBuilder {
+    return this.createCategoryEmbed('PUBG', `🎮 ${title}`, description);
+  }
+
+  static createMusicEmbed(title: string, description?: string): EmbedBuilder {
+    return this.createCategoryEmbed('MUSIC', `🎵 ${title}`, description);
+  }
+
+  static createEconomyEmbed(title: string, description?: string): EmbedBuilder {
+    return this.createCategoryEmbed('ECONOMY', `💰 ${title}`, description);
+  }
+
+  static createAdminEmbed(title: string, description?: string): EmbedBuilder {
+    return this.createCategoryEmbed('ADMIN', `🔧 ${title}`, description);
+  }
+
+  static createProfileEmbed(title: string, description?: string): EmbedBuilder {
+    return this.createCategoryEmbed('PROFILE', `👤 ${title}`, description);
+  }
+
+  static createRankingEmbed(title: string, description?: string): EmbedBuilder {
+    return this.createCategoryEmbed('RANKING', `📊 ${title}`, description);
+  }
+
+  static createBadgeEmbed(title: string, description?: string): EmbedBuilder {
+    return this.createCategoryEmbed('BADGES', `🏅 ${title}`, description);
+  }
+
+  static createTicketEmbed(title: string, description?: string): EmbedBuilder {
+    return this.createCategoryEmbed('TICKETS', `🎫 ${title}`, description);
+  }
+
+  /**
+   * Rarity-based embed creator
+   */
+  static createRarityEmbed(
+    rarity: string,
+    title: string,
+    description?: string
+  ): EmbedBuilder {
+    const embed = new EmbedBuilder()
+      .setTitle(title)
+      .setColor(ColorUtils.getRarityColor(rarity))
+      .setTimestamp();
+
+    if (description) {
+      embed.setDescription(description);
+    }
+
+    return embed;
+  }
+
+  /**
+   * User profile embed with avatar and standard formatting
+   */
+  static createUserProfileEmbed(
+    user: User,
+    title?: string,
+    description?: string
+  ): EmbedBuilder {
+    const embed = new EmbedBuilder()
+      .setTitle(title || `👤 Perfil de ${user.displayName}`)
+      .setThumbnail(user.displayAvatarURL({ size: 256 }))
+      .setColor(THEME_COLORS.PROFILE)
+      .setTimestamp();
+
+    if (description) {
+      embed.setDescription(description);
+    }
+
+    return embed;
+  }
+
+  /**
+   * Loading embed for long operations
+   */
+  static createLoadingEmbed(message: string = 'Processando...'): EmbedBuilder {
+    return new EmbedBuilder()
+      .setTitle('⏳ Carregando')
+      .setDescription(message)
+      .setColor(THEME_COLORS.INFO)
+      .setTimestamp();
+  }
+
+  /**
+   * Maintenance embed
+   */
+  static createMaintenanceEmbed(
+    title: string = 'Manutenção em Andamento',
+    description?: string
+  ): EmbedBuilder {
+    return new EmbedBuilder()
+      .setTitle(`🔧 ${title}`)
+      .setDescription(description || 'Este recurso está temporariamente indisponível.')
+      .setColor(THEME_COLORS.MAINTENANCE)
+      .setTimestamp();
+  }
+
+  /**
+   * Premium feature embed
+   */
+  static createPremiumEmbed(
+    title: string,
+    description?: string
+  ): EmbedBuilder {
+    return new EmbedBuilder()
+      .setTitle(`👑 ${title}`)
+      .setDescription(description)
+      .setColor(THEME_COLORS.PREMIUM)
+      .setTimestamp();
+  }
+
+  /**
+   * Event embed
+   */
+  static createEventEmbed(
+    title: string,
+    description?: string
+  ): EmbedBuilder {
+    return new EmbedBuilder()
+      .setTitle(`🎉 ${title}`)
+      .setDescription(description)
+      .setColor(THEME_COLORS.EVENT)
+      .setTimestamp();
+  }
+
+  /**
+   * Paginated embed with page info
+   */
+  static createPaginatedEmbed(
+    title: string,
+    description: string,
+    currentPage: number,
+    totalPages: number,
+    color?: ColorResolvable
+  ): EmbedBuilder {
+    return new EmbedBuilder()
+      .setTitle(title)
+      .setDescription(description)
+      .setColor(color || THEME_COLORS.INFO)
+      .setFooter({ text: `Página ${currentPage} de ${totalPages}` })
+      .setTimestamp();
+  }
+
+  /**
+   * Status embed with dynamic color based on status
+   */
+  static createStatusEmbed(
+    status: string,
+    title: string,
+    description?: string
+  ): EmbedBuilder {
+    const embed = new EmbedBuilder()
+      .setTitle(title)
+      .setColor(ColorUtils.getStatusColor(status))
+      .setTimestamp();
+
+    if (description) {
+      embed.setDescription(description);
+    }
+
+    return embed;
+  }
+
+  /**
+   * Quick embed with just title and description
+   */
+  static createQuickEmbed(
+    title: string,
+    description: string,
+    color: ColorResolvable = THEME_COLORS.INFO
+  ): EmbedBuilder {
+    return new EmbedBuilder()
+      .setTitle(title)
+      .setDescription(description)
+      .setColor(color)
+      .setTimestamp();
+  }
+
+  /**
+   * Utility method to add standard footer
+   */
+  static addStandardFooter(
+    embed: EmbedBuilder,
+    text?: string,
+    iconURL?: string
+  ): EmbedBuilder {
+    const footerText = text || 'Hawk Esports Bot';
+    return embed.setFooter({ text: footerText, iconURL });
+  }
+
+  /**
+   * Utility method to add author field
+   */
+  static addAuthor(
+    embed: EmbedBuilder,
+    user: User,
+    prefix?: string
+  ): EmbedBuilder {
+    const name = prefix ? `${prefix} ${user.displayName}` : user.displayName;
+    return embed.setAuthor({
+      name,
+      iconURL: user.displayAvatarURL({ size: 64 })
+    });
   }
 }

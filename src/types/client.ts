@@ -50,6 +50,7 @@ export interface ExtendedClient extends Client {
   punishmentService: PunishmentService;
   automodService: AutoModerationService;
   ticketService: TicketService;
+  loggingService: LoggingService;
   weaponMasteryService: WeaponMasteryService;
   persistentTicketService?: PersistentTicketService;
   presenceFixesService?: PresenceFixesService;

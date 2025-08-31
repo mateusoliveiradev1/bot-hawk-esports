@@ -121,10 +121,15 @@ class HawkEsportsBot {
     const punishmentService = new PunishmentService(this.client, this.db);
     const roleManagerService = new RoleManagerService();
     const pubgService = new PUBGService(this.cache);
+    const loggingService = new LoggingService(this.client, this.db);
+
+    // Assign logging service and pubg service to client BEFORE creating RankService
+    this.client.loggingService = loggingService;
+    (this.client as any).pubg = pubgService;
 
     // Initialize XPService first as it's needed by other services
     const xpService = new XPService(this.client);
-    const badgeService = new BadgeService(this.client, xpService, this.client.loggingService);
+    const badgeService = new BadgeService(this.client, xpService, loggingService);
 
     this.services = {
       api: new APIService(this.client),
@@ -135,7 +140,7 @@ class HawkEsportsBot {
       exclusiveBadge: new ExclusiveBadgeService(this.client, badgeService),
       dynamicBadge: new DynamicBadgeService(this.client, badgeService, pubgService),
       challenge: new ChallengeService(this.client),
-      logging: new LoggingService(this.client, this.db),
+      logging: loggingService,
       music: new MusicService(this.cache, this.db),
       onboarding: new OnboardingService(this.client),
       presence: new PresenceService(this.client),
