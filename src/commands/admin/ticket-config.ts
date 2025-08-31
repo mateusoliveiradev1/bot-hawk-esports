@@ -26,12 +26,12 @@ export default {
             option
               .setName('horas')
               .setDescription(
-                'Horas de inatividade antes do fechamento automático (0 = desabilitar)'
+                'Horas de inatividade antes do fechamento automático (0 = desabilitar)',
               )
               .setRequired(true)
               .setMinValue(0)
-              .setMaxValue(168) // 7 dias máximo
-        )
+              .setMaxValue(168), // 7 dias máximo
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -43,8 +43,8 @@ export default {
             .setDescription('Número máximo de tickets por usuário')
             .setRequired(true)
             .setMinValue(1)
-            .setMaxValue(10)
-        )
+            .setMaxValue(10),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -54,8 +54,8 @@ export default {
           option
             .setName('ativo')
             .setDescription('Ativar ou desativar atribuição automática')
-            .setRequired(true)
-        )
+            .setRequired(true),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -65,8 +65,8 @@ export default {
           option
             .setName('obrigatorio')
             .setDescription('Tornar motivo obrigatório ou opcional')
-            .setRequired(true)
-        )
+            .setRequired(true),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -76,29 +76,29 @@ export default {
           option
             .setName('criar')
             .setDescription('Notificar quando ticket for criado')
-            .setRequired(false)
+            .setRequired(false),
         )
         .addBooleanOption(option =>
           option
             .setName('atribuir')
             .setDescription('Notificar quando ticket for atribuído')
-            .setRequired(false)
+            .setRequired(false),
         )
         .addBooleanOption(option =>
           option
             .setName('fechar')
             .setDescription('Notificar quando ticket for fechado')
-            .setRequired(false)
+            .setRequired(false),
         )
         .addBooleanOption(option =>
           option
             .setName('reabrir')
             .setDescription('Notificar quando ticket for reaberto')
-            .setRequired(false)
-        )
+            .setRequired(false),
+        ),
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('view').setDescription('Ver configurações atuais do sistema de tickets')
+      subcommand.setName('view').setDescription('Ver configurações atuais do sistema de tickets'),
     ),
 
   async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
@@ -178,7 +178,7 @@ async function handleTimeoutConfig(interaction: ChatInputCommandInteraction, tic
       .setDescription(
         horas === 0
           ? 'Fechamento automático por inatividade foi **desabilitado**.'
-          : `Tickets serão fechados automaticamente após **${horas} horas** de inatividade.`
+          : `Tickets serão fechados automaticamente após **${horas} horas** de inatividade.`,
       )
       .setColor('#00FF00')
       .addFields(
@@ -187,7 +187,7 @@ async function handleTimeoutConfig(interaction: ChatInputCommandInteraction, tic
           value: `${currentSettings.closeAfterInactivity}h`,
           inline: true,
         },
-        { name: '🆕 Novo Tempo', value: horas === 0 ? 'Desabilitado' : `${horas}h`, inline: true }
+        { name: '🆕 Novo Tempo', value: horas === 0 ? 'Desabilitado' : `${horas}h`, inline: true },
       )
       .setTimestamp();
 
@@ -209,7 +209,7 @@ async function handleTimeoutConfig(interaction: ChatInputCommandInteraction, tic
  */
 async function handleMaxTicketsConfig(
   interaction: ChatInputCommandInteraction,
-  ticketService: any
+  ticketService: any,
 ) {
   const quantidade = interaction.options.getInteger('quantidade', true);
   const guildId = interaction.guildId!;
@@ -231,7 +231,7 @@ async function handleMaxTicketsConfig(
       .setColor('#00FF00')
       .addFields(
         { name: '📊 Limite Anterior', value: `${currentSettings.maxTicketsPerUser}`, inline: true },
-        { name: '🆕 Novo Limite', value: `${quantidade}`, inline: true }
+        { name: '🆕 Novo Limite', value: `${quantidade}`, inline: true },
       )
       .setTimestamp();
 
@@ -253,7 +253,7 @@ async function handleMaxTicketsConfig(
  */
 async function handleAutoAssignConfig(
   interaction: ChatInputCommandInteraction,
-  ticketService: any
+  ticketService: any,
 ) {
   const ativo = interaction.options.getBoolean('ativo', true);
   const guildId = interaction.guildId!;
@@ -274,7 +274,7 @@ async function handleAutoAssignConfig(
       .setDescription(
         ativo
           ? 'Atribuição automática de tickets foi **ativada**.'
-          : 'Atribuição automática de tickets foi **desativada**.'
+          : 'Atribuição automática de tickets foi **desativada**.',
       )
       .setColor('#00FF00')
       .addFields(
@@ -283,7 +283,7 @@ async function handleAutoAssignConfig(
           value: currentSettings.autoAssign ? 'Ativo' : 'Inativo',
           inline: true,
         },
-        { name: '🆕 Novo Status', value: ativo ? 'Ativo' : 'Inativo', inline: true }
+        { name: '🆕 Novo Status', value: ativo ? 'Ativo' : 'Inativo', inline: true },
       )
       .setTimestamp();
 
@@ -305,7 +305,7 @@ async function handleAutoAssignConfig(
  */
 async function handleRequireReasonConfig(
   interaction: ChatInputCommandInteraction,
-  ticketService: any
+  ticketService: any,
 ) {
   const obrigatorio = interaction.options.getBoolean('obrigatorio', true);
   const guildId = interaction.guildId!;
@@ -326,7 +326,7 @@ async function handleRequireReasonConfig(
       .setDescription(
         obrigatorio
           ? 'Motivo agora é **obrigatório** para criar tickets.'
-          : 'Motivo agora é **opcional** para criar tickets.'
+          : 'Motivo agora é **opcional** para criar tickets.',
       )
       .setColor('#00FF00')
       .addFields(
@@ -335,7 +335,7 @@ async function handleRequireReasonConfig(
           value: currentSettings.requireReason ? 'Obrigatório' : 'Opcional',
           inline: true,
         },
-        { name: '🆕 Novo Status', value: obrigatorio ? 'Obrigatório' : 'Opcional', inline: true }
+        { name: '🆕 Novo Status', value: obrigatorio ? 'Obrigatório' : 'Opcional', inline: true },
       )
       .setTimestamp();
 
@@ -357,7 +357,7 @@ async function handleRequireReasonConfig(
  */
 async function handleNotificationsConfig(
   interaction: ChatInputCommandInteraction,
-  ticketService: any
+  ticketService: any,
 ) {
   const criar = interaction.options.getBoolean('criar');
   const atribuir = interaction.options.getBoolean('atribuir');
@@ -407,7 +407,7 @@ async function handleNotificationsConfig(
           name: '🔓 Reabrir Ticket',
           value: newNotificationSettings.onReopen ? '✅ Ativo' : '❌ Inativo',
           inline: true,
-        }
+        },
       )
       .setTimestamp();
 
@@ -464,7 +464,7 @@ async function handleViewConfig(interaction: ChatInputCommandInteraction, ticket
               ? `${settings.closeAfterInactivity}h`
               : '❌ Desabilitado',
           inline: true,
-        }
+        },
       )
       .addFields(
         { name: '🔔 Notificações', value: '\u200B', inline: false },
@@ -487,7 +487,7 @@ async function handleViewConfig(interaction: ChatInputCommandInteraction, ticket
           name: '🔓 Reabrir',
           value: settings.notificationSettings.onReopen ? '✅' : '❌',
           inline: true,
-        }
+        },
       )
       .setTimestamp();
 

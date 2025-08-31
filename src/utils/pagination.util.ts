@@ -63,7 +63,7 @@ export class PaginationUtil {
   static createPaginatedData<T>(
     items: T[],
     currentPage: number = 1,
-    itemsPerPage: number = 10
+    itemsPerPage: number = 10,
   ): PaginatedData<T> {
     const totalItems = items.length;
     const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
@@ -89,7 +89,7 @@ export class PaginationUtil {
     interaction: CommandInteraction,
     allItems: T[],
     embedGenerator: EmbedGenerator<T>,
-    options: PaginationOptions = {}
+    options: PaginationOptions = {},
   ): Promise<void> {
     const {
       itemsPerPage = 10,
@@ -105,7 +105,7 @@ export class PaginationUtil {
     if (allItems.length === 0) {
       const emptyEmbed = EmbedUtils.createInfoEmbed(
         'Nenhum item encontrado',
-        'Não há itens para exibir.'
+        'Não há itens para exibir.',
       );
       await interaction.reply({ embeds: [emptyEmbed], flags: MessageFlags.Ephemeral });
       return;
@@ -136,11 +136,11 @@ export class PaginationUtil {
       if (showNavigation && totalPages > 1) {
         if (simpleNavigation) {
           components.push(
-            ComponentFactory.createSimpleNavigation(page, totalPages, customIdPrefix)
+            ComponentFactory.createSimpleNavigation(page, totalPages, customIdPrefix),
           );
         } else {
           components.push(
-            ComponentFactory.createNavigationButtons(page, totalPages, customIdPrefix)
+            ComponentFactory.createNavigationButtons(page, totalPages, customIdPrefix),
           );
         }
       }
@@ -153,7 +153,7 @@ export class PaginationUtil {
     const message = await interaction.reply({ ...response, fetchReply: true }) as Message;
 
     // If only one page, no need for collector
-    if (totalPages <= 1) return;
+    if (totalPages <= 1) {return;}
 
     // Create button collector
     const collector = message.createMessageComponentCollector({
@@ -233,7 +233,7 @@ export class PaginationUtil {
       color?: number;
       thumbnail?: string;
       itemFormatter?: (item: string, index: number) => string;
-    } = {}
+    } = {},
   ): Promise<void> {
     const {
       description,
@@ -275,7 +275,7 @@ export class PaginationUtil {
       interaction,
       items,
       embedGenerator,
-      paginationOptions
+      paginationOptions,
     );
   }
 
@@ -296,7 +296,7 @@ export class PaginationUtil {
       color?: number;
       thumbnail?: string;
       valueLabel?: string;
-    } = {}
+    } = {},
   ): Promise<void> {
     const {
       description,
@@ -341,7 +341,7 @@ export class PaginationUtil {
       interaction,
       rankings,
       embedGenerator,
-      paginationOptions
+      paginationOptions,
     );
   }
 
@@ -361,7 +361,7 @@ export class PaginationUtil {
       color?: number;
       thumbnail?: string;
       fieldsPerPage?: number;
-    } = {}
+    } = {},
   ): Promise<void> {
     const {
       description,
@@ -404,7 +404,7 @@ export class PaginationUtil {
       interaction,
       stats,
       embedGenerator,
-      paginationOptions
+      paginationOptions,
     );
   }
 
@@ -430,12 +430,12 @@ export class PaginationUtil {
     query: string,
     results: T[],
     embedGenerator: EmbedGenerator<T>,
-    options: PaginationOptions = {}
+    options: PaginationOptions = {},
   ): Promise<void> {
     if (results.length === 0) {
       const noResultsEmbed = EmbedUtils.createWarningEmbed(
         'Nenhum resultado encontrado',
-        `Não foram encontrados resultados para: **${query}**`
+        `Não foram encontrados resultados para: **${query}**`,
       );
       await interaction.reply({ embeds: [noResultsEmbed], flags: MessageFlags.Ephemeral });
       return;
@@ -462,7 +462,7 @@ export class PaginationUtil {
       {
         ...options,
         footerText: options.footerText || `Busca: ${query}`,
-      }
+      },
     );
   }
 
@@ -483,7 +483,7 @@ export class PaginationUtil {
   static calculatePagination(
     totalItems: number,
     currentPage: number,
-    itemsPerPage: number
+    itemsPerPage: number,
   ): {
     totalPages: number;
     startIndex: number;

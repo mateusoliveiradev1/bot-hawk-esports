@@ -27,11 +27,11 @@ const auditBadges: Command = {
           option
             .setName('autofix')
             .setDescription('Corrigir automaticamente problemas encontrados')
-            .setRequired(false)
-        )
+            .setRequired(false),
+        ),
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('health').setDescription('Gerar relatório de saúde do sistema de badges')
+      subcommand.setName('health').setDescription('Gerar relatório de saúde do sistema de badges'),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -41,11 +41,11 @@ const auditBadges: Command = {
           option
             .setName('confirm')
             .setDescription('Confirmar limpeza de badges órfãs')
-            .setRequired(true)
-        )
+            .setRequired(true),
+        ),
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('validate').setDescription('Validar formato dos requisitos das badges')
+      subcommand.setName('validate').setDescription('Validar formato dos requisitos das badges'),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   category: CommandCategory.ADMIN,
@@ -97,7 +97,7 @@ const auditBadges: Command = {
         .setColor('#ff0000')
         .setTitle('❌ Erro na Auditoria')
         .setDescription(
-          'Ocorreu um erro durante a auditoria de badges. Verifique os logs para mais detalhes.'
+          'Ocorreu um erro durante a auditoria de badges. Verifique os logs para mais detalhes.',
         )
         .setTimestamp();
 
@@ -176,7 +176,7 @@ async function handleAuditRun(interaction: any, auditService: BadgeAuditService,
               ? 'Nenhuma correção necessária'
               : 'Correção automática desabilitada',
         inline: true,
-      }
+      },
     )
     .setTimestamp();
 
@@ -186,7 +186,7 @@ async function handleAuditRun(interaction: any, auditService: BadgeAuditService,
       .slice(0, 3)
       .map(
         issue =>
-          `**${issue.badgeId}**: ${issue.issues.slice(0, 2).join(', ')}${issue.issues.length > 2 ? '...' : ''}`
+          `**${issue.badgeId}**: ${issue.issues.slice(0, 2).join(', ')}${issue.issues.length > 2 ? '...' : ''}`,
       )
       .join('\n');
 
@@ -206,7 +206,7 @@ async function handleAuditRun(interaction: any, auditService: BadgeAuditService,
         .setCustomId('cleanup_orphaned')
         .setLabel(`Limpar ${results.orphanedBadges.length} Badges Órfãs`)
         .setStyle(ButtonStyle.Danger)
-        .setEmoji('🗑️')
+        .setEmoji('🗑️'),
     );
     components.push(row);
   }
@@ -223,10 +223,10 @@ async function handleAuditRun(interaction: any, auditService: BadgeAuditService,
         }
         return acc;
       },
-      {} as Record<string, any>
+      {} as Record<string, any>,
     ),
-      fixedIssues: results.fixedIssues
-    }
+      fixedIssues: results.fixedIssues,
+    },
   });
 }
 
@@ -236,7 +236,7 @@ async function handleAuditRun(interaction: any, auditService: BadgeAuditService,
 async function handleHealthReport(
   interaction: any,
   auditService: BadgeAuditService,
-  logger: Logger
+  logger: Logger,
 ) {
   await interaction.deferReply();
 
@@ -271,7 +271,7 @@ async function handleHealthReport(
             .map(([rarity, count]) => `**${rarity}:** ${count}`)
             .join('\n') || 'Nenhuma raridade encontrada',
         inline: true,
-      }
+      },
     )
     .setTimestamp();
 
@@ -315,8 +315,8 @@ async function handleHealthReport(
       activeBadges: report.activeBadges,
       totalUserBadges: report.totalUserBadges,
       uniqueUsers: report.uniqueUsersWithBadges,
-      issuesFound: issuesCount
-    }
+      issuesFound: issuesCount,
+    },
   });
 }
 
@@ -331,7 +331,7 @@ async function handleCleanup(interaction: any, auditService: BadgeAuditService, 
       .setColor('#ffa500')
       .setTitle('⚠️ Confirmação Necessária')
       .setDescription(
-        'Para executar a limpeza de badges órfãs, você deve definir `confirm` como `true`.\n\n**ATENÇÃO:** Esta ação é irreversível!'
+        'Para executar a limpeza de badges órfãs, você deve definir `confirm` como `true`.\n\n**ATENÇÃO:** Esta ação é irreversível!',
       )
       .setTimestamp();
 
@@ -376,7 +376,7 @@ async function handleCleanup(interaction: any, auditService: BadgeAuditService, 
   await interaction.editReply({ embeds: [embed] });
 
   logger.info(`Cleaned up ${cleanedCount} orphaned badges:`, {
-    metadata: { orphanedBadges: auditResults.orphanedBadges }
+    metadata: { orphanedBadges: auditResults.orphanedBadges },
   });
 }
 
@@ -394,7 +394,7 @@ async function handleValidate(interaction: any, auditService: BadgeAuditService,
     .setDescription(
       validationErrors.length > 0
         ? `${validationErrors.length} badges com requisitos inválidos encontradas.`
-        : 'Todos os requisitos de badges estão válidos.'
+        : 'Todos os requisitos de badges estão válidos.',
     )
     .setTimestamp();
 

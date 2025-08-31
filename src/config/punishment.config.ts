@@ -118,7 +118,7 @@ export interface UserWarning {
  * Get punishment configuration for a specific infraction type
  */
 export function getPunishmentConfig(
-  type: keyof PunishmentConfig['penalties']
+  type: keyof PunishmentConfig['penalties'],
 ): PunishmentConfig['penalties'][keyof PunishmentConfig['penalties']] {
   return PUNISHMENT_CONFIG.penalties[type];
 }
@@ -153,7 +153,7 @@ export function shouldEscalatePunishment(warningCount: number): boolean {
  */
 export function formatPunishmentReason(
   type: keyof PunishmentConfig['penalties'],
-  details?: string
+  details?: string,
 ): string {
   const config = getPunishmentConfig(type);
   return details ? `${config.description}: ${details}` : config.description;

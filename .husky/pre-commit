@@ -1,8 +1,8 @@
 # Executar linting do TypeScript
 npx tsc --noEmit
 
-# Pular ESLint por enquanto devido a muitos erros de formatação
-# npx eslint . --ext .ts,.js
+# Executar ESLint
+npx eslint . --ext .ts,.js
 
 # Pular testes por enquanto
 # npm test

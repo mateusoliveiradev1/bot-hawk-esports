@@ -165,7 +165,7 @@ export class ClipService {
       } catch (badgeError) {
         this.logger.warn(
           'Failed to initialize BadgeService, creating fallback instance:',
-          badgeError
+          badgeError,
         );
         this.badgeService = new BadgeService(client, (client as any).services?.xp, (client as any).services?.logging);
       }
@@ -363,7 +363,7 @@ export class ClipService {
       async () => {
         await this.updateAllRankings();
       },
-      60 * 60 * 1000
+      60 * 60 * 1000,
     );
 
     // Award weekly/monthly rewards
@@ -381,7 +381,7 @@ export class ClipService {
           }
         }
       },
-      5 * 60 * 1000
+      5 * 60 * 1000,
     );
   }
 
@@ -394,7 +394,7 @@ export class ClipService {
       async () => {
         await this.cleanupOldFiles();
       },
-      24 * 60 * 60 * 1000
+      24 * 60 * 60 * 1000,
     );
   }
 
@@ -409,7 +409,7 @@ export class ClipService {
     title: string,
     description?: string,
     gameMode?: string,
-    tags?: string[]
+    tags?: string[],
   ): Promise<{ success: boolean; message: string; clipId?: string }> {
     try {
       // Validate input parameters
@@ -564,7 +564,7 @@ export class ClipService {
   private validateFile(
     file: Buffer,
     fileName: string,
-    settings: ClipSettings
+    settings: ClipSettings,
   ): { valid: boolean; message: string } {
     // Check file size
     const fileSizeMB = file.length / (1024 * 1024);
@@ -594,7 +594,7 @@ export class ClipService {
     guildId: string,
     clipId: string,
     userId: string,
-    voteType: 'like' | 'dislike'
+    voteType: 'like' | 'dislike',
   ): Promise<{ success: boolean; message: string }> {
     try {
       // Validate input parameters
@@ -796,7 +796,7 @@ export class ClipService {
     clipId: string,
     moderatorId: string,
     action: 'approve' | 'reject' | 'feature',
-    note?: string
+    note?: string,
   ): Promise<{ success: boolean; message: string }> {
     try {
       // Validate input parameters
@@ -930,7 +930,7 @@ export class ClipService {
     guildId: string,
     status?: 'pending' | 'approved' | 'rejected' | 'featured',
     limit: number = 50,
-    offset: number = 0
+    offset: number = 0,
   ): ClipData[] {
     const guildClips = this.clips.get(guildId);
     if (!guildClips) {
@@ -969,7 +969,7 @@ export class ClipService {
   public getClipRanking(
     guildId: string,
     period: 'daily' | 'weekly' | 'monthly' | 'all_time',
-    limit: number = 20
+    limit: number = 20,
   ): ClipRanking | null {
     return this.rankings.get(guildId)?.get(period) || null;
   }
@@ -982,7 +982,7 @@ export class ClipService {
     query: string,
     tags?: string[],
     gameMode?: string,
-    limit: number = 20
+    limit: number = 20,
   ): ClipData[] {
     const guildClips = this.clips.get(guildId);
     if (!guildClips) {
@@ -1011,7 +1011,7 @@ export class ClipService {
         // Tags filter
         if (tags && tags.length > 0) {
           const hasMatchingTag = tags.some(tag =>
-            clip.tags.some(clipTag => clipTag.toLowerCase().includes(tag.toLowerCase()))
+            clip.tags.some(clipTag => clipTag.toLowerCase().includes(tag.toLowerCase())),
           );
           if (!hasMatchingTag) {
             return false;
@@ -1135,7 +1135,7 @@ export class ClipService {
    */
   private calculateRanking(
     guildId: string,
-    period: 'daily' | 'weekly' | 'monthly' | 'all_time'
+    period: 'daily' | 'weekly' | 'monthly' | 'all_time',
   ): ClipRanking {
     const guildClips = this.clips.get(guildId);
     if (!guildClips) {
@@ -1326,7 +1326,7 @@ export class ClipService {
         await this.badgeService.awardBadge(topClip.clip.userId, 'weekly_clip_winner');
 
         this.logger.info(
-          `Awarded weekly clip rewards to user ${topClip.clip.userId} in guild ${guildId}`
+          `Awarded weekly clip rewards to user ${topClip.clip.userId} in guild ${guildId}`,
         );
       }
     } catch (error) {
@@ -1379,7 +1379,7 @@ export class ClipService {
         await this.badgeService.awardBadge(topClip.clip.userId, 'monthly_clip_winner');
 
         this.logger.info(
-          `Awarded monthly clip rewards to user ${topClip.clip.userId} in guild ${guildId}`
+          `Awarded monthly clip rewards to user ${topClip.clip.userId} in guild ${guildId}`,
         );
       }
     } catch (error) {
@@ -1434,7 +1434,7 @@ export class ClipService {
             name: '📊 Tamanho',
             value: `${(clip.fileSize / (1024 * 1024)).toFixed(2)} MB`,
             inline: true,
-          }
+          },
         )
         .setThumbnail(user.displayAvatarURL())
         .setTimestamp(clip.uploadedAt);
@@ -1462,7 +1462,7 @@ export class ClipService {
           .setCustomId(`clip_reject_${clip.id}`)
           .setLabel('Rejeitar')
           .setStyle(ButtonStyle.Danger)
-          .setEmoji('❌')
+          .setEmoji('❌'),
       );
 
       await channel.send({ embeds: [embed], components: [buttons] });
@@ -1499,7 +1499,7 @@ export class ClipService {
         .setDescription(`**${clip.title}**\n${clip.description || 'Sem descrição'}`)
         .addFields(
           { name: '👤 Usuário', value: user.username, inline: true },
-          { name: '⏰ Enviado em', value: clip.uploadedAt.toLocaleString('pt-BR'), inline: true }
+          { name: '⏰ Enviado em', value: clip.uploadedAt.toLocaleString('pt-BR'), inline: true },
         )
         .setThumbnail(user.displayAvatarURL())
         .setTimestamp();
@@ -1527,7 +1527,7 @@ export class ClipService {
           .setCustomId(`clip_view_${clip.id}`)
           .setLabel('Ver Clip')
           .setStyle(ButtonStyle.Secondary)
-          .setEmoji('👁️')
+          .setEmoji('👁️'),
       );
 
       await channel.send({ embeds: [embed], components: [buttons] });
@@ -1581,7 +1581,7 @@ export class ClipService {
         .addFields(
           { name: '👤 Usuário', value: user.username, inline: true },
           { name: '👍 Likes', value: clip.likes.toString(), inline: true },
-          { name: '👁️ Views', value: clip.views.toString(), inline: true }
+          { name: '👁️ Views', value: clip.views.toString(), inline: true },
         )
         .setThumbnail(user.displayAvatarURL())
         .setTimestamp();
@@ -1606,7 +1606,7 @@ export class ClipService {
   private async sendRejectionNotification(
     guildId: string,
     clip: ClipData,
-    reason?: string
+    reason?: string,
   ): Promise<void> {
     try {
       const user = await this.client.users.fetch(clip.userId);
@@ -1732,7 +1732,7 @@ export class ClipService {
       }
 
       this.logger.info('Clip cleanup completed', {
-        metadata: cleanupStats
+        metadata: cleanupStats,
       });
     } catch (error) {
       this.logger.error('Failed to cleanup old files:', error);
@@ -1842,7 +1842,7 @@ export class ClipService {
    */
   public async configureGuildSettings(
     guildId: string,
-    settings: Partial<ClipSettings>
+    settings: Partial<ClipSettings>,
   ): Promise<void> {
     try {
       const currentSettings = this.guildSettings.get(guildId) || {
@@ -1944,7 +1944,7 @@ export class ClipService {
    */
   public getClipFile(
     guildId: string,
-    clipId: string
+    clipId: string,
   ): { filePath: string; fileName: string } | null {
     const clip = this.getClip(guildId, clipId);
     if (!clip || !fs.existsSync(clip.filePath)) {

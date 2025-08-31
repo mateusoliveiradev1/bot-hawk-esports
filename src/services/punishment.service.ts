@@ -64,7 +64,7 @@ export class PunishmentService {
     userId: string,
     guildId: string,
     type: 'no_checkout' | 'no_show_up' | 'early_leave',
-    options: PunishmentOptions = {}
+    options: PunishmentOptions = {},
   ): Promise<PunishmentRecord | null> {
     try {
       if (!PUNISHMENT_CONFIG.enabled) {
@@ -149,7 +149,7 @@ export class PunishmentService {
       await this.sendPunishmentNotification(userId, guildId, punishmentRecord);
 
       this.logger.info(
-        `Applied punishment to user ${userId}: ${type} (${finalPenalty.xp} XP, ${finalPenalty.coins} coins)`
+        `Applied punishment to user ${userId}: ${type} (${finalPenalty.xp} XP, ${finalPenalty.coins} coins)`,
       );
       return punishmentRecord;
     } catch (error) {
@@ -165,7 +165,7 @@ export class PunishmentService {
     userId: string,
     guildId: string,
     type: 'no_checkout' | 'no_show_up' | 'early_leave',
-    reason: string
+    reason: string,
   ): Promise<void> {
     const warning: UserWarning = {
       id: `warning_${Date.now()}_${userId}`,
@@ -199,7 +199,7 @@ export class PunishmentService {
 
     // Filter active and non-expired warnings
     return userWarnings.filter(
-      warning => warning.active && warning.guildId === guildId && warning.expiresAt > now
+      warning => warning.active && warning.guildId === guildId && warning.expiresAt > now,
     );
   }
 
@@ -229,7 +229,7 @@ export class PunishmentService {
   private async sendPunishmentNotification(
     userId: string,
     guildId: string,
-    punishment: PunishmentRecord
+    punishment: PunishmentRecord,
   ): Promise<void> {
     try {
       const guild = this.client.guilds.cache.get(guildId);
@@ -255,7 +255,7 @@ export class PunishmentService {
             `**Data:** <t:${Math.floor(punishment.timestamp.getTime() / 1000)}:F>\n\n` +
             (punishment.appealable
               ? '💡 **Recurso:** Você pode contestar esta penalidade usando `/appeal` dentro de 7 dias.'
-              : '❌ **Esta penalidade não pode ser contestada.**')
+              : '❌ **Esta penalidade não pode ser contestada.**'),
         )
         .setColor(0xff6b6b)
         .setTimestamp()
@@ -267,7 +267,7 @@ export class PunishmentService {
       } catch (dmError) {
         // If DM fails, try to send in a guild channel
         const logChannel = guild.channels.cache.find(
-          ch => ch.name.includes('log') || ch.name.includes('punish')
+          ch => ch.name.includes('log') || ch.name.includes('punish'),
         ) as TextChannel;
 
         if (logChannel) {
@@ -280,7 +280,7 @@ export class PunishmentService {
 
       // Also send to punishment log channel if exists
       const punishmentChannel = guild.channels.cache.find(
-        ch => ch.name.includes('punishment') || ch.name.includes('penalidade')
+        ch => ch.name.includes('punishment') || ch.name.includes('penalidade'),
       ) as TextChannel;
 
       if (punishmentChannel) {
@@ -291,7 +291,7 @@ export class PunishmentService {
               `**Tipo:** ${punishment.type.replace('_', ' ').toUpperCase()}\n` +
               `**Motivo:** ${punishment.reason}\n` +
               `**Penalidades:** -${punishment.penalty.xp} XP, -${punishment.penalty.coins} moedas\n` +
-              `**ID:** \`${punishment.id}\``
+              `**ID:** \`${punishment.id}\``,
           )
           .setColor(0xff9500)
           .setTimestamp();
@@ -324,7 +324,7 @@ export class PunishmentService {
     userId: string,
     guildId: string,
     sessionStartTime: Date,
-    channelId?: string
+    channelId?: string,
   ): Promise<void> {
     const timeoutHours = PUNISHMENT_CONFIG.timeouts.noCheckoutTimeout;
     const timeoutMs = timeoutHours * 60 * 60 * 1000;
@@ -345,7 +345,7 @@ export class PunishmentService {
     userId: string,
     guildId: string,
     checkInTime: Date,
-    voiceChannelId: string
+    voiceChannelId: string,
   ): Promise<void> {
     const timeoutHours = PUNISHMENT_CONFIG.timeouts.noShowUpTimeout;
     const timeoutMs = timeoutHours * 60 * 60 * 1000;
@@ -372,7 +372,7 @@ export class PunishmentService {
     userId: string,
     guildId: string,
     sessionStartTime: Date,
-    channelId?: string
+    channelId?: string,
   ): Promise<void> {
     const minimumTimeHours = PUNISHMENT_CONFIG.timeouts.earlyLeaveTimeout;
     const minimumTimeMs = minimumTimeHours * 60 * 60 * 1000;

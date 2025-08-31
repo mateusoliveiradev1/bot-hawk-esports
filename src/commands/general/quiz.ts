@@ -30,8 +30,8 @@ const quiz: Command = {
           { name: '🎮 PUBG', value: 'pubg' },
           { name: '🎯 Gaming Geral', value: 'gaming' },
           { name: '🏆 Esports', value: 'esports' },
-          { name: '🎲 Misto', value: 'mixed' }
-        )
+          { name: '🎲 Misto', value: 'mixed' },
+        ),
     )
     .addStringOption(option =>
       option
@@ -42,8 +42,8 @@ const quiz: Command = {
           { name: '🟢 Fácil', value: 'easy' },
           { name: '🟡 Médio', value: 'medium' },
           { name: '🔴 Difícil', value: 'hard' },
-          { name: '🌈 Misto', value: 'mixed' }
-        )
+          { name: '🌈 Misto', value: 'mixed' },
+        ),
     )
     .addIntegerOption(option =>
       option
@@ -51,7 +51,7 @@ const quiz: Command = {
         .setDescription('Número de perguntas (5-20)')
         .setRequired(false)
         .setMinValue(5)
-        .setMaxValue(20)
+        .setMaxValue(20),
     )
     .addIntegerOption(option =>
       option
@@ -59,7 +59,7 @@ const quiz: Command = {
         .setDescription('Tempo por pergunta em segundos (15-120)')
         .setRequired(false)
         .setMinValue(15)
-        .setMaxValue(120)
+        .setMaxValue(120),
     ) as SlashCommandBuilder,
 
   category: CommandCategory.GENERAL,
@@ -86,7 +86,7 @@ const quiz: Command = {
         const embed = new EmbedBuilder()
           .setTitle('❌ Usuário Não Registrado')
           .setDescription(
-            'Você precisa se registrar primeiro usando `/register` para participar de quizzes!'
+            'Você precisa se registrar primeiro usando `/register` para participar de quizzes!',
           )
           .setColor(0xff0000)
           .setTimestamp();
@@ -96,13 +96,13 @@ const quiz: Command = {
 
       // Check if there's already an active quiz in this channel
       const existingSession = gameService.getQuizSession(
-        `${interaction.guildId}_${interaction.channelId}`
+        `${interaction.guildId}_${interaction.channelId}`,
       );
       if (existingSession && existingSession.isActive) {
         const embed = new EmbedBuilder()
           .setTitle('⚠️ Quiz Já Ativo')
           .setDescription(
-            'Já existe um quiz ativo neste canal! Aguarde ele terminar ou participe dele.'
+            'Já existe um quiz ativo neste canal! Aguarde ele terminar ou participe dele.',
           )
           .setColor(0xffa500)
           .setTimestamp();
@@ -125,7 +125,7 @@ const quiz: Command = {
         interaction.guildId!,
         interaction.channelId,
         interaction.user.id,
-        settings
+        settings,
       );
 
       // Create initial embed
@@ -140,7 +140,7 @@ const quiz: Command = {
             '• Clique em "Participar" para entrar no quiz\n' +
             '• Responda as perguntas usando os botões\n' +
             '• Ganhe XP e moedas baseado na sua performance!\n\n' +
-            '⏰ O quiz começará em 30 segundos...'
+            '⏰ O quiz começará em 30 segundos...',
         )
         .setColor(0x0099ff)
         .setFooter({ text: `Host: ${interaction.user.username}` })
@@ -154,7 +154,7 @@ const quiz: Command = {
         new ButtonBuilder()
           .setCustomId(`quiz_info_${session.id}`)
           .setLabel('ℹ️ Informações')
-          .setStyle(ButtonStyle.Secondary)
+          .setStyle(ButtonStyle.Secondary),
       );
 
       const response = await interaction.reply({
@@ -176,7 +176,7 @@ const quiz: Command = {
           const joined = await gameService.joinQuiz(
             session.id,
             buttonInteraction.user.id,
-            buttonInteraction.user.username
+            buttonInteraction.user.username,
           );
 
           if (joined) {
@@ -206,7 +206,7 @@ const quiz: Command = {
                 '**Dificuldades:**\n' +
                 '• 🟢 Fácil: 10 pontos\n' +
                 '• 🟡 Médio: 15 pontos\n' +
-                '• 🔴 Difícil: 20 pontos'
+                '• 🔴 Difícil: 20 pontos',
             )
             .setColor(0x0099ff)
             .setTimestamp();
@@ -244,7 +244,7 @@ const quiz: Command = {
 async function startQuizQuestions(
   interaction: ChatInputCommandInteraction,
   session: any,
-  gameService: GameService
+  gameService: GameService,
 ) {
   const currentQuestion = session.questions[session.currentQuestionIndex];
 
@@ -259,7 +259,7 @@ async function startQuizQuestions(
       `**${currentQuestion.question}**\n\n` +
         currentQuestion.options
           .map((option: string, index: number) => `${['🅰️', '🅱️', '🅲️', '🅳️'][index]} ${option}`)
-          .join('\n')
+          .join('\n'),
     )
     .setColor(getDifficultyColor(currentQuestion.difficulty))
     .setFooter({
@@ -272,8 +272,8 @@ async function startQuizQuestions(
       new ButtonBuilder()
         .setCustomId(`quiz_answer_${session.id}_${index}`)
         .setLabel(['🅰️', '🅱️', '🅲️', '🅳️'][index] || `Opção ${index + 1}`)
-        .setStyle(ButtonStyle.Secondary)
-    )
+        .setStyle(ButtonStyle.Secondary),
+    ),
   );
 
   const response = await interaction.editReply({
@@ -302,7 +302,7 @@ async function startQuizQuestions(
     const result = await gameService.submitQuizAnswer(
       session.id,
       buttonInteraction.user.id,
-      answerIndex
+      answerIndex,
     );
 
     if (result) {
@@ -324,7 +324,7 @@ async function startQuizQuestions(
       .setTitle('✅ Resposta Correta')
       .setDescription(
         `**${currentQuestion.question}**\n\n` +
-          `**Resposta:** ${['🅰️', '🅱️', '🅲️', '🅳️'][currentQuestion.correctAnswer]} ${currentQuestion.options[currentQuestion.correctAnswer]}`
+          `**Resposta:** ${['🅰️', '🅱️', '🅲️', '🅳️'][currentQuestion.correctAnswer]} ${currentQuestion.options[currentQuestion.correctAnswer]}`,
       )
       .setColor(0x00ff00)
       .setTimestamp();
@@ -348,7 +348,7 @@ async function startQuizQuestions(
 async function endQuiz(
   interaction: ChatInputCommandInteraction,
   session: any,
-  gameService: GameService
+  gameService: GameService,
 ) {
   const results = await gameService.endQuiz(session.id);
 
@@ -383,7 +383,7 @@ async function endQuiz(
             `📊 ${participant.score} pontos • ✅ ${participant.correctAnswers}/${participant.totalAnswers} (${accuracy}%)`
           );
         })
-        .join('\n\n')
+        .join('\n\n'),
     )
     .setColor(0xffd700)
     .setFooter({ text: `Participantes: ${results.length}` })

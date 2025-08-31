@@ -89,7 +89,7 @@ export class ErrorHandler {
       enableMetrics: true,
       maxContextSize: 1000,
       sensitiveFields: ['password', 'token', 'apiKey', 'secret', 'authorization'],
-      ...config
+      ...config,
     };
   }
 
@@ -120,7 +120,7 @@ export class ErrorHandler {
     message: string,
     category: ErrorCategory = ErrorCategory.UNKNOWN,
     severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ): EnhancedError {
     const error = new Error(message) as EnhancedError;
     error.category = category;
@@ -138,7 +138,7 @@ export class ErrorHandler {
   public wrapAsync<T extends any[], R>(
     fn: (...args: T) => Promise<R>,
     operation: string,
-    category: ErrorCategory = ErrorCategory.BUSINESS_LOGIC
+    category: ErrorCategory = ErrorCategory.BUSINESS_LOGIC,
   ) {
     return async (...args: T): Promise<R> => {
       try {
@@ -146,7 +146,7 @@ export class ErrorHandler {
       } catch (error) {
         const enhancedError = this.handleError(error as Error, {
           operation,
-          arguments: this.sanitizeContext({ args })
+          arguments: this.sanitizeContext({ args }),
         });
         enhancedError.category = category;
         enhancedError.operation = operation;
@@ -161,7 +161,7 @@ export class ErrorHandler {
   public wrapSync<T extends any[], R>(
     fn: (...args: T) => R,
     operation: string,
-    category: ErrorCategory = ErrorCategory.BUSINESS_LOGIC
+    category: ErrorCategory = ErrorCategory.BUSINESS_LOGIC,
   ) {
     return (...args: T): R => {
       try {
@@ -169,7 +169,7 @@ export class ErrorHandler {
       } catch (error) {
         const enhancedError = this.handleError(error as Error, {
           operation,
-          arguments: this.sanitizeContext({ args })
+          arguments: this.sanitizeContext({ args }),
         });
         enhancedError.category = category;
         enhancedError.operation = operation;
@@ -201,7 +201,7 @@ export class ErrorHandler {
       /rate.?limit/i,
       /503/,
       /502/,
-      /504/
+      /504/,
     ];
     
     return retryablePatterns.some(pattern => pattern.test(error.message));
@@ -215,7 +215,7 @@ export class ErrorHandler {
     const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
     
     const recentErrors = this.errorHistory.filter(error => 
-      error.timestamp && error.timestamp > oneHourAgo
+      error.timestamp && error.timestamp > oneHourAgo,
     );
     
     const errorsByCategory = Object.values(ErrorCategory).reduce((acc, category) => {
@@ -244,8 +244,8 @@ export class ErrorHandler {
         message: lastError.message,
         category: lastError.category || ErrorCategory.UNKNOWN,
         severity: lastError.severity || ErrorSeverity.MEDIUM,
-        timestamp: lastError.timestamp || new Date()
-      } : undefined
+        timestamp: lastError.timestamp || new Date(),
+      } : undefined,
     };
   }
 
@@ -282,7 +282,7 @@ export class ErrorHandler {
     if (context) {
       enhancedError.context = {
         ...enhancedError.context,
-        ...this.sanitizeContext(context)
+        ...this.sanitizeContext(context),
       };
     }
     
@@ -354,7 +354,7 @@ export class ErrorHandler {
       ErrorCategory.TIMEOUT,
       ErrorCategory.RATE_LIMIT,
       ErrorCategory.EXTERNAL_API,
-      ErrorCategory.CIRCUIT_BREAKER
+      ErrorCategory.CIRCUIT_BREAKER,
     ];
     
     return retryableCategories.includes(category);
@@ -374,8 +374,8 @@ export class ErrorHandler {
         operation: error.operation,
         correlationId: error.correlationId,
         userId: error.userId,
-        ...(this.config.enableContextLogging && error.context ? { context: error.context } : {})
-      }
+        ...(this.config.enableContextLogging && error.context ? { context: error.context } : {}),
+      },
     };
     
     switch (error.severity) {
@@ -403,7 +403,7 @@ export class ErrorHandler {
     const category = error.category || ErrorCategory.UNKNOWN;
     const severity = error.severity || ErrorSeverity.MEDIUM;
     
-    this.incrementMetric(`total_errors`);
+    this.incrementMetric('total_errors');
     this.incrementMetric(`category_${category}`);
     this.incrementMetric(`severity_${severity}`);
     
@@ -455,7 +455,7 @@ export class ErrorHandler {
           const fullPath = currentPath.join('.');
           
           if (this.config.sensitiveFields?.some(field => 
-            fullPath.toLowerCase().includes(field.toLowerCase())
+            fullPath.toLowerCase().includes(field.toLowerCase()),
           )) {
             result[key] = '[REDACTED]';
           } else {
@@ -476,7 +476,7 @@ export class ErrorHandler {
       return {
         ...result,
         _truncated: true,
-        _originalSize: contextString.length
+        _originalSize: contextString.length,
       };
     }
     
@@ -494,7 +494,7 @@ export const globalErrorHandler = new ErrorHandler();
  */
 export function HandleErrors(
   category: ErrorCategory = ErrorCategory.BUSINESS_LOGIC,
-  severity: ErrorSeverity = ErrorSeverity.MEDIUM
+  severity: ErrorSeverity = ErrorSeverity.MEDIUM,
 ) {
   return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value;
@@ -506,7 +506,7 @@ export function HandleErrors(
         const enhancedError = globalErrorHandler.handleError(error as Error, {
           className: target.constructor.name,
           methodName: propertyName,
-          arguments: args
+          arguments: args,
         });
         enhancedError.category = category;
         enhancedError.severity = severity;

@@ -494,7 +494,7 @@ export class BadgeService {
       }
 
       this.logger.info(
-        `✅ Loaded badges for ${this.userBadges.size} users (${userBadges.length} total badges)`
+        `✅ Loaded badges for ${this.userBadges.size} users (${userBadges.length} total badges)`,
       );
     } catch (error) {
       this.logger.error('❌ Failed to load user badges:', error);
@@ -521,7 +521,7 @@ export class BadgeService {
     userId: string,
     requirementType: string,
     value: number,
-    operation: 'set' | 'increment' = 'increment'
+    operation: 'set' | 'increment' = 'increment',
   ): Promise<void> {
     try {
       if (!this.badgeProgress.has(userId)) {
@@ -533,17 +533,17 @@ export class BadgeService {
 
       // Update progress for all relevant badges
       for (const [badgeId, badge] of this.badges) {
-        if (!badge.isActive) continue;
+        if (!badge.isActive) {continue;}
 
         // Skip if user already has this badge
-        if (this.hasBadge(userId, badgeId)) continue;
+        if (this.hasBadge(userId, badgeId)) {continue;}
 
         // Check if this badge has requirements for this type
         const relevantRequirements = badge.requirements.filter(
-          req => req.type === requirementType
+          req => req.type === requirementType,
         );
 
-        if (relevantRequirements.length === 0) continue;
+        if (relevantRequirements.length === 0) {continue;}
 
         // Initialize progress if not exists
         if (!userProgress.has(badgeId)) {
@@ -577,7 +577,7 @@ export class BadgeService {
 
       if (newlyEarnedBadges.length > 0) {
         this.logger.info(
-          `🏆 User ${userId} earned ${newlyEarnedBadges.length} new badges: ${newlyEarnedBadges.join(', ')}`
+          `🏆 User ${userId} earned ${newlyEarnedBadges.length} new badges: ${newlyEarnedBadges.join(', ')}`,
         );
       }
     } catch (error) {
@@ -591,24 +591,24 @@ export class BadgeService {
    */
   private checkBadgeRequirements(
     badge: BadgeDefinition,
-    userProgress: Map<string, number>
+    userProgress: Map<string, number>,
   ): boolean {
     for (const requirement of badge.requirements) {
       const currentValue = userProgress.get(requirement.type) || 0;
       
       switch (requirement.operator) {
         case 'gte':
-          if (currentValue < (requirement.value as number)) return false;
+          if (currentValue < (requirement.value as number)) {return false;}
           break;
         case 'lte':
-          if (currentValue > (requirement.value as number)) return false;
+          if (currentValue > (requirement.value as number)) {return false;}
           break;
         case 'eq':
-          if (currentValue !== (requirement.value as number)) return false;
+          if (currentValue !== (requirement.value as number)) {return false;}
           break;
         case 'between':
           const [min, max] = requirement.value as [number, number];
-          if (currentValue < min || currentValue > max) return false;
+          if (currentValue < min || currentValue > max) {return false;}
           break;
       }
     }
@@ -621,7 +621,7 @@ export class BadgeService {
   public async awardBadge(
     userId: string,
     badgeId: string,
-    notify: boolean = true
+    notify: boolean = true,
   ): Promise<boolean> {
     try {
       // Check if badge exists
@@ -749,10 +749,10 @@ export class BadgeService {
    */
   private async sendBadgeNotification(userId: string, badge: BadgeDefinition): Promise<void> {
     try {
-      if (!this.client) return;
+      if (!this.client) {return;}
 
       const user = await this.client.users.fetch(userId).catch(() => null);
-      if (!user) return;
+      if (!user) {return;}
 
       const embed = new EmbedBuilder()
         .setTitle('🏆 Nova Badge Conquistada!')
@@ -796,7 +796,7 @@ export class BadgeService {
                 channel.type === 0 && // Text channel
                 (channel.name.includes('badge') ||
                   channel.name.includes('achievement') ||
-                  channel.name.includes('conquista'))
+                  channel.name.includes('conquista')),
             );
 
             if (badgeChannel) {
@@ -819,7 +819,7 @@ export class BadgeService {
    */
   public getUserBadges(userId: string): BadgeDefinition[] {
     const userBadgeIds = this.userBadges.get(userId);
-    if (!userBadgeIds) return [];
+    if (!userBadgeIds) {return [];}
 
     const badges: BadgeDefinition[] = [];
     for (const badgeId of userBadgeIds) {
@@ -905,7 +905,7 @@ export class BadgeService {
    */
   public async checkAllBadgeProgress(): Promise<void> {
     try {
-      if (!this.database?.client) return;
+      if (!this.database?.client) {return;}
 
       // Get all users with their stats
       const users = await this.database.client.user.findMany({
@@ -940,7 +940,7 @@ export class BadgeService {
    */
   public async checkUserBadgeProgress(
     userId: string,
-    userStats: Record<string, number>
+    userStats: Record<string, number>,
   ): Promise<void> {
     try {
       for (const [statType, value] of Object.entries(userStats)) {
@@ -984,14 +984,14 @@ export class BadgeService {
           // This is just a placeholder for the database operation
           this.logger.debug(`Custom badge ${badge.id} would be saved to database`);
         } catch (dbError) {
-          this.logger.error(`Failed to save custom badge to database:`, dbError);
+          this.logger.error('Failed to save custom badge to database:', dbError);
         }
       }
 
       this.logger.info(`✅ Created custom badge: ${badge.name} (${badge.id})`);
       return true;
     } catch (error) {
-      this.logger.error(`❌ Failed to create custom badge:`, error);
+      this.logger.error('❌ Failed to create custom badge:', error);
       return false;
     }
   }
@@ -1072,7 +1072,7 @@ export class BadgeService {
       'Kar98k', 'M24', 'AWM', 'Win94', 'Mosin',
       'UMP45', 'Vector', 'Uzi', 'Tommy Gun',
       'M249', 'DP-28', 'MG3',
-      'S686', 'S1897', 'S12K', 'DBS'
+      'S686', 'S1897', 'S12K', 'DBS',
     ];
 
     const badges: Omit<BadgeDefinition, 'createdAt'>[] = [];
@@ -1177,7 +1177,7 @@ export class BadgeService {
           'PUBG Badge Sync',
           'warning',
           'PUBG service not available',
-          { timestamp: new Date().toISOString() }
+          { timestamp: new Date().toISOString() },
         );
         return;
       }
@@ -1209,7 +1209,7 @@ export class BadgeService {
           
           const pubgStats = await pubgService.getPlayerStats(
             user.pubgUsername,
-            user.pubgPlatform as any
+            user.pubgPlatform as any,
           );
 
           if (pubgStats) {
@@ -1226,7 +1226,7 @@ export class BadgeService {
                   pubgUsername: user.pubgUsername,
                   newBadges,
                   timestamp: new Date().toISOString(),
-                }
+                },
               );
             }
 
@@ -1245,7 +1245,7 @@ export class BadgeService {
               pubgUsername: user.pubgUsername,
               error: userError instanceof Error ? userError.message : String(userError),
               timestamp: new Date().toISOString(),
-            }
+            },
           );
         }
       }
@@ -1259,11 +1259,11 @@ export class BadgeService {
           syncedCount,
           errorCount,
           timestamp: new Date().toISOString(),
-        }
+        },
       );
 
       this.logger.info(
-        `✅ PUBG badge sync completed: ${syncedCount}/${users.length} users synced, ${errorCount} errors`
+        `✅ PUBG badge sync completed: ${syncedCount}/${users.length} users synced, ${errorCount} errors`,
       );
     } catch (error) {
       this.logger.error('❌ Failed to sync PUBG badges:', error);
@@ -1275,7 +1275,7 @@ export class BadgeService {
         {
           error: error instanceof Error ? error : new Error(String(error)),
           timestamp: new Date().toISOString(),
-        }
+        },
       );
     }
   }
@@ -1309,7 +1309,7 @@ export class BadgeService {
       
       // Get all PUBG badges
       const pubgBadges = Array.from(this.badges.values()).filter(
-        badge => badge.category === 'pubg' && badge.isActive
+        badge => badge.category === 'pubg' && badge.isActive,
       );
 
       for (const badge of pubgBadges) {
@@ -1336,7 +1336,7 @@ export class BadgeService {
     operation: string,
     status: 'success' | 'warning' | 'error',
     message: string,
-    data: any
+    data: any,
   ): Promise<void> {
     try {
       if (this.loggingService) {
@@ -1347,7 +1347,7 @@ export class BadgeService {
           status === 'success',
           message,
           `Badge System - ${operation}`,
-          data
+          data,
         );
       }
     } catch (error) {
@@ -1359,7 +1359,7 @@ export class BadgeService {
    * Get PUBG stat value from stats object
    */
   private getPUBGStatValue(pubgStats: any, requirementType: string): number {
-    if (!pubgStats) return 0;
+    if (!pubgStats) {return 0;}
 
     switch (requirementType) {
       case 'wins':
@@ -1435,7 +1435,7 @@ export class BadgeService {
    */
   public async clearBadgeCache(userId?: string): Promise<void> {
     try {
-      if (!this.cache) return;
+      if (!this.cache) {return;}
 
       if (userId) {
         // Clear specific user cache

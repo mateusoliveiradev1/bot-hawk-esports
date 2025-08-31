@@ -16,10 +16,10 @@ const badgeOptimization: Command = {
     .setDescription('Gerenciar sistema de badges otimizado com integração PUBG')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(subcommand =>
-      subcommand.setName('sync').setDescription('Sincronizar todas as badges com dados PUBG')
+      subcommand.setName('sync').setDescription('Sincronizar todas as badges com dados PUBG'),
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('collections').setDescription('Visualizar coleções de badges disponíveis')
+      subcommand.setName('collections').setDescription('Visualizar coleções de badges disponíveis'),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -33,9 +33,9 @@ const badgeOptimization: Command = {
             .addChoices(
               { name: 'Listar regras', value: 'list' },
               { name: 'Ativar processamento', value: 'enable' },
-              { name: 'Desativar processamento', value: 'disable' }
-            )
-        )
+              { name: 'Desativar processamento', value: 'disable' },
+            ),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -49,15 +49,15 @@ const badgeOptimization: Command = {
             .addChoices(
               { name: 'Listar badges', value: 'list' },
               { name: 'Ativar temporada', value: 'activate' },
-              { name: 'Finalizar temporada', value: 'end' }
-            )
-        )
+              { name: 'Finalizar temporada', value: 'end' },
+            ),
+        ),
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('stats').setDescription('Visualizar estatísticas do sistema de badges')
+      subcommand.setName('stats').setDescription('Visualizar estatísticas do sistema de badges'),
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('optimize').setDescription('Executar otimização automática do sistema')
+      subcommand.setName('optimize').setDescription('Executar otimização automática do sistema'),
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
@@ -115,7 +115,7 @@ const badgeOptimization: Command = {
 
 async function handleSync(
   interaction: ChatInputCommandInteraction,
-  service: BadgeOptimizationService
+  service: BadgeOptimizationService,
 ) {
   await interaction.deferReply({ ephemeral: true });
 
@@ -129,7 +129,7 @@ async function handleSync(
         { name: '📊 Badges Processadas', value: result.processed.toString(), inline: true },
         { name: '✅ Badges Atualizadas', value: result.updated.toString(), inline: true },
         { name: '🆕 Badges Criadas', value: result.created.toString(), inline: true },
-        { name: '⚠️ Erros', value: result.errors.toString(), inline: true }
+        { name: '⚠️ Erros', value: result.errors.toString(), inline: true },
       )
       .setTimestamp();
 
@@ -144,7 +144,7 @@ async function handleSync(
 
 async function handleCollections(
   interaction: ChatInputCommandInteraction,
-  service: BadgeOptimizationService
+  service: BadgeOptimizationService,
 ) {
   await interaction.deferReply({ ephemeral: true });
 
@@ -164,8 +164,8 @@ async function handleCollections(
             acc[badgeObj.rarity] = (acc[badgeObj.rarity] || 0) + 1;
             return acc;
           },
-          {} as Record<string, number>
-        )
+          {} as Record<string, number>,
+        ),
       )
         .map(([rarity, count]) => `${rarity}: ${count}`)
         .join(', ');
@@ -188,7 +188,7 @@ async function handleCollections(
 
 async function handleDynamic(
   interaction: ChatInputCommandInteraction,
-  service: BadgeOptimizationService
+  service: BadgeOptimizationService,
 ) {
   const action = interaction.options.get('action')?.value as string;
   await interaction.deferReply({ ephemeral: true });
@@ -237,7 +237,7 @@ async function handleDynamic(
 
 async function handleSeasonal(
   interaction: ChatInputCommandInteraction,
-  service: BadgeOptimizationService
+  service: BadgeOptimizationService,
 ) {
   const action = interaction.options.get('action')?.value as string;
   await interaction.deferReply({ ephemeral: true });
@@ -292,7 +292,7 @@ async function handleSeasonal(
 
 async function handleStats(
   interaction: ChatInputCommandInteraction,
-  service: BadgeOptimizationService
+  service: BadgeOptimizationService,
 ) {
   await interaction.deferReply({ ephemeral: true });
 
@@ -312,7 +312,7 @@ async function handleStats(
           value: stats.badgesGrantedToday.toString(),
           inline: true,
         },
-        { name: '🎯 Taxa de Conquista', value: `${stats.completionRate.toFixed(1)}%`, inline: true }
+        { name: '🎯 Taxa de Conquista', value: `${stats.completionRate.toFixed(1)}%`, inline: true },
       )
       .setTimestamp();
 
@@ -339,7 +339,7 @@ async function handleStats(
 
 async function handleOptimize(
   interaction: ChatInputCommandInteraction,
-  service: BadgeOptimizationService
+  service: BadgeOptimizationService,
 ) {
   await interaction.deferReply({ ephemeral: true });
 
@@ -353,7 +353,7 @@ async function handleOptimize(
         { name: '🔍 Badges Analisadas', value: result.analyzed.toString(), inline: true },
         { name: '🔧 Otimizações Aplicadas', value: result.optimized.toString(), inline: true },
         { name: '⏱️ Tempo de Execução', value: `${result.executionTime}ms`, inline: true },
-        { name: '💾 Cache Atualizado', value: result.cacheUpdated ? '✅' : '❌', inline: true }
+        { name: '💾 Cache Atualizado', value: result.cacheUpdated ? '✅' : '❌', inline: true },
       )
       .setTimestamp();
 

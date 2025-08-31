@@ -73,7 +73,7 @@ export class EmbedUtils {
   static createCustomEmbed(
     title: string,
     color: ColorResolvable,
-    description?: string
+    description?: string,
   ): EmbedBuilder {
     const embed = new EmbedBuilder().setColor(color).setTitle(title);
 
@@ -152,7 +152,7 @@ export class EmbedUtils {
   static createCategoryEmbed(
     category: string,
     title: string,
-    description?: string
+    description?: string,
   ): EmbedBuilder {
     const embed = new EmbedBuilder()
       .setTitle(title)
@@ -204,7 +204,7 @@ export class EmbedUtils {
   static createRarityEmbed(
     rarity: string,
     title: string,
-    description?: string
+    description?: string,
   ): EmbedBuilder {
     const embed = new EmbedBuilder()
       .setTitle(title)
@@ -224,7 +224,7 @@ export class EmbedUtils {
   static createUserProfileEmbed(
     user: User,
     title?: string,
-    description?: string
+    description?: string,
   ): EmbedBuilder {
     const embed = new EmbedBuilder()
       .setTitle(title || `👤 Perfil de ${user.displayName}`)
@@ -255,7 +255,7 @@ export class EmbedUtils {
    */
   static createMaintenanceEmbed(
     title: string = 'Manutenção em Andamento',
-    description?: string
+    description?: string,
   ): EmbedBuilder {
     return new EmbedBuilder()
       .setTitle(`🔧 ${title}`)
@@ -269,7 +269,7 @@ export class EmbedUtils {
    */
   static createPremiumEmbed(
     title: string,
-    description?: string
+    description?: string,
   ): EmbedBuilder {
     return new EmbedBuilder()
       .setTitle(`👑 ${title}`)
@@ -283,7 +283,7 @@ export class EmbedUtils {
    */
   static createEventEmbed(
     title: string,
-    description?: string
+    description?: string,
   ): EmbedBuilder {
     return new EmbedBuilder()
       .setTitle(`🎉 ${title}`)
@@ -300,7 +300,7 @@ export class EmbedUtils {
     description: string,
     currentPage: number,
     totalPages: number,
-    color?: ColorResolvable
+    color?: ColorResolvable,
   ): EmbedBuilder {
     return new EmbedBuilder()
       .setTitle(title)
@@ -316,7 +316,7 @@ export class EmbedUtils {
   static createStatusEmbed(
     status: string,
     title: string,
-    description?: string
+    description?: string,
   ): EmbedBuilder {
     const embed = new EmbedBuilder()
       .setTitle(title)
@@ -336,7 +336,7 @@ export class EmbedUtils {
   static createQuickEmbed(
     title: string,
     description: string,
-    color: ColorResolvable = THEME_COLORS.INFO
+    color: ColorResolvable = THEME_COLORS.INFO,
   ): EmbedBuilder {
     return new EmbedBuilder()
       .setTitle(title)
@@ -351,7 +351,7 @@ export class EmbedUtils {
   static addStandardFooter(
     embed: EmbedBuilder,
     text?: string,
-    iconURL?: string
+    iconURL?: string,
   ): EmbedBuilder {
     const footerText = text || 'Hawk Esports Bot';
     return embed.setFooter({ text: footerText, iconURL });
@@ -363,12 +363,12 @@ export class EmbedUtils {
   static addAuthor(
     embed: EmbedBuilder,
     user: User,
-    prefix?: string
+    prefix?: string,
   ): EmbedBuilder {
     const name = prefix ? `${prefix} ${user.displayName}` : user.displayName;
     return embed.setAuthor({
       name,
-      iconURL: user.displayAvatarURL({ size: 64 })
+      iconURL: user.displayAvatarURL({ size: 64 }),
     });
   }
 }

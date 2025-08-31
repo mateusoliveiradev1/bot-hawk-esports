@@ -21,7 +21,7 @@ const logger = new Logger();
  */
 export async function handleTicketButtonInteraction(
   interaction: ButtonInteraction,
-  client: ExtendedClient
+  client: ExtendedClient,
 ): Promise<void> {
   try {
     const ticketService = client.services?.ticket;
@@ -60,7 +60,7 @@ export async function handleTicketButtonInteraction(
  */
 export async function handleTicketModalSubmission(
   interaction: ModalSubmitInteraction,
-  client: ExtendedClient
+  client: ExtendedClient,
 ): Promise<void> {
   try {
     const ticketService = client.services?.ticket;
@@ -91,7 +91,7 @@ export async function handleTicketModalSubmission(
  */
 async function handleCreateTicketFromPanel(
   interaction: ButtonInteraction,
-  ticketService: any
+  ticketService: any,
 ): Promise<void> {
   const modal = new ModalBuilder().setCustomId('create_ticket_modal').setTitle('Criar Novo Ticket');
 
@@ -134,7 +134,7 @@ async function handleCreateTicketFromPanel(
  */
 async function handleCreateTicketModal(
   interaction: ModalSubmitInteraction,
-  ticketService: any
+  ticketService: any,
 ): Promise<void> {
   const title = interaction.fields.getTextInputValue('ticket_title');
   const description = interaction.fields.getTextInputValue('ticket_description');
@@ -153,20 +153,20 @@ async function handleCreateTicketModal(
     interaction.user.id,
     title,
     description,
-    priority
+    priority,
   );
 
   if (result.success) {
     const successEmbed = new EmbedBuilder()
       .setTitle('✅ Ticket Criado!')
       .setDescription(
-        `Seu ticket foi criado com sucesso!\n\n**Canal:** ${result.channel}\n**ID:** #${result.ticket!.id.slice(-8)}`
+        `Seu ticket foi criado com sucesso!\n\n**Canal:** ${result.channel}\n**ID:** #${result.ticket!.id.slice(-8)}`,
       )
       .setColor('#00FF00')
       .addFields(
         { name: '📝 Assunto', value: title, inline: true },
         { name: '📊 Prioridade', value: priority.toUpperCase(), inline: true },
-        { name: '⏰ Criado em', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: false }
+        { name: '⏰ Criado em', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: false },
       )
       .setFooter({ text: 'Nossa equipe irá atendê-lo em breve!' });
 
@@ -187,7 +187,7 @@ async function handleCreateTicketModal(
 async function handleClaimTicket(
   interaction: ButtonInteraction,
   ticketService: any,
-  ticketId: string
+  ticketId: string,
 ): Promise<void> {
   // Check if user has permission to claim tickets
   const member = interaction.member;
@@ -209,7 +209,7 @@ async function handleClaimTicket(
   const result = await ticketService.assignTicket(
     interaction.guildId!,
     ticketId,
-    interaction.user.id
+    interaction.user.id,
   );
 
   if (result.success) {
@@ -236,7 +236,7 @@ async function handleClaimTicket(
 async function handleChangePriority(
   interaction: ButtonInteraction,
   ticketService: any,
-  ticketId: string
+  ticketId: string,
 ): Promise<void> {
   // Check if user has permission to change priority
   const member = interaction.member;
@@ -278,7 +278,7 @@ async function handleChangePriority(
       .setCustomId(`priority_urgent_${ticketId}`)
       .setLabel('Urgente')
       .setStyle(ButtonStyle.Danger)
-      .setEmoji('🔴')
+      .setEmoji('🔴'),
   );
 
   await interaction.reply({ embeds: [priorityEmbed], components: [row], flags: MessageFlags.Ephemeral });
@@ -289,7 +289,7 @@ async function handleChangePriority(
  */
 async function handlePrioritySelection(
   interaction: ButtonInteraction,
-  ticketService: any
+  ticketService: any,
 ): Promise<void> {
   const parts = interaction.customId.split('_');
   const priority = parts[1];
@@ -315,7 +315,7 @@ async function handlePrioritySelection(
     const successEmbed = new EmbedBuilder()
       .setTitle('✅ Prioridade Alterada')
       .setDescription(
-        `A prioridade do ticket #${ticketId.slice(-8)} foi alterada para **${priority.toUpperCase()}**.`
+        `A prioridade do ticket #${ticketId.slice(-8)} foi alterada para **${priority.toUpperCase()}**.`,
       )
       .setColor('#00FF00');
 
@@ -336,7 +336,7 @@ async function handlePrioritySelection(
         const updateEmbed = new EmbedBuilder()
           .setTitle('📊 Prioridade Atualizada')
           .setDescription(
-            `A prioridade deste ticket foi alterada para ${priorityEmojis[priority as keyof typeof priorityEmojis]} **${priority.toUpperCase()}** por ${interaction.user}.`
+            `A prioridade deste ticket foi alterada para ${priorityEmojis[priority as keyof typeof priorityEmojis]} **${priority.toUpperCase()}** por ${interaction.user}.`,
           )
           .setColor('#FFA500')
           .setTimestamp();
@@ -362,7 +362,7 @@ async function handlePrioritySelection(
 async function handleCloseTicketButton(
   interaction: ButtonInteraction,
   ticketService: any,
-  ticketId: string
+  ticketId: string,
 ): Promise<void> {
   const ticket = ticketService.getTicketData(interaction.guildId!, ticketId);
   if (!ticket) {
@@ -411,7 +411,7 @@ async function handleCloseTicketButton(
 async function handleCloseTicketModal(
   interaction: ModalSubmitInteraction,
   ticketService: any,
-  ticketId: string
+  ticketId: string,
 ): Promise<void> {
   const reason = interaction.fields.getTextInputValue('close_reason') || 'Não especificado';
 
@@ -421,7 +421,7 @@ async function handleCloseTicketModal(
     interaction.guildId!,
     ticketId,
     interaction.user.id,
-    reason
+    reason,
   );
 
   if (result.success) {
@@ -432,7 +432,7 @@ async function handleCloseTicketModal(
       .addFields(
         { name: '📝 Motivo', value: reason, inline: false },
         { name: '👤 Fechado por', value: interaction.user.tag, inline: true },
-        { name: '⏰ Fechado em', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }
+        { name: '⏰ Fechado em', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true },
       );
 
     await interaction.editReply({ embeds: [successEmbed] });

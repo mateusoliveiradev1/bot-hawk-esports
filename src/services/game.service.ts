@@ -254,7 +254,7 @@ export class GameService {
       this.logger.info('GameService initialized successfully');
     } catch (error) {
       this.logger.error('Failed to initialize GameService:', {
-        error: error instanceof Error ? error : new Error(String(error))
+        error: error instanceof Error ? error : new Error(String(error)),
       });
       throw error;
     }
@@ -313,7 +313,7 @@ export class GameService {
         await this.createScheduledChallenges();
         await this.expireOldChallenges();
       },
-      60 * 60 * 1000
+      60 * 60 * 1000,
     );
   }
 
@@ -326,7 +326,7 @@ export class GameService {
 
     // Daily challenges
     const dailyExists = Array.from(this.activeChallenges.values()).some(
-      c => c.type === 'daily' && c.startDate.toDateString() === today
+      c => c.type === 'daily' && c.startDate.toDateString() === today,
     );
 
     if (!dailyExists) {
@@ -337,7 +337,7 @@ export class GameService {
     if (now.getDay() === 1) {
       // Monday
       const weeklyExists = Array.from(this.activeChallenges.values()).some(
-        c => c.type === 'weekly' && this.isSameWeek(c.startDate, now)
+        c => c.type === 'weekly' && this.isSameWeek(c.startDate, now),
       );
 
       if (!weeklyExists) {
@@ -348,7 +348,7 @@ export class GameService {
     // Monthly challenges (first day of month)
     if (now.getDate() === 1) {
       const monthlyExists = Array.from(this.activeChallenges.values()).some(
-        c => c.type === 'monthly' && c.startDate.getMonth() === now.getMonth()
+        c => c.type === 'monthly' && c.startDate.getMonth() === now.getMonth(),
       );
 
       if (!monthlyExists) {
@@ -474,7 +474,7 @@ export class GameService {
    */
   public async createChallenge(
     challengeData: Omit<Challenge, 'id' | 'isActive'>,
-    guildId?: string
+    guildId?: string,
   ): Promise<Challenge> {
     try {
       // Input validation
@@ -616,7 +616,7 @@ export class GameService {
     } catch (error) {
       this.logger.error('Failed to create challenge:', {
         error: error instanceof Error ? error : new Error(String(error)),
-        metadata: { guildId: guildId || '1', category: LogCategory.GAME }
+        metadata: { guildId: guildId || '1', category: LogCategory.GAME },
       });
       throw error;
     }
@@ -629,7 +629,7 @@ export class GameService {
     guildId: string,
     channelId: string,
     hostId: string,
-    settings: QuizSettings
+    settings: QuizSettings,
   ): Promise<QuizSession> {
     try {
       // Input validation
@@ -685,7 +685,7 @@ export class GameService {
       // Check for existing active quiz in the same channel
       const existingQuiz = Array.from(this.quizSessions.values()).find(
         session =>
-          session.guildId === guildId && session.channelId === channelId && session.isActive
+          session.guildId === guildId && session.channelId === channelId && session.isActive,
       );
 
       if (existingQuiz) {
@@ -743,7 +743,7 @@ export class GameService {
     } catch (error) {
       this.logger.error('Failed to start quiz:', {
         error: error instanceof Error ? error : new Error(String(error)),
-        metadata: { guildId, channelId, hostId }
+        metadata: { guildId, channelId, hostId },
       });
       throw error;
     }
@@ -812,7 +812,7 @@ export class GameService {
 
         if (availableQuestions.length === 0) {
           this.logger.warn(
-            `No questions found for category: ${settings.category}. Using all categories.`
+            `No questions found for category: ${settings.category}. Using all categories.`,
           );
           availableQuestions = [...validQuestions];
         }
@@ -821,12 +821,12 @@ export class GameService {
       // Filter by difficulty
       if (settings.difficulty !== 'mixed') {
         const filteredByDifficulty = availableQuestions.filter(
-          q => q.difficulty === settings.difficulty
+          q => q.difficulty === settings.difficulty,
         );
 
         if (filteredByDifficulty.length === 0) {
           this.logger.warn(
-            `No questions found for difficulty: ${settings.difficulty}. Using all difficulties.`
+            `No questions found for difficulty: ${settings.difficulty}. Using all difficulties.`,
           );
         } else {
           availableQuestions = filteredByDifficulty;
@@ -849,7 +849,7 @@ export class GameService {
 
       if (selectedQuestions.length < settings.questionCount) {
         this.logger.warn(
-          `Only ${selectedQuestions.length} questions available, but ${settings.questionCount} were requested`
+          `Only ${selectedQuestions.length} questions available, but ${settings.questionCount} were requested`,
         );
       }
 
@@ -858,8 +858,8 @@ export class GameService {
         metadata: {
           quizCategory: settings.category,
           difficulty: settings.difficulty,
-          totalAvailable: availableQuestions.length
-        }
+          totalAvailable: availableQuestions.length,
+        },
       });
 
       return selectedQuestions;
@@ -868,8 +868,8 @@ export class GameService {
         error: error instanceof Error ? error : new Error(String(error)),
         metadata: {
           category: settings.category,
-          difficulty: settings.difficulty
-        }
+          difficulty: settings.difficulty,
+        },
       });
       throw error;
     }
@@ -953,7 +953,7 @@ export class GameService {
   public async submitQuizAnswer(
     sessionId: string,
     userId: string,
-    answerIndex: number
+    answerIndex: number,
   ): Promise<{ correct: boolean; points: number; streak: number } | null> {
     try {
       // Input validation
@@ -994,7 +994,7 @@ export class GameService {
       // Validate answer index against question options
       if (answerIndex >= currentQuestion.options.length) {
         throw new Error(
-          `Invalid answer index: ${answerIndex}. Question has ${currentQuestion.options.length} options`
+          `Invalid answer index: ${answerIndex}. Question has ${currentQuestion.options.length} options`,
         );
       }
 
@@ -1003,7 +1003,7 @@ export class GameService {
         const answeredKey = `${cleanUserId}_${session.currentQuestionIndex}`;
         if ((session as any).answeredQuestions?.has(answeredKey)) {
           this.logger.warn(
-            `User ${cleanUserId} already answered question ${session.currentQuestionIndex}`
+            `User ${cleanUserId} already answered question ${session.currentQuestionIndex}`,
           );
           return null;
         }
@@ -1052,7 +1052,7 @@ export class GameService {
     } catch (error) {
       this.logger.error('Failed to submit quiz answer:', {
         error: error instanceof Error ? error : new Error(String(error)),
-        metadata: { sessionId, userId, answerIndex }
+        metadata: { sessionId, userId, answerIndex },
       });
       return null;
     }
@@ -1113,7 +1113,7 @@ export class GameService {
     gameId: string,
     guildId: string,
     channelId: string,
-    hostId: string
+    hostId: string,
   ): Promise<GameSession | null> {
     const game = this.miniGames.find(g => g.id === gameId);
     if (!game) {
@@ -1332,7 +1332,7 @@ export class GameService {
   public async updateChallengeProgress(
     userId: string,
     requirementType: string,
-    increment: number
+    increment: number,
   ): Promise<void> {
     if (!this.challengeProgress.has(userId)) {
       this.challengeProgress.set(userId, new Map());

@@ -30,8 +30,8 @@ const daily: Command = {
           { name: '🎁 Resgatar Recompensa', value: 'claim' },
           { name: '📊 Ver Streak', value: 'streak' },
           { name: '🏆 Ranking de Streaks', value: 'leaderboard' },
-          { name: '📅 Calendário Mensal', value: 'calendar' }
-        )
+          { name: '📅 Calendário Mensal', value: 'calendar' },
+        ),
     ) as SlashCommandBuilder,
 
   category: CommandCategory.GENERAL,
@@ -56,7 +56,7 @@ const daily: Command = {
         const embed = new EmbedBuilder()
           .setTitle('❌ Usuário Não Registrado')
           .setDescription(
-            'Você precisa se registrar primeiro usando `/register` para acessar recompensas diárias!'
+            'Você precisa se registrar primeiro usando `/register` para acessar recompensas diárias!',
           )
           .setColor(0xff0000)
           .setTimestamp();
@@ -107,7 +107,7 @@ async function claimDailyReward(
   interaction: ChatInputCommandInteraction,
   database: DatabaseService,
   badgeService: BadgeService,
-  user: any
+  user: any,
 ) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -130,7 +130,7 @@ async function claimDailyReward(
         'Você já resgatou sua recompensa diária hoje!\n\n' +
           `**Próxima recompensa em:** ${hoursLeft}h ${minutesLeft}m\n` +
           `**Streak atual:** ${user.dailyStreak} dias\n\n` +
-          'Use `/daily streak` para ver detalhes do seu streak!'
+          'Use `/daily streak` para ver detalhes do seu streak!',
       )
       .setColor(0xffa500)
       .setTimestamp();
@@ -143,7 +143,7 @@ async function claimDailyReward(
       new ButtonBuilder()
         .setCustomId('daily_calendar')
         .setLabel('📅 Calendário')
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Secondary),
     );
 
     const response = await interaction.reply({
@@ -237,7 +237,7 @@ async function claimDailyReward(
         '**Seus Totais:**\n' +
         `📊 Level: ${updatedUser.level}\n` +
         `⭐ XP: ${updatedUser.xp.toLocaleString()}\n` +
-        `💰 Moedas: ${updatedUser.coins.toLocaleString()}`
+        `💰 Moedas: ${updatedUser.coins.toLocaleString()}`,
     )
     .setColor(0x00ff00)
     .setFooter({
@@ -268,7 +268,7 @@ async function claimDailyReward(
     new ButtonBuilder()
       .setCustomId('daily_calendar')
       .setLabel('📅 Calendário')
-      .setStyle(ButtonStyle.Secondary)
+      .setStyle(ButtonStyle.Secondary),
   );
 
   const response = await interaction.reply({
@@ -351,7 +351,7 @@ async function showStreakInfo(interaction: any, database: DatabaseService, user:
         '• Resgatar diariamente mantém o streak\n' +
         '• Multiplicador aumenta até 3x (21 dias)\n' +
         '• Marcos especiais dão badges exclusivas\n' +
-        '• Streaks maiores = recompensas maiores'
+        '• Streaks maiores = recompensas maiores',
     )
     .setColor(user.dailyStreak >= 7 ? 0x00ff00 : user.dailyStreak >= 3 ? 0xffa500 : 0x0099ff)
     .setTimestamp();
@@ -436,7 +436,7 @@ async function showStreakLeaderboard(interaction: any, database: DatabaseService
       } catch (error) {
         return `${index + 1}. **Usuário Desconhecido**\n🔥 ${user.dailyStreak} dias`;
       }
-    })
+    }),
   );
 
   // Find current user position
@@ -461,7 +461,7 @@ async function showStreakLeaderboard(interaction: any, database: DatabaseService
       leaderboardText.join('\n\n') +
         (currentUser
           ? `\n\n**Sua Posição:** ${userPosition} (${currentUser.dailyStreak} dias)`
-          : '')
+          : ''),
     )
     .setColor(0xffd700)
     .setFooter({
@@ -582,7 +582,7 @@ async function showMonthlyCalendar(interaction: any, database: DatabaseService, 
         `🎁 Resgates: ${claimedThisMonth}/${possibleDays}\n` +
         `📊 Taxa de conclusão: ${completionRate.toFixed(1)}%\n` +
         `🔥 Streak atual: ${user.dailyStreak} dias\n` +
-        `💰 Moedas ganhas: ~${claimedThisMonth * 100} (estimativa)`
+        `💰 Moedas ganhas: ~${claimedThisMonth * 100} (estimativa)`,
     )
     .setColor(completionRate >= 80 ? 0x00ff00 : completionRate >= 50 ? 0xffa500 : 0xff0000)
     .setTimestamp();
@@ -598,7 +598,7 @@ function setupButtonCollector(
   response: any,
   interaction: ChatInputCommandInteraction,
   database: DatabaseService,
-  user: any
+  user: any,
 ) {
   const collector = response.createMessageComponentCollector({
     componentType: ComponentType.Button,

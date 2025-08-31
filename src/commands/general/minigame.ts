@@ -31,8 +31,8 @@ const minigame: Command = {
           { name: '⌨️ Corrida de Digitação', value: 'typing_race' },
           { name: '🧮 Desafio Matemático', value: 'math_challenge' },
           { name: '🧠 Jogo da Memória', value: 'memory_game' },
-          { name: '🎲 Aleatório', value: 'random' }
-        )
+          { name: '🎲 Aleatório', value: 'random' },
+        ),
     ) as SlashCommandBuilder,
 
   category: CommandCategory.GENERAL,
@@ -53,7 +53,7 @@ const minigame: Command = {
         const embed = new EmbedBuilder()
           .setTitle('❌ Usuário Não Registrado')
           .setDescription(
-            'Você precisa se registrar primeiro usando `/register` para jogar mini-games!'
+            'Você precisa se registrar primeiro usando `/register` para jogar mini-games!',
           )
           .setColor(0xff0000)
           .setTimestamp();
@@ -71,13 +71,13 @@ const minigame: Command = {
 
       // Check if there's already an active game in this channel
       const existingSession = gameService.getGameSession(
-        `${interaction.guildId}_${interaction.channelId}`
+        `${interaction.guildId}_${interaction.channelId}`,
       );
       if (existingSession && existingSession.isActive) {
         const embed = new EmbedBuilder()
           .setTitle('⚠️ Mini-Game Já Ativo')
           .setDescription(
-            'Já existe um mini-game ativo neste canal! Aguarde ele terminar ou participe dele.'
+            'Já existe um mini-game ativo neste canal! Aguarde ele terminar ou participe dele.',
           )
           .setColor(0xffa500)
           .setTimestamp();
@@ -110,7 +110,7 @@ const minigame: Command = {
         gameToStart.id,
         interaction.guildId!,
         interaction.channelId,
-        interaction.user.id
+        interaction.user.id,
       );
 
       if (!session) {
@@ -163,7 +163,7 @@ const minigame: Command = {
  */
 async function showGameSelection(
   interaction: ChatInputCommandInteraction,
-  gameService: GameService
+  gameService: GameService,
 ) {
   const games = gameService.getMiniGames();
 
@@ -188,7 +188,7 @@ async function showGameSelection(
               `⏱️ ${game.duration}s • 🎁 ${game.rewards.xp} XP + ${game.rewards.coins} moedas`
             );
           })
-          .join('\n\n')
+          .join('\n\n'),
     )
     .setColor(0x0099ff)
     .setFooter({ text: 'Use /minigame <jogo> para iniciar diretamente!' })
@@ -199,15 +199,15 @@ async function showGameSelection(
       new ButtonBuilder()
         .setCustomId(`minigame_start_${game.id}`)
         .setLabel(`${getGameEmoji(game.type)} ${game.name}`)
-        .setStyle(ButtonStyle.Primary)
-    )
+        .setStyle(ButtonStyle.Primary),
+    ),
   );
 
   const randomButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId('minigame_start_random')
       .setLabel('🎲 Jogo Aleatório')
-      .setStyle(ButtonStyle.Secondary)
+      .setStyle(ButtonStyle.Secondary),
   );
 
   const response = await interaction.reply({
@@ -258,7 +258,7 @@ async function startReactionTest(
   interaction: ChatInputCommandInteraction,
   session: any,
   game: MiniGame,
-  gameService: GameService
+  gameService: GameService,
 ) {
   const embed = new EmbedBuilder()
     .setTitle('⚡ Teste de Reação')
@@ -268,7 +268,7 @@ async function startReactionTest(
         '• Aguarde o emoji aparecer\n' +
         '• Seja o primeiro a clicar no botão!\n' +
         '• Quanto mais rápido, mais pontos!\n\n' +
-        '⏰ Preparando... Fique atento!'
+        '⏰ Preparando... Fique atento!',
     )
     .setColor(0xffa500)
     .setFooter({
@@ -295,7 +295,7 @@ async function startReactionTest(
       new ButtonBuilder()
         .setCustomId(`reaction_click_${session.id}`)
         .setLabel(`${emoji} CLIQUE AQUI!`)
-        .setStyle(ButtonStyle.Danger)
+        .setStyle(ButtonStyle.Danger),
     );
 
     const startTime = Date.now();
@@ -349,7 +349,7 @@ async function endReactionTest(
   game: MiniGame,
   gameService: GameService,
   reactions: Array<{ userId: string; username: string; time: number }>,
-  winner: string | null
+  winner: string | null,
 ) {
   const results = await gameService.endMiniGame(session.id);
 
@@ -376,7 +376,7 @@ async function endReactionTest(
           const medal = ['🥇', '🥈', '🥉'][index] || `${index + 1}º`;
           return `${medal} **${reaction.username}** - ${reaction.time}ms`;
         })
-        .join('\n')
+        .join('\n'),
     )
     .setColor(0xffd700)
     .setFooter({ text: `Participantes: ${reactions.length}` })
@@ -392,17 +392,17 @@ async function startTypingRace(
   interaction: ChatInputCommandInteraction,
   session: any,
   game: MiniGame,
-  gameService: GameService
+  gameService: GameService,
 ) {
   const phrases = [
     'Winner winner chicken dinner!',
     'The zone is closing in fast!',
     'Enemy spotted in the building ahead.',
     'I need medical supplies here!',
-    "Let's drop at School for some action.",
+    'Let\'s drop at School for some action.',
     'The red zone is coming, we need to move!',
     'I found a level 3 helmet and vest.',
-    "There's a squad camping on the roof.",
+    'There\'s a squad camping on the roof.',
     'The final circle is at Military Base.',
     'Good luck and have fun in Battlegrounds!',
   ];
@@ -416,7 +416,7 @@ async function startTypingRace(
         '🎯 **Digite a frase abaixo o mais rápido possível:**\n\n' +
         `\`\`\`\n${phrase}\n\`\`\`\n\n` +
         `⏰ Você tem ${game.duration} segundos!\n` +
-        '📝 Digite exatamente como mostrado (case-sensitive)'
+        '📝 Digite exatamente como mostrado (case-sensitive)',
     )
     .setColor(0x0099ff)
     .setFooter({ text: `Recompensas: ${game.rewards.xp} XP + ${game.rewards.coins} moedas` })
@@ -475,7 +475,7 @@ async function endTypingRace(
   interaction: ChatInputCommandInteraction,
   session: any,
   game: MiniGame,
-  gameService: GameService
+  gameService: GameService,
 ) {
   const results = await gameService.endMiniGame(session.id);
   const submissions = session.data.submissions || [];
@@ -504,7 +504,7 @@ async function endTypingRace(
             const medal = ['🥇', '🥈', '🥉'][index] || `${index + 1}º`;
             return `${medal} **${sub.username}**\n⏱️ ${(sub.time / 1000).toFixed(2)}s • ⌨️ ${sub.wpm} WPM`;
           })
-          .join('\n\n')
+          .join('\n\n'),
     )
     .setColor(0xffd700)
     .setFooter({ text: `Participantes: ${submissions.length}` })
@@ -520,7 +520,7 @@ async function startMathChallenge(
   interaction: ChatInputCommandInteraction,
   session: any,
   game: MiniGame,
-  gameService: GameService
+  gameService: GameService,
 ) {
   const embed = new EmbedBuilder()
     .setTitle('🧮 Desafio Matemático')
@@ -530,7 +530,7 @@ async function startMathChallenge(
         '• Resolva os problemas matemáticos\n' +
         '• Digite apenas o número da resposta\n' +
         '• Quanto mais rápido, mais pontos!\n\n' +
-        '⏰ Preparando os problemas...'
+        '⏰ Preparando os problemas...',
     )
     .setColor(0xff6b35)
     .setFooter({
@@ -584,7 +584,7 @@ async function showMathProblem(
   interaction: ChatInputCommandInteraction,
   session: any,
   game: MiniGame,
-  gameService: GameService
+  gameService: GameService,
 ) {
   const problem = session.data.problems[session.data.currentProblem];
 
@@ -596,7 +596,7 @@ async function showMathProblem(
   const embed = new EmbedBuilder()
     .setTitle(`🧮 Problema ${session.data.currentProblem + 1}/${session.data.problems.length}`)
     .setDescription(
-      '**Quanto é:**\n\n' + `# ${problem.problem} = ?\n\n` + 'Digite apenas o número da resposta!'
+      '**Quanto é:**\n\n' + `# ${problem.problem} = ?\n\n` + 'Digite apenas o número da resposta!',
     )
     .setColor(0xff6b35)
     .setTimestamp();
@@ -665,7 +665,7 @@ async function endMathChallenge(
   interaction: ChatInputCommandInteraction,
   session: any,
   game: MiniGame,
-  gameService: GameService
+  gameService: GameService,
 ) {
   const results = await gameService.endMiniGame(session.id);
   const scoresMap = session.data.scores;
@@ -703,7 +703,7 @@ async function endMathChallenge(
           const medal = ['🥇', '🥈', '🥉'][index] || `${index + 1}º`;
           return `${medal} **${result.username}** - ${result.score} pontos`;
         })
-        .join('\n')
+        .join('\n'),
     )
     .setColor(0xffd700)
     .setFooter({ text: `Participantes: ${scores.length}` })
@@ -719,7 +719,7 @@ async function startMemoryGame(
   interaction: ChatInputCommandInteraction,
   session: any,
   game: MiniGame,
-  gameService: GameService
+  gameService: GameService,
 ) {
   const embed = new EmbedBuilder()
     .setTitle('🧠 Jogo da Memória')
@@ -729,7 +729,7 @@ async function startMemoryGame(
         '• Memorize a sequência de emojis\n' +
         '• Repita a sequência clicando nos botões\n' +
         '• A sequência fica mais longa a cada rodada!\n\n' +
-        '⏰ Preparando a primeira sequência...'
+        '⏰ Preparando a primeira sequência...',
     )
     .setColor(0x9b59b6)
     .setFooter({
@@ -755,7 +755,7 @@ async function showMemorySequence(
   session: any,
   game: MiniGame,
   gameService: GameService,
-  emojis: string[]
+  emojis: string[],
 ) {
   // Add new emoji to sequence
   const newEmoji = emojis[Math.floor(Math.random() * emojis.length)];
@@ -786,13 +786,13 @@ async function askMemorySequence(
   session: any,
   game: MiniGame,
   gameService: GameService,
-  emojis: string[]
+  emojis: string[],
 ) {
   const embed = new EmbedBuilder()
     .setTitle(`🧠 Rodada ${session.data.round} - Repita a Sequência`)
     .setDescription(
       '**Clique nos botões na ordem correta:**\n\n' +
-        `Sequência tem ${session.data.sequence.length} emojis`
+        `Sequência tem ${session.data.sequence.length} emojis`,
     )
     .setColor(0x9b59b6)
     .setTimestamp();
@@ -802,8 +802,8 @@ async function askMemorySequence(
       new ButtonBuilder()
         .setCustomId(`memory_${session.id}_${emoji}`)
         .setLabel(emoji)
-        .setStyle(ButtonStyle.Secondary)
-    )
+        .setStyle(ButtonStyle.Secondary),
+    ),
   );
 
   await interaction.editReply({ embeds: [embed], components: [buttons] });
@@ -827,7 +827,7 @@ async function endMemoryGame(
   interaction: ChatInputCommandInteraction,
   session: any,
   game: MiniGame,
-  gameService: GameService
+  gameService: GameService,
 ) {
   const results = await gameService.endMiniGame(session.id);
   const playersMap = session.data.players;
@@ -866,7 +866,7 @@ async function endMemoryGame(
             const medal = ['🥇', '🥈', '🥉'][index] || `${index + 1}º`;
             return `${medal} **${result.username}** - ${result.score} pontos`;
           })
-          .join('\n')
+          .join('\n'),
     )
     .setColor(0xffd700)
     .setFooter({ text: `Participantes: ${scores.length}` })

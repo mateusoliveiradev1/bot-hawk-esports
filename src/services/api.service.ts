@@ -114,7 +114,7 @@ export class APIService {
       port: this.validatePort(process.env.API_PORT || '3001'),
       host: process.env.API_HOST || '0.0.0.0',
       corsOrigins: this.validateCorsOrigins(
-        process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000']
+        process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000'],
       ),
       jwtSecret: process.env.JWT_SECRET || 'your-secret-key',
       jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
@@ -122,14 +122,14 @@ export class APIService {
         process.env.RATE_LIMIT_WINDOW_MS,
         900000,
         60000,
-        3600000
+        3600000,
       ), // 1min - 1hour
       rateLimitMax: this.validateNumber(process.env.RATE_LIMIT_MAX, 100, 10, 1000),
       uploadMaxSize: this.validateNumber(
         process.env.UPLOAD_MAX_SIZE,
         104857600,
         1048576,
-        1073741824
+        1073741824,
       ), // 1MB - 1GB
       uploadDir: process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads'),
     };
@@ -149,18 +149,18 @@ export class APIService {
       helmet({
         contentSecurityPolicy: {
           directives: {
-            defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
-            scriptSrc: ["'self'"],
-            imgSrc: ["'self'", 'data:', 'https:'],
-            connectSrc: ["'self'"],
-            fontSrc: ["'self'"],
-            objectSrc: ["'none'"],
-            mediaSrc: ["'self'"],
-            frameSrc: ["'none'"],
+            defaultSrc: ['\'self\''],
+            styleSrc: ['\'self\'', '\'unsafe-inline\''],
+            scriptSrc: ['\'self\''],
+            imgSrc: ['\'self\'', 'data:', 'https:'],
+            connectSrc: ['\'self\''],
+            fontSrc: ['\'self\''],
+            objectSrc: ['\'none\''],
+            mediaSrc: ['\'self\''],
+            frameSrc: ['\'none\''],
           },
         },
-      })
+      }),
     );
 
     // CORS
@@ -170,7 +170,7 @@ export class APIService {
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-      })
+      }),
     );
 
     // Session middleware with secure configuration
@@ -194,9 +194,9 @@ export class APIService {
           httpOnly: true,
           maxAge: 24 * 60 * 60 * 1000, // 24 hours
           sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-          domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined
+          domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined,
         },
-      })
+      }),
     );
 
     // Rate limiting
@@ -354,8 +354,8 @@ export class APIService {
           url: req.url,
           method: req.method,
           ip: req.ip,
-          userAgent: req.get('User-Agent')
-        }
+          userAgent: req.get('User-Agent'),
+        },
       });
 
       // Handle specific error types
@@ -426,7 +426,7 @@ export class APIService {
     return async (
       req: AuthenticatedRequest,
       res: Response,
-      next: NextFunction
+      next: NextFunction,
     ): Promise<void | Response> => {
       try {
         if (!req.user) {
@@ -458,7 +458,7 @@ export class APIService {
         const hasRequiredRole = requiredRoles.some(roleName => {
           const role = guild.roles.cache.find(r => 
             r.name.toLowerCase() === roleName.toLowerCase() ||
-            r.id === roleName
+            r.id === roleName,
           );
           return role && roles.includes(role.id);
         });
@@ -491,7 +491,7 @@ export class APIService {
   private authenticateToken = async (
     req: AuthenticatedRequest,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void | Response> => {
     try {
       const authHeader = req.headers['authorization'];
@@ -550,7 +550,7 @@ export class APIService {
         discordUser = (await Promise.race([
           this.client.users.fetch(user.id),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Discord API timeout')), 3000)
+            setTimeout(() => reject(new Error('Discord API timeout')), 3000),
           ),
         ])) as any;
       } catch (error) {
@@ -569,7 +569,7 @@ export class APIService {
             member = (await Promise.race([
               guild.members.fetch(user.id),
               new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Member fetch timeout')), 3000)
+                setTimeout(() => reject(new Error('Member fetch timeout')), 3000),
               ),
             ])) as any;
           } catch (error) {
@@ -749,11 +749,11 @@ export class APIService {
                 lastUsed = commandLogs[0].createdAt;
                 // Calculate success rate based on error logs
                 const errorLogs = commandLogs.filter(
-                  log => log.metadata && typeof log.metadata === 'object' && log.metadata !== null && 'error' in (log.metadata as any)
+                  log => log.metadata && typeof log.metadata === 'object' && log.metadata !== null && 'error' in (log.metadata as any),
                 );
                 successRate = Math.max(
                   0,
-                  ((commandLogs.length - errorLogs.length) / commandLogs.length) * 100
+                  ((commandLogs.length - errorLogs.length) / commandLogs.length) * 100,
                 );
               }
             } catch (dbError) {
@@ -908,7 +908,7 @@ export class APIService {
             error: 'Failed to setup 2FA',
           });
         }
-      }
+      },
     );
 
     // Enable 2FA
@@ -946,7 +946,7 @@ export class APIService {
             error: 'Failed to enable 2FA',
           });
         }
-      }
+      },
     );
 
     // Disable 2FA
@@ -968,7 +968,7 @@ export class APIService {
             error: 'Failed to disable 2FA',
           });
         }
-      }
+      },
     );
 
     // Verify 2FA
@@ -999,7 +999,7 @@ export class APIService {
             error: 'Failed to verify 2FA',
           });
         }
-      }
+      },
     );
 
     return router;
@@ -1188,7 +1188,7 @@ export class APIService {
             discriminator: userData.discriminator,
           },
           this.config.jwtSecret,
-          { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions
+          { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions,
         );
 
         // Generate refresh token
@@ -1199,7 +1199,7 @@ export class APIService {
             type: 'refresh',
           },
           this.config.jwtSecret,
-          { expiresIn: '30d' } as jwt.SignOptions
+          { expiresIn: '30d' } as jwt.SignOptions,
         );
 
         return res.json({
@@ -1271,7 +1271,7 @@ export class APIService {
             discriminator: userData.discriminator,
           },
           this.config.jwtSecret,
-          { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions
+          { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions,
         );
 
         // Generate new refresh token
@@ -1282,7 +1282,7 @@ export class APIService {
             type: 'refresh',
           },
           this.config.jwtSecret,
-          { expiresIn: '30d' } as jwt.SignOptions
+          { expiresIn: '30d' } as jwt.SignOptions,
         );
 
         return res.json({
@@ -1310,7 +1310,7 @@ export class APIService {
         if (!user) {
           return res.status(401).json({
             success: false,
-            error: 'Invalid session'
+            error: 'Invalid session',
           });
         }
 
@@ -1325,21 +1325,21 @@ export class APIService {
               avatar: user.avatar,
               guildId: user.guildId,
               roles: user.roles,
-              permissions: user.permissions
+              permissions: user.permissions,
             },
-            sessionId: req.sessionID
+            sessionId: req.sessionID,
           });
         }
 
         return res.status(401).json({
           success: false,
-          error: 'Session not found'
+          error: 'Session not found',
         });
       } catch (error) {
         this.logger.error('Session validation error:', error);
         return res.status(500).json({
           success: false,
-          error: 'Session validation failed'
+          error: 'Session validation failed',
         });
       }
     });
@@ -1351,7 +1351,7 @@ export class APIService {
         if (!user) {
           return res.status(401).json({
             success: false,
-            error: 'Unauthorized'
+            error: 'Unauthorized',
           });
         }
 
@@ -1376,13 +1376,13 @@ export class APIService {
 
         return res.json({
           success: true,
-          message: 'All sessions cleared successfully'
+          message: 'All sessions cleared successfully',
         });
       } catch (error) {
         this.logger.error('Clear sessions error:', error);
         return res.status(500).json({
           success: false,
-          error: 'Failed to clear sessions'
+          error: 'Failed to clear sessions',
         });
       }
     });
@@ -1904,7 +1904,7 @@ export class APIService {
 
             userSessions.set(
               presence.userId,
-              (userSessions.get(presence.userId) || 0) + sessionMinutes
+              (userSessions.get(presence.userId) || 0) + sessionMinutes,
             );
             totalSessionTime += sessionMinutes;
             sessionCount++;
@@ -2123,7 +2123,7 @@ export class APIService {
           rankingPeriod,
           undefined, // gameMode - use default
           'rankPoints', // sortBy - use default
-          Number(limit)
+          Number(limit),
         );
 
         return res.json({
@@ -2188,7 +2188,7 @@ export class APIService {
           req.user!.guildId,
           rankingPeriod,
           'level', // sortBy - use default
-          Number(limit)
+          Number(limit),
         );
 
         return res.json({
@@ -2250,14 +2250,14 @@ export class APIService {
             rankingPeriod!,
             undefined,
             'rankPoints',
-            Number(limit)
+            Number(limit),
           );
         } else if (type === 'internal') {
           leaderboard = this.rankingService.getInternalRanking(
             req.user!.guildId,
             rankingPeriod!,
             'level',
-            Number(limit)
+            Number(limit),
           );
         } else {
           // Combined leaderboard - mix both rankings
@@ -2266,13 +2266,13 @@ export class APIService {
             rankingPeriod!,
             undefined,
             'rankPoints',
-            25
+            25,
           );
           const internalRanking = this.rankingService.getInternalRanking(
             req.user!.guildId,
             rankingPeriod!,
             'level',
-            25
+            25,
           );
 
           leaderboard = {
@@ -2670,14 +2670,14 @@ export class APIService {
                 acc[stat.category] = stat._count.id;
                 return acc;
               },
-              {} as Record<string, number>
+              {} as Record<string, number>,
             ),
             rarityDistribution: rarityStats.reduce(
               (acc, stat) => {
                 acc[stat.rarity] = stat._count.id;
                 return acc;
               },
-              {} as Record<string, number>
+              {} as Record<string, number>,
             ),
           },
         });
@@ -2949,7 +2949,7 @@ export class APIService {
             title,
             description,
             gameMode,
-            tags ? JSON.parse(tags) : undefined
+            tags ? JSON.parse(tags) : undefined,
           );
 
           // Clean up uploaded file
@@ -2967,7 +2967,7 @@ export class APIService {
             error: 'Failed to upload clip',
           });
         }
-      }
+      },
     );
 
     // Get clips
@@ -2987,7 +2987,7 @@ export class APIService {
           guildId,
           status as any,
           Number(limit),
-          Number(offset)
+          Number(offset),
         );
 
         return res.json({
@@ -3079,7 +3079,7 @@ export class APIService {
       // Calculate active users (seen in last 7 days)
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       const activeUsers = userGuilds.filter(
-        ug => ug.user.lastSeen && new Date(ug.user.lastSeen) > sevenDaysAgo
+        ug => ug.user.lastSeen && new Date(ug.user.lastSeen) > sevenDaysAgo,
       ).length;
 
       // Calculate totals
@@ -3087,7 +3087,7 @@ export class APIService {
       const totalCoins = userGuilds.reduce((sum, ug) => sum + (ug.user.coins || 0), 0);
       const totalMessages = userGuilds.reduce(
         (sum, ug) => sum + (ug.user.stats?.messagesCount || 0),
-        0
+        0,
       );
 
       return {
@@ -3135,8 +3135,8 @@ export class APIService {
             metadata: {
               environment: process.env.NODE_ENV || 'development',
               corsOrigins: this.config.corsOrigins,
-              rateLimitMax: this.config.rateLimitMax
-            }
+              rateLimitMax: this.config.rateLimitMax,
+            },
           });
 
           // Setup WebSocket
@@ -3164,8 +3164,8 @@ export class APIService {
             metadata: {
               code: error.code,
               port: this.config.port,
-              host: this.config.host
-            }
+              host: this.config.host,
+            },
           });
 
           if (error.code === 'EADDRINUSE') {
@@ -3261,7 +3261,7 @@ export class APIService {
       message: string;
       category?: string;
       autoClose?: boolean;
-    }
+    },
   ): void {
     if (this.io) {
       this.io.to(`dashboard:${guildId}`).emit('dashboard:update', {
@@ -3311,7 +3311,7 @@ export class APIService {
         this.server.close(error => {
           if (error) {
             this.logger.error('Error stopping HTTP server:', {
-              error: error instanceof Error ? error : new Error(String(error))
+              error: error instanceof Error ? error : new Error(String(error)),
             });
           } else {
             this.logger.info('🌐 HTTP server stopped');
@@ -3368,7 +3368,7 @@ export class APIService {
     // Real notifications will be sent by actual bot events
     // No simulated notifications in production
     this.logger.info(
-      '✅ Real-time updates configured - notifications will be sent by actual bot events'
+      '✅ Real-time updates configured - notifications will be sent by actual bot events',
     );
   }
 
@@ -3428,7 +3428,7 @@ export class APIService {
     value: string | undefined,
     defaultValue: number,
     min: number,
-    max: number
+    max: number,
   ): number {
     if (!value) {
       return defaultValue;

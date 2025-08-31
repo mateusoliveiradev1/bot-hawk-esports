@@ -32,14 +32,14 @@ export default {
             .setName('assunto')
             .setDescription('Assunto do ticket')
             .setRequired(true)
-            .setMaxLength(100)
+            .setMaxLength(100),
         )
         .addStringOption(option =>
           option
             .setName('descricao')
             .setDescription('Descrição detalhada do problema')
             .setRequired(true)
-            .setMaxLength(1000)
+            .setMaxLength(1000),
         )
         .addStringOption(option =>
           option
@@ -50,9 +50,9 @@ export default {
               { name: '🟢 Baixa', value: 'low' },
               { name: '🟡 Média', value: 'medium' },
               { name: '🟠 Alta', value: 'high' },
-              { name: '🔴 Urgente', value: 'urgent' }
-            )
-        )
+              { name: '🔴 Urgente', value: 'urgent' },
+            ),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -66,30 +66,30 @@ export default {
             .addChoices(
               { name: 'Abertos', value: 'open' },
               { name: 'Em andamento', value: 'in_progress' },
-              { name: 'Fechados', value: 'closed' }
-            )
-        )
+              { name: 'Fechados', value: 'closed' },
+            ),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('close')
         .setDescription('Fechar um ticket')
         .addStringOption(option =>
-          option.setName('ticket_id').setDescription('ID do ticket para fechar').setRequired(true)
+          option.setName('ticket_id').setDescription('ID do ticket para fechar').setRequired(true),
         )
         .addStringOption(option =>
           option
             .setName('motivo')
             .setDescription('Motivo para fechar o ticket')
             .setRequired(false)
-            .setMaxLength(500)
-        )
+            .setMaxLength(500),
+        ),
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('panel').setDescription('Criar painel de tickets (Admin apenas)')
+      subcommand.setName('panel').setDescription('Criar painel de tickets (Admin apenas)'),
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('stats').setDescription('Estatísticas de tickets (Admin apenas)')
+      subcommand.setName('stats').setDescription('Estatísticas de tickets (Admin apenas)'),
     ),
 
   async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
@@ -160,20 +160,20 @@ async function handleCreateTicket(interaction: ChatInputCommandInteraction, tick
     interaction.user.id,
     assunto,
     descricao,
-    prioridade
+    prioridade,
   );
 
   if (result.success) {
     const successEmbed = new EmbedBuilder()
       .setTitle('✅ Ticket Criado!')
       .setDescription(
-        `Seu ticket foi criado com sucesso!\n\n**Canal:** ${result.channel}\n**ID:** #${result.ticket!.id.slice(-8)}`
+        `Seu ticket foi criado com sucesso!\n\n**Canal:** ${result.channel}\n**ID:** #${result.ticket!.id.slice(-8)}`,
       )
       .setColor('#00FF00')
       .addFields(
         { name: '📝 Assunto', value: assunto, inline: true },
         { name: '📊 Prioridade', value: prioridade.toUpperCase(), inline: true },
-        { name: '⏰ Criado em', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: false }
+        { name: '⏰ Criado em', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: false },
       )
       .setFooter({ text: 'Nossa equipe irá atendê-lo em breve!' });
 
@@ -211,7 +211,7 @@ async function handleListTickets(interaction: ChatInputCommandInteraction, ticke
     const noTicketsEmbed = new EmbedBuilder()
       .setTitle('📋 Seus Tickets')
       .setDescription(
-        status ? `Você não possui tickets com status "${status}".` : 'Você não possui tickets.'
+        status ? `Você não possui tickets com status "${status}".` : 'Você não possui tickets.',
       )
       .setColor('#FFA500')
       .setFooter({ text: 'Use /ticket create para criar um novo ticket' });
@@ -290,7 +290,7 @@ async function handleCloseTicket(interaction: ChatInputCommandInteraction, ticke
     const errorEmbed = new EmbedBuilder()
       .setTitle('❌ Sem Permissão')
       .setDescription(
-        'Você só pode fechar seus próprios tickets ou precisa ter permissão de moderação.'
+        'Você só pode fechar seus próprios tickets ou precisa ter permissão de moderação.',
       )
       .setColor('#FF0000');
 
@@ -302,7 +302,7 @@ async function handleCloseTicket(interaction: ChatInputCommandInteraction, ticke
     interaction.guildId!,
     ticketId,
     interaction.user.id,
-    motivo
+    motivo,
   );
 
   if (result.success) {
@@ -313,7 +313,7 @@ async function handleCloseTicket(interaction: ChatInputCommandInteraction, ticke
       .addFields(
         { name: '📝 Motivo', value: motivo, inline: false },
         { name: '👤 Fechado por', value: interaction.user.tag, inline: true },
-        { name: '⏰ Fechado em', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }
+        { name: '⏰ Fechado em', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true },
       );
 
     await interaction.editReply({ embeds: [successEmbed] });
@@ -342,7 +342,7 @@ async function handleCreatePanel(interaction: ChatInputCommandInteraction, ticke
     const errorEmbed = new EmbedBuilder()
       .setTitle('❌ Sem Permissão')
       .setDescription(
-        'Você precisa ter permissão de "Gerenciar Servidor" para criar painéis de ticket.'
+        'Você precisa ter permissão de "Gerenciar Servidor" para criar painéis de ticket.',
       )
       .setColor('#FF0000');
 
@@ -363,7 +363,7 @@ async function handleCreatePanel(interaction: ChatInputCommandInteraction, ticke
         '🟢 **Dúvidas gerais** - Perguntas sobre o servidor\n' +
         '🟡 **Problemas técnicos** - Bugs ou erros\n' +
         '🟠 **Denúncias** - Reportar comportamento inadequado\n' +
-        '🔴 **Urgente** - Problemas críticos que precisam de atenção imediata'
+        '🔴 **Urgente** - Problemas críticos que precisam de atenção imediata',
     )
     .setColor('#0099FF')
     .setThumbnail(interaction.guild?.iconURL() || null)
@@ -374,7 +374,7 @@ async function handleCreatePanel(interaction: ChatInputCommandInteraction, ticke
       .setCustomId('create_ticket_panel')
       .setLabel('Criar Ticket')
       .setStyle(ButtonStyle.Primary)
-      .setEmoji('🎫')
+      .setEmoji('🎫'),
   );
 
   await interaction.reply({ embeds: [panelEmbed], components: [row] });
@@ -414,7 +414,7 @@ async function handleTicketStats(interaction: ChatInputCommandInteraction, ticke
       { name: '🟡 Em Andamento', value: stats.inProgress.toString(), inline: true },
       { name: '🔴 Fechados', value: stats.closed.toString(), inline: true },
       { name: '⏱️ Tempo Médio de Resposta', value: `${stats.avgResponseTime} min`, inline: true },
-      { name: '🏁 Tempo Médio de Resolução', value: `${stats.avgResolutionTime} min`, inline: true }
+      { name: '🏁 Tempo Médio de Resolução', value: `${stats.avgResolutionTime} min`, inline: true },
     )
     .setFooter({ text: 'Estatísticas do servidor atual' })
     .setTimestamp();

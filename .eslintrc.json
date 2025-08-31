@@ -3,6 +3,9 @@
     "es2022": true,
     "node": true
   },
+  "globals": {
+    "NodeJS": "readonly"
+  },
   "extends": [
     "eslint:recommended"
   ],

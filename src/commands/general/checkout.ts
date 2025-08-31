@@ -34,7 +34,7 @@ const checkout: Command = {
 
   async execute(
     interaction: CommandInteraction | ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const logger = new Logger();
     const database = client.database;
@@ -59,7 +59,7 @@ const checkout: Command = {
         const registerEmbed = new EmbedBuilder()
           .setTitle('❌ Usuário Não Registrado')
           .setDescription(
-            'Você precisa se registrar primeiro usando `/register` para fazer check-out!'
+            'Você precisa se registrar primeiro usando `/register` para fazer check-out!',
           )
           .setColor(0xff0000)
           .setTimestamp();
@@ -75,7 +75,7 @@ const checkout: Command = {
         const noSessionEmbed = new EmbedBuilder()
           .setTitle('❌ Nenhuma Sessão Ativa')
           .setDescription(
-            'Você não possui uma sessão ativa para fazer check-out.\n\nUse `/checkin` para iniciar uma nova sessão!'
+            'Você não possui uma sessão ativa para fazer check-out.\n\nUse `/checkin` para iniciar uma nova sessão!',
           )
           .setColor(0xff0000)
           .addFields({
@@ -104,24 +104,24 @@ const checkout: Command = {
           checkOutResult = await presenceEnhancementsService.enhancedCheckOut(
             guildId,
             userId,
-            'Check-out via comando /checkout'
+            'Check-out via comando /checkout',
           );
         } catch (error) {
           logger.warn(
             'PresenceEnhancementsService checkout failed, falling back to PresenceService:',
-            error
+            error,
           );
           checkOutResult = await presenceService.checkOut(
             guildId,
             userId,
-            'Check-out via comando /checkout'
+            'Check-out via comando /checkout',
           );
         }
       } else {
         checkOutResult = await presenceService.checkOut(
           guildId,
           userId,
-          'Check-out via comando /checkout'
+          'Check-out via comando /checkout',
         );
       }
 
@@ -168,7 +168,7 @@ const checkout: Command = {
       // Handle channel cleanup
       const channelCleanup = await cleanupSessionChannels(
         interaction as ChatInputCommandInteraction,
-        userSession.location || ''
+        userSession.location || '',
       );
 
       // Create success embed
@@ -226,7 +226,7 @@ const checkout: Command = {
             name: '⏰ Tempo Total de Jogo',
             value: formatTotalPlayTime(updatedUser.stats?.voiceTime || 0),
             inline: true,
-          }
+          },
         )
         .setThumbnail(interaction.user.displayAvatarURL())
         .setTimestamp();
@@ -262,7 +262,7 @@ const checkout: Command = {
         new ButtonBuilder()
           .setCustomId(`profile_${userId}`)
           .setLabel('👤 Meu Perfil')
-          .setStyle(ButtonStyle.Secondary)
+          .setStyle(ButtonStyle.Secondary),
       );
 
       const response = await interaction.editReply({
@@ -280,7 +280,7 @@ const checkout: Command = {
       const errorEmbed = new EmbedBuilder()
         .setTitle('❌ Erro Interno')
         .setDescription(
-          'Ocorreu um erro ao processar seu check-out. Tente novamente em alguns instantes.'
+          'Ocorreu um erro ao processar seu check-out. Tente novamente em alguns instantes.',
         )
         .setColor(0xff0000)
         .setTimestamp();
@@ -385,7 +385,7 @@ function formatTotalPlayTime(totalMinutes: number): string {
  */
 async function cleanupSessionChannels(
   interaction: ChatInputCommandInteraction,
-  sessionLocation: string
+  sessionLocation: string,
 ): Promise<{ channelsRemoved: number }> {
   try {
     const guild = interaction.guild!;
@@ -501,7 +501,7 @@ async function checkSessionBadges(
   badgeService: BadgeService,
   userId: string,
   durationMinutes: number,
-  totalSessions: number
+  totalSessions: number,
 ): Promise<void> {
   try {
     // Award duration-based badges
@@ -535,7 +535,7 @@ async function checkSessionBadges(
 function setupButtonCollector(
   response: any,
   interaction: ChatInputCommandInteraction,
-  userId: string
+  userId: string,
 ): void {
   const collector = response.createMessageComponentCollector({
     componentType: ComponentType.Button,
@@ -586,7 +586,7 @@ function setupButtonCollector(
           .setCustomId('expired')
           .setLabel('⏰ Botões Expirados')
           .setStyle(ButtonStyle.Secondary)
-          .setDisabled(true)
+          .setDisabled(true),
       );
 
       await response.edit({ components: [expiredButtons] });

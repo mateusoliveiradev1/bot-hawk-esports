@@ -24,7 +24,7 @@ const help: Command = {
         .setName('command')
         .setDescription('Comando específico para obter ajuda detalhada')
         .setRequired(false)
-        .setAutocomplete(true)
+        .setAutocomplete(true),
     ) as SlashCommandBuilder,
 
   category: CommandCategory.GENERAL,
@@ -61,7 +61,7 @@ const help: Command = {
               name: '🔒 Permissões',
               value: command.permissions?.join(', ') || 'Nenhuma',
               inline: true,
-            }
+            },
           );
 
         if (command.aliases && command.aliases.length > 0) {
@@ -82,7 +82,7 @@ const help: Command = {
       const mainEmbed = new EmbedBuilder()
         .setTitle('📚 Central de Ajuda - Hawk Esports Bot')
         .setDescription(
-          'Selecione uma categoria abaixo para ver os comandos disponíveis ou use o menu para navegar.'
+          'Selecione uma categoria abaixo para ver os comandos disponíveis ou use o menu para navegar.',
         )
         .setColor('#0099FF')
         .setThumbnail(client.user?.displayAvatarURL() ?? null)
@@ -96,7 +96,7 @@ const help: Command = {
           { name: '🎯 Jogos', value: 'Mini-games, quizzes e desafios interativos', inline: true },
           { name: '🎬 Clips', value: 'Sistema de clips e highlights', inline: true },
           { name: '👤 Perfil', value: 'Comandos de perfil e estatísticas pessoais', inline: true },
-          { name: '🔧 Admin', value: 'Comandos administrativos (apenas admins)', inline: true }
+          { name: '🔧 Admin', value: 'Comandos administrativos (apenas admins)', inline: true },
         )
         .setFooter({ text: 'Use /help <comando> para ajuda específica' })
         .setTimestamp();
@@ -169,11 +169,11 @@ const help: Command = {
           .setLabel('Suporte')
           .setStyle(ButtonStyle.Link)
           .setURL('https://discord.gg/your-support-server')
-          .setEmoji('💬')
+          .setEmoji('💬'),
       );
 
       const selectRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-        categorySelect
+        categorySelect,
       );
 
       const response = await interaction.reply({
@@ -264,7 +264,7 @@ async function getCategoryEmbed(category: string, client: ExtendedClient): Promi
 
   const categoryEnum = categoryMap[category] ?? CommandCategory.GENERAL;
   const commands = Array.from(client.commands.values()).filter(
-    (cmd: any) => cmd.category === categoryEnum
+    (cmd: any) => cmd.category === categoryEnum,
   );
 
   const embed = new EmbedBuilder()
@@ -332,7 +332,7 @@ function getQuickStartEmbed(): EmbedBuilder {
         name: '6️⃣ Clips',
         value: 'Envie seus clips com `/clip upload` e vote nos melhores',
         inline: false,
-      }
+      },
     )
     .setFooter({ text: 'Dica: Use /help <comando> para ajuda específica' });
 }
@@ -381,7 +381,7 @@ function getFeaturesEmbed(): EmbedBuilder {
         value:
           '• Auto-setup do servidor\n• Sistema de logs\n• Moderação automática\n• Backup de dados',
         inline: false,
-      }
+      },
     )
     .setFooter({ text: 'Hawk Esports - A melhor experiência PUBG no Discord' });
 }

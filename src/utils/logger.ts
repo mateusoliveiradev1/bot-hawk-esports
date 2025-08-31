@@ -84,7 +84,7 @@ export class Logger {
         }),
         winston.format.errors({ stack: true }),
         winston.format.json(),
-        winston.format.prettyPrint()
+        winston.format.prettyPrint(),
       ),
     };
 
@@ -171,8 +171,8 @@ export class Logger {
             // Add context info if present
             if (userId || guildId) {
               const context = [];
-              if (guildId && typeof guildId === 'string') context.push(`G:${guildId.slice(-4)}`);
-              if (userId && typeof userId === 'string') context.push(`U:${userId.slice(-4)}`);
+              if (guildId && typeof guildId === 'string') {context.push(`G:${guildId.slice(-4)}`);}
+              if (userId && typeof userId === 'string') {context.push(`U:${userId.slice(-4)}`);}
               log += ` (${context.join('|')})`;
             }
             
@@ -188,9 +188,9 @@ export class Logger {
             }
 
             return log;
-          })
+          }),
         ),
-      })
+      }),
     );
 
     // File transport
@@ -202,7 +202,7 @@ export class Logger {
         maxsize: this.config.maxSize,
         maxFiles: this.config.maxFiles,
         tailable: true,
-      })
+      }),
     );
 
     // Error file transport
@@ -214,7 +214,7 @@ export class Logger {
         maxsize: this.config.maxSize,
         maxFiles: this.config.maxFiles,
         tailable: true,
-      })
+      }),
     );
 
     this.logger = winston.createLogger({
@@ -260,18 +260,18 @@ export class Logger {
    * Format log context for winston
    */
   private formatContext(context?: LogContext): any {
-    if (!context) return {};
+    if (!context) {return {};}
     
     const formatted: any = {};
     
     // Add context fields to the log entry
-    if (context.userId) formatted.userId = context.userId;
-    if (context.guildId) formatted.guildId = context.guildId;
-    if (context.channelId) formatted.channelId = context.channelId;
-    if (context.commandName) formatted.commandName = context.commandName;
-    if (context.category) formatted.category = context.category;
-    if (context.duration !== undefined) formatted.duration = context.duration;
-    if (context.statusCode) formatted.statusCode = context.statusCode;
+    if (context.userId) {formatted.userId = context.userId;}
+    if (context.guildId) {formatted.guildId = context.guildId;}
+    if (context.channelId) {formatted.channelId = context.channelId;}
+    if (context.commandName) {formatted.commandName = context.commandName;}
+    if (context.category) {formatted.category = context.category;}
+    if (context.duration !== undefined) {formatted.duration = context.duration;}
+    if (context.statusCode) {formatted.statusCode = context.statusCode;}
     if (context.error) {
       formatted.error = {
         name: context.error.name,
@@ -279,7 +279,7 @@ export class Logger {
         stack: context.error.stack,
       };
     }
-    if (context.metadata) formatted.metadata = context.metadata;
+    if (context.metadata) {formatted.metadata = context.metadata;}
     
     return formatted;
   }
@@ -311,7 +311,7 @@ export class Logger {
     statusCode: number,
     responseTime: number,
     userId?: string,
-    error?: Error
+    error?: Error,
   ): void {
     const level = statusCode >= 400 ? 'error' : statusCode >= 300 ? 'warn' : 'http';
     const message = `API ${method} ${endpoint} - ${statusCode} (${responseTime}ms)`;
@@ -431,7 +431,7 @@ export class Logger {
     severity: 'low' | 'medium' | 'high' | 'critical',
     guildId?: string,
     channelId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): void {
     const level = severity === 'critical' || severity === 'high' ? 'error' : 'warn';
     const message = `Security event: ${event} [${severity.toUpperCase()}]`;
@@ -542,10 +542,10 @@ export class Logger {
     };
     
     const threshold = thresholds[`${metric}_${unit}`];
-    if (!threshold) return 'debug';
+    if (!threshold) {return 'debug';}
     
-    if (value >= threshold.error) return 'error';
-    if (value >= threshold.warn) return 'warn';
+    if (value >= threshold.error) {return 'error';}
+    if (value >= threshold.warn) {return 'warn';}
     return 'debug';
   }
 

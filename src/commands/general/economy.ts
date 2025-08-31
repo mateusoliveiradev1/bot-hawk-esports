@@ -26,8 +26,8 @@ const economy: Command = {
           option
             .setName('usuario')
             .setDescription('Ver economia de outro usuário')
-            .setRequired(false)
-        )
+            .setRequired(false),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -41,8 +41,8 @@ const economy: Command = {
             .addChoices(
               { name: '⭐ XP', value: 'xp' },
               { name: '💰 Moedas', value: 'coins' },
-              { name: '📊 Nível', value: 'level' }
-            )
+              { name: '📊 Nível', value: 'level' },
+            ),
         )
         .addIntegerOption(option =>
           option
@@ -50,8 +50,8 @@ const economy: Command = {
             .setDescription('Número de usuários no ranking (padrão: 10)')
             .setRequired(false)
             .setMinValue(5)
-            .setMaxValue(25)
-        )
+            .setMaxValue(25),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -63,11 +63,11 @@ const economy: Command = {
             .setDescription('Número de transações (padrão: 10)')
             .setRequired(false)
             .setMinValue(5)
-            .setMaxValue(50)
-        )
+            .setMaxValue(50),
+        ),
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('daily').setDescription('Resgatar recompensa diária')
+      subcommand.setName('daily').setDescription('Resgatar recompensa diária'),
     ) as SlashCommandBuilder,
 
   category: CommandCategory.ECONOMY,
@@ -159,7 +159,7 @@ async function handleEconomyProfile(interaction: any, database: DatabaseService,
           name: '📈 Progresso para o próximo nível',
           value: `${progressBar}\n**${progressXP}**/${neededXP} XP (${progressPercentage}%)`,
           inline: false,
-        }
+        },
       )
       .setTimestamp();
 
@@ -200,7 +200,7 @@ async function handleEconomyRanking(
   interaction: any,
   database: DatabaseService,
   client: ExtendedClient,
-  logger: Logger
+  logger: Logger,
 ) {
   const type = interaction.options.getString('tipo');
   const limit = interaction.options.getInteger('limite') || 10;
@@ -285,7 +285,7 @@ async function handleEconomyRanking(
         } catch {
           return `${index + 1}º **Usuário Desconhecido** - 0`;
         }
-      })
+      }),
     );
 
     embed.addFields({
@@ -307,7 +307,7 @@ async function handleEconomyRanking(
 async function handleTransactionHistory(
   interaction: any,
   database: DatabaseService,
-  logger: Logger
+  logger: Logger,
 ) {
   const limit = interaction.options.getInteger('limite') || 10;
   const userId = interaction.user.id;
@@ -402,7 +402,7 @@ async function handleDailyReward(interaction: any, database: DatabaseService, lo
         .setColor('#ffa500')
         .setTitle('⏰ Recompensa Diária')
         .setDescription(
-          'Você já resgatou sua recompensa diária hoje!\n\nVolte amanhã para resgatar novamente.'
+          'Você já resgatou sua recompensa diária hoje!\n\nVolte amanhã para resgatar novamente.',
         )
         .setTimestamp();
 
@@ -467,7 +467,7 @@ async function handleDailyReward(interaction: any, database: DatabaseService, lo
       .addFields(
         { name: '⭐ XP Ganho', value: `+${xpReward} XP`, inline: true },
         { name: '💰 Moedas Ganhas', value: `+${coinReward} moedas`, inline: true },
-        { name: '🔥 Sequência', value: `${currentStreak} dias`, inline: true }
+        { name: '🔥 Sequência', value: `${currentStreak} dias`, inline: true },
       )
       .setFooter({ text: 'Volte amanhã para continuar sua sequência!' })
       .setTimestamp();
@@ -483,7 +483,7 @@ async function handleDailyReward(interaction: any, database: DatabaseService, lo
     await interaction.editReply({ embeds: [embed] });
 
     logger.info(
-      `Daily reward claimed by user ${userId}: ${xpReward} XP, ${coinReward} coins (streak: ${currentStreak})`
+      `Daily reward claimed by user ${userId}: ${xpReward} XP, ${coinReward} coins (streak: ${currentStreak})`,
     );
   } catch (error) {
     logger.error('Error claiming daily reward:', error);

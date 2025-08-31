@@ -52,7 +52,7 @@ export class CommandManager {
           .filter(file => (file.endsWith('.ts') || file.endsWith('.js')) && !file.endsWith('.d.ts'));
 
         this.logger.debug(
-          `Found ${commandFiles.length} command files in ${folder}: ${commandFiles.join(', ')}`
+          `Found ${commandFiles.length} command files in ${folder}: ${commandFiles.join(', ')}`,
         );
 
         for (const file of commandFiles) {
@@ -70,7 +70,7 @@ export class CommandManager {
       }
 
       this.logger.info(
-        `Loaded ${this.commands.size} slash commands and ${this.contextMenus.size} context menu commands`
+        `Loaded ${this.commands.size} slash commands and ${this.contextMenus.size} context menu commands`,
       );
     } catch (error) {
       this.logger.error('Error loading commands:', error);
@@ -153,7 +153,7 @@ export class CommandManager {
    */
   public isOnCooldown(
     commandName: string,
-    userId: string
+    userId: string,
   ): { onCooldown: boolean; timeLeft?: number } {
     if (!this.cooldowns.has(commandName)) {
       this.cooldowns.set(commandName, new Collection());
@@ -281,7 +281,7 @@ export class CommandManager {
    */
   public async handleSlashCommand(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const command = this.getCommand(interaction.commandName);
     if (!command) {
@@ -316,7 +316,7 @@ export class CommandManager {
    */
   public async handleContextCommand(
     interaction: ContextMenuCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const command = this.getContextMenu(interaction.commandName);
     if (!command) {
@@ -342,7 +342,7 @@ export class CommandManager {
    */
   public async handleAutocomplete(
     interaction: AutocompleteInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const command = this.getCommand(interaction.commandName);
     if (!command || !command.autocomplete) {

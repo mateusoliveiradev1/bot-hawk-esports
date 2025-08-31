@@ -47,8 +47,8 @@ const sessionRanking: Command = {
         .addChoices(
           { name: '📅 Semanal', value: 'weekly' },
           { name: '📆 Mensal', value: 'monthly' },
-          { name: '📊 Geral', value: 'all_time' }
-        )
+          { name: '📊 Geral', value: 'all_time' },
+        ),
     )
     .addStringOption(option =>
       option
@@ -59,8 +59,8 @@ const sessionRanking: Command = {
           { name: '🎯 Matchmaking (MM)', value: 'mm' },
           { name: '⚔️ Scrim', value: 'scrim' },
           { name: '🏆 Campeonato', value: 'campeonato' },
-          { name: '🎖️ Ranked', value: 'ranked' }
-        )
+          { name: '🎖️ Ranked', value: 'ranked' },
+        ),
     ) as SlashCommandBuilder,
 
   category: CommandCategory.GENERAL,
@@ -68,7 +68,7 @@ const sessionRanking: Command = {
 
   async execute(
     interaction: CommandInteraction | ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const logger = new Logger();
     const database = new DatabaseService();
@@ -131,7 +131,7 @@ const sessionRanking: Command = {
           .setCustomId('session_ranking_refresh')
           .setLabel('Atualizar')
           .setStyle(ButtonStyle.Success)
-          .setEmoji('🔄')
+          .setEmoji('🔄'),
       );
 
       const response = await interaction.editReply({
@@ -166,7 +166,7 @@ const sessionRanking: Command = {
             case 'session_ranking_personal':
               const personalEmbed = await createPersonalRankingEmbed(
                 sessionData,
-                interaction.user.id
+                interaction.user.id,
               );
               await buttonInteraction.editReply({ embeds: [personalEmbed] });
               break;
@@ -177,7 +177,7 @@ const sessionRanking: Command = {
                 newData,
                 periodo,
                 tipoFiltro,
-                interaction.user.id
+                interaction.user.id,
               );
               await buttonInteraction.editReply({ embeds: [newEmbed] });
               break;
@@ -190,7 +190,7 @@ const sessionRanking: Command = {
       collector.on('end', async () => {
         try {
           const disabledButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-            buttons.components.map(button => ButtonBuilder.from(button).setDisabled(true))
+            buttons.components.map(button => ButtonBuilder.from(button).setDisabled(true)),
           );
 
           await interaction.editReply({ components: [disabledButtons] });
@@ -218,7 +218,7 @@ async function getSessionRankingData(
   database: DatabaseService,
   guildId: string,
   startDate: Date,
-  typeFilter?: string | null
+  typeFilter?: string | null,
 ): Promise<SessionRankingData[]> {
   try {
     // Get all presence records for the period
@@ -305,7 +305,7 @@ async function getSessionRankingData(
 
       if (checkout) {
         const duration = Math.floor(
-          (checkout.timestamp.getTime() - record.timestamp.getTime()) / (1000 * 60)
+          (checkout.timestamp.getTime() - record.timestamp.getTime()) / (1000 * 60),
         );
         userStats.totalDuration += duration;
       }
@@ -330,7 +330,7 @@ async function getSessionRankingData(
 
       // Calculate streak (simplified - days since last session)
       const daysSinceLastSession = Math.floor(
-        (Date.now() - userStats.lastSession.getTime()) / (1000 * 60 * 60 * 24)
+        (Date.now() - userStats.lastSession.getTime()) / (1000 * 60 * 60 * 24),
       );
       userStats.streak = daysSinceLastSession <= 1 ? Math.max(1, userStats.totalSessions) : 0;
 
@@ -381,7 +381,7 @@ async function createRankingEmbed(
   data: SessionRankingData[],
   period: string,
   typeFilter: string | null,
-  requesterId: string
+  requesterId: string,
 ): Promise<EmbedBuilder> {
   const periodNames = {
     weekly: 'Semanal',
@@ -398,14 +398,14 @@ async function createRankingEmbed(
 
   const embed = new EmbedBuilder()
     .setTitle(
-      `🏆 Ranking de Sessões - ${periodNames[period as keyof typeof periodNames] || 'Geral'}`
+      `🏆 Ranking de Sessões - ${periodNames[period as keyof typeof periodNames] || 'Geral'}`,
     )
     .setColor(0xffd700)
     .setTimestamp();
 
   if (typeFilter) {
     embed.setDescription(
-      `**Filtro:** ${typeNames[typeFilter as keyof typeof typeNames] || typeFilter}\n`
+      `**Filtro:** ${typeNames[typeFilter as keyof typeof typeNames] || typeFilter}\n`,
     );
   }
 
@@ -506,7 +506,7 @@ async function createDetailsEmbed(topUsers: SessionRankingData[]): Promise<Embed
  */
 async function createPersonalRankingEmbed(
   data: SessionRankingData[],
-  userId: string
+  userId: string,
 ): Promise<EmbedBuilder> {
   const userStats = data.find(u => u.userId === userId);
 

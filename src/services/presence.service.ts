@@ -292,7 +292,7 @@ export class PresenceService {
       async () => {
         await this.performAutoCheckOuts();
       },
-      60 * 60 * 1000
+      60 * 60 * 1000,
     );
   }
 
@@ -308,7 +308,7 @@ export class PresenceService {
           await this.updateAllStreaks();
         }
       },
-      5 * 60 * 1000
+      5 * 60 * 1000,
     );
   }
 
@@ -321,7 +321,7 @@ export class PresenceService {
     location?: string,
     note?: string,
     ipAddress?: string,
-    deviceInfo?: string
+    deviceInfo?: string,
   ): Promise<{ success: boolean; message: string; session?: PresenceSession }> {
     try {
       // Check if user is already checked in
@@ -428,7 +428,7 @@ export class PresenceService {
   public async checkOut(
     guildId: string,
     userId: string,
-    note?: string
+    note?: string,
   ): Promise<{ success: boolean; message: string; session?: PresenceSession }> {
     try {
       // Check if user has an active session
@@ -499,7 +499,7 @@ export class PresenceService {
       await this.sendCheckOutNotification(userId, guildId, updatedSession);
 
       this.logger.info(
-        `User ${userId} checked out from guild ${guildId} after ${durationMinutes} minutes`
+        `User ${userId} checked out from guild ${guildId} after ${durationMinutes} minutes`,
       );
 
       return {
@@ -543,7 +543,7 @@ export class PresenceService {
   public async getGuildReport(
     guildId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
   ): Promise<PresenceReport> {
     try {
       // Get all presence records for the period
@@ -683,7 +683,7 @@ export class PresenceService {
       };
 
       this.logger.info(
-        `Generated presence report for guild ${guildId}: ${totalSessions} sessions, ${totalUsers} users`
+        `Generated presence report for guild ${guildId}: ${totalSessions} sessions, ${totalUsers} users`,
       );
       return report;
     } catch (error) {
@@ -697,7 +697,7 @@ export class PresenceService {
    */
   public async configureGuildSettings(
     guildId: string,
-    settings: Partial<PresenceSettings>
+    settings: Partial<PresenceSettings>,
   ): Promise<void> {
     try {
       const currentSettings = this.guildSettings.get(guildId) || {
@@ -837,12 +837,12 @@ export class PresenceService {
         if (presence.type === 'checkin' && presence.checkInTime) {
           // Find corresponding checkout
           const checkout = presences.find(
-            p => p.type === 'checkout' && p.checkOutTime && p.checkOutTime > presence.checkInTime!
+            p => p.type === 'checkout' && p.checkOutTime && p.checkOutTime > presence.checkInTime!,
           );
 
           if (checkout && checkout.checkOutTime) {
             const sessionDuration = Math.floor(
-              (checkout.checkOutTime.getTime() - presence.checkInTime.getTime()) / (1000 * 60)
+              (checkout.checkOutTime.getTime() - presence.checkInTime.getTime()) / (1000 * 60),
             );
             totalTimeMinutes += sessionDuration;
             completedSessions.push({
@@ -872,7 +872,7 @@ export class PresenceService {
       });
 
       this.logger.info(
-        `Updated stats for user ${userId}: ${checkIns} check-ins, ${totalTimeMinutes} minutes, streak: ${currentStreak}`
+        `Updated stats for user ${userId}: ${checkIns} check-ins, ${totalTimeMinutes} minutes, streak: ${currentStreak}`,
       );
     } catch (error) {
       this.logger.error(`Failed to update user stats for ${userId}:`, error);
@@ -888,7 +888,7 @@ export class PresenceService {
     }
 
     const sortedPresences = presences.sort(
-      (a, b) => b.checkInTime.getTime() - a.checkInTime.getTime()
+      (a, b) => b.checkInTime.getTime() - a.checkInTime.getTime(),
     );
     const now = new Date();
     let streak = 0;
@@ -901,7 +901,7 @@ export class PresenceService {
       if (lastDate === null) {
         // First presence
         const daysDiff = Math.floor(
-          (now.getTime() - presenceDate.getTime()) / (24 * 60 * 60 * 1000)
+          (now.getTime() - presenceDate.getTime()) / (24 * 60 * 60 * 1000),
         );
         if (daysDiff <= 1) {
           streak = 1;
@@ -912,7 +912,7 @@ export class PresenceService {
       } else {
         // Check if this presence is consecutive
         const daysDiff = Math.floor(
-          (lastDate.getTime() - presenceDate.getTime()) / (24 * 60 * 60 * 1000)
+          (lastDate.getTime() - presenceDate.getTime()) / (24 * 60 * 60 * 1000),
         );
         if (daysDiff === 1) {
           streak++;
@@ -939,7 +939,7 @@ export class PresenceService {
     }
 
     const sortedPresences = presences.sort(
-      (a, b) => a.checkInTime.getTime() - b.checkInTime.getTime()
+      (a, b) => a.checkInTime.getTime() - b.checkInTime.getTime(),
     );
     let longestStreak = 0;
     let currentStreak = 0;
@@ -954,7 +954,7 @@ export class PresenceService {
         lastDate = presenceDate;
       } else {
         const daysDiff = Math.floor(
-          (presenceDate.getTime() - lastDate.getTime()) / (24 * 60 * 60 * 1000)
+          (presenceDate.getTime() - lastDate.getTime()) / (24 * 60 * 60 * 1000),
         );
 
         if (daysDiff === 1) {
@@ -1020,7 +1020,7 @@ export class PresenceService {
   private async awardSessionRewards(
     guildId: string,
     userId: string,
-    duration: number
+    duration: number,
   ): Promise<void> {
     try {
       // Award bonus XP based on session duration
@@ -1037,7 +1037,7 @@ export class PresenceService {
         });
 
         this.logger.info(
-          `Awarded session rewards to user ${userId}: ${bonusXP} XP, ${bonusCoins} coins for ${duration} minutes`
+          `Awarded session rewards to user ${userId}: ${bonusXP} XP, ${bonusCoins} coins for ${duration} minutes`,
         );
       }
     } catch (error) {
@@ -1115,7 +1115,7 @@ export class PresenceService {
   private async sendCheckInNotification(
     guildId: string,
     userId: string,
-    session: PresenceSession
+    session: PresenceSession,
   ): Promise<void> {
     try {
       const settings = this.guildSettings.get(guildId);
@@ -1144,7 +1144,7 @@ export class PresenceService {
         .setDescription(`${member.displayName} fez check-in`)
         .addFields(
           { name: '⏰ Horário', value: session.checkInTime.toLocaleString('pt-BR'), inline: true },
-          { name: '📍 Local', value: session.location || 'Não informado', inline: true }
+          { name: '📍 Local', value: session.location || 'Não informado', inline: true },
         )
         .setThumbnail(member.user.displayAvatarURL())
         .setTimestamp();
@@ -1165,7 +1165,7 @@ export class PresenceService {
   private async sendCheckOutNotification(
     guildId: string,
     userId: string,
-    session: PresenceSession
+    session: PresenceSession,
   ): Promise<void> {
     try {
       const settings = this.guildSettings.get(guildId);
@@ -1199,7 +1199,7 @@ export class PresenceService {
             value: session.checkOutTime?.toLocaleString('pt-BR') || 'N/A',
             inline: true,
           },
-          { name: '⏱️ Duração', value: this.formatDuration(session.duration || 0), inline: true }
+          { name: '⏱️ Duração', value: this.formatDuration(session.duration || 0), inline: true },
         )
         .setThumbnail(member.user.displayAvatarURL())
         .setTimestamp();
@@ -1245,7 +1245,7 @@ export class PresenceService {
   public async exportPresenceData(
     guildId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
   ): Promise<string> {
     try {
       // Get all presence records for the period

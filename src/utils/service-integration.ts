@@ -32,7 +32,7 @@ export class IntegratedService {
 
   constructor(
     private readonly config: ServiceIntegrationConfig,
-    private readonly cacheService?: CacheService
+    private readonly cacheService?: CacheService,
   ) {
     // Initialize rate limiter
     if (config.enableRateLimit && config.rateLimitConfig) {
@@ -69,7 +69,7 @@ export class IntegratedService {
       };
       rateLimitKey?: string;
       errorContext?: Record<string, any>;
-    }
+    },
   ): Promise<T> {
     const { operationId, cacheKey, cacheTTL, cacheOptions, rateLimitKey, errorContext } = options;
 
@@ -90,8 +90,8 @@ export class IntegratedService {
           operation,
           {
             ttl: cacheTTL,
-            ...cacheOptions
-          }
+            ...cacheOptions,
+          },
         );
 
         if (cacheResult.success) {
@@ -99,8 +99,8 @@ export class IntegratedService {
             metadata: {
               cacheKey,
               fromCache: cacheResult.fromCache,
-              executionTime: cacheResult.executionTime
-            }
+              executionTime: cacheResult.executionTime,
+            },
           });
           return cacheResult.data!;
         }
@@ -125,7 +125,7 @@ export class IntegratedService {
       if (this.errorHandler) {
         throw this.errorHandler.handleError(error as Error, {
           operation: operationId,
-          context: errorContext
+          context: errorContext,
         });
       }
 
@@ -165,7 +165,7 @@ export class IntegratedService {
     return {
       rateLimiter: this.rateLimiter?.getStats?.(),
       errorHandler: this.errorHandler?.getMetrics?.(),
-      cache: this.advancedCache?.getMetrics()
+      cache: this.advancedCache?.getMetrics(),
     };
   }
 
@@ -219,7 +219,7 @@ export class ServiceIntegrationFactory {
         ...RateLimitPresets.STRICT,
         windowMs: 60000, // 1 minute
         maxRequests: 100, // PUBG API limit
-        keyGenerator: (req: any) => `pubg:${req.ip || 'default'}`
+        keyGenerator: (req: any) => `pubg:${req.ip || 'default'}`,
       },
       cacheConfig: {
         strategy: CacheStrategy.READ_THROUGH,
@@ -227,13 +227,13 @@ export class ServiceIntegrationFactory {
         defaultTTL: 300, // 5 minutes
         enableMetrics: true,
         refreshThreshold: 80, // Refresh when 80% of TTL is reached
-        backgroundRefresh: true
+        backgroundRefresh: true,
       },
       errorHandlerConfig: {
         enableMetrics: true,
         enableRetry: true,
-        maxRetries: 3
-      }
+        maxRetries: 3,
+      },
     };
 
     this.logger.info('Created PUBG service integration');
@@ -253,20 +253,20 @@ export class ServiceIntegrationFactory {
         ...RateLimitPresets.MODERATE,
         windowMs: 1000, // 1 second
         maxRequests: 50, // Discord rate limit
-        keyGenerator: (req: any) => `discord:${req.guildId || req.channelId || 'default'}`
+        keyGenerator: (req: any) => `discord:${req.guildId || req.channelId || 'default'}`,
       },
       cacheConfig: {
         strategy: CacheStrategy.WRITE_THROUGH,
         invalidationPattern: InvalidationPattern.EVENT_BASED,
         defaultTTL: 600, // 10 minutes
         enableMetrics: true,
-        backgroundRefresh: false
+        backgroundRefresh: false,
       },
       errorHandlerConfig: {
         enableMetrics: true,
         enableRetry: true,
-        maxRetries: 2
-      }
+        maxRetries: 2,
+      },
     };
 
     this.logger.info('Created Discord service integration');
@@ -288,13 +288,13 @@ export class ServiceIntegrationFactory {
         defaultTTL: 1800, // 30 minutes
         enableMetrics: true,
         refreshThreshold: 90,
-        backgroundRefresh: true
+        backgroundRefresh: true,
       },
       errorHandlerConfig: {
         enableMetrics: true,
         enableRetry: true,
-        maxRetries: 5
-      }
+        maxRetries: 5,
+      },
     };
 
     this.logger.info('Created Database service integration');
@@ -306,7 +306,7 @@ export class ServiceIntegrationFactory {
    */
   static createCustomIntegration(
     config: ServiceIntegrationConfig,
-    cacheService?: CacheService
+    cacheService?: CacheService,
   ): IntegratedService {
     this.logger.info(`Created custom service integration: ${config.serviceName}`);
     return new IntegratedService(config, cacheService);
@@ -327,7 +327,7 @@ export function IntegratedOperation(
     };
     rateLimitKey?: string | ((args: any[]) => string);
     errorContext?: Record<string, any> | ((args: any[]) => Record<string, any>);
-  } = {}
+  } = {},
 ) {
   return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value;
@@ -358,8 +358,8 @@ export function IntegratedOperation(
           cacheTTL: options.cacheTTL,
           cacheOptions: options.cacheOptions,
           rateLimitKey,
-          errorContext
-        }
+          errorContext,
+        },
       );
     };
     
@@ -383,7 +383,7 @@ export class ServiceMigrationHelper {
       methodsToWrap?: string[];
       cacheKeyGenerator?: (methodName: string, args: any[]) => string;
       rateLimitKeyGenerator?: (methodName: string, args: any[]) => string;
-    } = {}
+    } = {},
   ): void {
     const { methodsToWrap, cacheKeyGenerator, rateLimitKeyGenerator } = options;
     
@@ -415,8 +415,8 @@ export class ServiceMigrationHelper {
             operationId: `${serviceInstance.constructor.name}.${methodName}`,
             cacheKey,
             rateLimitKey,
-            errorContext: { methodName, args: args.length }
-          }
+            errorContext: { methodName, args: args.length },
+          },
         );
       };
     }
@@ -432,13 +432,13 @@ export class ServiceMigrationHelper {
    */
   static analyzeAndCreateConfig(
     serviceInstance: any,
-    serviceName: string
+    serviceName: string,
   ): ServiceIntegrationConfig {
     const config: ServiceIntegrationConfig = {
       serviceName,
       enableRateLimit: false,
       enableErrorHandling: true,
-      enableAdvancedCache: false
+      enableAdvancedCache: false,
     };
 
     // Analyze service for existing patterns
@@ -463,7 +463,7 @@ export class ServiceMigrationHelper {
         strategy: CacheStrategy.READ_THROUGH,
         invalidationPattern: InvalidationPattern.TTL,
         defaultTTL: 300,
-        enableMetrics: true
+        enableMetrics: true,
       };
       this.logger.info(`Detected caching patterns in ${serviceName}`);
     }
@@ -532,7 +532,7 @@ export class ServiceHealthChecker {
       return {
         healthy,
         metrics,
-        issues
+        issues,
       };
 
     } catch (error) {
@@ -540,7 +540,7 @@ export class ServiceHealthChecker {
       return {
         healthy: false,
         metrics: {},
-        issues: [`Health check failed: ${(error as Error).message}`]
+        issues: [`Health check failed: ${(error as Error).message}`],
       };
     }
   }

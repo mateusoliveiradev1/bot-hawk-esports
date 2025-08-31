@@ -24,16 +24,16 @@ export const onboarding: Command = {
             .setName('canal')
             .setDescription('Canal para enviar mensagens de boas-vindas')
             .addChannelTypes(ChannelType.GuildText)
-            .setRequired(true)
+            .setRequired(true),
         )
         .addStringOption(option =>
           option
             .setName('mensagem')
             .setDescription(
-              'Mensagem personalizada de boas-vindas (use {user} para mencionar o usuário)'
+              'Mensagem personalizada de boas-vindas (use {user} para mencionar o usuário)',
             )
-            .setRequired(false)
-        )
+            .setRequired(false),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -43,21 +43,21 @@ export const onboarding: Command = {
           option
             .setName('ativo')
             .setDescription('Ativar ou desativar o onboarding')
-            .setRequired(true)
-        )
+            .setRequired(true),
+        ),
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('stats').setDescription('Ver estatísticas de boas-vindas do servidor')
+      subcommand.setName('stats').setDescription('Ver estatísticas de boas-vindas do servidor'),
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('test').setDescription('Testar mensagem de boas-vindas')
+      subcommand.setName('test').setDescription('Testar mensagem de boas-vindas'),
     ),
 
   category: CommandCategory.ADMIN,
 
   async execute(
     interaction: ChatInputCommandInteraction | CommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ) {
     if (!interaction.guild) {
       await interaction.reply({
@@ -141,7 +141,7 @@ async function handleSetup(interaction: ChatInputCommandInteraction, client: Ext
     .setDescription('Sistema de boas-vindas configurado com sucesso!')
     .addFields(
       { name: '📢 Canal', value: `${channel}`, inline: true },
-      { name: '💬 Mensagem', value: customMessage || 'Mensagem padrão', inline: true }
+      { name: '💬 Mensagem', value: customMessage || 'Mensagem padrão', inline: true },
     )
     .setColor(0x00ff00)
     .setTimestamp();
@@ -217,7 +217,7 @@ async function handleStats(interaction: ChatInputCommandInteraction, client: Ext
         name: '📢 Canal de Boas-vindas',
         value: config.welcomeChannelId ? `<#${config.welcomeChannelId}>` : 'Não configurado',
         inline: true,
-      }
+      },
     )
     .setColor(0x0099ff)
     .setTimestamp()
@@ -246,7 +246,7 @@ async function handleTest(interaction: ChatInputCommandInteraction, client: Exte
   }
 
   const welcomeChannel = interaction.guild!.channels.cache.get(
-    config.welcomeChannelId
+    config.welcomeChannelId,
   ) as TextChannel;
 
   if (!welcomeChannel) {

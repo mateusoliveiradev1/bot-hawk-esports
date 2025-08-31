@@ -33,7 +33,7 @@ export class CacheService {
     } else {
       this.logger.info('Redis URL not provided, using memory fallback only', {
         category: LogCategory.CACHE,
-        metadata: { fallback: 'memory', reason: 'no_redis_url' }
+        metadata: { fallback: 'memory', reason: 'no_redis_url' },
       });
       this.useMemoryFallback = true;
       this.isConnected = false;
@@ -51,14 +51,14 @@ export class CacheService {
     this.client.on('connect', () => {
       this.logger.info('Redis client connected', {
         category: LogCategory.CACHE,
-        metadata: { event: 'connect', status: 'connected' }
+        metadata: { event: 'connect', status: 'connected' },
       });
     });
 
     this.client.on('ready', () => {
       this.logger.info('Redis client ready', {
         category: LogCategory.CACHE,
-        metadata: { event: 'ready', status: 'ready' }
+        metadata: { event: 'ready', status: 'ready' },
       });
       this.isConnected = true;
     });
@@ -67,7 +67,7 @@ export class CacheService {
       this.logger.error('Redis client error', {
         category: LogCategory.CACHE,
         error: error as Error,
-        metadata: { event: 'error', status: 'error' }
+        metadata: { event: 'error', status: 'error' },
       });
       this.isConnected = false;
     });
@@ -75,7 +75,7 @@ export class CacheService {
     this.client.on('end', () => {
       this.logger.info('Redis client disconnected', {
         category: LogCategory.CACHE,
-        metadata: { event: 'end', status: 'disconnected' }
+        metadata: { event: 'end', status: 'disconnected' },
       });
       this.isConnected = false;
     });
@@ -83,7 +83,7 @@ export class CacheService {
     this.client.on('reconnecting', () => {
       this.logger.info('Redis client reconnecting', {
         category: LogCategory.CACHE,
-        metadata: { event: 'reconnecting', status: 'reconnecting' }
+        metadata: { event: 'reconnecting', status: 'reconnecting' },
       });
     });
   }
@@ -96,7 +96,7 @@ export class CacheService {
     if (!this.client) {
       this.logger.info('Cache service initialized with memory fallback only', {
         category: LogCategory.CACHE,
-        metadata: { fallback: 'memory', reason: 'no_client' }
+        metadata: { fallback: 'memory', reason: 'no_client' },
       });
       return;
     }
@@ -105,14 +105,14 @@ export class CacheService {
       await this.client.connect();
       this.logger.info('Connected to Redis successfully', {
         category: LogCategory.CACHE,
-        metadata: { connection: 'redis', status: 'connected' }
+        metadata: { connection: 'redis', status: 'connected' },
       });
       this.useMemoryFallback = false;
     } catch (error) {
       this.logger.warn('Redis not available, using in-memory cache fallback', {
         category: LogCategory.CACHE,
         error: error as Error,
-        metadata: { fallback: 'memory', reason: 'connection_failed' }
+        metadata: { fallback: 'memory', reason: 'connection_failed' },
       });
       this.useMemoryFallback = true;
       this.isConnected = false;
@@ -133,13 +133,13 @@ export class CacheService {
       this.isConnected = false;
       this.logger.info('Disconnected from Redis successfully', {
         category: LogCategory.CACHE,
-        metadata: { connection: 'redis', status: 'disconnected' }
+        metadata: { connection: 'redis', status: 'disconnected' },
       });
     } catch (error) {
       this.logger.error('Failed to disconnect from Redis', {
         category: LogCategory.CACHE,
         error: error as Error,
-        metadata: { connection: 'redis', status: 'disconnect_failed' }
+        metadata: { connection: 'redis', status: 'disconnect_failed' },
       });
       throw error;
     }
@@ -170,13 +170,13 @@ export class CacheService {
 
       this.logger.debug('Cache key set successfully', {
         category: LogCategory.CACHE,
-        metadata: { operation: 'set', key, ttl: expiration, size: serializedValue.length }
+        metadata: { operation: 'set', key, ttl: expiration, size: serializedValue.length },
       });
     } catch (error) {
       this.logger.error('Failed to set cache key', {
         category: LogCategory.CACHE,
         error: error as Error,
-        metadata: { operation: 'set', key, ttl: ttl || this.defaultTTL }
+        metadata: { operation: 'set', key, ttl: ttl || this.defaultTTL },
       });
       this.isConnected = false;
       // Don't throw error to prevent breaking the application
@@ -198,7 +198,7 @@ export class CacheService {
       if (value === null) {
         this.logger.debug('Cache miss', {
           category: LogCategory.CACHE,
-          metadata: { operation: 'get', key, hit: false }
+          metadata: { operation: 'get', key, hit: false },
         });
         return null;
       }
@@ -206,14 +206,14 @@ export class CacheService {
       const parsedValue = JSON.parse(value) as T;
       this.logger.debug('Cache hit', {
         category: LogCategory.CACHE,
-        metadata: { operation: 'get', key, hit: true }
+        metadata: { operation: 'get', key, hit: true },
       });
       return parsedValue;
     } catch (error) {
       this.logger.error('Failed to get cache key', {
         category: LogCategory.CACHE,
         error: error as Error,
-        metadata: { operation: 'get', key }
+        metadata: { operation: 'get', key },
       });
       this.isConnected = false;
       return null;
@@ -233,14 +233,14 @@ export class CacheService {
       const result = await this.client.del(key);
       this.logger.debug('Cache key deleted', {
         category: LogCategory.CACHE,
-        metadata: { operation: 'del', key, success: result > 0 }
+        metadata: { operation: 'del', key, success: result > 0 },
       });
       return result > 0;
     } catch (error) {
       this.logger.error('Failed to delete cache key', {
         category: LogCategory.CACHE,
         error: error as Error,
-        metadata: { operation: 'del', key }
+        metadata: { operation: 'del', key },
       });
       return false;
     }
@@ -259,14 +259,14 @@ export class CacheService {
       const result = await this.client.exists(key);
       this.logger.debug('Cache key existence check', {
         category: LogCategory.CACHE,
-        metadata: { operation: 'exists', key, exists: result === 1 }
+        metadata: { operation: 'exists', key, exists: result === 1 },
       });
       return result === 1;
     } catch (error) {
       this.logger.error('Failed to check if key exists', {
         category: LogCategory.CACHE,
         error: error as Error,
-        metadata: { operation: 'exists', key }
+        metadata: { operation: 'exists', key },
       });
       return false;
     }
@@ -284,14 +284,14 @@ export class CacheService {
       const result = await this.client.expire(key, ttl);
       this.logger.debug('Cache key expiration set', {
         category: LogCategory.CACHE,
-        metadata: { operation: 'expire', key, ttl, success: result }
+        metadata: { operation: 'expire', key, ttl, success: result },
       });
       return result;
     } catch (error) {
       this.logger.error('Failed to set expiration for cache key', {
         category: LogCategory.CACHE,
         error: error as Error,
-        metadata: { operation: 'expire', key, ttl }
+        metadata: { operation: 'expire', key, ttl },
       });
       return false;
     }
@@ -309,14 +309,14 @@ export class CacheService {
       const ttl = await this.client.ttl(key);
       this.logger.debug('Cache key TTL retrieved', {
         category: LogCategory.CACHE,
-        metadata: { operation: 'ttl', key, ttl }
+        metadata: { operation: 'ttl', key, ttl },
       });
       return ttl;
     } catch (error) {
       this.logger.error('Failed to get TTL for cache key', {
         category: LogCategory.CACHE,
         error: error as Error,
-        metadata: { operation: 'ttl', key }
+        metadata: { operation: 'ttl', key },
       });
       return -1;
     }
@@ -334,14 +334,14 @@ export class CacheService {
       const result = await this.client.incr(key);
       this.logger.debug('Cache key incremented', {
         category: LogCategory.CACHE,
-        metadata: { operation: 'incr', key, value: result }
+        metadata: { operation: 'incr', key, value: result },
       });
       return result;
     } catch (error) {
       this.logger.error('Failed to increment cache key', {
         category: LogCategory.CACHE,
         error: error as Error,
-        metadata: { operation: 'incr', key }
+        metadata: { operation: 'incr', key },
       });
       throw error;
     }
@@ -359,14 +359,14 @@ export class CacheService {
       const result = await this.client.decr(key);
       this.logger.debug('Cache key decremented', {
         category: LogCategory.CACHE,
-        metadata: { operation: 'decr', key, value: result }
+        metadata: { operation: 'decr', key, value: result },
       });
       return result;
     } catch (error) {
       this.logger.error('Failed to decrement cache key', {
         category: LogCategory.CACHE,
         error: error as Error,
-        metadata: { operation: 'decr', key }
+        metadata: { operation: 'decr', key },
       });
       throw error;
     }
@@ -395,7 +395,7 @@ export class CacheService {
           this.logger.error('Failed to parse cached value', {
             category: LogCategory.CACHE,
             error: parseError as Error,
-            metadata: { operation: 'mget', key: keys[index], parseError: true }
+            metadata: { operation: 'mget', key: keys[index], parseError: true },
           });
           return null;
         }
@@ -403,14 +403,14 @@ export class CacheService {
       
       this.logger.debug('Multiple cache keys retrieved', {
         category: LogCategory.CACHE,
-        metadata: { operation: 'mget', keysCount: keys.length, hits, hitRate: hits / keys.length }
+        metadata: { operation: 'mget', keysCount: keys.length, hits, hitRate: hits / keys.length },
       });
       return result;
     } catch (error) {
       this.logger.error('Failed to get multiple cache keys', {
         category: LogCategory.CACHE,
         error: error as Error,
-        metadata: { operation: 'mget', keysCount: keys.length }
+        metadata: { operation: 'mget', keysCount: keys.length },
       });
       return keys.map(() => null);
     }
@@ -448,13 +448,13 @@ export class CacheService {
 
       this.logger.debug('Multiple cache keys set successfully', {
         category: LogCategory.CACHE,
-        metadata: { operation: 'mset', keysCount: Object.keys(keyValuePairs).length, ttl: ttl || this.defaultTTL, totalSize }
+        metadata: { operation: 'mset', keysCount: Object.keys(keyValuePairs).length, ttl: ttl || this.defaultTTL, totalSize },
       });
     } catch (error) {
       this.logger.error('Failed to set multiple cache keys', {
         category: LogCategory.CACHE,
         error: error as Error,
-        metadata: { operation: 'mset', keysCount: Object.keys(keyValuePairs).length, ttl: ttl || this.defaultTTL }
+        metadata: { operation: 'mset', keysCount: Object.keys(keyValuePairs).length, ttl: ttl || this.defaultTTL },
       });
       this.isConnected = false;
       // Don't throw error to prevent breaking the application
@@ -473,14 +473,14 @@ export class CacheService {
       const keys = await this.client.keys(pattern);
       this.logger.debug('Cache keys retrieved by pattern', {
         category: LogCategory.CACHE,
-        metadata: { operation: 'keys', pattern, count: keys.length }
+        metadata: { operation: 'keys', pattern, count: keys.length },
       });
       return keys;
     } catch (error) {
       this.logger.error('Failed to get keys with pattern', {
         category: LogCategory.CACHE,
         error: error as Error,
-        metadata: { operation: 'keys', pattern }
+        metadata: { operation: 'keys', pattern },
       });
       return [];
     }
@@ -503,14 +503,14 @@ export class CacheService {
       const result = await this.client.del(keys);
       this.logger.info('Cache keys cleared by pattern', {
         category: LogCategory.CACHE,
-        metadata: { operation: 'clearPattern', pattern, keysCleared: result }
+        metadata: { operation: 'clearPattern', pattern, keysCleared: result },
       });
       return result;
     } catch (error) {
       this.logger.error('Failed to clear cache pattern', {
         category: LogCategory.CACHE,
         error: error as Error,
-        metadata: { operation: 'clearPattern', pattern }
+        metadata: { operation: 'clearPattern', pattern },
       });
       return 0;
     }
@@ -528,13 +528,13 @@ export class CacheService {
       await this.client.flushAll();
       this.logger.warn('All cache data has been flushed', {
         category: LogCategory.CACHE,
-        metadata: { operation: 'flushAll', status: 'completed' }
+        metadata: { operation: 'flushAll', status: 'completed' },
       });
     } catch (error) {
       this.logger.error('Failed to flush all cache data', {
         category: LogCategory.CACHE,
         error: error as Error,
-        metadata: { operation: 'flushAll', status: 'failed' }
+        metadata: { operation: 'flushAll', status: 'failed' },
       });
       throw error;
     }
@@ -562,13 +562,13 @@ export class CacheService {
 
       this.logger.info('Cache cleanup completed', {
         category: LogCategory.CACHE,
-        metadata: { operation: 'cleanup', keysDeleted: totalDeleted, status: 'completed' }
+        metadata: { operation: 'cleanup', keysDeleted: totalDeleted, status: 'completed' },
       });
     } catch (error) {
       this.logger.error('Error during cache cleanup', {
         category: LogCategory.CACHE,
         error: error as Error,
-        metadata: { operation: 'cleanup', status: 'failed' }
+        metadata: { operation: 'cleanup', status: 'failed' },
       });
       throw error;
     }
@@ -638,7 +638,7 @@ export class CacheService {
       this.logger.error('Failed to get cache statistics', {
         category: LogCategory.CACHE,
         error: error as Error,
-        metadata: { operation: 'getStats', status: 'failed' }
+        metadata: { operation: 'getStats', status: 'failed' },
       });
       return {
         keys: 0,

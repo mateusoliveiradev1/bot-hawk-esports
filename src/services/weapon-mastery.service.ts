@@ -105,7 +105,7 @@ export class WeaponMasteryService {
       },
       {
         timezone: 'UTC',
-      }
+      },
     );
 
     this.logger.info('Weapon mastery sync scheduled every 6 hours');
@@ -155,7 +155,7 @@ export class WeaponMasteryService {
       await this.cache.set('weapon_mastery_last_sync', new Date().toISOString(), 86400);
 
       this.logger.info(
-        `Weapon mastery sync completed. Synced: ${syncedCount}, Errors: ${errorCount}, Total: ${users.length}`
+        `Weapon mastery sync completed. Synced: ${syncedCount}, Errors: ${errorCount}, Total: ${users.length}`,
       );
     } catch (error) {
       this.logger.error('Failed to sync all users weapon mastery:', error);
@@ -234,7 +234,7 @@ export class WeaponMasteryService {
           // Skip if synced less than 1 hour ago
           if (timeDiff < 3600000) {
             this.logger.info(
-              `Weapon mastery sync skipped for ${pubgName} - synced ${Math.round(timeDiff / 60000)} minutes ago`
+              `Weapon mastery sync skipped for ${pubgName} - synced ${Math.round(timeDiff / 60000)} minutes ago`,
             );
             return false;
           }
@@ -349,7 +349,7 @@ export class WeaponMasteryService {
       });
 
       this.logger.info(
-        `Synced weapon mastery for ${pubgName}: ${weapons.length} weapons, ${totalLevel} total levels`
+        `Synced weapon mastery for ${pubgName}: ${weapons.length} weapons, ${totalLevel} total levels`,
       );
       return true;
     } catch (error) {
@@ -410,7 +410,7 @@ export class WeaponMasteryService {
    */
   private async checkWeaponMasteryBadges(
     userId: string,
-    weapons: WeaponMasteryData[]
+    weapons: WeaponMasteryData[],
   ): Promise<void> {
     try {
       const awardedBadges: string[] = [];
@@ -450,7 +450,7 @@ export class WeaponMasteryService {
 
       if (awardedBadges.length > 0) {
         this.logger.info(
-          `Awarded weapon mastery badges to user ${userId}: ${awardedBadges.join(', ')}`
+          `Awarded weapon mastery badges to user ${userId}: ${awardedBadges.join(', ')}`,
         );
       }
     } catch (error) {
@@ -717,7 +717,7 @@ export class WeaponMasteryService {
         data?.weaponName,
         status === 'success',
         status === 'error' ? message : undefined,
-        data
+        data,
       );
     } catch (error) {
       this.logger.error('Failed to log weapon mastery operation:', error);

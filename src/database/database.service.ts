@@ -61,8 +61,8 @@ export class DatabaseService {
                 query: e.query?.substring(0, 200) + '...',
                 params: e.params,
                 timestamp: new Date().toISOString(),
-                duration: e.duration
-              }
+                duration: e.duration,
+              },
             });
           }
         });
@@ -289,7 +289,7 @@ export class DatabaseService {
       } catch (error) {
         this.logger.error(`Failed to upsert user ${data.id}:`, error);
         throw new Error(
-          `Database operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+          `Database operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         );
       }
     },
@@ -341,7 +341,7 @@ export class DatabaseService {
       } catch (error) {
         this.logger.error(`Failed to update XP for user ${userId}:`, error);
         throw new Error(
-          `XP update failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+          `XP update failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         );
       }
     },
@@ -540,8 +540,8 @@ export class DatabaseService {
             gameMode: stats.gameMode,
             seasonId: stats.seasonId,
             rankPoints: stats.currentRankPoint,
-            tier: stats.currentTier
-          }
+            tier: stats.currentTier,
+          },
         });
 
         return result;
@@ -731,13 +731,13 @@ export class DatabaseService {
           auditLogsDeleted: results.auditLogs,
           rankingSnapshotsDeleted: results.rankingSnapshots,
           transactionsDeleted: results.transactions,
-          retentionDays
-        }
+          retentionDays,
+        },
       });
     } catch (error) {
       this.logger.error('Database cleanup failed:', error);
       throw new Error(
-        `Cleanup operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Cleanup operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
@@ -842,7 +842,7 @@ export class DatabaseService {
     platform?: string,
     message?: string,
     details?: string,
-    error?: any
+    error?: any,
   ): Promise<void> {
     if (!channel) {
       return;

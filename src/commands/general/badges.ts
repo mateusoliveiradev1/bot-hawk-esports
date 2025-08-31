@@ -25,8 +25,8 @@ const badges: Command = {
         .setName('minhas')
         .setDescription('Mostra suas badges conquistadas')
         .addUserOption(option =>
-          option.setName('usuario').setDescription('Ver badges de outro usuário').setRequired(false)
-        )
+          option.setName('usuario').setDescription('Ver badges de outro usuário').setRequired(false),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -43,8 +43,8 @@ const badges: Command = {
               { name: '🎯 Gaming', value: 'gaming' },
               { name: '📅 Participação', value: 'participation' },
               { name: '🏆 Conquistas', value: 'achievement' },
-              { name: '⭐ Especiais', value: 'special' }
-            )
+              { name: '⭐ Especiais', value: 'special' },
+            ),
         )
         .addStringOption(option =>
           option
@@ -57,9 +57,9 @@ const badges: Command = {
               { name: '🔵 Raro', value: 'rare' },
               { name: '🟣 Épico', value: 'epic' },
               { name: '🟠 Lendário', value: 'legendary' },
-              { name: '🔴 Mítico', value: 'mythic' }
-            )
-        )
+              { name: '🔴 Mítico', value: 'mythic' },
+            ),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -70,8 +70,8 @@ const badges: Command = {
             .setName('badge')
             .setDescription('ID da badge para ver progresso')
             .setRequired(true)
-            .setAutocomplete(true)
-        )
+            .setAutocomplete(true),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -83,8 +83,8 @@ const badges: Command = {
             .setDescription('Número de usuários no ranking (padrão: 10)')
             .setRequired(false)
             .setMinValue(5)
-            .setMaxValue(25)
-        )
+            .setMaxValue(25),
+        ),
     ) as SlashCommandBuilder,
 
   category: CommandCategory.BADGES,
@@ -147,7 +147,7 @@ async function handleMyBadges(
   interaction: any,
   badgeService: BadgeService,
   database: DatabaseService,
-  logger: Logger
+  logger: Logger,
 ) {
   const targetUser = interaction.options.getUser('usuario') || interaction.user;
   const userId = targetUser.id;
@@ -167,7 +167,7 @@ async function handleMyBadges(
         .setColor('#ffa500')
         .setTitle('🏅 Badges')
         .setDescription(
-          `${targetUser.username} ainda não conquistou nenhuma badge.\n\nUse \`/badges disponiveis\` para ver as badges disponíveis!`
+          `${targetUser.username} ainda não conquistou nenhuma badge.\n\nUse \`/badges disponiveis\` para ver as badges disponíveis!`,
         )
         .setThumbnail(targetUser.displayAvatarURL())
         .setTimestamp();
@@ -330,7 +330,7 @@ async function handleBadgeProgress(
   interaction: any,
   badgeService: BadgeService,
   database: DatabaseService,
-  logger: Logger
+  logger: Logger,
 ) {
   const badgeId = interaction.options.getString('badge');
   const userId = interaction.user.id;
@@ -368,7 +368,7 @@ async function handleBadgeProgress(
           name: '✅ Status',
           value: hasBadge ? '🏅 Conquistada!' : '⏳ Não conquistada',
           inline: true,
-        }
+        },
       )
       .setTimestamp();
 
@@ -424,7 +424,7 @@ async function handleBadgeRanking(
   interaction: any,
   badgeService: BadgeService,
   client: ExtendedClient,
-  logger: Logger
+  logger: Logger,
 ) {
   const limit = interaction.options.getInteger('limite') || 10;
 
@@ -459,7 +459,7 @@ async function handleBadgeRanking(
         } catch {
           return `${index + 1}º **Usuário Desconhecido** - ${entry.badgeCount} badges`;
         }
-      })
+      }),
     );
 
     embed.addFields({

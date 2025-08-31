@@ -32,7 +32,7 @@ export class AutoModerationService {
   constructor(
     private client: Client,
     private db: DatabaseService,
-    private punishmentService: PunishmentService
+    private punishmentService: PunishmentService,
   ) {
     this.logger = new Logger();
     this.logger.info('Auto Moderation Service initialized');
@@ -184,7 +184,7 @@ export class AutoModerationService {
     // Verifica cargos isentos
     if (Array.isArray(config.exemptions.roles) && member.roles?.cache) {
       const hasExemptRole = member.roles.cache.some(
-        role => role?.id && config.exemptions.roles.includes(role.id)
+        role => role?.id && config.exemptions.roles.includes(role.id),
       );
       if (hasExemptRole) {
         return true;
@@ -242,7 +242,7 @@ export class AutoModerationService {
       const recentMessages = userMessages.filter(
         msg =>
           msg?.createdTimestamp &&
-          now - msg.createdTimestamp < config.spamDetection.timeWindow * 1000
+          now - msg.createdTimestamp < config.spamDetection.timeWindow * 1000,
       );
 
       if (recentMessages.length >= config.spamDetection.maxMessages) {
@@ -262,7 +262,7 @@ export class AutoModerationService {
             msg?.content &&
             msg.content.toLowerCase().trim() === messageContent &&
             msg.createdTimestamp &&
-            now - msg.createdTimestamp < config.spamDetection.duplicateTimeWindow * 1000
+            now - msg.createdTimestamp < config.spamDetection.duplicateTimeWindow * 1000,
         );
 
         if (duplicates.length >= config.spamDetection.maxDuplicates) {
@@ -482,7 +482,7 @@ export class AutoModerationService {
   private async handleViolation(
     message: Message,
     result: ModerationResult,
-    config: AutoModConfig
+    config: AutoModConfig,
   ): Promise<void> {
     if (!message?.author?.id || !result?.punishment || !config) {
       this.logger.warn('Invalid parameters for handleViolation');
@@ -518,14 +518,14 @@ export class AutoModerationService {
         member,
         result.punishment,
         result.reason || 'Violação de auto moderação',
-        config
+        config,
       );
 
       // Registra no log
       await this.logViolation(message, result, config);
 
       this.logger.info(
-        `Handled violation for user ${userId}: ${result.violationType} - ${result.punishment}`
+        `Handled violation for user ${userId}: ${result.violationType} - ${result.punishment}`,
       );
     } catch (error) {
       this.logger.error('Error handling violation:', error);
@@ -539,7 +539,7 @@ export class AutoModerationService {
     member: GuildMember,
     punishment: PunishmentType,
     reason: string,
-    config: AutoModConfig
+    config: AutoModConfig,
   ): Promise<void> {
     if (!member?.user?.id || !punishment || !config?.punishments) {
       this.logger.warn('Invalid parameters for applyPunishment');
@@ -569,7 +569,7 @@ export class AutoModerationService {
           try {
             const user = await this.client.users.fetch(member.user.id);
             await user.send(
-              `⚠️ **Aviso de Moderação**\n\n**Servidor:** ${member.guild.name}\n**Motivo:** ${reason}\n\nPor favor, siga as regras do servidor.`
+              `⚠️ **Aviso de Moderação**\n\n**Servidor:** ${member.guild.name}\n**Motivo:** ${reason}\n\nPor favor, siga as regras do servidor.`,
             );
           } catch (dmError) {
             this.logger.debug(`Could not send DM to ${member.user.tag}:`, dmError);
@@ -585,7 +585,7 @@ export class AutoModerationService {
           const muteDuration = (config.punishments.mute?.duration || 10) * 60 * 1000;
           await member.timeout(muteDuration, reason);
           this.logger.info(
-            `Muted ${member.user.tag} for ${config.punishments.mute?.duration || 10} minutes: ${reason}`
+            `Muted ${member.user.tag} for ${config.punishments.mute?.duration || 10} minutes: ${reason}`,
           );
           break;
 
@@ -645,7 +645,7 @@ export class AutoModerationService {
   private async logViolation(
     message: Message,
     result: ModerationResult,
-    config: AutoModConfig
+    config: AutoModConfig,
   ): Promise<void> {
     if (!config?.logging?.enabled || !config.logging.channelId || !message?.guild || !result) {
       return;
@@ -679,7 +679,7 @@ export class AutoModerationService {
           { name: 'Canal', value: `${message.channel}`, inline: true },
           { name: 'Tipo de Violação', value: result.violationType || 'Desconhecido', inline: true },
           { name: 'Punição Aplicada', value: result.punishment || 'Nenhuma', inline: true },
-          { name: 'Razão', value: result.reason || 'Não especificada', inline: false }
+          { name: 'Razão', value: result.reason || 'Não especificada', inline: false },
         )
         .setTimestamp()
         .setFooter({ text: `Guild: ${message.guild.name}` });
@@ -699,7 +699,7 @@ export class AutoModerationService {
 
       await logChannel.send({ embeds: [embed] });
       this.logger.debug(
-        `Logged violation for user ${message.author.id} in guild ${message.guild.id}`
+        `Logged violation for user ${message.author.id} in guild ${message.guild.id}`,
       );
     } catch (error) {
       this.logger.error('Error logging violation:', error);
@@ -750,7 +750,7 @@ export class AutoModerationService {
             this.logger.error('Error during scheduled cleanup:', error);
           }
         },
-        60 * 60 * 1000
+        60 * 60 * 1000,
       );
 
       // Armazena referência do interval para possível limpeza futura
@@ -832,7 +832,7 @@ export class AutoModerationService {
 
       if (cleanedUsers > 0 || cleanedMessages > 0 || cleanedViolations > 0) {
         this.logger.info(
-          `Cleaned up automod data: ${cleanedUsers} users, ${cleanedMessages} messages, ${cleanedViolations} violations`
+          `Cleaned up automod data: ${cleanedUsers} users, ${cleanedMessages} messages, ${cleanedViolations} violations`,
         );
       } else {
         this.logger.debug('No old automod data to clean up');
@@ -926,7 +926,7 @@ export class AutoModerationService {
               : false,
           customWords: Array.isArray(config.profanityFilter.customWords)
             ? config.profanityFilter.customWords.filter(
-                word => typeof word === 'string' && word.trim().length > 0
+                word => typeof word === 'string' && word.trim().length > 0,
               )
             : [],
         };
@@ -951,12 +951,12 @@ export class AutoModerationService {
               : true,
           whitelist: Array.isArray(config.linkFilter.whitelist)
             ? config.linkFilter.whitelist.filter(
-                domain => typeof domain === 'string' && domain.trim().length > 0
+                domain => typeof domain === 'string' && domain.trim().length > 0,
               )
             : [],
           blacklist: Array.isArray(config.linkFilter.blacklist)
             ? config.linkFilter.blacklist.filter(
-                domain => typeof domain === 'string' && domain.trim().length > 0
+                domain => typeof domain === 'string' && domain.trim().length > 0,
               )
             : [],
         };
@@ -1043,7 +1043,7 @@ export class AutoModerationService {
             : [],
           channels: Array.isArray(config.exemptions.channels)
             ? config.exemptions.channels.filter(
-                id => typeof id === 'string' && id.trim().length > 0
+                id => typeof id === 'string' && id.trim().length > 0,
               )
             : [],
         };
@@ -1086,7 +1086,7 @@ export class AutoModerationService {
         .reduce((sum, messages) => sum + messages.length, 0);
 
       const activeGuilds = Array.from(this.guildConfigs.keys()).filter(
-        guildId => typeof guildId === 'string' && guildId.length > 0
+        guildId => typeof guildId === 'string' && guildId.length > 0,
       );
 
       return {

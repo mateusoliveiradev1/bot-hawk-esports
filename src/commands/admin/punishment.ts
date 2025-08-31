@@ -23,22 +23,22 @@ const punishment: Command = {
         .setName('history')
         .setDescription('Ver histórico de punições de um usuário')
         .addUserOption(option =>
-          option.setName('usuario').setDescription('Usuário para ver o histórico').setRequired(true)
-        )
+          option.setName('usuario').setDescription('Usuário para ver o histórico').setRequired(true),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('warnings')
         .setDescription('Ver avisos ativos de um usuário')
         .addUserOption(option =>
-          option.setName('usuario').setDescription('Usuário para ver os avisos').setRequired(true)
-        )
+          option.setName('usuario').setDescription('Usuário para ver os avisos').setRequired(true),
+        ),
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('config').setDescription('Ver configurações do sistema de punições')
+      subcommand.setName('config').setDescription('Ver configurações do sistema de punições'),
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('stats').setDescription('Ver estatísticas gerais de punições do servidor')
+      subcommand.setName('stats').setDescription('Ver estatísticas gerais de punições do servidor'),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild) as SlashCommandBuilder,
 
@@ -47,7 +47,7 @@ const punishment: Command = {
 
   async execute(
     interaction: CommandInteraction | ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const logger = new Logger();
     const punishmentService = client.services?.punishment;
@@ -76,7 +76,7 @@ const punishment: Command = {
         case 'warnings':
           await handleWarningsCommand(
             interaction as ChatInputCommandInteraction,
-            punishmentService
+            punishmentService,
           );
           break;
 
@@ -88,7 +88,7 @@ const punishment: Command = {
           await handleStatsCommand(
             interaction as ChatInputCommandInteraction,
             punishmentService,
-            guildId
+            guildId,
           );
           break;
 
@@ -118,7 +118,7 @@ const punishment: Command = {
  */
 async function handleHistoryCommand(
   interaction: ChatInputCommandInteraction,
-  punishmentService: any
+  punishmentService: any,
 ): Promise<void> {
   const targetUser = interaction.options.getUser('usuario', true);
   const punishments = punishmentService.getUserPunishments(targetUser.id);
@@ -160,7 +160,7 @@ async function handleHistoryCommand(
  */
 async function handleWarningsCommand(
   interaction: ChatInputCommandInteraction,
-  punishmentService: any
+  punishmentService: any,
 ): Promise<void> {
   const targetUser = interaction.options.getUser('usuario', true);
   const guildId = interaction.guild!.id;
@@ -235,7 +235,7 @@ async function handleConfigCommand(interaction: ChatInputCommandInteraction): Pr
 async function handleStatsCommand(
   interaction: ChatInputCommandInteraction,
   punishmentService: any,
-  guildId: string
+  guildId: string,
 ): Promise<void> {
   // This would require additional methods in PunishmentService to get guild stats
   const embed = new EmbedBuilder()
@@ -252,7 +252,7 @@ async function handleStatsCommand(
       '• Usuários mais punidos\n' +
       '• Tendências mensais\n' +
       '• Taxa de reincidência\n' +
-      '• Efetividade do sistema de avisos'
+      '• Efetividade do sistema de avisos',
   );
 
   await interaction.editReply({ embeds: [embed] });

@@ -27,13 +27,13 @@ const profile: Command = {
       option
         .setName('user')
         .setDescription('Usuário para ver o perfil (deixe vazio para ver o seu)')
-        .setRequired(false)
+        .setRequired(false),
     )
     .addBooleanOption(option =>
       option
         .setName('public')
         .setDescription('Tornar a resposta pública (padrão: privado)')
-        .setRequired(false)
+        .setRequired(false),
     ) as SlashCommandBuilder,
 
   category: CommandCategory.GENERAL,
@@ -62,7 +62,7 @@ const profile: Command = {
         const notFoundEmbed = new EmbedBuilder()
           .setTitle('❌ Usuário não encontrado')
           .setDescription(
-            `${isOwnProfile ? 'Você ainda não está' : 'Este usuário não está'} registrado no sistema.\n\nUse \`/register\` para se cadastrar!`
+            `${isOwnProfile ? 'Você ainda não está' : 'Este usuário não está'} registrado no sistema.\n\nUse \`/register\` para se cadastrar!`,
           )
           .setColor('#FF0000');
 
@@ -75,7 +75,7 @@ const profile: Command = {
         userData?.pubgUsername
           ? pubgService.getPlayerStats(
               userData.pubgUsername,
-              (userData.pubgPlatform as any) || 'steam'
+              (userData.pubgPlatform as any) || 'steam',
             )
           : null,
         badgeService.getUserBadges(targetUser.id),
@@ -101,7 +101,7 @@ const profile: Command = {
       profileEmbed.addFields(
         { name: '📅 Membro desde', value: createdAt, inline: true },
         { name: '🔄 Última atualização', value: updatedAt, inline: true },
-        { name: '🎯 Nível', value: `${userData.level} (${userData.xp} XP)`, inline: true }
+        { name: '🎯 Nível', value: `${userData.level} (${userData.xp} XP)`, inline: true },
       );
 
       // PUBG Info
@@ -211,7 +211,7 @@ const profile: Command = {
             .setLabel('Dashboard')
             .setStyle(ButtonStyle.Link)
             .setURL('https://your-dashboard-url.com/profile')
-            .setEmoji('🌐')
+            .setEmoji('🌐'),
         );
       } else {
         buttonsRow.addComponents(
@@ -224,7 +224,7 @@ const profile: Command = {
             .setCustomId('profile_compare')
             .setLabel('Comparar')
             .setStyle(ButtonStyle.Secondary)
-            .setEmoji('⚖️')
+            .setEmoji('⚖️'),
         );
       }
 
@@ -269,7 +269,7 @@ const profile: Command = {
             const compareEmbed = new EmbedBuilder()
               .setTitle('⚖️ Comparação de Perfis')
               .setDescription(
-                'Funcionalidade em desenvolvimento!\nEm breve você poderá comparar estatísticas entre jogadores.'
+                'Funcionalidade em desenvolvimento!\nEm breve você poderá comparar estatísticas entre jogadores.',
               )
               .setColor('#FFA500');
             await i.reply({ embeds: [compareEmbed], flags: MessageFlags.Ephemeral });
@@ -309,7 +309,7 @@ async function createBadgesEmbed(user: any, badges: any[]): Promise<EmbedBuilder
 
   if (badges.length === 0) {
     embed.setDescription(
-      'Este usuário ainda não possui badges.\n\nParticipe das atividades do servidor para conquistar badges!'
+      'Este usuário ainda não possui badges.\n\nParticipe das atividades do servidor para conquistar badges!',
     );
     return embed;
   }
@@ -370,7 +370,7 @@ async function createPUBGStatsEmbed(user: any, stats: any, userData: any): Promi
         name: '⚔️ Combate',
         value: `💀 Kills: ${season.kills}\n💥 Dano: ${Math.round(season.damageDealt)}\n🎯 K/D: ${season.kdr?.toFixed(2)}`,
         inline: true,
-      }
+      },
     );
   }
 
@@ -392,7 +392,7 @@ async function createPUBGStatsEmbed(user: any, stats: any, userData: any): Promi
         name: '🎖️ Conquistas',
         value: `🥇 Chicken Dinners: ${lifetime.wins}\n📈 Top 10: ${lifetime.top10s}\n🔫 Headshots: ${lifetime.headshotKills}`,
         inline: true,
-      }
+      },
     );
   }
 

@@ -23,6 +23,17 @@ coverage/
 # Prisma generated files
 prisma/migrations/
 
+# Test files
+*.test.ts
+*.spec.ts
+tests/
+
+# Configuration files
+*.config.js
+*.config.ts
+jest.config.js
+commitlint.config.js
+
 # Husky
 .husky/_
 
@@ -45,6 +56,5 @@ Thumbs.db
 *.tmp
 *.temp
 
-# Dashboard build (if applicable)
-dashboard/dist/
-dashboard/build/
+# Dashboard (React app with own config)
+dashboard/

@@ -35,8 +35,8 @@ const ranking: Command = {
           { name: '🏅 Interno - Badges', value: 'internal_badges' },
           { name: '⏰ Presença', value: 'presence' },
           { name: '🎵 Música', value: 'music' },
-          { name: '🎯 Jogos', value: 'games' }
-        )
+          { name: '🎯 Jogos', value: 'games' },
+        ),
     )
     .addIntegerOption(option =>
       option
@@ -44,13 +44,13 @@ const ranking: Command = {
         .setDescription('Página do ranking (padrão: 1)')
         .setRequired(false)
         .setMinValue(1)
-        .setMaxValue(50)
+        .setMaxValue(50),
     )
     .addBooleanOption(option =>
       option
         .setName('public')
         .setDescription('Tornar a resposta pública (padrão: privado)')
-        .setRequired(false)
+        .setRequired(false),
     ) as SlashCommandBuilder,
 
   category: CommandCategory.PUBG,
@@ -61,7 +61,7 @@ const ranking: Command = {
     const rankingService = new RankingService(client);
     const db = new DatabaseService();
 
-    if (!interaction.isCommand()) return;
+    if (!interaction.isCommand()) {return;}
 
     const rankingType = interaction.options.getString('type', true);
     const page = interaction.options.getInteger('page') || 1;
@@ -130,7 +130,7 @@ const ranking: Command = {
               rankingPeriod!,
               undefined,
               'rankPoints',
-              limit
+              limit,
             );
             rankingData = pubgRanking;
             totalCount = pubgRanking.length;
@@ -139,7 +139,7 @@ const ranking: Command = {
               period,
               page,
               totalCount,
-              interaction.user.id
+              interaction.user.id,
             );
           } catch (error) {
             logger.error(`Error fetching PUBG ranking (${period}):`, error);
@@ -153,7 +153,7 @@ const ranking: Command = {
               interaction.guildId!,
               allTimePeriod,
               'xp',
-              limit
+              limit,
             );
             rankingData = xpRanking;
             totalCount = xpRanking.length;
@@ -163,7 +163,7 @@ const ranking: Command = {
               page,
               totalCount,
               interaction.user.id,
-              client
+              client,
             );
           } catch (error) {
             logger.error('Error fetching XP ranking:', error);
@@ -177,7 +177,7 @@ const ranking: Command = {
               interaction.guildId!,
               allTimePeriod,
               'coins',
-              limit
+              limit,
             );
             rankingData = coinsRanking;
             totalCount = coinsRanking.length;
@@ -187,7 +187,7 @@ const ranking: Command = {
               page,
               totalCount,
               interaction.user.id,
-              client
+              client,
             );
           } catch (error) {
             logger.error('Error fetching coins ranking:', error);
@@ -201,7 +201,7 @@ const ranking: Command = {
               interaction.guildId!,
               allTimePeriod,
               'badgeCount',
-              limit
+              limit,
             );
             rankingData = badgesRanking;
             totalCount = badgesRanking.length;
@@ -211,7 +211,7 @@ const ranking: Command = {
               page,
               totalCount,
               interaction.user.id,
-              client
+              client,
             );
           } catch (error) {
             logger.error('Error fetching badges ranking:', error);
@@ -223,7 +223,7 @@ const ranking: Command = {
           const presenceRanking = await getPresenceRanking(
             interaction.guildId!,
             limit as any,
-            offset as any
+            offset as any,
           );
           rankingData = (presenceRanking as any).rankings || [];
           totalCount = (presenceRanking as any).total || 0;
@@ -232,7 +232,7 @@ const ranking: Command = {
             page,
             totalCount,
             interaction.user.id,
-            client
+            client,
           );
           break;
 
@@ -247,7 +247,7 @@ const ranking: Command = {
             totalCount,
             interaction.user.id,
             client,
-            '🎵'
+            '🎵',
           );
           break;
 
@@ -262,7 +262,7 @@ const ranking: Command = {
             totalCount,
             interaction.user.id,
             client,
-            '🎯'
+            '🎯',
           );
           break;
 
@@ -278,7 +278,7 @@ const ranking: Command = {
           new ButtonBuilder()
             .setCustomId(`ranking_${rankingType}_${page - 1}`)
             .setLabel('◀️ Anterior')
-            .setStyle(ButtonStyle.Primary)
+            .setStyle(ButtonStyle.Primary),
         );
       }
 
@@ -286,7 +286,7 @@ const ranking: Command = {
         new ButtonBuilder()
           .setCustomId(`ranking_${rankingType}_refresh`)
           .setLabel('🔄 Atualizar')
-          .setStyle(ButtonStyle.Secondary)
+          .setStyle(ButtonStyle.Secondary),
       );
 
       if (offset + limit < totalCount) {
@@ -294,7 +294,7 @@ const ranking: Command = {
           new ButtonBuilder()
             .setCustomId(`ranking_${rankingType}_${page + 1}`)
             .setLabel('Próxima ▶️')
-            .setStyle(ButtonStyle.Primary)
+            .setStyle(ButtonStyle.Primary),
         );
       }
 
@@ -313,7 +313,7 @@ const ranking: Command = {
             { label: '⏰ Presença', value: 'presence', emoji: '⏰' },
             { label: '🎵 Música', value: 'music', emoji: '🎵' },
             { label: '🎯 Jogos', value: 'games', emoji: '🎯' },
-          ])
+          ]),
       );
 
       const response = await interaction.editReply({
@@ -345,7 +345,7 @@ const ranking: Command = {
             1,
             interaction.guildId!,
             interaction.user.id,
-            client
+            client,
           );
           await i.editReply({ embeds: [newEmbed] });
         }
@@ -360,7 +360,7 @@ const ranking: Command = {
               page,
               interaction.guildId!,
               interaction.user.id,
-              client
+              client,
             );
             await i.editReply({ embeds: [refreshedEmbed] });
           } else {
@@ -371,7 +371,7 @@ const ranking: Command = {
               newPage,
               interaction.guildId!,
               interaction.user.id,
-              client
+              client,
             );
             await i.editReply({ embeds: [newEmbed] });
           }
@@ -398,7 +398,7 @@ const ranking: Command = {
             rankingType,
             page,
             command: 'ranking',
-          }
+          },
         );
       }
 
@@ -436,7 +436,7 @@ async function createPUBGRankingEmbed(
   period: 'daily' | 'weekly' | 'monthly',
   page: number,
   total: number,
-  userId: string
+  userId: string,
 ): Promise<EmbedBuilder> {
   const periodNames = {
     daily: 'Diário',
@@ -451,7 +451,7 @@ async function createPUBGRankingEmbed(
 
   if (rankings.length === 0) {
     embed.setDescription(
-      'Nenhum jogador encontrado neste ranking.\n\nUse `/register` para se cadastrar e aparecer nos rankings!'
+      'Nenhum jogador encontrado neste ranking.\n\nUse `/register` para se cadastrar e aparecer nos rankings!',
     );
     return embed;
   }
@@ -505,7 +505,7 @@ async function createInternalRankingEmbed(
   page: number,
   total: number,
   userId: string,
-  client: ExtendedClient
+  client: ExtendedClient,
 ): Promise<EmbedBuilder> {
   const typeEmojis: { [key: string]: string } = {
     XP: '⭐',
@@ -520,7 +520,7 @@ async function createInternalRankingEmbed(
 
   if (rankings.length === 0) {
     embed.setDescription(
-      'Nenhum usuário encontrado neste ranking.\n\nParticipe das atividades do servidor para aparecer nos rankings!'
+      'Nenhum usuário encontrado neste ranking.\n\nParticipe das atividades do servidor para aparecer nos rankings!',
     );
     return embed;
   }
@@ -574,7 +574,7 @@ async function createPresenceRankingEmbed(
   page: number,
   total: number,
   userId: string,
-  client: ExtendedClient
+  client: ExtendedClient,
 ): Promise<EmbedBuilder> {
   const embed = new EmbedBuilder()
     .setTitle('⏰ Ranking de Presença')
@@ -583,7 +583,7 @@ async function createPresenceRankingEmbed(
 
   if (rankings.length === 0) {
     embed.setDescription(
-      'Nenhum usuário encontrado neste ranking.\n\nUse `/checkin` para começar a registrar sua presença!'
+      'Nenhum usuário encontrado neste ranking.\n\nUse `/checkin` para começar a registrar sua presença!',
     );
     return embed;
   }
@@ -623,7 +623,7 @@ async function createActivityRankingEmbed(
   total: number,
   userId: string,
   client: ExtendedClient,
-  emoji: string
+  emoji: string,
 ): Promise<EmbedBuilder> {
   const embed = new EmbedBuilder()
     .setTitle(`${emoji} Ranking de ${type}`)
@@ -632,7 +632,7 @@ async function createActivityRankingEmbed(
 
   if (rankings.length === 0) {
     embed.setDescription(
-      `Nenhum usuário encontrado neste ranking.\n\nParticipe das atividades de ${type.toLowerCase()} para aparecer aqui!`
+      `Nenhum usuário encontrado neste ranking.\n\nParticipe das atividades de ${type.toLowerCase()} para aparecer aqui!`,
     );
     return embed;
   }
@@ -709,7 +709,7 @@ async function getRankingEmbed(
   page: number,
   guildId: string,
   userId: string,
-  client: ExtendedClient
+  client: ExtendedClient,
 ): Promise<EmbedBuilder> {
   // Simplified implementation - would need full logic here
   return new EmbedBuilder()

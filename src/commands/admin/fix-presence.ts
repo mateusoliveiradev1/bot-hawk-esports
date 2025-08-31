@@ -26,8 +26,8 @@ const fixPresence: Command = {
           { name: '🔄 Corrigir inconsistências de dados', value: 'data' },
           { name: '🎮 Melhorar integração PUBG', value: 'pubg' },
           { name: '⚡ Otimizar performance', value: 'performance' },
-          { name: '🛠️ Executar todas as correções', value: 'all' }
-        )
+          { name: '🛠️ Executar todas as correções', value: 'all' },
+        ),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator) as SlashCommandBuilder,
 
@@ -36,7 +36,7 @@ const fixPresence: Command = {
 
   async execute(
     interaction: CommandInteraction | ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const logger = new Logger();
 
@@ -128,7 +128,7 @@ const fixPresence: Command = {
               name: '📊 Resultados',
               value: results.join('\n'),
               inline: false,
-            }
+            },
           )
           .setTimestamp();
 
@@ -141,7 +141,7 @@ const fixPresence: Command = {
         const errorEmbed = new EmbedBuilder()
           .setTitle('❌ Erro nas Correções')
           .setDescription(
-            `Ocorreu um erro ao executar as correções: ${fixError instanceof Error ? fixError.message : 'Erro desconhecido'}`
+            `Ocorreu um erro ao executar as correções: ${fixError instanceof Error ? fixError.message : 'Erro desconhecido'}`,
           )
           .setColor(0xff0000)
           .addFields(
@@ -154,7 +154,7 @@ const fixPresence: Command = {
               name: '⏰ Horário',
               value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
               inline: true,
-            }
+            },
           )
           .setTimestamp();
 

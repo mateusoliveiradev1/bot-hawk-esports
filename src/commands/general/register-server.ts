@@ -91,7 +91,7 @@ const registerServer: Command = {
             '**Próximos passos:**\n' +
             '• Leia as regras em <#RULES_CHANNEL_ID>\n' +
             '• Apresente-se em <#INTRO_CHANNEL_ID>\n' +
-            '• Registre seu PUBG para acessar recursos avançados'
+            '• Registre seu PUBG para acessar recursos avançados',
         )
         .setThumbnail(interaction.user.displayAvatarURL())
         .setTimestamp()
@@ -110,7 +110,7 @@ const registerServer: Command = {
           .setCustomId('view_rules')
           .setLabel('📋 Ver Regras')
           .setStyle(ButtonStyle.Secondary)
-          .setEmoji('📋')
+          .setEmoji('📋'),
       );
 
       await interaction.reply({
@@ -128,7 +128,7 @@ const registerServer: Command = {
         .setTitle('❌ Erro no Registro')
         .setDescription(
           'Ocorreu um erro durante o registro no servidor.\n' +
-            'Por favor, tente novamente em alguns instantes.'
+            'Por favor, tente novamente em alguns instantes.',
         )
         .setTimestamp();
 

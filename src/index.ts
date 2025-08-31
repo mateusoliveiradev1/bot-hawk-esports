@@ -177,7 +177,7 @@ class HawkEsportsBot {
     (this.client as any).badgeAuditService = new BadgeAuditService(
       this.client,
       this.services.badge,
-      this.db
+      this.db,
     );
 
     // Initialize PresenceEnhancementsService
@@ -336,7 +336,7 @@ class HawkEsportsBot {
 
       const stats = this.commands.getStats();
       this.logger.info(
-        `✅ Loaded ${stats.total} commands (${stats.slash} slash, ${stats.context} context)`
+        `✅ Loaded ${stats.total} commands (${stats.slash} slash, ${stats.context} context)`,
       );
     } catch (error) {
       this.logger.error('Command loading failed:', error);
@@ -356,7 +356,7 @@ class HawkEsportsBot {
 
       this.logger.info(`🤖 Bot logged in as ${this.client.user.tag}`);
       this.logger.info(
-        `📊 Serving ${this.client.guilds.cache.size} guilds with ${this.client.users.cache.size} users`
+        `📊 Serving ${this.client.guilds.cache.size} guilds with ${this.client.users.cache.size} users`,
       );
 
       // Set bot activity
@@ -370,7 +370,7 @@ class HawkEsportsBot {
         const { CommandDeployer } = await import('./deploy-commands');
         const deployer = new CommandDeployer(
           process.env.DISCORD_TOKEN!,
-          process.env.DISCORD_CLIENT_ID!
+          process.env.DISCORD_CLIENT_ID!,
         );
 
         // Deploy commands to all guilds the bot is in
@@ -398,7 +398,7 @@ class HawkEsportsBot {
       }
 
       // Services are initialized automatically in their constructors
-      this.logger.info('✅ Badge and Challenge services ready')
+      this.logger.info('✅ Badge and Challenge services ready');
 
       this.logger.info('🎉 Hawk Esports Bot is ready!');
     });
@@ -480,7 +480,7 @@ class HawkEsportsBot {
         } catch (error) {
           this.logger.error(
             `Failed to initialize persistent ticket service for guild ${guild.name}:`,
-            error
+            error,
           );
         }
       } catch (error) {
@@ -528,7 +528,7 @@ class HawkEsportsBot {
                   // Find text channel in the same category to send notification
                   const category = leftChannel.parent;
                   const textChannel = category?.children.cache.find(
-                    ch => ch.type === ChannelType.GuildText && ch.name.includes('chat')
+                    ch => ch.type === ChannelType.GuildText && ch.name.includes('chat'),
                   ) as TextChannel;
 
                   // Send auto check-out notification
@@ -539,7 +539,7 @@ class HawkEsportsBot {
                         `${member.displayName} saiu do canal de voz e foi automaticamente removido da sessão.\n\n` +
                           `⏰ **Saída detectada em:** <t:${Math.floor(Date.now() / 1000)}:F>\n` +
                           `🔊 **Canal:** ${leftChannel.name}\n\n` +
-                          '💡 **Dica:** Use `/checkin` novamente para criar uma nova sessão!'
+                          '💡 **Dica:** Use `/checkin` novamente para criar uma nova sessão!',
                       )
                       .setColor(0xffa500)
                       .setThumbnail(member.displayAvatarURL())
@@ -553,7 +553,7 @@ class HawkEsportsBot {
                     await this.services.presence.checkOut(
                       userId,
                       oldState.guild.id,
-                      'Auto check-out - left voice channel'
+                      'Auto check-out - left voice channel',
                     );
                   }
 
@@ -565,12 +565,12 @@ class HawkEsportsBot {
                       userId,
                       oldState.guild.id,
                       estimatedSessionStart,
-                      leftChannel.id
+                      leftChannel.id,
                     );
                   }
 
                   this.logger.info(
-                    `Auto check-out performed for user ${userId} from channel ${leftChannel.name}`
+                    `Auto check-out performed for user ${userId} from channel ${leftChannel.name}`,
                   );
                 } catch (autoCheckoutError) {
                   this.logger.error('Auto check-out error:', autoCheckoutError);
@@ -621,13 +621,13 @@ class HawkEsportsBot {
     // Error handling
     this.client.on('error', error => {
       this.logger.error('Discord client error:', {
-        error: error instanceof Error ? error : new Error(String(error))
+        error: error instanceof Error ? error : new Error(String(error)),
       });
     });
 
     this.client.on('warn', warning => {
       this.logger.warn('Discord client warning:', {
-        metadata: { warning: String(warning) }
+        metadata: { warning: String(warning) },
       });
     });
 
@@ -636,12 +636,12 @@ class HawkEsportsBot {
     process.on('SIGTERM', () => this.shutdown('SIGTERM'));
     process.on('unhandledRejection', (reason, promise) => {
       this.logger.error('Unhandled Promise Rejection:', {
-        metadata: { reason, promise }
+        metadata: { reason, promise },
       });
     });
     process.on('uncaughtException', error => {
       this.logger.error('Uncaught Exception:', {
-        error: error instanceof Error ? error : new Error(String(error))
+        error: error instanceof Error ? error : new Error(String(error)),
       });
       this.shutdown('UNCAUGHT_EXCEPTION');
     });

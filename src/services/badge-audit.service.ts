@@ -68,8 +68,8 @@ export class BadgeAuditService {
           invalidBadgeReferences: results.invalidBadgeReferences.length,
           missingBadgeDefinitions: results.missingBadgeDefinitions.length,
           inconsistentBadgeData: results.inconsistentBadgeData.length,
-          fixedIssues: results.fixedIssues
-        }
+          fixedIssues: results.fixedIssues,
+        },
       });
 
       return results;
@@ -97,7 +97,7 @@ export class BadgeAuditService {
 
       if (orphaned.length > 0) {
         this.logger.warn(`Found ${orphaned.length} orphaned badges:`, {
-          metadata: { orphanedBadges: orphaned }
+          metadata: { orphanedBadges: orphaned },
         });
       }
 
@@ -123,7 +123,7 @@ export class BadgeAuditService {
           FROM "UserBadge"
           GROUP BY "userId", "badgeId"
           HAVING COUNT(*) > 1
-        `
+        `,
       );
 
       const result = duplicates.map(d => ({
@@ -153,7 +153,7 @@ export class BadgeAuditService {
       });
 
       const validBadgeIds = new Set(
-        (await this.database.client.badge.findMany({ select: { id: true } })).map(b => b.id)
+        (await this.database.client.badge.findMany({ select: { id: true } })).map(b => b.id),
       );
 
       const invalid = userBadges.filter(ub => !validBadgeIds.has(ub.badgeId));
@@ -176,7 +176,7 @@ export class BadgeAuditService {
     try {
       const serviceBadges = this.badgeService.getAvailableBadges(true);
       const dbBadgeIds = new Set(
-        (await this.database.client.badge.findMany({ select: { id: true } })).map(b => b.id)
+        (await this.database.client.badge.findMany({ select: { id: true } })).map(b => b.id),
       );
 
       const missing = serviceBadges
@@ -185,7 +185,7 @@ export class BadgeAuditService {
 
       if (missing.length > 0) {
         this.logger.warn(`Found ${missing.length} missing badge definitions in database:`, {
-          metadata: { missingBadges: missing }
+          metadata: { missingBadges: missing },
         });
       }
 
@@ -228,25 +228,25 @@ export class BadgeAuditService {
 
         if (dbBadge.category !== serviceBadge.category) {
           issues.push(
-            `Category mismatch: DB='${dbBadge.category}' vs Service='${serviceBadge.category}'`
+            `Category mismatch: DB='${dbBadge.category}' vs Service='${serviceBadge.category}'`,
           );
         }
 
         if (dbBadge.rarity !== serviceBadge.rarity) {
           issues.push(
-            `Rarity mismatch: DB='${dbBadge.rarity}' vs Service='${serviceBadge.rarity}'`
+            `Rarity mismatch: DB='${dbBadge.rarity}' vs Service='${serviceBadge.rarity}'`,
           );
         }
 
         if (dbBadge.isActive !== serviceBadge.isActive) {
           issues.push(
-            `Active status mismatch: DB=${dbBadge.isActive} vs Service=${serviceBadge.isActive}`
+            `Active status mismatch: DB=${dbBadge.isActive} vs Service=${serviceBadge.isActive}`,
           );
         }
 
         if (dbBadge.isSecret !== serviceBadge.isSecret) {
           issues.push(
-            `Secret status mismatch: DB=${dbBadge.isSecret} vs Service=${serviceBadge.isSecret}`
+            `Secret status mismatch: DB=${dbBadge.isSecret} vs Service=${serviceBadge.isSecret}`,
           );
         }
 
@@ -293,7 +293,7 @@ export class BadgeAuditService {
             fixedCount++;
           }
           this.logger.info(
-            `Removed ${toDelete.length} duplicate badges for user ${duplicate.userId}, badge ${duplicate.badgeId}`
+            `Removed ${toDelete.length} duplicate badges for user ${duplicate.userId}, badge ${duplicate.badgeId}`,
           );
         }
       }
@@ -308,7 +308,7 @@ export class BadgeAuditService {
         });
         fixedCount++;
         this.logger.info(
-          `Removed invalid badge reference: user ${invalid.userId}, badge ${invalid.badgeId}`
+          `Removed invalid badge reference: user ${invalid.userId}, badge ${invalid.badgeId}`,
         );
       }
 
@@ -370,11 +370,11 @@ export class BadgeAuditService {
    */
   public async cleanupOrphanedBadges(
     orphanedBadgeIds: string[],
-    confirm: boolean = false
+    confirm: boolean = false,
   ): Promise<number> {
     if (!confirm) {
       this.logger.warn(
-        'Orphaned badge cleanup requires confirmation. Set confirm=true to proceed.'
+        'Orphaned badge cleanup requires confirmation. Set confirm=true to proceed.',
       );
       return 0;
     }

@@ -29,8 +29,8 @@ const queue: Command = {
             .setDescription('Página da fila (padrão: 1)')
             .setRequired(false)
             .setMinValue(1)
-            .setMaxValue(50)
-        )
+            .setMaxValue(50),
+        ),
     )
     .addSubcommand(subcommand => subcommand.setName('clear').setDescription('Limpa toda a fila'))
     .addSubcommand(subcommand => subcommand.setName('shuffle').setDescription('Embaralha a fila'))
@@ -46,9 +46,9 @@ const queue: Command = {
             .addChoices(
               { name: '🔁 Repetir Fila', value: 'queue' },
               { name: '🔂 Repetir Música', value: 'track' },
-              { name: '❌ Desativar', value: 'off' }
-            )
-        )
+              { name: '❌ Desativar', value: 'off' },
+            ),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -59,8 +59,8 @@ const queue: Command = {
             .setName('position')
             .setDescription('Posição da música na fila')
             .setRequired(true)
-            .setMinValue(1)
-        )
+            .setMinValue(1),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -71,23 +71,23 @@ const queue: Command = {
             .setName('from')
             .setDescription('Posição atual da música')
             .setRequired(true)
-            .setMinValue(1)
+            .setMinValue(1),
         )
         .addIntegerOption(option =>
           option
             .setName('to')
             .setDescription('Nova posição da música')
             .setRequired(true)
-            .setMinValue(1)
-        )
+            .setMinValue(1),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('save')
         .setDescription('Salva a fila atual como playlist')
         .addStringOption(option =>
-          option.setName('name').setDescription('Nome da playlist').setRequired(true)
-        )
+          option.setName('name').setDescription('Nome da playlist').setRequired(true),
+        ),
     ) as SlashCommandBuilder,
 
   category: CommandCategory.MUSIC,
@@ -110,7 +110,7 @@ const queue: Command = {
           const errorEmbed = new EmbedBuilder()
             .setTitle('❌ Erro')
             .setDescription(
-              'Você precisa estar no mesmo canal de voz que eu para gerenciar a fila!'
+              'Você precisa estar no mesmo canal de voz que eu para gerenciar a fila!',
             )
             .setColor('#FF0000');
 
@@ -301,7 +301,7 @@ async function handleClearQueue(interaction: any, musicService: MusicService) {
   const embed = new EmbedBuilder()
     .setTitle(cleared ? '🗑️ Fila Limpa' : '❌ Erro')
     .setDescription(
-      cleared ? 'Todas as músicas foram removidas da fila.' : 'Não foi possível limpar a fila.'
+      cleared ? 'Todas as músicas foram removidas da fila.' : 'Não foi possível limpar a fila.',
     )
     .setColor(cleared ? '#00FF00' : '#FF0000');
 
@@ -331,7 +331,7 @@ async function handleShuffleQueue(interaction: any, musicService: MusicService) 
     .setDescription(
       shuffled
         ? 'A ordem das músicas na fila foi embaralhada.'
-        : 'Não foi possível embaralhar a fila.'
+        : 'Não foi possível embaralhar a fila.',
     )
     .setColor(shuffled ? '#00FF00' : '#FF0000');
 
@@ -358,7 +358,7 @@ async function handleLoopQueue(interaction: any, musicService: MusicService) {
     .setDescription(
       success
         ? `Modo de repetição definido para: **${modeNames[mode]}**`
-        : 'Não foi possível alterar o modo de repetição.'
+        : 'Não foi possível alterar o modo de repetição.',
     )
     .setColor(success ? '#00FF00' : '#FF0000');
 
@@ -400,7 +400,7 @@ async function handleRemoveTrack(interaction: any, musicService: MusicService) {
     .setDescription(
       removed
         ? `**${trackToRemove.title}** foi removida da posição #${position}.`
-        : 'Não foi possível remover a música.'
+        : 'Não foi possível remover a música.',
     )
     .setColor(removed ? '#00FF00' : '#FF0000');
 
@@ -453,7 +453,7 @@ async function handleMoveTrack(interaction: any, musicService: MusicService) {
     .setDescription(
       moved
         ? `**${trackToMove.title}** foi movida da posição #${from} para #${to}.`
-        : 'Não foi possível mover a música.'
+        : 'Não foi possível mover a música.',
     )
     .setColor(moved ? '#00FF00' : '#FF0000');
 
@@ -485,7 +485,7 @@ async function handleSavePlaylist(interaction: any, musicService: MusicService) 
     .setDescription(
       saved
         ? `Playlist **${name}** foi salva com ${queue.tracks.length} música${queue.tracks.length !== 1 ? 's' : ''}.`
-        : 'Não foi possível salvar a playlist.'
+        : 'Não foi possível salvar a playlist.',
     )
     .setColor(saved ? '#00FF00' : '#FF0000');
 
@@ -540,7 +540,7 @@ async function createQueueEmbed(queue: any, page: number = 1): Promise<EmbedBuil
     // Queue info
     const totalDuration = queue.tracks.reduce(
       (total: number, track: any) => total + track.duration,
-      0
+      0,
     );
     embed.addFields({
       name: '📊 Informações da Fila',
@@ -585,7 +585,7 @@ async function createQueueComponents(queue: any, page: number): Promise<any[]> {
       .setCustomId('music_clear')
       .setLabel('Limpar')
       .setStyle(ButtonStyle.Danger)
-      .setEmoji('🗑️')
+      .setEmoji('🗑️'),
   );
 
   components.push(controlsRow);
@@ -600,7 +600,7 @@ async function createQueueComponents(queue: any, page: number): Promise<any[]> {
         new ButtonBuilder()
           .setCustomId('queue_prev')
           .setLabel('◀️ Anterior')
-          .setStyle(ButtonStyle.Primary)
+          .setStyle(ButtonStyle.Primary),
       );
     }
 
@@ -609,7 +609,7 @@ async function createQueueComponents(queue: any, page: number): Promise<any[]> {
         new ButtonBuilder()
           .setCustomId('queue_next')
           .setLabel('Próxima ▶️')
-          .setStyle(ButtonStyle.Primary)
+          .setStyle(ButtonStyle.Primary),
       );
     }
 
@@ -629,7 +629,7 @@ async function createQueueComponents(queue: any, page: number): Promise<any[]> {
           label: `${index + 1}. ${track.title.substring(0, 90)}`,
           description: `${track.author.substring(0, 90)} • ${formatDuration(track.duration)}`,
           value: (index + 1).toString(),
-        }))
+        })),
       );
 
     const selectRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(removeSelect);

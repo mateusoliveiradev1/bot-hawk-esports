@@ -140,7 +140,7 @@ export class LoggingService {
 
   constructor(
     private client: ExtendedClient,
-    private database: DatabaseService
+    private database: DatabaseService,
   ) {
     // Validate dependencies
     if (!client) {
@@ -157,13 +157,13 @@ export class LoggingService {
       this.startQueueProcessor();
       this.logger.info('LoggingService initialized successfully', {
         category: LogCategory.SYSTEM,
-        metadata: { service: 'LoggingService', status: 'initialized' }
+        metadata: { service: 'LoggingService', status: 'initialized' },
       });
     } catch (error) {
       this.logger.error('Failed to initialize LoggingService', {
         category: LogCategory.SYSTEM,
         error: error as Error,
-        metadata: { service: 'LoggingService', status: 'failed' }
+        metadata: { service: 'LoggingService', status: 'failed' },
       });
       throw error;
     }
@@ -211,7 +211,7 @@ export class LoggingService {
       if (!guildId || typeof guildId !== 'string') {
         this.logger.warn('Invalid guildId provided to getGuildConfig', {
           category: LogCategory.SYSTEM,
-          metadata: { method: 'getGuildConfig', providedGuildId: guildId }
+          metadata: { method: 'getGuildConfig', providedGuildId: guildId },
         });
         return this.getDefaultConfig('unknown');
       }
@@ -222,7 +222,7 @@ export class LoggingService {
         this.logger.debug(`Created new log config for guild ${guildId}`, {
           category: LogCategory.SYSTEM,
           guildId,
-          metadata: { method: 'getGuildConfig', action: 'created_config' }
+          metadata: { method: 'getGuildConfig', action: 'created_config' },
         });
       }
 
@@ -232,7 +232,7 @@ export class LoggingService {
         category: LogCategory.SYSTEM,
         guildId,
         error: error as Error,
-        metadata: { method: 'getGuildConfig' }
+        metadata: { method: 'getGuildConfig' },
       });
       return this.getDefaultConfig(guildId || 'unknown');
     }
@@ -285,7 +285,7 @@ export class LoggingService {
       if (!guildId || typeof guildId !== 'string') {
         this.logger.warn('Invalid guildId provided to shouldLog', {
           category: LogCategory.SYSTEM,
-          metadata: { method: 'shouldLog', type, providedGuildId: guildId }
+          metadata: { method: 'shouldLog', type, providedGuildId: guildId },
         });
         return false;
       }
@@ -318,7 +318,7 @@ export class LoggingService {
         userId,
         channelId,
         error: error as Error,
-        metadata: { method: 'shouldLog', type }
+        metadata: { method: 'shouldLog', type },
       });
       return false;
     }
@@ -376,7 +376,7 @@ export class LoggingService {
             this.logger.error(`Failed to process log entry ${entry.id}:`, error);
             return { success: false, entry, error };
           }
-        })
+        }),
       );
 
       const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
@@ -384,7 +384,7 @@ export class LoggingService {
 
       if (failureCount > 0) {
         this.logger.warn(
-          `Processed ${processedCount} log entries: ${successCount} successful, ${failureCount} failed`
+          `Processed ${processedCount} log entries: ${successCount} successful, ${failureCount} failed`,
         );
       }
     } catch (error) {
@@ -427,7 +427,7 @@ export class LoggingService {
 
       if (!channelId) {
         this.logger.debug(
-          `No log channel configured for type ${entry.type} in guild ${entry.guildId}`
+          `No log channel configured for type ${entry.type} in guild ${entry.guildId}`,
         );
         return;
       }
@@ -527,7 +527,7 @@ export class LoggingService {
           .setDescription(entry.content)
           .addFields(
             { name: '👤 Autor', value: entry.metadata?.author || 'Desconhecido', inline: true },
-            { name: '📍 Canal', value: entry.metadata?.channel || 'Desconhecido', inline: true }
+            { name: '📍 Canal', value: entry.metadata?.channel || 'Desconhecido', inline: true },
           );
 
       case LogType.MESSAGE_EDIT:
@@ -546,7 +546,7 @@ export class LoggingService {
               name: '📝 Depois',
               value: entry.metadata?.newContent?.substring(0, 1024) || 'Sem conteúdo',
               inline: false,
-            }
+            },
           );
 
       case LogType.MEMBER_JOIN:
@@ -565,7 +565,7 @@ export class LoggingService {
               name: '👥 Total de Membros',
               value: entry.metadata?.memberCount?.toString() || '0',
               inline: true,
-            }
+            },
           );
 
       case LogType.MEMBER_LEAVE:
@@ -584,7 +584,7 @@ export class LoggingService {
               name: '👥 Total de Membros',
               value: entry.metadata?.memberCount?.toString() || '0',
               inline: true,
-            }
+            },
           );
 
       case LogType.MODERATION_WARN:
@@ -606,7 +606,7 @@ export class LoggingService {
               name: '📝 Motivo',
               value: entry.metadata?.reason || 'Não especificado',
               inline: false,
-            }
+            },
           );
 
       case LogType.TICKET_CREATE:
@@ -623,7 +623,7 @@ export class LoggingService {
               value: entry.metadata?.description?.substring(0, 1024) || 'Sem descrição',
               inline: false,
             },
-            { name: '⚡ Prioridade', value: entry.metadata?.priority || 'Baixa', inline: true }
+            { name: '⚡ Prioridade', value: entry.metadata?.priority || 'Baixa', inline: true },
           );
 
       case LogType.TICKET_CLOSE:
@@ -640,7 +640,7 @@ export class LoggingService {
               value: entry.metadata?.reason || 'Não especificado',
               inline: false,
             },
-            { name: '⏱️ Duração', value: entry.metadata?.duration || 'Desconhecido', inline: true }
+            { name: '⏱️ Duração', value: entry.metadata?.duration || 'Desconhecido', inline: true },
           );
 
       case LogType.CHANGELOG:
@@ -651,7 +651,7 @@ export class LoggingService {
           .addFields(
             { name: '🏷️ Versão', value: entry.metadata?.version || 'N/A', inline: true },
             { name: '📝 Tipo', value: entry.metadata?.type || 'N/A', inline: true },
-            { name: '👤 Autor', value: entry.metadata?.author || 'Sistema', inline: true }
+            { name: '👤 Autor', value: entry.metadata?.author || 'Sistema', inline: true },
           );
 
       case LogType.API_SUCCESS:
@@ -689,7 +689,7 @@ export class LoggingService {
               : []),
             ...(entry.metadata?.weaponName
               ? [{ name: '🔫 Arma', value: entry.metadata.weaponName, inline: true }]
-              : [])
+              : []),
           );
 
       case LogType.API_ERROR:
@@ -736,7 +736,7 @@ export class LoggingService {
                     inline: false,
                   },
                 ]
-              : [])
+              : []),
           );
 
       case LogType.API_REQUEST:
@@ -759,7 +759,7 @@ export class LoggingService {
               : []),
             ...(entry.metadata?.responseTime
               ? [{ name: '⏱️ Tempo', value: `${entry.metadata.responseTime}ms`, inline: true }]
-              : [])
+              : []),
           );
 
       default:
@@ -804,8 +804,8 @@ export class LoggingService {
         guildId: logData.guildId,
         metadata: {
           id: logData.id,
-          type: logData.type
-        }
+          type: logData.type,
+        },
       });
     } catch (error) {
       this.logger.error(`Error saving log entry ${entry.id} to database:`, error);
@@ -823,7 +823,7 @@ export class LoggingService {
         message.guild.id,
         LogType.MESSAGE_DELETE,
         message.author?.id,
-        message.channel.id
+        message.channel.id,
       )
     ) {
       return;
@@ -851,7 +851,7 @@ export class LoggingService {
 
   private async handleMessageUpdate(
     oldMessage: Message | PartialMessage,
-    newMessage: Message | PartialMessage
+    newMessage: Message | PartialMessage,
   ): Promise<void> {
     if (oldMessage.partial || newMessage.partial || !newMessage.guild) {
       return;
@@ -864,7 +864,7 @@ export class LoggingService {
         newMessage.guild.id,
         LogType.MESSAGE_EDIT,
         newMessage.author?.id,
-        newMessage.channel.id
+        newMessage.channel.id,
       )
     ) {
       return;
@@ -914,7 +914,7 @@ export class LoggingService {
     }
 
     const accountAge = Math.floor(
-      (Date.now() - member.user.createdTimestamp) / (1000 * 60 * 60 * 24)
+      (Date.now() - member.user.createdTimestamp) / (1000 * 60 * 60 * 24),
     );
 
     await this.queueLog({
@@ -957,7 +957,7 @@ export class LoggingService {
 
   private async handleMemberUpdate(
     oldMember: GuildMember | PartialGuildMember,
-    newMember: GuildMember
+    newMember: GuildMember,
   ): Promise<void> {
     if (!this.shouldLog(newMember.guild.id, LogType.MEMBER_UPDATE, newMember.id)) {
       return;
@@ -967,14 +967,14 @@ export class LoggingService {
 
     if (oldMember.nickname !== newMember.nickname) {
       changes.push(
-        `Apelido: ${oldMember.nickname || 'Nenhum'} → ${newMember.nickname || 'Nenhum'}`
+        `Apelido: ${oldMember.nickname || 'Nenhum'} → ${newMember.nickname || 'Nenhum'}`,
       );
     }
 
     if (oldMember.roles.cache.size !== newMember.roles.cache.size) {
       const addedRoles = newMember.roles.cache.filter(role => !oldMember.roles.cache.has(role.id));
       const removedRoles = oldMember.roles.cache.filter(
-        role => !newMember.roles.cache.has(role.id)
+        role => !newMember.roles.cache.has(role.id),
       );
 
       if (addedRoles.size > 0) {
@@ -1316,7 +1316,7 @@ export class LoggingService {
     userId: string,
     action: string,
     reason: string,
-    metadata?: any
+    metadata?: any,
   ): Promise<void> {
     await this.queueLog({
       guildId,
@@ -1441,7 +1441,7 @@ export class LoggingService {
     statusCode: number,
     responseTime: number,
     userId?: string,
-    additionalData?: any
+    additionalData?: any,
   ): Promise<void> {
     const logType = statusCode >= 400 ? LogType.API_ERROR : LogType.API_SUCCESS;
     const status = statusCode >= 400 ? 'Error' : 'Success';
@@ -1475,7 +1475,7 @@ export class LoggingService {
     success: boolean = true,
     responseTime?: number,
     error?: string,
-    additionalData?: any
+    additionalData?: any,
   ): Promise<void> {
     const logType = success ? LogType.API_SUCCESS : LogType.API_ERROR;
     const status = success ? 'Success' : 'Error';
@@ -1509,7 +1509,7 @@ export class LoggingService {
     badgeType?: string,
     success: boolean = true,
     error?: string,
-    additionalData?: any
+    additionalData?: any,
   ): Promise<void> {
     const logType = success ? LogType.API_SUCCESS : LogType.API_ERROR;
     const status = success ? 'Success' : 'Error';
@@ -1541,7 +1541,7 @@ export class LoggingService {
     weaponName?: string,
     success: boolean = true,
     error?: string,
-    additionalData?: any
+    additionalData?: any,
   ): Promise<void> {
     const logType = success ? LogType.API_SUCCESS : LogType.API_ERROR;
     const status = success ? 'Success' : 'Error';
@@ -1573,7 +1573,7 @@ export class LoggingService {
     success: boolean = true,
     userId?: string,
     error?: string,
-    additionalData?: any
+    additionalData?: any,
   ): Promise<void> {
     const logType = success ? LogType.API_SUCCESS : LogType.API_ERROR;
     const status = success ? 'Success' : 'Error';
@@ -1608,7 +1608,7 @@ export class LoggingService {
       // Process remaining queue items before shutdown
       if (this.logQueue.length > 0) {
         this.logger.info(
-          `Processing ${this.logQueue.length} remaining log entries before shutdown`
+          `Processing ${this.logQueue.length} remaining log entries before shutdown`,
         );
         this.processLogQueue().catch(error => {
           this.logger.error('Error processing final queue batch:', error);

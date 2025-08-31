@@ -25,17 +25,17 @@ const data = new SlashCommandBuilder()
       .setName('upload')
       .setDescription('Fazer upload de um clip')
       .addAttachmentOption(option =>
-        option.setName('video').setDescription('Arquivo de vídeo do clip').setRequired(true)
+        option.setName('video').setDescription('Arquivo de vídeo do clip').setRequired(true),
       )
       .addStringOption(option =>
-        option.setName('title').setDescription('Título do clip').setRequired(true).setMaxLength(100)
+        option.setName('title').setDescription('Título do clip').setRequired(true).setMaxLength(100),
       )
       .addStringOption(option =>
         option
           .setName('description')
           .setDescription('Descrição do clip')
           .setRequired(false)
-          .setMaxLength(500)
+          .setMaxLength(500),
       )
       .addStringOption(option =>
         option
@@ -48,16 +48,16 @@ const data = new SlashCommandBuilder()
             { name: 'CS2', value: 'cs2' },
             { name: 'Apex Legends', value: 'apex' },
             { name: 'Fortnite', value: 'fortnite' },
-            { name: 'Outros', value: 'outros' }
-          )
+            { name: 'Outros', value: 'outros' },
+          ),
       )
       .addStringOption(option =>
         option
           .setName('tags')
           .setDescription('Tags do clip (separadas por vírgula)')
           .setRequired(false)
-          .setMaxLength(200)
-      )
+          .setMaxLength(200),
+      ),
   )
   .addSubcommand(subcommand =>
     subcommand
@@ -73,8 +73,8 @@ const data = new SlashCommandBuilder()
             { name: 'Mais curtidos', value: 'top' },
             { name: 'Recentes', value: 'recent' },
             { name: 'Em destaque', value: 'featured' },
-            { name: 'Por jogo', value: 'game' }
-          )
+            { name: 'Por jogo', value: 'game' },
+          ),
       )
       .addStringOption(option =>
         option
@@ -87,16 +87,16 @@ const data = new SlashCommandBuilder()
             { name: 'CS2', value: 'cs2' },
             { name: 'Apex Legends', value: 'apex' },
             { name: 'Fortnite', value: 'fortnite' },
-            { name: 'Outros', value: 'outros' }
-          )
-      )
+            { name: 'Outros', value: 'outros' },
+          ),
+      ),
   )
   .addSubcommand(subcommand =>
     subcommand
       .setName('vote')
       .setDescription('Votar em um clip')
       .addStringOption(option =>
-        option.setName('clip_id').setDescription('ID do clip').setRequired(true)
+        option.setName('clip_id').setDescription('ID do clip').setRequired(true),
       )
       .addStringOption(option =>
         option
@@ -105,30 +105,30 @@ const data = new SlashCommandBuilder()
           .setRequired(true)
           .addChoices(
             { name: '👍 Curtir', value: 'like' },
-            { name: '👎 Não curtir', value: 'dislike' }
-          )
-      )
+            { name: '👎 Não curtir', value: 'dislike' },
+          ),
+      ),
   )
   .addSubcommand(subcommand =>
     subcommand
       .setName('info')
       .setDescription('Ver informações detalhadas de um clip')
       .addStringOption(option =>
-        option.setName('clip_id').setDescription('ID do clip').setRequired(true)
-      )
+        option.setName('clip_id').setDescription('ID do clip').setRequired(true),
+      ),
   )
   .addSubcommand(subcommand =>
     subcommand
       .setName('delete')
       .setDescription('Deletar um clip (apenas o autor ou moderadores)')
       .addStringOption(option =>
-        option.setName('clip_id').setDescription('ID do clip').setRequired(true)
-      )
+        option.setName('clip_id').setDescription('ID do clip').setRequired(true),
+      ),
   );
 
 async function execute(
   interaction: CommandInteraction | ChatInputCommandInteraction,
-  client: ExtendedClient
+  client: ExtendedClient,
 ): Promise<void> {
   const subcommand = (interaction as ChatInputCommandInteraction).options.getSubcommand();
   const xpService = (client as any).xpService;
@@ -191,7 +191,7 @@ async function handleUpload(interaction: ChatInputCommandInteraction, badgeServi
   const allowedTypes = ['video/mp4', 'video/webm', 'video/mov', 'video/avi', 'video/quicktime'];
   if (!allowedTypes.includes(attachment.contentType || '')) {
     await interaction.editReply(
-      '❌ Apenas arquivos de vídeo são permitidos (MP4, WebM, MOV, AVI).'
+      '❌ Apenas arquivos de vídeo são permitidos (MP4, WebM, MOV, AVI).',
     );
     return;
   }
@@ -254,7 +254,7 @@ async function handleUpload(interaction: ChatInputCommandInteraction, badgeServi
           inline: true,
         },
         { name: '🆔 ID do Clip', value: `\`${clip.id}\``, inline: true },
-        { name: '📊 Votos', value: '👍 0 | 👎 0', inline: true }
+        { name: '📊 Votos', value: '👍 0 | 👎 0', inline: true },
       )
       .setColor(0x00ff00)
       .setTimestamp()
@@ -283,7 +283,7 @@ async function handleUpload(interaction: ChatInputCommandInteraction, badgeServi
       new ButtonBuilder()
         .setCustomId(`clip_info_${clip.id}`)
         .setLabel('ℹ️ Info')
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Secondary),
     );
 
     await interaction.editReply({
@@ -375,7 +375,7 @@ async function handleList(interaction: ChatInputCommandInteraction) {
       new ButtonBuilder()
         .setCustomId('clips_filter')
         .setLabel('🔍 Filtrar')
-        .setStyle(ButtonStyle.Primary)
+        .setStyle(ButtonStyle.Primary),
     );
 
     await interaction.editReply({
@@ -584,7 +584,7 @@ async function handleInfo(interaction: ChatInputCommandInteraction) {
           value: clip.fileSize ? formatFileSize(clip.fileSize) : 'Desconhecido',
           inline: true,
         },
-        { name: '🆔 ID', value: `\`${clip.id}\``, inline: true }
+        { name: '🆔 ID', value: `\`${clip.id}\``, inline: true },
       )
       .setColor(clip.isFeatured ? 0xffd700 : 0x0099ff)
       .setTimestamp();
@@ -611,7 +611,7 @@ async function handleInfo(interaction: ChatInputCommandInteraction) {
         .setCustomId(`clip_dislike_${clip.id}`)
         .setLabel('👎')
         .setStyle(ButtonStyle.Danger),
-      new ButtonBuilder().setLabel('🔗 Ver Clip').setStyle(ButtonStyle.Link).setURL(clip.url)
+      new ButtonBuilder().setLabel('🔗 Ver Clip').setStyle(ButtonStyle.Link).setURL(clip.url),
     );
 
     await interaction.reply({

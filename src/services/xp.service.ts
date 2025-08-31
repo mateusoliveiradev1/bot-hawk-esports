@@ -140,7 +140,7 @@ export class XPService {
     userId: string,
     activityType: string,
     timeSpent?: number, // em horas
-    multiplier: number = 1
+    multiplier: number = 1,
   ): Promise<XPGainResult> {
     try {
       // Validar entrada
@@ -301,7 +301,7 @@ export class XPService {
   private async processLevelUpRewards(
     userId: string,
     oldLevel: number,
-    newLevel: number
+    newLevel: number,
   ): Promise<void> {
     try {
       if (!userId || oldLevel >= newLevel) {
@@ -440,12 +440,12 @@ export class XPService {
           });
 
           this.logger.info(
-            `🏆 Badge '${badgeInfo.name}' awarded to user ${userId} for reaching level ${level}`
+            `🏆 Badge '${badgeInfo.name}' awarded to user ${userId} for reaching level ${level}`,
           );
         } catch (badgeError) {
           this.logger.error(
             `Failed to award badge '${badgeInfo.badge}' to user ${userId}:`,
-            badgeError
+            badgeError,
           );
         }
       }
@@ -606,7 +606,7 @@ export class XPService {
    */
   public async getXPLeaderboard(
     guildId?: string,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<
     Array<{
       userId: string;
@@ -779,7 +779,7 @@ export class XPService {
    */
   public async addDailyChallengeXP(
     userId: string,
-    difficulty: 'easy' | 'medium' | 'hard' | 'extreme' | 'legendary' = 'medium'
+    difficulty: 'easy' | 'medium' | 'hard' | 'extreme' | 'legendary' = 'medium',
   ): Promise<XPGainResult> {
     try {
       if (!userId) {
@@ -823,7 +823,7 @@ export class XPService {
    */
   public async addAchievementXP(
     userId: string,
-    achievementPoints: number = 100
+    achievementPoints: number = 100,
   ): Promise<XPGainResult> {
     try {
       if (!userId) {
@@ -868,7 +868,7 @@ export class XPService {
   public async addChallengeXP(
     userId: string,
     difficulty: string,
-    baseXP: number = 60
+    baseXP: number = 60,
   ): Promise<XPGainResult> {
     try {
       if (!userId) {
@@ -891,7 +891,7 @@ export class XPService {
         userId,
         'DAILY_CHALLENGE',
         undefined,
-        finalXP / challengeBaseXP
+        finalXP / challengeBaseXP,
       );
 
       // Registrar atividade
@@ -967,7 +967,7 @@ export class XPService {
    */
   public async addTournamentWinXP(
     userId: string,
-    tournamentTier: 'local' | 'regional' | 'national' | 'international' = 'local'
+    tournamentTier: 'local' | 'regional' | 'national' | 'international' = 'local',
   ): Promise<XPGainResult> {
     try {
       if (!userId) {
@@ -1160,7 +1160,7 @@ export class XPService {
       }
 
       this.logger.info(
-        `🌟 User ${userId} prestiged to level ${newPrestigeLevel} with ${bonusXPPercent}% XP bonus`
+        `🌟 User ${userId} prestiged to level ${newPrestigeLevel} with ${bonusXPPercent}% XP bonus`,
       );
 
       return {

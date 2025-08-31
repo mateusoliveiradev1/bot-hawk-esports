@@ -109,7 +109,7 @@ export class ExclusiveBadgeService {
       async () => {
         await this.runAutomaticVerification();
       },
-      1000 * 60 * 60
+      1000 * 60 * 60,
     );
 
     // Initial check after 30 seconds
@@ -398,7 +398,7 @@ export class ExclusiveBadgeService {
       }
 
       const channel = this.client.channels.cache.get(
-        this.founderConfig.notificationChannelId
+        this.founderConfig.notificationChannelId,
       ) as TextChannel;
       if (!channel) {
         return;
@@ -409,7 +409,7 @@ export class ExclusiveBadgeService {
         .setDescription(`<@${founderId}> recebeu a badge exclusiva de **Fundador**!`)
         .addFields(
           { name: '🎁 Recompensas', value: '5000 XP\n2500 Moedas\nCargo Fundador', inline: true },
-          { name: '⭐ Raridade', value: 'Mítica (Única)', inline: true }
+          { name: '⭐ Raridade', value: 'Mítica (Única)', inline: true },
         )
         .setColor('#FFD700')
         .setTimestamp();
@@ -430,7 +430,7 @@ export class ExclusiveBadgeService {
         .setDescription('Parabéns! Você está entre os primeiros 100 membros da comunidade!')
         .addFields(
           { name: '🎁 Recompensas', value: '2000 XP\n1000 Moedas\nCargo Pioneiro', inline: true },
-          { name: '⭐ Raridade', value: 'Lendária', inline: true }
+          { name: '⭐ Raridade', value: 'Lendária', inline: true },
         )
         .setColor('#FF1493')
         .setTimestamp();

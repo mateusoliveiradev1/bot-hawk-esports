@@ -24,10 +24,10 @@ const moderation: Command = {
         .setName('ban')
         .setDescription('Banir um usuário do servidor')
         .addUserOption(option =>
-          option.setName('usuario').setDescription('Usuário a ser banido').setRequired(true)
+          option.setName('usuario').setDescription('Usuário a ser banido').setRequired(true),
         )
         .addStringOption(option =>
-          option.setName('motivo').setDescription('Motivo do banimento').setRequired(false)
+          option.setName('motivo').setDescription('Motivo do banimento').setRequired(false),
         )
         .addIntegerOption(option =>
           option
@@ -35,36 +35,36 @@ const moderation: Command = {
             .setDescription('Dias de mensagens para deletar (0-7)')
             .setRequired(false)
             .setMinValue(0)
-            .setMaxValue(7)
-        )
+            .setMaxValue(7),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('kick')
         .setDescription('Expulsar um usuário do servidor')
         .addUserOption(option =>
-          option.setName('usuario').setDescription('Usuário a ser expulso').setRequired(true)
+          option.setName('usuario').setDescription('Usuário a ser expulso').setRequired(true),
         )
         .addStringOption(option =>
-          option.setName('motivo').setDescription('Motivo da expulsão').setRequired(false)
-        )
+          option.setName('motivo').setDescription('Motivo da expulsão').setRequired(false),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('mute')
         .setDescription('Silenciar um usuário')
         .addUserOption(option =>
-          option.setName('usuario').setDescription('Usuário a ser silenciado').setRequired(true)
+          option.setName('usuario').setDescription('Usuário a ser silenciado').setRequired(true),
         )
         .addStringOption(option =>
           option
             .setName('duracao')
             .setDescription('Duração do mute (ex: 10m, 1h, 1d)')
-            .setRequired(true)
+            .setRequired(true),
         )
         .addStringOption(option =>
-          option.setName('motivo').setDescription('Motivo do silenciamento').setRequired(false)
-        )
+          option.setName('motivo').setDescription('Motivo do silenciamento').setRequired(false),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -74,30 +74,30 @@ const moderation: Command = {
           option
             .setName('usuario')
             .setDescription('Usuário para remover o silenciamento')
-            .setRequired(true)
-        )
+            .setRequired(true),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('warn')
         .setDescription('Dar um aviso a um usuário')
         .addUserOption(option =>
-          option.setName('usuario').setDescription('Usuário a receber o aviso').setRequired(true)
+          option.setName('usuario').setDescription('Usuário a receber o aviso').setRequired(true),
         )
         .addStringOption(option =>
-          option.setName('motivo').setDescription('Motivo do aviso').setRequired(true)
-        )
+          option.setName('motivo').setDescription('Motivo do aviso').setRequired(true),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('unwarn')
         .setDescription('Remover um aviso de um usuário')
         .addUserOption(option =>
-          option.setName('usuario').setDescription('Usuário para remover o aviso').setRequired(true)
+          option.setName('usuario').setDescription('Usuário para remover o aviso').setRequired(true),
         )
         .addStringOption(option =>
-          option.setName('aviso_id').setDescription('ID do aviso a ser removido').setRequired(false)
-        )
+          option.setName('aviso_id').setDescription('ID do aviso a ser removido').setRequired(false),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -109,14 +109,14 @@ const moderation: Command = {
             .setDescription('Quantidade de mensagens para deletar (1-100)')
             .setRequired(true)
             .setMinValue(1)
-            .setMaxValue(100)
+            .setMaxValue(100),
         )
         .addUserOption(option =>
           option
             .setName('usuario')
             .setDescription('Deletar apenas mensagens deste usuário')
-            .setRequired(false)
-        )
+            .setRequired(false),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -126,7 +126,7 @@ const moderation: Command = {
           option
             .setName('usuario')
             .setDescription('Ver logs de um usuário específico')
-            .setRequired(false)
+            .setRequired(false),
         )
         .addStringOption(option =>
           option
@@ -138,9 +138,9 @@ const moderation: Command = {
               { name: 'Kick', value: 'kick' },
               { name: 'Mute', value: 'mute' },
               { name: 'Warn', value: 'warn' },
-              { name: 'Clear', value: 'clear' }
-            )
-        )
+              { name: 'Clear', value: 'clear' },
+            ),
+        ),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers) as SlashCommandBuilder,
 
@@ -149,7 +149,7 @@ const moderation: Command = {
 
   async execute(
     interaction: CommandInteraction | ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const logger = new Logger();
 
@@ -220,7 +220,7 @@ const moderation: Command = {
 async function handleBanCommand(
   interaction: ChatInputCommandInteraction,
   client: ExtendedClient,
-  moderator: User
+  moderator: User,
 ): Promise<void> {
   const targetUser = interaction.options.getUser('usuario', true);
   const reason = interaction.options.getString('motivo') || 'Nenhum motivo fornecido';
@@ -253,7 +253,7 @@ async function handleBanCommand(
         .addFields(
           { name: '📝 Motivo', value: reason, inline: false },
           { name: '👮 Moderador', value: moderator.tag, inline: true },
-          { name: '📅 Data', value: new Date().toLocaleString('pt-BR'), inline: true }
+          { name: '📅 Data', value: new Date().toLocaleString('pt-BR'), inline: true },
         )
         .setColor(0xff0000)
         .setTimestamp();
@@ -286,7 +286,7 @@ async function handleBanCommand(
       .addFields(
         { name: '📝 Motivo', value: reason, inline: false },
         { name: '🗑️ Mensagens Deletadas', value: `${deleteMessageDays} dias`, inline: true },
-        { name: '👮 Moderador', value: moderator.tag, inline: true }
+        { name: '👮 Moderador', value: moderator.tag, inline: true },
       )
       .setColor(0xff0000)
       .setTimestamp();
@@ -308,7 +308,7 @@ async function handleBanCommand(
 async function handleKickCommand(
   interaction: ChatInputCommandInteraction,
   client: ExtendedClient,
-  moderator: User
+  moderator: User,
 ): Promise<void> {
   const targetUser = interaction.options.getUser('usuario', true);
   const reason = interaction.options.getString('motivo') || 'Nenhum motivo fornecido';
@@ -337,7 +337,7 @@ async function handleKickCommand(
         .addFields(
           { name: '📝 Motivo', value: reason, inline: false },
           { name: '👮 Moderador', value: moderator.tag, inline: true },
-          { name: '📅 Data', value: new Date().toLocaleString('pt-BR'), inline: true }
+          { name: '📅 Data', value: new Date().toLocaleString('pt-BR'), inline: true },
         )
         .setColor(0xffa500)
         .setTimestamp();
@@ -365,7 +365,7 @@ async function handleKickCommand(
       .setDescription(`**${targetUser.tag}** foi expulso com sucesso.`)
       .addFields(
         { name: '📝 Motivo', value: reason, inline: false },
-        { name: '👮 Moderador', value: moderator.tag, inline: true }
+        { name: '👮 Moderador', value: moderator.tag, inline: true },
       )
       .setColor(0xffa500)
       .setTimestamp();
@@ -387,7 +387,7 @@ async function handleKickCommand(
 async function handleMuteCommand(
   interaction: ChatInputCommandInteraction,
   client: ExtendedClient,
-  moderator: User
+  moderator: User,
 ): Promise<void> {
   const targetUser = interaction.options.getUser('usuario', true);
   const durationStr = interaction.options.getString('duracao', true);
@@ -440,7 +440,7 @@ async function handleMuteCommand(
       .addFields(
         { name: '📝 Motivo', value: reason, inline: false },
         { name: '⏰ Duração', value: durationStr, inline: true },
-        { name: '👮 Moderador', value: moderator.tag, inline: true }
+        { name: '👮 Moderador', value: moderator.tag, inline: true },
       )
       .setColor(0x808080)
       .setTimestamp();
@@ -462,7 +462,7 @@ async function handleMuteCommand(
 async function handleUnmuteCommand(
   interaction: ChatInputCommandInteraction,
   client: ExtendedClient,
-  moderator: User
+  moderator: User,
 ): Promise<void> {
   const targetUser = interaction.options.getUser('usuario', true);
   const guild = interaction.guild!;
@@ -495,7 +495,7 @@ async function handleUnmuteCommand(
     const errorEmbed = new EmbedBuilder()
       .setTitle('❌ Erro ao Remover Silenciamento')
       .setDescription(
-        `Não foi possível remover o silenciamento de **${targetUser.tag}**.\n\n**Erro:** ${error}`
+        `Não foi possível remover o silenciamento de **${targetUser.tag}**.\n\n**Erro:** ${error}`,
       )
       .setColor(0xff0000);
 
@@ -509,7 +509,7 @@ async function handleUnmuteCommand(
 async function handleWarnCommand(
   interaction: ChatInputCommandInteraction,
   client: ExtendedClient,
-  moderator: User
+  moderator: User,
 ): Promise<void> {
   const targetUser = interaction.options.getUser('usuario', true);
   const reason = interaction.options.getString('motivo', true);
@@ -531,7 +531,7 @@ async function handleWarnCommand(
         .addFields(
           { name: '📝 Motivo', value: reason, inline: false },
           { name: '👮 Moderador', value: moderator.tag, inline: true },
-          { name: '📅 Data', value: new Date().toLocaleString('pt-BR'), inline: true }
+          { name: '📅 Data', value: new Date().toLocaleString('pt-BR'), inline: true },
         )
         .setColor(0xffff00)
         .setTimestamp();
@@ -556,7 +556,7 @@ async function handleWarnCommand(
       .setDescription(`**${targetUser.tag}** recebeu um aviso.`)
       .addFields(
         { name: '📝 Motivo', value: reason, inline: false },
-        { name: '👮 Moderador', value: moderator.tag, inline: true }
+        { name: '👮 Moderador', value: moderator.tag, inline: true },
       )
       .setColor(0xffff00)
       .setTimestamp();
@@ -566,7 +566,7 @@ async function handleWarnCommand(
     const errorEmbed = new EmbedBuilder()
       .setTitle('❌ Erro ao Aplicar Aviso')
       .setDescription(
-        `Não foi possível aplicar aviso a **${targetUser.tag}**.\n\n**Erro:** ${error}`
+        `Não foi possível aplicar aviso a **${targetUser.tag}**.\n\n**Erro:** ${error}`,
       )
       .setColor(0xff0000);
 
@@ -580,7 +580,7 @@ async function handleWarnCommand(
 async function handleUnwarnCommand(
   interaction: ChatInputCommandInteraction,
   client: ExtendedClient,
-  moderator: User
+  moderator: User,
 ): Promise<void> {
   const targetUser = interaction.options.getUser('usuario', true);
   const warningId = interaction.options.getString('aviso_id');
@@ -602,7 +602,7 @@ async function handleUnwarnCommand(
 async function handleClearCommand(
   interaction: ChatInputCommandInteraction,
   client: ExtendedClient,
-  moderator: User
+  moderator: User,
 ): Promise<void> {
   const amount = interaction.options.getInteger('quantidade', true);
   const targetUser = interaction.options.getUser('usuario');
@@ -650,7 +650,7 @@ async function handleClearCommand(
       .setDescription(`**${messages.length}** mensagens foram deletadas.`)
       .addFields(
         { name: '📍 Canal', value: channel.name, inline: true },
-        { name: '👮 Moderador', value: moderator.tag, inline: true }
+        { name: '👮 Moderador', value: moderator.tag, inline: true },
       )
       .setColor(0x00ff00)
       .setTimestamp();
@@ -671,7 +671,7 @@ async function handleClearCommand(
  */
 async function handleLogsCommand(
   interaction: ChatInputCommandInteraction,
-  client: ExtendedClient
+  client: ExtendedClient,
 ): Promise<void> {
   const targetUser = interaction.options.getUser('usuario');
   const actionType = interaction.options.getString('tipo');
@@ -684,7 +684,7 @@ async function handleLogsCommand(
       { name: '📊 Estatísticas', value: 'Total de ações por tipo', inline: true },
       { name: '👥 Por Usuário', value: 'Histórico de ações específicas', inline: true },
       { name: '📅 Por Data', value: 'Filtros temporais avançados', inline: true },
-      { name: '🔍 Filtros', value: 'Por moderador, tipo de ação, etc.', inline: false }
+      { name: '🔍 Filtros', value: 'Por moderador, tipo de ação, etc.', inline: false },
     )
     .setColor(0x0099ff)
     .setTimestamp();
@@ -733,13 +733,13 @@ async function logModerationAction(
     reason: string;
     duration: number | null;
     additional?: any;
-  }
+  },
 ): Promise<void> {
   try {
     // This would integrate with a proper logging system
     const logger = new Logger();
     logger.info(
-      `Moderation action: ${action.type} by ${action.moderator.tag} on ${action.target?.tag || 'N/A'} - ${action.reason}`
+      `Moderation action: ${action.type} by ${action.moderator.tag} on ${action.target?.tag || 'N/A'} - ${action.reason}`,
     );
 
     // Future: Store in database and send to moderation log channel

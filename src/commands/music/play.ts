@@ -22,19 +22,19 @@ const play: Command = {
       option
         .setName('query')
         .setDescription('Nome da música, URL do YouTube/Spotify ou termo de busca')
-        .setRequired(true)
+        .setRequired(true),
     )
     .addBooleanOption(option =>
       option
         .setName('shuffle')
         .setDescription('Embaralhar a playlist (padrão: false)')
-        .setRequired(false)
+        .setRequired(false),
     )
     .addBooleanOption(option =>
       option
         .setName('next')
         .setDescription('Adicionar no início da fila (padrão: false)')
-        .setRequired(false)
+        .setRequired(false),
     ) as SlashCommandBuilder,
 
   category: CommandCategory.MUSIC,
@@ -89,7 +89,7 @@ const play: Command = {
         const notFoundEmbed = new EmbedBuilder()
           .setTitle('❌ Nenhuma música encontrada')
           .setDescription(
-            `Não foi possível encontrar resultados para: **${query}**\n\nTente:\n• Verificar a ortografia\n• Usar termos mais específicos\n• Usar um link direto do YouTube/Spotify`
+            `Não foi possível encontrar resultados para: **${query}**\n\nTente:\n• Verificar a ortografia\n• Usar termos mais específicos\n• Usar um link direto do YouTube/Spotify`,
           )
           .setColor('#FF0000');
 
@@ -119,7 +119,7 @@ const play: Command = {
       const wasEmpty = !queue || (!queue.currentTrack && queue.tracks.length <= 1);
 
       logger.debug(
-        `📊 Queue state: wasEmpty=${wasEmpty}, currentTrack=${queue?.currentTrack?.title || 'none'}, queueLength=${queue?.tracks.length || 0}`
+        `📊 Queue state: wasEmpty=${wasEmpty}, currentTrack=${queue?.currentTrack?.title || 'none'}, queueLength=${queue?.tracks.length || 0}`,
       );
 
       // The track was already added to queue by addTrack method
@@ -143,7 +143,7 @@ const play: Command = {
         embed = new EmbedBuilder()
           .setTitle('📋 Playlist Adicionada')
           .setDescription(
-            `**${addedTracks.length}** músicas foram adicionadas à fila${shuffle ? ' (embaralhadas)' : ''}!`
+            `**${addedTracks.length}** músicas foram adicionadas à fila${shuffle ? ' (embaralhadas)' : ''}!`,
           )
           .setColor('#00FF00')
           .addFields(
@@ -155,11 +155,11 @@ const play: Command = {
             {
               name: '⏱️ Duração Total',
               value: formatDuration(
-                addedTracks.reduce((total, track) => total + track.duration, 0)
+                addedTracks.reduce((total, track) => total + track.duration, 0),
               ),
               inline: true,
             },
-            { name: '👤 Solicitado por', value: `<@${interaction.user.id}>`, inline: true }
+            { name: '👤 Solicitado por', value: `<@${interaction.user.id}>`, inline: true },
           )
           .setThumbnail(addedTracks[0]?.thumbnail || '')
           .setTimestamp();
@@ -182,7 +182,7 @@ const play: Command = {
                 name: '🔗 Fonte',
                 value: track.platform === 'youtube' ? 'YouTube' : 'Spotify',
                 inline: true,
-              }
+              },
             )
             .setThumbnail(track.thumbnail || '');
 
@@ -232,7 +232,7 @@ const play: Command = {
           .setCustomId('music_stop')
           .setLabel('Parar')
           .setStyle(ButtonStyle.Danger)
-          .setEmoji('⏹️')
+          .setEmoji('⏹️'),
       );
 
       const response = await interaction.editReply({
@@ -294,7 +294,7 @@ const play: Command = {
 
       // Log music activity
       logger.info(
-        `🎵 Music command executed by ${interaction.user.tag} in ${interaction.guild?.name} - Query: ${query}, Track: ${addedTracks[0]?.title || 'Unknown'}`
+        `🎵 Music command executed by ${interaction.user.tag} in ${interaction.guild?.name} - Query: ${query}, Track: ${addedTracks[0]?.title || 'Unknown'}`,
       );
     } catch (error) {
       logger.error('Play command error:', error);
@@ -318,7 +318,7 @@ const play: Command = {
  */
 async function createQueueEmbed(
   guildId: string,
-  musicService: MusicService
+  musicService: MusicService,
 ): Promise<EmbedBuilder> {
   const queue = await musicService.getQueue(guildId);
 

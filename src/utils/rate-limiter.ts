@@ -62,7 +62,7 @@ export class RateLimiter {
       tracker = {
         count: 1,
         resetTime,
-        firstRequest: now
+        firstRequest: now,
       };
       this.store.set(key, tracker);
 
@@ -70,7 +70,7 @@ export class RateLimiter {
         allowed: true,
         remaining: this.config.maxRequests - 1,
         resetTime,
-        totalHits: 1
+        totalHits: 1,
       };
     }
 
@@ -84,7 +84,7 @@ export class RateLimiter {
         allowed: false,
         remaining: 0,
         resetTime: tracker.resetTime,
-        totalHits: tracker.count
+        totalHits: tracker.count,
       };
     }
 
@@ -96,7 +96,7 @@ export class RateLimiter {
       allowed: true,
       remaining: this.config.maxRequests - tracker.count,
       resetTime: tracker.resetTime,
-      totalHits: tracker.count
+      totalHits: tracker.count,
     };
   }
 
@@ -129,7 +129,7 @@ export class RateLimiter {
       allowed: tracker.count < this.config.maxRequests,
       remaining: Math.max(0, this.config.maxRequests - tracker.count),
       resetTime: tracker.resetTime,
-      totalHits: tracker.count
+      totalHits: tracker.count,
     };
   }
 
@@ -155,7 +155,7 @@ export class RateLimiter {
     return {
       activeKeys,
       totalRequests,
-      averageRequestsPerKey: activeKeys > 0 ? totalRequests / activeKeys : 0
+      averageRequestsPerKey: activeKeys > 0 ? totalRequests / activeKeys : 0,
     };
   }
 

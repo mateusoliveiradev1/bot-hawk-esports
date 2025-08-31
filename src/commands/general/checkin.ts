@@ -39,15 +39,15 @@ const checkin: Command = {
           { name: '🎯 Matchmaking (MM)', value: 'mm' },
           { name: '⚔️ Scrim', value: 'scrim' },
           { name: '🏆 Campeonato', value: 'campeonato' },
-          { name: '🎖️ Ranked', value: 'ranked' }
-        )
+          { name: '🎖️ Ranked', value: 'ranked' },
+        ),
     )
     .addStringOption(option =>
       option
         .setName('nome')
         .setDescription('Nome da partida/evento (obrigatório para scrim e campeonato)')
         .setRequired(false)
-        .setMaxLength(50)
+        .setMaxLength(50),
     ) as SlashCommandBuilder,
 
   category: CommandCategory.GENERAL,
@@ -55,7 +55,7 @@ const checkin: Command = {
 
   async execute(
     interaction: CommandInteraction | ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const logger = new Logger();
     const database = client.database;
@@ -79,7 +79,7 @@ const checkin: Command = {
         const errorEmbed = new EmbedBuilder()
           .setTitle('❌ Nome Obrigatório')
           .setDescription(
-            `Para sessões de **${getTipoDisplayName(tipo)}**, você deve informar o nome da partida/evento.`
+            `Para sessões de **${getTipoDisplayName(tipo)}**, você deve informar o nome da partida/evento.`,
           )
           .setColor(0xff0000)
           .setTimestamp();
@@ -98,7 +98,7 @@ const checkin: Command = {
         const registerEmbed = new EmbedBuilder()
           .setTitle('❌ Usuário Não Registrado')
           .setDescription(
-            'Você precisa se registrar primeiro usando `/register` para fazer check-in!'
+            'Você precisa se registrar primeiro usando `/register` para fazer check-in!',
           )
           .setColor(0xff0000)
           .setTimestamp();
@@ -118,14 +118,14 @@ const checkin: Command = {
           guildId,
           userId,
           sessionName,
-          `Tipo: ${tipo}${nome ? ` | Nome: ${nome}` : ''}`
+          `Tipo: ${tipo}${nome ? ` | Nome: ${nome}` : ''}`,
         );
 
         checkInResult = enhancedResult;
         pubgValidation = enhancedResult.validation;
 
         logger.info(
-          `Enhanced check-in for user ${userId}: ${enhancedResult.success ? 'Success' : 'Failed'}`
+          `Enhanced check-in for user ${userId}: ${enhancedResult.success ? 'Success' : 'Failed'}`,
         );
       } else {
         // Fallback to regular check-in
@@ -135,7 +135,7 @@ const checkin: Command = {
           sessionName,
           `Tipo: ${tipo}${nome ? ` | Nome: ${nome}` : ''}`,
           interaction.user.id,
-          `Discord Bot - ${tipo}`
+          `Discord Bot - ${tipo}`,
         );
 
         logger.warn('PresenceEnhancementsService not available, using regular check-in');
@@ -157,7 +157,7 @@ const checkin: Command = {
         interaction as ChatInputCommandInteraction,
         tipo,
         sessionName,
-        nome || undefined
+        nome || undefined,
       );
 
       // Calculate XP and streak info
@@ -218,7 +218,7 @@ const checkin: Command = {
             name: '⏰ Início',
             value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
             inline: true,
-          }
+          },
         )
         .setThumbnail(interaction.user.displayAvatarURL())
         .setTimestamp();
@@ -241,7 +241,7 @@ const checkin: Command = {
           name: '🔥 Streak Atual',
           value: `${currentStreak} dias`,
           inline: true,
-        }
+        },
       );
 
       // Add PUBG validation info if available
@@ -305,7 +305,7 @@ const checkin: Command = {
         new ButtonBuilder()
           .setCustomId(`confirm_presence_${userId}`)
           .setLabel('✅ Confirmar Presença')
-          .setStyle(ButtonStyle.Primary)
+          .setStyle(ButtonStyle.Primary),
       );
 
       // Create secondary action buttons
@@ -321,7 +321,7 @@ const checkin: Command = {
         new ButtonBuilder()
           .setCustomId(`session_participants_${userId}`)
           .setLabel('👤 Participantes')
-          .setStyle(ButtonStyle.Secondary)
+          .setStyle(ButtonStyle.Secondary),
       );
 
       const response = await interaction.editReply({
@@ -336,7 +336,7 @@ const checkin: Command = {
         presenceService,
         userId,
         guildId,
-        channelResult
+        channelResult,
       );
 
       logger.info(`User ${userId} checked in successfully for ${tipo} session`);
@@ -346,7 +346,7 @@ const checkin: Command = {
       const errorEmbed = new EmbedBuilder()
         .setTitle('❌ Erro Interno')
         .setDescription(
-          'Ocorreu um erro ao processar seu check-in. Tente novamente em alguns instantes.'
+          'Ocorreu um erro ao processar seu check-in. Tente novamente em alguns instantes.',
         )
         .setColor(0xff0000)
         .setTimestamp();
@@ -393,7 +393,7 @@ async function createSessionChannels(
   interaction: ChatInputCommandInteraction,
   tipo: string,
   sessionName: string,
-  nome?: string
+  nome?: string,
 ): Promise<{ voiceChannel?: VoiceChannel; textChannel?: TextChannel }> {
   try {
     const guild = interaction.guild!;
@@ -406,7 +406,7 @@ async function createSessionChannels(
     category =
       guild.channels.cache.find(
         (channel): channel is CategoryChannel =>
-          channel.type === ChannelType.GuildCategory && channel.name === categoryName
+          channel.type === ChannelType.GuildCategory && channel.name === categoryName,
       ) || null;
 
     if (!category) {
@@ -477,7 +477,7 @@ async function createSessionChannels(
       const welcomeEmbed = new EmbedBuilder()
         .setTitle(`🎮 ${nome || sessionName}`)
         .setDescription(
-          `Canal criado para a sessão de **${getTipoDisplayName(tipo)}**\n\nBoa sorte e divirtam-se! 🎯`
+          `Canal criado para a sessão de **${getTipoDisplayName(tipo)}**\n\nBoa sorte e divirtam-se! 🎯`,
         )
         .setColor(0x00ff00)
         .setTimestamp();
@@ -501,7 +501,7 @@ async function createSessionChannels(
 async function checkPresenceBadges(
   badgeService: BadgeService,
   userId: string,
-  tipo: string
+  tipo: string,
 ): Promise<void> {
   try {
     // Award first check-in badge
@@ -532,7 +532,7 @@ function setupButtonCollector(
   presenceService: PresenceService,
   userId: string,
   guildId: string,
-  channelResult: { voiceChannel?: VoiceChannel; textChannel?: TextChannel }
+  channelResult: { voiceChannel?: VoiceChannel; textChannel?: TextChannel },
 ): void {
   const collector = response.createMessageComponentCollector({
     componentType: ComponentType.Button,
@@ -549,7 +549,7 @@ function setupButtonCollector(
     ];
 
     const isOwnerOnly = !allowedForAll.some(id =>
-      buttonInteraction.customId.includes(id.replace(`_${userId}`, ''))
+      buttonInteraction.customId.includes(id.replace(`_${userId}`, '')),
     );
 
     if (isOwnerOnly && buttonInteraction.user.id !== userId) {
@@ -566,7 +566,7 @@ function setupButtonCollector(
         const checkoutResult = await presenceService.checkOut(
           guildId,
           userId,
-          'Check-out via botão'
+          'Check-out via botão',
         );
 
         const embed = new EmbedBuilder()
@@ -584,7 +584,7 @@ function setupButtonCollector(
               .setCustomId('checkout_disabled')
               .setLabel('✅ Check-out Realizado')
               .setStyle(ButtonStyle.Success)
-              .setDisabled(true)
+              .setDisabled(true),
           );
 
           await response.edit({ components: [disabledButtons] });
@@ -601,7 +601,7 @@ function setupButtonCollector(
               '• Compartilhe os links dos canais com seus amigos\n' +
               '• Eles podem entrar diretamente nos canais\n' +
               '• Use o botão "✅ Confirmar Presença" quando chegarem\n' +
-              '• O criador da sessão pode fazer check-out por todos'
+              '• O criador da sessão pode fazer check-out por todos',
           )
           .setColor(0x00ff00)
           .setTimestamp();
@@ -627,7 +627,7 @@ function setupButtonCollector(
             `${confirmingUser.displayName} confirmou presença na sessão!\n\n` +
               `⏰ **Confirmado em:** <t:${Math.floor(Date.now() / 1000)}:F>\n` +
               `🔊 **Canal:** ${channelResult.voiceChannel ? `<#${channelResult.voiceChannel.id}>` : 'N/A'}\n\n` +
-              '💡 **Lembre-se:** Faça check-out quando sair para evitar penalidades!'
+              '💡 **Lembre-se:** Faça check-out quando sair para evitar penalidades!',
           )
           .setColor(0x00ff00)
           .setThumbnail(confirmingUser.displayAvatarURL())
@@ -656,7 +656,7 @@ function setupButtonCollector(
           .setDescription(
             `**Canal de Voz:** ${channelResult.voiceChannel ? `<#${channelResult.voiceChannel.id}>` : 'N/A'}\n\n` +
               `**Participantes Ativos (${voiceMembers?.size || 0}):**\n${participantsList}\n\n` +
-              '💡 **Dica:** Use "✅ Confirmar Presença" para registrar sua participação!'
+              '💡 **Dica:** Use "✅ Confirmar Presença" para registrar sua participação!',
           )
           .setColor(0x3498db)
           .setTimestamp();
@@ -677,7 +677,7 @@ function setupButtonCollector(
           .addFields(
             { name: '⏰ Início', value: `<t:${sessionStart}:F>`, inline: true },
             { name: '⏱️ Duração', value: `<t:${sessionStart}:R>`, inline: true },
-            { name: '🎮 Status', value: '🟢 Ativa', inline: true }
+            { name: '🎮 Status', value: '🟢 Ativa', inline: true },
           )
           .setColor(0x00ff00)
           .setTimestamp();
@@ -701,7 +701,7 @@ function setupButtonCollector(
           .setCustomId('expired')
           .setLabel('⏰ Botões Expirados')
           .setStyle(ButtonStyle.Secondary)
-          .setDisabled(true)
+          .setDisabled(true),
       );
 
       await response.edit({ components: [expiredButtons] });
@@ -717,7 +717,7 @@ function setupButtonCollector(
 function scheduleChannelCleanup(
   voiceChannel: VoiceChannel,
   textChannel?: TextChannel,
-  tipo?: string
+  tipo?: string,
 ): void {
   // Get configuration for this session type
   const config = getChannelConfig(tipo);
