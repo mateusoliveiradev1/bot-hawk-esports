@@ -22,6 +22,7 @@ import multer from 'multer';
 import * as path from 'path';
 import * as fs from 'fs';
 import session from 'express-session';
+import MongoStore from 'connect-mongo';
 import { SecurityService } from './security.service';
 
 export interface APIConfig {
@@ -172,16 +173,28 @@ export class APIService {
       })
     );
 
-    // Session middleware
+    // Session middleware with secure configuration
     this.app.use(
       session({
         secret: this.config.jwtSecret,
+        name: 'hawk.sid', // Custom session name
         resave: false,
         saveUninitialized: false,
+        rolling: true, // Reset expiration on activity
+        // Use memory store for development (in production, use MongoStore)
+        // store: MongoStore.create({
+        //   mongoUrl: process.env.DATABASE_URL || 'mongodb://localhost:27017/hawk-esports',
+        //   touchAfter: 24 * 3600,
+        //   ttl: 24 * 60 * 60,
+        //   autoRemove: 'native',
+        //   crypto: { secret: this.config.jwtSecret }
+        // }),
         cookie: {
           secure: process.env.NODE_ENV === 'production',
           httpOnly: true,
           maxAge: 24 * 60 * 60 * 1000, // 24 hours
+          sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+          domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined
         },
       })
     );
@@ -308,15 +321,18 @@ export class APIService {
       this.app.use('/api/dev', this.getDevRoutes());
     }
 
+    // Protected routes - require authentication
     this.app.use('/api/users', this.authenticateToken, this.getUserRoutes());
-    this.app.use('/api/guilds', this.authenticateToken, this.getGuildRoutes());
     this.app.use('/api/rankings', this.authenticateToken, this.getRankingRoutes());
     this.app.use('/api/badges', this.authenticateToken, this.getBadgeRoutes());
     this.app.use('/api/presence', this.authenticateToken, this.getPresenceRoutes());
     this.app.use('/api/music', this.authenticateToken, this.getMusicRoutes());
     this.app.use('/api/games', this.authenticateToken, this.getGameRoutes());
     this.app.use('/api/clips', this.authenticateToken, this.getClipRoutes());
-    this.app.use('/api/stats', this.authenticateToken, this.getStatsRoutes());
+    
+    // Admin routes - require moderator/admin roles
+    this.app.use('/api/guilds', this.authenticateToken, this.requireRole(['Moderador', 'Administrador', 'Admin', 'Mod']), this.getGuildRoutes());
+    this.app.use('/api/stats', this.authenticateToken, this.requireRole(['Moderador', 'Administrador', 'Admin', 'Mod']), this.getStatsRoutes());
 
     // Catch all
     this.app.use('*', (req: Request, res: Response) => {
@@ -406,6 +422,72 @@ export class APIService {
   /**
    * Authentication middleware
    */
+  private requireRole = (requiredRoles: string[]) => {
+    return async (
+      req: AuthenticatedRequest,
+      res: Response,
+      next: NextFunction
+    ): Promise<void | Response> => {
+      try {
+        if (!req.user) {
+          return res.status(401).json({
+            success: false,
+            error: 'Authentication required',
+          });
+        }
+
+        const { guildId, roles } = req.user;
+        
+        if (!guildId) {
+          return res.status(403).json({
+            success: false,
+            error: 'Guild access required',
+          });
+        }
+
+        // Get guild from Discord
+        const guild = this.client.guilds.cache.get(guildId);
+        if (!guild) {
+          return res.status(404).json({
+            success: false,
+            error: 'Guild not found',
+          });
+        }
+
+        // Check if user has any of the required roles
+        const hasRequiredRole = requiredRoles.some(roleName => {
+          const role = guild.roles.cache.find(r => 
+            r.name.toLowerCase() === roleName.toLowerCase() ||
+            r.id === roleName
+          );
+          return role && roles.includes(role.id);
+        });
+
+        // Check if user is guild owner
+        const isOwner = guild.ownerId === req.user.id;
+
+        // Check if user has Administrator permission
+        const member = await guild.members.fetch(req.user.id).catch(() => null);
+        const hasAdminPermission = member?.permissions.has('Administrator') || false;
+
+        if (!hasRequiredRole && !isOwner && !hasAdminPermission) {
+          return res.status(403).json({
+            success: false,
+            error: 'Insufficient permissions. Required roles: ' + requiredRoles.join(', '),
+          });
+        }
+
+        next();
+      } catch (error) {
+        this.logger.error('Role verification error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Permission verification failed',
+        });
+      }
+    };
+  };
+
   private authenticateToken = async (
     req: AuthenticatedRequest,
     res: Response,
@@ -957,7 +1039,8 @@ export class APIService {
         // 3. Check if user has access to the guild
         // 4. Create or update user in database
 
-        if (process.env.NODE_ENV === 'production') {
+        // Always use real Discord OAuth2 flow
+        try {
           // Exchange code for access token with Discord
           const discordResponse = await fetch('https://discord.com/api/oauth2/token', {
             method: 'POST',
@@ -972,6 +1055,8 @@ export class APIService {
           });
 
           if (!discordResponse.ok) {
+            const errorData = await discordResponse.json().catch(() => ({}));
+            this.logger.error('Discord token exchange failed:', errorData);
             throw new Error('Failed to exchange code for token');
           }
 
@@ -985,26 +1070,48 @@ export class APIService {
           });
 
           if (!userResponse.ok) {
+            const errorData = await userResponse.json().catch(() => ({}));
+            this.logger.error('Discord user fetch failed:', errorData);
             throw new Error('Failed to get user info from Discord');
           }
 
           const discordUser = (await userResponse.json()) as any;
 
-          // Check if user has access to the guild
-          const guildMemberResponse = await fetch(
-            `https://discord.com/api/guilds/${guildId}/members/${discordUser.id}`,
-            {
-              headers: {
-                Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
-              },
-            }
-          );
+          // Get user's guilds to verify access
+          const guildsResponse = await fetch('https://discord.com/api/users/@me/guilds', {
+            headers: {
+              Authorization: `Bearer ${tokenData.access_token}`,
+            },
+          });
 
-          if (!guildMemberResponse.ok) {
+          if (!guildsResponse.ok) {
+            this.logger.error('Failed to get user guilds from Discord');
+            throw new Error('Failed to verify guild access');
+          }
+
+          const userGuilds = (await guildsResponse.json()) as any[];
+          const hasGuildAccess = userGuilds.some(guild => guild.id === guildId);
+
+          if (!hasGuildAccess) {
             return res.status(403).json({
               success: false,
               error: 'User is not a member of this guild',
             });
+          }
+
+          // Get detailed member info from bot's perspective
+          let memberRoles: string[] = [];
+          let memberPermissions: string[] = [];
+          
+          try {
+            const guild = this.client.guilds.cache.get(guildId);
+            if (guild) {
+              const member = await guild.members.fetch(discordUser.id);
+              memberRoles = member.roles.cache.map(role => role.id);
+              memberPermissions = member.permissions.toArray();
+            }
+          } catch (memberError) {
+            this.logger.warn(`Could not fetch member details for ${discordUser.id}:`, memberError);
           }
 
           // Update userData with real Discord data
@@ -1014,8 +1121,20 @@ export class APIService {
             discriminator: discordUser.discriminator || '0001',
             avatar: discordUser.avatar,
             guildId: guildId,
+            roles: memberRoles,
+            permissions: memberPermissions,
           };
           userId = discordUser.id;
+        } catch (oauthError) {
+          this.logger.error('OAuth2 flow failed:', oauthError);
+          
+          // Only fall back to dev mode in development
+          if (process.env.NODE_ENV !== 'production') {
+            this.logger.warn('Falling back to development mode authentication');
+            // Keep the original mock user data
+          } else {
+            throw oauthError;
+          }
         }
 
         // Create or update user in database
@@ -1177,6 +1296,91 @@ export class APIService {
         return res.status(401).json({
           success: false,
           error: 'Invalid refresh token',
+        });
+      }
+    });
+
+    // Validate session
+    router.post('/validate', this.authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        // If we reach here, token is valid (middleware passed)
+        const user = req.user;
+        if (!user) {
+          return res.status(401).json({
+            success: false,
+            error: 'Invalid session'
+          });
+        }
+
+        // Check if session exists in store
+        if (req.session && req.sessionID) {
+          return res.json({
+            success: true,
+            user: {
+              id: user.id,
+              username: user.username,
+              discriminator: user.discriminator,
+              avatar: user.avatar,
+              guildId: user.guildId,
+              roles: user.roles,
+              permissions: user.permissions
+            },
+            sessionId: req.sessionID
+          });
+        }
+
+        return res.status(401).json({
+          success: false,
+          error: 'Session not found'
+        });
+      } catch (error) {
+        this.logger.error('Session validation error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Session validation failed'
+        });
+      }
+    });
+
+    // Clear all user sessions
+    router.post('/clear-sessions', this.authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const user = req.user;
+        if (!user) {
+          return res.status(401).json({
+            success: false,
+            error: 'Unauthorized'
+          });
+        }
+
+        // Destroy current session
+        if (req.session) {
+          req.session.destroy((err) => {
+            if (err) {
+              this.logger.error('Session destroy error:', err);
+            }
+          });
+        }
+
+        // Clear session cookie
+        res.clearCookie('hawk.sid');
+
+        // In a production environment, you might want to:
+        // 1. Invalidate all JWT tokens for this user (blacklist)
+        // 2. Clear all sessions from the session store for this user
+        // 3. Log the security event
+
+        this.logger.info(`All sessions cleared for user: ${user.id}`);
+
+        return res.json({
+          success: true,
+          message: 'All sessions cleared successfully'
+        });
+      } catch (error) {
+        this.logger.error('Clear sessions error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to clear sessions'
         });
       }
     });

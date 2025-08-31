@@ -48,16 +48,15 @@ const Login: React.FC = () => {
   };
 
   const handleDiscordLogin = () => {
-    // For development, simulate Discord OAuth
     const guildId = '1409723307489755270';
-    const mockCode = 'dev-mock-code-' + Date.now();
+    const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID || '1409723307489755270';
+    const redirectUri = encodeURIComponent(import.meta.env.VITE_DISCORD_REDIRECT_URI || 'http://localhost:5173/login');
     
-    // In production, redirect to Discord OAuth URL:
-    // const discordOAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds&guild_id=${guildId}`;
-    // window.location.href = discordOAuthUrl;
+    // Redirect to Discord OAuth URL
+    const discordOAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=identify%20guilds&guild_id=${guildId}&prompt=consent`;
     
-    // For development, simulate the callback
-    handleDiscordCallback(mockCode, guildId);
+    console.log('Redirecting to Discord OAuth:', discordOAuthUrl);
+    window.location.href = discordOAuthUrl;
   };
 
   if (isLoading || isProcessing) {
@@ -273,23 +272,21 @@ const Login: React.FC = () => {
               </motion.div>
             </div>
 
-            {/* Development Notice */}
-            {process.env.NODE_ENV === 'development' && (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
-                className="mt-6 bg-amber-50 border border-amber-200 rounded-xl p-4"
-              >
-                <div className="flex items-center space-x-2 mb-2">
-                  <Sparkles className="w-4 h-4 text-amber-600" />
-                  <span className="text-amber-800 text-sm font-medium">Modo de Desenvolvimento</span>
-                </div>
-                <p className="text-amber-700 text-xs">
-                  Este é um ambiente de desenvolvimento. A autenticação é simulada para testes.
-                </p>
-              </motion.div>
-            )}
+            {/* Security Notice */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 }}
+              className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4"
+            >
+              <div className="flex items-center space-x-2 mb-2">
+                <Shield className="w-4 h-4 text-blue-600" />
+                <span className="text-blue-800 text-sm font-medium">Autenticação Segura</span>
+              </div>
+              <p className="text-blue-700 text-xs">
+                Sua autenticação é processada de forma segura através do Discord OAuth2.
+              </p>
+            </motion.div>
           </motion.div>
         </div>
       </div>

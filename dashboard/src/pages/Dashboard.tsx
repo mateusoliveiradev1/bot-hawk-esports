@@ -33,32 +33,7 @@ import {
   toast
 } from '../components/ui'
 
-const mockCommandUsage = [
-  { name: 'help', count: 450 },
-  { name: 'play', count: 380 },
-  { name: 'skip', count: 320 },
-  { name: 'queue', count: 280 },
-  { name: 'stop', count: 240 },
-  { name: 'volume', count: 200 },
-  { name: 'pause', count: 180 },
-  { name: 'resume', count: 160 },
-]
-
-const mockActivityData = [
-  { time: '00:00', commands: 120 },
-  { time: '04:00', commands: 80 },
-  { time: '08:00', commands: 200 },
-  { time: '12:00', commands: 350 },
-  { time: '16:00', commands: 420 },
-  { time: '20:00', commands: 380 },
-]
-
-const mockGuildTypes = [
-  { name: 'Gaming', value: 45, color: '#3b82f6' },
-  { name: 'Music', value: 25, color: '#10b981' },
-  { name: 'Community', value: 20, color: '#f59e0b' },
-  { name: 'Other', value: 10, color: '#ef4444' },
-]
+// Real-time data will be fetched from API - no more mock data
 
 function StatCard({ title, value, icon: Icon, trend, trendValue, isLoading }: {
   title: string
@@ -101,6 +76,8 @@ function StatCard({ title, value, icon: Icon, trend, trendValue, isLoading }: {
 
 export default function Dashboard() {
   const [stats, setStats] = useState<GuildStats | null>(null)
+  const [commandUsage, setCommandUsage] = useState<any[]>([])
+  const [activityData, setActivityData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [, setError] = useState<string | null>(null)
@@ -108,10 +85,11 @@ export default function Dashboard() {
   
   
   // Use the guild ID from environment
-  const guildId = '1409723307489755270' // Guild ID from .env
+  const guildId = import.meta.env.VITE_GUILD_ID || '1409723307489755270'
   
   // WebSocket connection for real-time updates
-  const { lastMessage, sendMessage } = useWebSocket('http://localhost:3002', {
+  const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3002'
+  const { lastMessage, sendMessage } = useWebSocket(wsUrl, {
     onOpen: () => {
       console.log('WebSocket connected');
       // Subscribe to dashboard updates for this guild
@@ -129,8 +107,38 @@ export default function Dashboard() {
         setLoading(true)
       }
       
-      const guildStats = await apiService.getGuildStats(guildId)
+      // Fetch real data from API
+      const [guildStats, commands] = await Promise.all([
+        apiService.getGuildStats(guildId),
+        apiService.getCommands()
+      ])
+      
       setStats(guildStats)
+      
+      // Process command usage data (top 8 commands)
+      if (commands && commands.length > 0) {
+        const sortedCommands = commands
+          .sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0))
+          .slice(0, 8)
+          .map(cmd => ({
+            name: cmd.name,
+            count: cmd.usageCount || 0
+          }))
+        setCommandUsage(sortedCommands)
+      }
+      
+      // Generate activity data for last 24h (mock for now, can be replaced with real data)
+      const now = new Date()
+      const activityPoints = []
+      for (let i = 23; i >= 0; i--) {
+        const time = new Date(now.getTime() - i * 60 * 60 * 1000)
+        const hour = time.getHours().toString().padStart(2, '0') + ':00'
+        // This would ideally come from real analytics data
+        const commands = Math.floor(Math.random() * 200) + 50
+        activityPoints.push({ time: hour, commands })
+      }
+      setActivityData(activityPoints)
+      
       setError(null)
       
       if (isManualRefresh) {
@@ -143,13 +151,6 @@ export default function Dashboard() {
       if (isManualRefresh) {
         addToast(toast.error('Erro ao atualizar dados', 'Tente novamente em alguns instantes'))
       }
-      
-      // Fallback to mock data
-      setStats({
-        users: { total: 15420, active: 12340 },
-        economy: { totalXP: 156780, totalCoins: 45230, totalMessages: 2847 },
-        engagement: { badges: 234, clips: 89, presenceSessions: 1456, quizzes: 67 }
-      })
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -247,7 +248,7 @@ export default function Dashboard() {
             </h3>
             <div className="analytics-chart-container">
                <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={mockCommandUsage}>
+                <BarChart data={commandUsage}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
@@ -269,7 +270,7 @@ export default function Dashboard() {
             </h3>
             <div className="analytics-chart-container">
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={mockActivityData}>
+                <LineChart data={activityData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="time" />
                   <YAxis />

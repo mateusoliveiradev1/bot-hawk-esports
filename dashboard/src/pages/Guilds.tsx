@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Search,
@@ -13,48 +13,7 @@ import {
 } from 'lucide-react'
 import { formatNumber, formatRelativeTime } from '../lib/utils'
 
-// Mock data
-const mockGuilds = [
-  {
-    id: '1',
-    name: 'Gaming Community BR',
-    icon: null,
-    memberCount: 1250,
-    owner: 'João#1234',
-    joinedAt: '2024-01-15T10:30:00Z',
-    lastActivity: '2024-01-20T14:22:00Z',
-    commandsUsed: 2847,
-    category: 'Gaming',
-    premium: true,
-    features: ['music', 'moderation', 'leveling'],
-  },
-  {
-    id: '2',
-    name: 'Music Lovers',
-    icon: null,
-    memberCount: 890,
-    owner: 'Maria#5678',
-    joinedAt: '2024-01-10T08:15:00Z',
-    lastActivity: '2024-01-20T12:45:00Z',
-    commandsUsed: 1456,
-    category: 'Music',
-    premium: false,
-    features: ['music'],
-  },
-  {
-    id: '3',
-    name: 'Competitive Gaming',
-    icon: null,
-    memberCount: 2100,
-    owner: 'Pedro#9012',
-    joinedAt: '2024-01-05T16:20:00Z',
-    lastActivity: '2024-01-19T20:10:00Z',
-    commandsUsed: 3921,
-    category: 'Gaming',
-    premium: true,
-    features: ['music', 'moderation', 'leveling', 'tournaments'],
-  },
-]
+// Real guilds data will be fetched from API
 
 const categoryColors = {
   Gaming: 'bg-blue-100 text-blue-800',
@@ -72,15 +31,38 @@ const featureIcons = {
 
 export default function Guilds() {
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterCategory, setFilterCategory] = useState('all')
+  const [sortBy, setSortBy] = useState<'name' | 'members' | 'activity' | 'commands'>('name')
+  const [filterCategory, setFilterCategory] = useState<string>('all')
+  const [isLoading, setIsLoading] = useState(true)
+  const [guilds, setGuilds] = useState<any[]>([])
+  const [error, setError] = useState<string | null>(null)
   const [filterPremium, setFilterPremium] = useState('all')
 
-  const { data: guilds } = useQuery({
-    queryKey: ['guilds'],
-    queryFn: () => Promise.resolve(mockGuilds),
-  })
+  const fetchGuilds = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      const response = await fetch('/api/guilds')
+      if (response.ok) {
+        const data = await response.json()
+        setGuilds(data.guilds || [])
+      } else {
+        throw new Error('Failed to fetch guilds')
+      }
+    } catch (err) {
+      console.error('Failed to fetch guilds:', err)
+      setError('Failed to load guilds')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
-  const filteredGuilds = guilds?.filter(guild => {
+  useEffect(() => {
+    fetchGuilds()
+  }, [])
+
+  const filteredGuilds = guilds.filter(guild => {
     const matchesSearch = guild.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          guild.owner.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesCategory = filterCategory === 'all' || guild.category === filterCategory

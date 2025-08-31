@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import {
   Save,
@@ -13,53 +13,41 @@ import {
   CheckCircle,
 } from 'lucide-react'
 
-// Mock data
-const mockSettings = {
-  bot: {
-    name: 'Bot Hawk Esports',
-    status: 'online',
-    activity: 'Listening to /help',
-    prefix: '!',
-    language: 'pt-BR',
-  },
-  database: {
-    host: 'localhost',
-    port: 5432,
-    name: 'hawk_esports',
-    ssl: false,
-  },
-  redis: {
-    host: 'localhost',
-    port: 6379,
-    password: '',
-  },
-  features: {
-    music: true,
-    moderation: true,
-    leveling: true,
-    automod: false,
-    welcomeMessages: true,
-    logging: true,
-  },
-  notifications: {
-    errors: true,
-    warnings: true,
-    newGuilds: true,
-    updates: false,
-  },
-  api: {
-    rateLimit: 100,
-    timeout: 5000,
-    retries: 3,
-  },
-}
+// Real settings data will be fetched from API
 
 type SettingsSection = 'bot' | 'database' | 'features' | 'notifications' | 'api'
 
 export default function Settings() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('bot')
-  const [settings, setSettings] = useState(mockSettings)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [settings, setSettings] = useState<any>({})
+  const [error, setError] = useState<string | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
+
+  const fetchSettings = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      const response = await fetch('/api/settings')
+      if (response.ok) {
+        const data = await response.json()
+        setSettings(data)
+      } else {
+        throw new Error('Failed to fetch settings')
+      }
+    } catch (err) {
+      console.error('Failed to fetch settings:', err)
+      setError('Failed to load settings')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchSettings()
+  }, [])
 
   // Settings are managed locally with mockSettings
 

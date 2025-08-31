@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   BarChart,
@@ -25,86 +25,64 @@ import {
   Activity,
 } from 'lucide-react'
 import { formatNumber } from '../lib/utils'
+import { apiService } from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
+import { useDashboardWebSocket } from '../hooks/useWebSocket'
 
-// Mock data
-const mockDailyStats = [
-  { date: '2024-01-14', users: 1200, commands: 3400, guilds: 85 },
-  { date: '2024-01-15', users: 1350, commands: 3800, guilds: 86 },
-  { date: '2024-01-16', users: 1280, commands: 3200, guilds: 87 },
-  { date: '2024-01-17', users: 1450, commands: 4100, guilds: 88 },
-  { date: '2024-01-18', users: 1380, commands: 3900, guilds: 88 },
-  { date: '2024-01-19', users: 1520, commands: 4300, guilds: 89 },
-  { date: '2024-01-20', users: 1600, commands: 4500, guilds: 89 },
-]
-
-const mockHourlyActivity = [
-  { hour: '00', commands: 120, users: 80 },
-  { hour: '01', commands: 90, users: 60 },
-  { hour: '02', commands: 70, users: 45 },
-  { hour: '03', commands: 60, users: 40 },
-  { hour: '04', commands: 80, users: 55 },
-  { hour: '05', commands: 100, users: 70 },
-  { hour: '06', commands: 150, users: 100 },
-  { hour: '07', commands: 200, users: 140 },
-  { hour: '08', commands: 250, users: 180 },
-  { hour: '09', commands: 300, users: 220 },
-  { hour: '10', commands: 350, users: 250 },
-  { hour: '11', commands: 380, users: 270 },
-  { hour: '12', commands: 420, users: 300 },
-  { hour: '13', commands: 450, users: 320 },
-  { hour: '14', commands: 480, users: 340 },
-  { hour: '15', commands: 460, users: 330 },
-  { hour: '16', commands: 440, users: 310 },
-  { hour: '17', commands: 400, users: 280 },
-  { hour: '18', commands: 380, users: 260 },
-  { hour: '19', commands: 350, users: 240 },
-  { hour: '20', commands: 320, users: 220 },
-  { hour: '21', commands: 280, users: 190 },
-  { hour: '22', commands: 220, users: 150 },
-  { hour: '23', commands: 160, users: 110 },
-]
-
-const mockCommandCategories = [
-  { name: 'Music', value: 45, color: '#8b5cf6' },
-  { name: 'Moderation', value: 25, color: '#ef4444' },
-  { name: 'Leveling', value: 15, color: '#10b981' },
-  { name: 'Utility', value: 10, color: '#3b82f6' },
-  { name: 'Fun', value: 5, color: '#f59e0b' },
-]
-
-const mockTopCommands = [
-  { name: 'play', count: 1250 },
-  { name: 'skip', count: 890 },
-  { name: 'queue', count: 720 },
-  { name: 'help', count: 650 },
-  { name: 'level', count: 580 },
-  { name: 'stop', count: 450 },
-  { name: 'volume', count: 380 },
-  { name: 'pause', count: 320 },
-]
-
-const mockGrowthData = [
-  { month: 'Jul', users: 8500, guilds: 45 },
-  { month: 'Ago', users: 9200, guilds: 52 },
-  { month: 'Set', users: 10100, guilds: 58 },
-  { month: 'Out', users: 11300, guilds: 65 },
-  { month: 'Nov', users: 12800, guilds: 72 },
-  { month: 'Dez', users: 14200, guilds: 81 },
-  { month: 'Jan', users: 15400, guilds: 89 },
-]
+// Real analytics data will be fetched from API
 
 export default function Analytics() {
+  const { user } = useAuth()
+  const { stats } = useDashboardWebSocket(user?.guildId || '')
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [dailyStats, setDailyStats] = useState<any[]>([])
+  const [hourlyActivity, setHourlyActivity] = useState<any[]>([])
+  const [commandCategories, setCommandCategories] = useState<any[]>([])
+  const [topCommands, setTopCommands] = useState<any[]>([])
+  const [growthData, setGrowthData] = useState<any[]>([])
   const [timeRange, setTimeRange] = useState('7d')
 
-  const { data: dailyStats } = useQuery({
-    queryKey: ['analytics-daily', timeRange],
-    queryFn: () => Promise.resolve(mockDailyStats),
-  })
+  const fetchAnalytics = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      // Fetch analytics data from API
+      const response = await apiService.get('/stats/analytics')
+      
+      if (response.success) {
+        const data = response.data
+        
+        // Set daily stats (last 7 days)
+        setDailyStats(data.dailyStats || [])
+        
+        // Set hourly activity (last 24 hours)
+        setHourlyActivity(data.hourlyActivity || [])
+        
+        // Set command categories
+        setCommandCategories(data.commandCategories || [])
+        
+        // Set top commands
+        setTopCommands(data.topCommands || [])
+        
+        // Set growth data (last 6 months)
+        setGrowthData(data.growthData || [])
+      }
+      
+      setIsLoading(false)
+    } catch (err) {
+      console.error('Failed to fetch analytics data:', err)
+      setError('Failed to fetch analytics data')
+      setIsLoading(false)
+    }
+  }
 
-  const { data: hourlyActivity } = useQuery({
-    queryKey: ['analytics-hourly'],
-    queryFn: () => Promise.resolve(mockHourlyActivity),
-  })
+  useEffect(() => {
+    if (user) {
+      fetchAnalytics()
+    }
+  }, [user, timeRange])
 
   return (
     <div className="space-y-6">
@@ -276,7 +254,7 @@ export default function Analytics() {
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie
-                data={mockCommandCategories}
+                data={commandCategories}
                 cx="50%"
                 cy="50%"
                 innerRadius={60}
@@ -284,7 +262,7 @@ export default function Analytics() {
                 paddingAngle={5}
                 dataKey="value"
               >
-                {mockCommandCategories.map((entry, index) => (
+                {commandCategories.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
@@ -292,7 +270,7 @@ export default function Analytics() {
             </PieChart>
           </ResponsiveContainer>
           <div className="mt-4 space-y-2">
-            {mockCommandCategories.map((category) => (
+            {commandCategories.map((category) => (
               <div key={category.name} className="flex items-center justify-between">
                 <div className="flex items-center">
                   <div
@@ -315,7 +293,7 @@ export default function Analytics() {
             Comandos Mais Usados
           </h3>
           <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={mockTopCommands} layout="horizontal">
+            <BarChart data={topCommands} layout="horizontal">
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" />
               <YAxis dataKey="name" type="category" width={60} />
@@ -331,9 +309,9 @@ export default function Analytics() {
             Crescimento (6 meses)
           </h3>
           <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={mockGrowthData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
+             <LineChart data={growthData}>
+               <CartesianGrid strokeDasharray="3 3" />
+               <XAxis dataKey="month" />
               <YAxis />
               <Tooltip />
               <Line
