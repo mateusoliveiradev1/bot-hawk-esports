@@ -242,13 +242,13 @@ export class ExclusiveBadgeService {
           }
 
           // Filter and sort by join date
-          const eligibleMembers = members
+          const eligibleMembers = Array.from(members.values())
             .filter(member => !member.user.bot && member.joinedTimestamp)
             .sort((a, b) => (a.joinedTimestamp || 0) - (b.joinedTimestamp || 0))
-            .first(maxCount);
+            .slice(0, maxCount);
 
           // Award badges to eligible members who don't have it
-          for (const member of eligibleMembers.values()) {
+          for (const member of eligibleMembers) {
             try {
               if (!this.badgeService.hasBadge(member.id, 'early_adopter')) {
                 const awarded = await this.badgeService.awardBadge(member.id, 'early_adopter', false);
