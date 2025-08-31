@@ -152,6 +152,7 @@ class HawkEsportsBot {
       scheduler: new SchedulerService(this.client),
       weaponMastery: new WeaponMasteryService(this.client),
       clip: new ClipService(this.client),
+      ticket: ticketService,
     } as any;
 
     // Attach individual services to client for direct access

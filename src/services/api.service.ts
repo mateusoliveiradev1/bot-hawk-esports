@@ -300,6 +300,28 @@ export class APIService {
    * Setup routes
    */
   private setupRoutes(): void {
+    // Root route
+    this.app.get('/', (req: Request, res: Response) => {
+      res.json({
+        success: true,
+        message: 'Hawk Esports Bot API',
+        version: process.env.npm_package_version || '1.0.0',
+        endpoints: {
+          health: '/health',
+          auth: '/api/auth',
+          users: '/api/users',
+          rankings: '/api/rankings',
+          badges: '/api/badges',
+          presence: '/api/presence',
+          music: '/api/music',
+          games: '/api/games',
+          clips: '/api/clips',
+          guilds: '/api/guilds',
+          stats: '/api/stats'
+        }
+      });
+    });
+
     // Health check
     this.app.get('/health', (req: Request, res: Response) => {
       res.json({
