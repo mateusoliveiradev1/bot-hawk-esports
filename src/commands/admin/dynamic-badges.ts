@@ -12,9 +12,9 @@ import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
 import { DynamicBadgeService, DynamicBadgeRule } from '../../services/dynamic-badge.service';
 
-export default class DynamicBadgesCommand implements Command {
-  public category = CommandCategory.ADMIN;
-  public data = new SlashCommandBuilder()
+const dynamicBadges: Command = {
+  category: CommandCategory.ADMIN,
+  data: new SlashCommandBuilder()
     .setName('dynamic-badges')
     .setDescription('Gerenciar sistema de badges dinâmicas baseadas em estatísticas PUBG')
     .addSubcommand(subcommand =>
@@ -58,9 +58,9 @@ export default class DynamicBadgesCommand implements Command {
             .setRequired(true)
         )
     )
-    .setDefaultMemberPermissions('0');
+    .setDefaultMemberPermissions('0'),
 
-  public async execute(
+  async execute(
     interaction: ChatInputCommandInteraction,
     client: ExtendedClient
   ): Promise<void> {
@@ -106,9 +106,10 @@ export default class DynamicBadgesCommand implements Command {
         });
         return;
     }
-  }
+  },
+};
 
-  private async handleListRules(
+async function handleListRules(
     interaction: ChatInputCommandInteraction,
     service: DynamicBadgeService
   ): Promise<void> {
@@ -178,10 +179,10 @@ export default class DynamicBadgesCommand implements Command {
     });
   }
 
-  private async handleToggleRule(
-    interaction: ChatInputCommandInteraction,
-    service: DynamicBadgeService
-  ): Promise<void> {
+async function handleToggleRule(
+  interaction: ChatInputCommandInteraction,
+  service: DynamicBadgeService
+): Promise<void> {
     const ruleId = interaction.options.getString('rule-id', true);
     const rules = service.getDynamicRules();
     const rule = rules.find(r => r.id === ruleId);
@@ -235,10 +236,10 @@ export default class DynamicBadgesCommand implements Command {
     }
   }
 
-  private async handleProcessUser(
-    interaction: ChatInputCommandInteraction,
-    service: DynamicBadgeService
-  ): Promise<void> {
+async function handleProcessUser(
+  interaction: ChatInputCommandInteraction,
+  service: DynamicBadgeService
+): Promise<void> {
     const user = interaction.options.getUser('user', true);
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -271,10 +272,10 @@ export default class DynamicBadgesCommand implements Command {
     }
   }
 
-  private async handleProcessAll(
-    interaction: ChatInputCommandInteraction,
-    service: DynamicBadgeService
-  ): Promise<void> {
+async function handleProcessAll(
+  interaction: ChatInputCommandInteraction,
+  service: DynamicBadgeService
+): Promise<void> {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     try {
@@ -308,10 +309,10 @@ export default class DynamicBadgesCommand implements Command {
     }
   }
 
-  private async handleStats(
-    interaction: ChatInputCommandInteraction,
-    service: DynamicBadgeService
-  ): Promise<void> {
+async function handleStats(
+  interaction: ChatInputCommandInteraction,
+  service: DynamicBadgeService
+): Promise<void> {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     try {
@@ -374,10 +375,10 @@ export default class DynamicBadgesCommand implements Command {
     }
   }
 
-  private async handleRuleDetails(
-    interaction: ChatInputCommandInteraction,
-    service: DynamicBadgeService
-  ): Promise<void> {
+async function handleRuleDetails(
+  interaction: ChatInputCommandInteraction,
+  service: DynamicBadgeService
+): Promise<void> {
     const ruleId = interaction.options.getString('rule-id', true);
     const rules = service.getDynamicRules();
     const rule = rules.find(r => r.id === ruleId);
@@ -391,9 +392,9 @@ export default class DynamicBadgesCommand implements Command {
     }
 
     const statusEmoji = rule.isActive ? '🟢' : '🔴';
-    const priorityEmoji = this.getPriorityEmoji(rule.priority);
-    const rarityEmoji = this.getRarityEmoji(rule.badgeTemplate.rarity);
-    const frequencyEmoji = this.getFrequencyEmoji(rule.frequency);
+    const priorityEmoji = getPriorityEmoji(rule.priority);
+    const rarityEmoji = getRarityEmoji(rule.badgeTemplate.rarity);
+    const frequencyEmoji = getFrequencyEmoji(rule.frequency);
 
     const embed = new EmbedBuilder()
       .setTitle(`${rule.badgeTemplate.icon} ${rule.name}`)
@@ -425,7 +426,7 @@ export default class DynamicBadgesCommand implements Command {
           inline: false,
         }
       )
-      .setColor(this.getRarityColor(rule.badgeTemplate.rarity))
+      .setColor(getRarityColor(rule.badgeTemplate.rarity))
       .setTimestamp()
       .setFooter({
         text: `Badge ID: dynamic_${rule.id}`,
@@ -450,47 +451,48 @@ export default class DynamicBadgesCommand implements Command {
     });
   }
 
-  private getPriorityEmoji(priority: string): string {
-    const emojis = {
-      low: '🟢',
-      medium: '🟡',
-      high: '🟠',
-      critical: '🔴',
-    };
-    return emojis[priority as keyof typeof emojis] || '⚪';
-  }
-
-  private getRarityEmoji(rarity: string): string {
-    const emojis = {
-      common: '⚪',
-      uncommon: '🟢',
-      rare: '🔵',
-      epic: '🟣',
-      legendary: '🟠',
-      mythic: '🔴',
-    };
-    return emojis[rarity as keyof typeof emojis] || '⚪';
-  }
-
-  private getFrequencyEmoji(frequency: string): string {
-    const emojis = {
-      realtime: '⚡',
-      hourly: '🕐',
-      daily: '📅',
-      weekly: '📊',
-    };
-    return emojis[frequency as keyof typeof emojis] || '⏰';
-  }
-
-  private getRarityColor(rarity: string): number {
-    const colors = {
-      common: 0x808080,
-      uncommon: 0x00ff00,
-      rare: 0x0080ff,
-      epic: 0x8000ff,
-      legendary: 0xff8000,
-      mythic: 0xff0080,
-    };
-    return colors[rarity as keyof typeof colors] || colors.common;
-  }
+function getPriorityEmoji(priority: string): string {
+  const emojis = {
+    low: '🟢',
+    medium: '🟡',
+    high: '🟠',
+    critical: '🔴',
+  };
+  return emojis[priority as keyof typeof emojis] || '⚪';
 }
+
+function getRarityEmoji(rarity: string): string {
+  const emojis = {
+    common: '⚪',
+    uncommon: '🟢',
+    rare: '🔵',
+    epic: '🟣',
+    legendary: '🟠',
+    mythic: '🔴',
+  };
+  return emojis[rarity as keyof typeof emojis] || '⚪';
+}
+
+function getFrequencyEmoji(frequency: string): string {
+  const emojis = {
+    realtime: '⚡',
+    hourly: '🕐',
+    daily: '📅',
+    weekly: '📊',
+  };
+  return emojis[frequency as keyof typeof emojis] || '⏰';
+}
+
+function getRarityColor(rarity: string): number {
+  const colors = {
+    common: 0x808080,
+    uncommon: 0x00ff00,
+    rare: 0x0080ff,
+    epic: 0x8000ff,
+    legendary: 0xff8000,
+    mythic: 0xff0080,
+  };
+  return colors[rarity as keyof typeof colors] || colors.common;
+}
+
+export default dynamicBadges;

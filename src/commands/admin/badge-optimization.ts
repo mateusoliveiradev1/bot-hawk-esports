@@ -9,7 +9,7 @@ import { ExtendedClient } from '../../types/client';
 import { Command, CommandCategory } from '../../types/command';
 import { BadgeOptimizationService } from '../../services/badge-optimization.service';
 
-export const badgeOptimization: Command = {
+const badgeOptimization: Command = {
   category: CommandCategory.ADMIN,
   data: new SlashCommandBuilder()
     .setName('badge-optimization')
@@ -373,3 +373,5 @@ async function handleOptimize(
     });
   }
 }
+
+export default badgeOptimization;

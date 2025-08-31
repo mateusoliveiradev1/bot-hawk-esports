@@ -11,7 +11,7 @@ import { Command, CommandCategory } from '../../types/command';
 import { BadgeOptimizationService } from '../../services/badge-optimization.service';
 import { BadgeService } from '../../services/badge.service';
 
-export const exclusiveBadges: Command = {
+const exclusiveBadges: Command = {
   category: CommandCategory.ADMIN,
   data: new SlashCommandBuilder()
     .setName('exclusive-badges')
@@ -457,3 +457,5 @@ async function handleAutoAward(
     });
   }
 }
+
+export default exclusiveBadges;

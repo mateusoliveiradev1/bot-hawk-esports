@@ -49,7 +49,7 @@ export class CommandManager {
         const folderPath = path.join(commandsPath, folder);
         const commandFiles = fs
           .readdirSync(folderPath)
-          .filter(file => file.endsWith('.ts') || file.endsWith('.js'));
+          .filter(file => (file.endsWith('.ts') || file.endsWith('.js')) && !file.endsWith('.d.ts'));
 
         this.logger.debug(
           `Found ${commandFiles.length} command files in ${folder}: ${commandFiles.join(', ')}`
