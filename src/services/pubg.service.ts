@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 import { Logger } from '../utils/logger';
 import { CacheService } from './cache.service';
 import { LoggingService } from './logging.service';
@@ -16,71 +16,84 @@ import {
   PUBGGameMode,
   PUBGLeaderboardEntry,
   PUBGRankTier,
+  WeaponMasteryData,
+  WeaponMasteryBadge,
+  SurvivalMasteryData,
+  SurvivalMasteryBadge,
+  WeaponMedal,
+  CircuitBreakerState,
+  ApiOperationResult,
 } from '../types/pubg';
+
+// All interface definitions are now imported from '../types/pubg'
 
 /**
  * PUBG API Service for fetching player data and statistics
  * Enhanced with retry logic, circuit breaker, and detailed logging
  */
 export class PUBGService {
-  private api: AxiosInstance;
-  private logger: Logger;
-  private cache: CacheService;
+  private readonly api: AxiosInstance;
+  private readonly logger: Logger;
+  private readonly cache: CacheService;
   private readonly baseURL: string;
-  private readonly apiKey: string;
+  private readonly apiKey: string | null;
+  
+  // Rate limiting properties
   private readonly rateLimitDelay: number = 1000; // 1 second between requests
   private lastRequestTime: number = 0;
 
-  // Circuit breaker properties
+  // Enhanced circuit breaker properties with better typing
+  private circuitBreakerState: CircuitBreakerState = CircuitBreakerState.CLOSED;
   private circuitBreakerFailures: number = 0;
   private circuitBreakerLastFailure: number = 0;
   private readonly circuitBreakerThreshold: number = 5;
   private readonly circuitBreakerTimeout: number = 60000; // 1 minute
+  private readonly circuitBreakerHalfOpenMaxCalls: number = 3;
+  private circuitBreakerHalfOpenCalls: number = 0;
 
-  // Retry configuration
+  // Enhanced retry configuration
   private readonly maxRetries: number = 3;
   private readonly baseRetryDelay: number = 1000; // 1 second
+  private readonly maxRetryDelay: number = 30000; // 30 seconds
+  private readonly retryJitterFactor: number = 0.1;
 
-  // Logging service
-  private loggingService: LoggingService | null = null;
+  // Services
+  private readonly loggingService: LoggingService | null = null;
 
   constructor(cache?: CacheService, loggingService?: LoggingService) {
     this.logger = new Logger();
     this.cache = cache || new CacheService();
     this.loggingService = loggingService || null;
     this.baseURL = process.env.PUBG_API_BASE_URL || 'https://api.pubg.com';
-    this.apiKey = process.env.PUBG_API_KEY || '';
-
-    if (!this.apiKey) {
+    
+    // Validate and set API key
+    const rawApiKey = process.env.PUBG_API_KEY;
+    if (!rawApiKey || rawApiKey === 'your-pubg-api-key-here' || rawApiKey.length < 20) {
+      this.apiKey = null;
       this.logger.warn(
-        '⚠️ PUBG API key not found in environment variables. Some features may not work.'
+        '⚠️ PUBG API key not configured or invalid. Some features will use mock data.'
       );
       this.logApiOperation(
         'PUBG API Configuration',
         'warning',
-        'API key not found in environment variables',
-        { service: 'PUBG', operation: 'Configuration' }
-      );
-    } else if (this.apiKey.length < 20) {
-      this.logger.warn('⚠️ PUBG API key appears to be invalid (too short).');
-      this.logApiOperation(
-        'PUBG API Configuration',
-        'warning',
-        'API key appears to be invalid (too short)',
+        'API key not configured or invalid',
         { service: 'PUBG', operation: 'Configuration' }
       );
     } else {
+      this.apiKey = rawApiKey;
+      this.logger.info('✅ PUBG API key configured successfully');
       this.logApiOperation('PUBG API Configuration', 'success', 'API key configured successfully', {
         service: 'PUBG',
         operation: 'Configuration',
       });
     }
 
+    // Create axios instance with conditional authorization
     this.api = axios.create({
       baseURL: this.baseURL,
-      timeout: 15000, // Increased timeout
+      timeout: 30000, // 30 seconds timeout
       headers: {
-        Authorization: `Bearer ${this.apiKey}`,
+        ...(this.apiKey && { Authorization: `Bearer ${this.apiKey}` }),
         Accept: 'application/vnd.api+json',
         'Content-Type': 'application/json',
         'User-Agent': 'HawkEsports-Bot/1.0',
@@ -120,45 +133,80 @@ export class PUBGService {
   }
 
   /**
-   * Check if circuit breaker is open
+   * Check if circuit breaker is open with enhanced state management
    */
   private isCircuitBreakerOpen(): boolean {
-    if (this.circuitBreakerFailures >= this.circuitBreakerThreshold) {
-      const timeSinceLastFailure = Date.now() - this.circuitBreakerLastFailure;
-      if (timeSinceLastFailure < this.circuitBreakerTimeout) {
+    const now = Date.now();
+    
+    switch (this.circuitBreakerState) {
+      case CircuitBreakerState.CLOSED:
+        return false;
+        
+      case CircuitBreakerState.OPEN:
+        const timeSinceLastFailure = now - this.circuitBreakerLastFailure;
+        if (timeSinceLastFailure >= this.circuitBreakerTimeout) {
+          this.circuitBreakerState = CircuitBreakerState.HALF_OPEN;
+          this.circuitBreakerHalfOpenCalls = 0;
+          return false;
+        }
         return true;
-      } else {
-        // Reset circuit breaker after timeout
-        this.circuitBreakerFailures = 0;
-        this.circuitBreakerLastFailure = 0;
-      }
+        
+      case CircuitBreakerState.HALF_OPEN:
+        return this.circuitBreakerHalfOpenCalls >= this.circuitBreakerHalfOpenMaxCalls;
+        
+      default:
+        return false;
     }
-    return false;
   }
 
   /**
-   * Record circuit breaker failure
+   * Record circuit breaker failure with enhanced state management
    */
   private async recordCircuitBreakerFailure(): Promise<void> {
     this.circuitBreakerFailures++;
     this.circuitBreakerLastFailure = Date.now();
 
-    if (this.circuitBreakerFailures >= this.circuitBreakerThreshold) {
-      this.logger.warn(
-        `🔴 PUBG API Circuit breaker opened after ${this.circuitBreakerFailures} failures`
-      );
-      await this.logApiOperation(
-        'PUBG API Circuit Breaker Opened',
-        'error',
-        `Circuit breaker opened after ${this.circuitBreakerFailures} consecutive failures. API calls will be blocked for ${this.circuitBreakerTimeout / 1000} seconds.`,
-        {
-          service: 'PUBG',
-          operation: 'Circuit Breaker',
-          failures: this.circuitBreakerFailures,
-          timeoutSeconds: this.circuitBreakerTimeout / 1000,
-          status: 'opened',
+    switch (this.circuitBreakerState) {
+      case CircuitBreakerState.CLOSED:
+        if (this.circuitBreakerFailures >= this.circuitBreakerThreshold) {
+          this.circuitBreakerState = CircuitBreakerState.OPEN;
+          this.logger.warn(
+            `🔴 PUBG API Circuit breaker opened after ${this.circuitBreakerFailures} failures`
+          );
+          await this.logApiOperation(
+            'PUBG API Circuit Breaker Opened',
+            'error',
+            `Circuit breaker opened after ${this.circuitBreakerFailures} consecutive failures. API calls will be blocked for ${this.circuitBreakerTimeout / 1000} seconds.`,
+            {
+              service: 'PUBG',
+              operation: 'Circuit Breaker',
+              failures: this.circuitBreakerFailures,
+              timeoutSeconds: this.circuitBreakerTimeout / 1000,
+              status: 'opened',
+            }
+          );
         }
-      );
+        break;
+        
+      case CircuitBreakerState.HALF_OPEN:
+        this.circuitBreakerState = CircuitBreakerState.OPEN;
+        this.logger.warn('🔴 PUBG API Circuit breaker reopened after half-open failure');
+        await this.logApiOperation(
+          'PUBG API Circuit Breaker Reopened',
+          'error',
+          'Circuit breaker reopened after failure during half-open state',
+          {
+            service: 'PUBG',
+            operation: 'Circuit Breaker',
+            status: 'reopened',
+          }
+        );
+        break;
+        
+      case CircuitBreakerState.OPEN:
+        // Already open, just log additional failure
+        this.logger.warn('🔴 PUBG API Additional failure while circuit breaker is open');
+        break;
     }
   }
 
@@ -166,29 +214,72 @@ export class PUBGService {
    * Reset circuit breaker on successful request
    */
   private async resetCircuitBreaker(): Promise<void> {
-    if (this.circuitBreakerFailures > 0) {
-      this.logger.info('🟢 PUBG API Circuit breaker reset after successful request');
-      await this.logApiOperation(
-        'PUBG API Circuit Breaker Reset',
-        'success',
-        'Circuit breaker reset after successful API request',
-        {
-          service: 'PUBG',
-          operation: 'Circuit Breaker',
-          previousFailures: this.circuitBreakerFailures,
-          status: 'reset',
+    const previousState = this.circuitBreakerState;
+    
+    switch (this.circuitBreakerState) {
+      case CircuitBreakerState.HALF_OPEN:
+        this.circuitBreakerHalfOpenCalls++;
+        
+        // If we've had enough successful calls in half-open state, close the circuit
+        if (this.circuitBreakerHalfOpenCalls >= this.circuitBreakerHalfOpenMaxCalls) {
+          this.circuitBreakerState = CircuitBreakerState.CLOSED;
+          this.circuitBreakerFailures = 0;
+          this.circuitBreakerLastFailure = 0;
+          this.circuitBreakerHalfOpenCalls = 0;
+          
+          this.logger.info('🟢 PUBG API Circuit breaker closed after successful half-open period');
+          await this.logApiOperation(
+            'PUBG API Circuit Breaker Closed',
+            'success',
+            'Circuit breaker closed after successful half-open period',
+            {
+              service: 'PUBG',
+              operation: 'Circuit Breaker',
+              previousState,
+              newState: this.circuitBreakerState,
+              successfulHalfOpenCalls: this.circuitBreakerHalfOpenMaxCalls,
+            }
+          );
         }
-      );
+        break;
+        
+      case CircuitBreakerState.OPEN:
+        // This shouldn't happen as open circuit should prevent requests
+        this.logger.warn('⚠️ Successful request received while circuit breaker is open');
+        break;
+        
+      case CircuitBreakerState.CLOSED:
+        // Reset failure count on successful request in closed state
+        if (this.circuitBreakerFailures > 0) {
+          this.circuitBreakerFailures = 0;
+          this.circuitBreakerLastFailure = 0;
+          
+          this.logger.info('🟢 PUBG API Circuit breaker failures reset after successful request');
+          await this.logApiOperation(
+            'PUBG API Circuit Breaker Reset',
+            'success',
+            'Circuit breaker failures reset after successful API request',
+            {
+              service: 'PUBG',
+              operation: 'Circuit Breaker',
+              state: this.circuitBreakerState,
+              status: 'failures_reset',
+            }
+          );
+        }
+        break;
     }
-    this.circuitBreakerFailures = 0;
-    this.circuitBreakerLastFailure = 0;
   }
 
   /**
    * Calculate exponential backoff delay
    */
+  /**
+   * Calculate exponential backoff delay for retry attempts
+   */
   private calculateBackoffDelay(attempt: number): number {
-    return this.baseRetryDelay * Math.pow(2, attempt) + Math.random() * 1000;
+    const exponentialDelay = this.baseRetryDelay * Math.pow(2, attempt);
+    return Math.min(exponentialDelay, this.maxRetryDelay);
   }
 
   /**
@@ -358,7 +449,7 @@ export class PUBGService {
       throw error;
     }
 
-    let lastError: any;
+    let lastError: Error | AxiosError;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
@@ -383,25 +474,36 @@ export class PUBGService {
           );
         }
 
+        // Reset circuit breaker on successful operation
+        await this.resetCircuitBreaker();
+
         return result;
       } catch (error: any) {
         lastError = error;
 
         // Don't retry on certain errors
-        if (error.response?.status === 401 || error.response?.status === 404) {
+        if (this.shouldNotRetry(error)) {
+          this.logger.debug(`🚫 ${operationName}: Non-retryable error detected`);
           throw error;
         }
 
         if (attempt < maxRetries) {
-          const delay = this.calculateBackoffDelay(attempt);
+          const baseDelay = this.calculateBackoffDelay(attempt);
+          // Add jitter using the configured factor
+          const jitter = baseDelay * this.retryJitterFactor * (Math.random() * 2 - 1);
+          const delay = Math.min(
+            Math.max(100, baseDelay + jitter), // Minimum 100ms delay
+            this.maxRetryDelay // Maximum delay cap
+          );
           this.logger.warn(
-            `⚠️ ${operationName}: Attempt ${attempt + 1} failed, retrying in ${delay}ms`,
+            `⚠️ ${operationName}: Attempt ${attempt + 1} failed, retrying in ${Math.round(delay)}ms`,
             {
               error: new Error(error.message || 'Operation failed'),
               metadata: {
                 status: error.response?.status,
                 attempt: attempt + 1,
-                delay
+                delay: Math.round(delay),
+                jitter: Math.round(jitter)
               }
             }
           );
@@ -428,7 +530,7 @@ export class PUBGService {
     this.logger.error(`❌ ${operationName}: All ${maxRetries + 1} attempts failed`, {
       error: new Error(lastError.message || 'All attempts failed'),
       metadata: {
-        status: lastError.response?.status,
+        ...(lastError && 'response' in lastError && lastError.response && { status: lastError.response.status }),
         maxRetries: maxRetries + 1
       }
     });
@@ -446,6 +548,25 @@ export class PUBGService {
     );
 
     throw lastError;
+  }
+
+  /**
+   * Determines if an error should not be retried
+   */
+  private shouldNotRetry(error: any): boolean {
+    // HTTP status codes that shouldn't be retried
+    const nonRetryableStatuses = [400, 401, 403, 404, 422];
+    if (error.response?.status && nonRetryableStatuses.includes(error.response.status)) {
+      return true;
+    }
+
+    // Network errors that shouldn't be retried
+    const nonRetryableCodes = ['ENOTFOUND', 'ECONNREFUSED', 'CERT_HAS_EXPIRED'];
+    if (error.code && nonRetryableCodes.includes(error.code)) {
+      return true;
+    }
+
+    return false;
   }
 
   /**

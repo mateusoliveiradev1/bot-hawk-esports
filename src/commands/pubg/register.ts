@@ -9,10 +9,12 @@ import {
   ChatInputCommandInteraction,
   CommandInteraction,
   MessageFlags,
+  GuildMember,
+  Guild,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
-import { PUBGPlatform, PUBGGameMode } from '../../types/pubg';
+import { PUBGPlatform, PUBGGameMode, PUBGPlayer } from '../../types/pubg';
 import { Logger } from '../../utils/logger';
 
 const logger = new Logger();
@@ -58,6 +60,14 @@ const register: Command = {
       
       const nick = interaction.options.getString('nick', true);
       const platform = interaction.options.getString('platform', true) as PUBGPlatform;
+      
+      if (!nick || !platform) {
+        await interaction.reply({
+          content: '❌ Parâmetros obrigatórios não fornecidos.',
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
       const guild = interaction.guild!;
       const member = guild.members.cache.get(interaction.user.id)!;
 
@@ -209,11 +219,18 @@ async function performRegistration(
 
     // Verificar se o serviço PUBG está disponível
     if (!client.services?.pubg) {
-      throw new Error('PUBG service not available');
+      const serviceErrorEmbed = new EmbedBuilder()
+        .setTitle('❌ Serviço indisponível')
+        .setDescription('O serviço PUBG está temporariamente indisponível. Tente novamente mais tarde.')
+        .setColor('#FF0000')
+        .setFooter({ text: 'Contate um administrador se o problema persistir' });
+      
+      await interaction.editReply({ embeds: [serviceErrorEmbed], components: [] });
+      return;
     }
 
     // Tentar buscar o jogador na API do PUBG
-    const playerData = await client.services.pubg.getPlayerByName(nick, platform);
+    const playerData: PUBGPlayer | null = await client.services.pubg.getPlayerByName(nick, platform);
 
     if (!playerData) {
       await handlePlayerNotFound(interaction, client, nick, platform, isUpdate);
@@ -240,75 +257,83 @@ async function performRegistration(
     });
 
     // Salvar estatísticas PUBG
-    if (playerData.stats && playerData.stats.gameModeStats) {
-      const gameModes = Object.keys(playerData.stats.gameModeStats) as PUBGGameMode[];
-      const primaryMode = gameModes.find(mode => mode === PUBGGameMode.SQUAD) || gameModes[0];
-      const stats = primaryMode ? playerData.stats.gameModeStats[primaryMode] : null;
+        if (playerData.stats?.gameModeStats) {
+          const gameModes = Object.keys(playerData.stats.gameModeStats) as PUBGGameMode[];
+          const primaryMode = gameModes.find(mode => mode === PUBGGameMode.SQUAD) || gameModes[0];
+          const stats = primaryMode ? playerData.stats.gameModeStats[primaryMode] : null;
 
-      if (stats) {
-        await client.database.client.pUBGStats.upsert({
-          where: {
-            userId_seasonId_gameMode: {
-              userId: interaction.user.id,
-              seasonId: 'current',
-              gameMode: primaryMode as string,
-            },
-          },
-          update: {
-            kills: stats.kills || 0,
-            deaths: stats.roundsPlayed - stats.wins || 0,
-            assists: stats.assists || 0,
-            wins: stats.wins || 0,
-            top10s: stats.top10s || 0,
-            roundsPlayed: stats.roundsPlayed || 0,
-            damageDealt: stats.damageDealt || 0,
-            longestKill: stats.longestKill || 0,
-            headshotKills: stats.headshotKills || 0,
-            walkDistance: stats.walkDistance || 0,
-            rideDistance: stats.rideDistance || 0,
-            weaponsAcquired: stats.weaponsAcquired || 0,
-            boosts: stats.boosts || 0,
-            heals: stats.heals || 0,
-            revives: stats.revives || 0,
-            teamKills: stats.teamKills || 0,
-            timeSurvived: stats.timeSurvived || 0,
-            updatedAt: new Date(),
-          },
-          create: {
-            userId: interaction.user.id,
-            playerId: playerData.id,
-            playerName: playerData.name,
-            platform: platform,
-            seasonId: 'current',
-            gameMode: primaryMode as string,
-            kills: stats.kills || 0,
-            deaths: stats.roundsPlayed - stats.wins || 0,
-            assists: stats.assists || 0,
-            wins: stats.wins || 0,
-            top10s: stats.top10s || 0,
-            roundsPlayed: stats.roundsPlayed || 0,
-            damageDealt: stats.damageDealt || 0,
-            longestKill: stats.longestKill || 0,
-            headshotKills: stats.headshotKills || 0,
-            walkDistance: stats.walkDistance || 0,
-            rideDistance: stats.rideDistance || 0,
-            weaponsAcquired: stats.weaponsAcquired || 0,
-            boosts: stats.boosts || 0,
-            heals: stats.heals || 0,
-            revives: stats.revives || 0,
-            teamKills: stats.teamKills || 0,
-            timeSurvived: stats.timeSurvived || 0,
-            updatedAt: new Date(),
-          },
-        });
-      }
+          if (stats && primaryMode) {
+            try {
+              await client.database.client.pUBGStats.upsert({
+                where: {
+                  userId_seasonId_gameMode: {
+                    userId: interaction.user.id,
+                    seasonId: 'current',
+                    gameMode: primaryMode as string,
+                  },
+                },
+                update: {
+                  kills: Math.max(0, stats.kills || 0),
+                  deaths: Math.max(0, (stats.roundsPlayed || 0) - (stats.wins || 0)),
+                  assists: Math.max(0, stats.assists || 0),
+                  wins: Math.max(0, stats.wins || 0),
+                  top10s: Math.max(0, stats.top10s || 0),
+                  roundsPlayed: Math.max(0, stats.roundsPlayed || 0),
+                  damageDealt: Math.max(0, stats.damageDealt || 0),
+                  longestKill: Math.max(0, stats.longestKill || 0),
+                  headshotKills: Math.max(0, stats.headshotKills || 0),
+                  walkDistance: Math.max(0, stats.walkDistance || 0),
+                  rideDistance: Math.max(0, stats.rideDistance || 0),
+                  weaponsAcquired: Math.max(0, stats.weaponsAcquired || 0),
+                  boosts: Math.max(0, stats.boosts || 0),
+                  heals: Math.max(0, stats.heals || 0),
+                  revives: Math.max(0, stats.revives || 0),
+                  teamKills: Math.max(0, stats.teamKills || 0),
+                  timeSurvived: Math.max(0, stats.timeSurvived || 0),
+                  updatedAt: new Date(),
+                },
+                create: {
+                  userId: interaction.user.id,
+                  playerId: playerData.id,
+                  playerName: playerData.name,
+                  platform: platform,
+                  seasonId: 'current',
+                  gameMode: primaryMode as string,
+                  kills: stats.kills || 0,
+                  deaths: (stats.roundsPlayed || 0) - (stats.wins || 0),
+                  assists: stats.assists || 0,
+                  wins: stats.wins || 0,
+                  top10s: stats.top10s || 0,
+                  roundsPlayed: stats.roundsPlayed || 0,
+                  damageDealt: stats.damageDealt || 0,
+                  longestKill: stats.longestKill || 0,
+                  headshotKills: stats.headshotKills || 0,
+                  walkDistance: stats.walkDistance || 0,
+                  rideDistance: stats.rideDistance || 0,
+                  weaponsAcquired: stats.weaponsAcquired || 0,
+                  boosts: stats.boosts || 0,
+                  heals: stats.heals || 0,
+                  revives: stats.revives || 0,
+                  teamKills: stats.teamKills || 0,
+                  timeSurvived: stats.timeSurvived || 0,
+                  updatedAt: new Date(),
+                },
+              });
+            } catch (error) {
+              logger.error('Error saving PUBG stats:', error);
+            }
+          }
     }
 
     // Atribuir cargo baseado no rank
-    const guild = interaction.guild!;
-    const member = guild.members.cache.get(interaction.user.id)!;
-    if (playerData.stats?.rankPointTitle) {
-      await assignRankRole(member, playerData.stats.rankPointTitle, guild);
+    const guild = interaction.guild;
+    if (!guild) {
+      logger.warn('Guild not found for rank role assignment');
+    } else {
+      const member = guild.members.cache.get(interaction.user.id);
+      if (member && playerData.stats?.rankPointTitle) {
+        await assignRankRole(member, playerData.stats.rankPointTitle, guild);
+      }
     }
 
     // Embed de sucesso
@@ -624,24 +649,25 @@ function getPlatformName(platform: PUBGPlatform): string {
 /**
  * Assign rank role based on PUBG tier
  */
-async function assignRankRole(member: any, tier: string, guild: any): Promise<void> {
+async function assignRankRole(member: GuildMember, tier: string, guild: Guild): Promise<void> {
   try {
     // Remove existing rank roles
-    const rankRoles = guild.roles.cache.filter((role: any) =>
-      role.name.includes('Bronze') ||
-      role.name.includes('Silver') ||
-      role.name.includes('Gold') ||
-      role.name.includes('Platinum') ||
-      role.name.includes('Diamond') ||
-      role.name.includes('Master')
+    const rankKeywords = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master'];
+    const rankRoles = guild.roles.cache.filter(role =>
+      rankKeywords.some(keyword => role.name.includes(keyword))
     );
 
-    await member.roles.remove(rankRoles);
+    if (rankRoles.size > 0) {
+      await member.roles.remove(rankRoles);
+    }
 
     // Add new rank role
-    const newRankRole = guild.roles.cache.find((role: any) => role.name.includes(tier));
+    const newRankRole = guild.roles.cache.find(role => role.name.includes(tier));
     if (newRankRole) {
       await member.roles.add(newRankRole);
+      logger.info(`Assigned rank role ${newRankRole.name} to user ${member.user.tag}`);
+    } else {
+      logger.warn(`Rank role for tier ${tier} not found in guild ${guild.name}`);
     }
   } catch (error) {
     logger.error('Error assigning rank role:', error);

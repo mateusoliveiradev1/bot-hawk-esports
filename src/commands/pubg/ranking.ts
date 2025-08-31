@@ -6,6 +6,7 @@ import {
   ButtonStyle,
   StringSelectMenuBuilder,
   MessageFlags,
+  ChatInputCommandInteraction,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -55,14 +56,24 @@ const ranking: Command = {
   category: CommandCategory.PUBG,
   cooldown: 15,
 
-  async execute(interaction, client: ExtendedClient) {
+  async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
     const logger = new Logger();
     const rankingService = new RankingService(client);
     const db = new DatabaseService();
 
-    const rankingType = (interaction as any).options?.getString('type', true);
-    const page = (interaction as any).options?.getInteger('page') || 1;
-    const isPublic = (interaction as any).options?.getBoolean('public') || false;
+    if (!interaction.isCommand()) return;
+
+    const rankingType = interaction.options.getString('type', true);
+    const page = interaction.options.getInteger('page') || 1;
+    const isPublic = interaction.options.getBoolean('public') || false;
+
+    if (!rankingType) {
+      await interaction.reply({
+        content: '❌ Tipo de ranking não especificado.',
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
 
     try {
       await interaction.deferReply({ ephemeral: !isPublic });
@@ -87,6 +98,7 @@ const ranking: Command = {
           const period = rankingType.split('_')[1] as 'daily' | 'weekly' | 'monthly';
           const now = new Date();
           let rankingPeriod;
+          
           switch (period) {
             case 'daily':
               rankingPeriod = {
@@ -109,6 +121,8 @@ const ranking: Command = {
                 endDate: now,
               };
               break;
+            default:
+              throw new Error(`Período inválido: ${period}`);
           }
           try {
             const pubgRanking = await rankingService.getPUBGRanking(
@@ -371,15 +385,16 @@ const ranking: Command = {
       logger.error('Ranking command error:', error);
 
       // Log detalhado para o canal de logs da API se for erro relacionado ao PUBG
-      if (client.services?.pubg && rankingType.startsWith('pubg_')) {
-        await client.services.logging?.logApiOperation(
+      if (client.services?.logging && rankingType.startsWith('pubg_')) {
+        await client.services.logging.logApiOperation(
           interaction.guildId!,
           'PUBG',
           'get_pubg_ranking',
           false,
-          interaction.user.id,
           error instanceof Error ? error.message : 'Erro desconhecido',
+          `Erro no ranking PUBG - Usuário: ${interaction.user.tag}, Tipo: ${rankingType}`,
           {
+            userId: interaction.user.id,
             rankingType,
             page,
             command: 'ranking',

@@ -8,12 +8,16 @@ import {
   ChatInputCommandInteraction,
   ButtonInteraction,
   MessageFlags,
+  User,
 } from 'discord.js';
-import { Command } from '../../types/command';
+import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
 import { WeaponMasteryData, UserWeaponMastery } from '../../services/weapon-mastery.service';
+import { Logger } from '../../utils/logger';
 
-export default {
+const logger = new Logger();
+
+const weaponMastery: Command = {
   data: new SlashCommandBuilder()
     .setName('weapon-mastery')
     .setDescription('Visualizar maestria de armas PUBG')
@@ -46,12 +50,29 @@ export default {
     )
     .addSubcommand(subcommand =>
       subcommand.setName('stats').setDescription('Ver estatísticas gerais de maestria de armas')
-    ),
+    ) as SlashCommandBuilder,
+
+  category: CommandCategory.PUBG,
+  cooldown: 15,
 
   async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+    if (!interaction.isCommand()) return;
+    
     const subcommand = interaction.options.getSubcommand();
 
     try {
+      // Verificar se o serviço de maestria de armas está disponível
+      if (!client.services?.weaponMastery) {
+        const serviceErrorEmbed = new EmbedBuilder()
+          .setTitle('❌ Serviço indisponível')
+          .setDescription('O serviço de maestria de armas está temporariamente indisponível.')
+          .setColor('#FF0000')
+          .setFooter({ text: 'Tente novamente mais tarde' });
+        
+        await interaction.reply({ embeds: [serviceErrorEmbed], flags: MessageFlags.Ephemeral });
+        return;
+      }
+
       switch (subcommand) {
         case 'view':
           await handleViewCommand(interaction, client);
@@ -72,7 +93,7 @@ export default {
           });
       }
     } catch (error) {
-      console.error('Error in weapon-mastery command:', error);
+      logger.error('Error in weapon-mastery command:', error);
 
       // Log detalhado para o canal de logs da API
       if (client.services?.logging) {
@@ -110,7 +131,9 @@ export default {
       }
     }
   },
-} as Command;
+};
+
+export default weaponMastery;
 
 /**
  * Handle view subcommand
@@ -119,60 +142,61 @@ async function handleViewCommand(
   interaction: ChatInputCommandInteraction,
   client: ExtendedClient
 ): Promise<void> {
-  const targetUser = interaction.options.getUser('user') || interaction.user;
+  const targetUser: User = interaction.options.getUser('user') || interaction.user;
   const userId = targetUser.id;
 
   await interaction.deferReply();
 
   try {
-    // Get user from database
+    // Buscar dados do usuário no banco de dados
     const user = await client.database.client.user.findUnique({
       where: { id: userId },
+
     });
 
     if (!user || !user.pubgUsername) {
-      const embed = new EmbedBuilder()
-        .setColor('#ff6b6b')
+      const notFoundEmbed = new EmbedBuilder()
         .setTitle('❌ Usuário não encontrado')
         .setDescription(
           targetUser.id === interaction.user.id
-            ? 'Você precisa vincular sua conta PUBG primeiro. Use `/pubg link` para vincular.'
-            : 'Este usuário não possui uma conta PUBG vinculada.'
+            ? 'Você ainda não está registrado no sistema PUBG. Use `/register` primeiro.'
+            : `${targetUser.username} não está registrado no sistema PUBG.`
         )
-        .setTimestamp();
+        .setColor('#FF0000');
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [notFoundEmbed] });
       return;
     }
 
-    // Get weapon mastery data
-    const masteryData = await (client as any).weaponMasteryService.getUserWeaponMastery(userId);
+    // Buscar dados de maestria do usuário
+    const masteryData = await client.weaponMasteryService.getUserWeaponMastery(user.id);
 
-    if (!masteryData) {
-      const embed = new EmbedBuilder()
-        .setColor('#ffa500')
-        .setTitle('⚠️ Dados não encontrados')
+    if (!masteryData || masteryData.weapons.length === 0) {
+      const noDataEmbed = new EmbedBuilder()
+        .setTitle('📊 Dados não sincronizados')
         .setDescription(
-          'Nenhum dado de maestria de armas encontrado. Use `/weapon-mastery sync` para sincronizar seus dados.'
+          targetUser.id === interaction.user.id
+            ? 'Você ainda não sincronizou sua maestria de armas. Use `/weapon-mastery sync` primeiro.'
+            : `${targetUser.username} ainda não sincronizou a maestria de armas.`
         )
-        .setTimestamp();
+        .setColor('#FFA500');
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [noDataEmbed] });
       return;
     }
 
-    // Create paginated weapon mastery display
-    await displayWeaponMastery(interaction, masteryData, targetUser);
+    // Criar embed com dados de maestria
+    const masteryEmbed = createMasteryEmbed(masteryData.weapons, targetUser);
+    await interaction.editReply({ embeds: [masteryEmbed] });
   } catch (error) {
-    console.error('Error in view command:', error);
-
-    const embed = new EmbedBuilder()
-      .setColor('#ff6b6b')
-      .setTitle('❌ Erro')
-      .setDescription('Não foi possível carregar os dados de maestria de armas.')
-      .setTimestamp();
-
-    await interaction.editReply({ embeds: [embed] });
+    logger.error('Error fetching user weapon mastery data:', error);
+    
+    const errorEmbed = new EmbedBuilder()
+      .setTitle('❌ Erro interno')
+      .setDescription('Ocorreu um erro ao buscar os dados de maestria de armas.')
+      .setColor('#FF0000');
+    
+    await interaction.editReply({ embeds: [errorEmbed] });
   }
 }
 
@@ -185,74 +209,78 @@ async function handleSyncCommand(
 ): Promise<void> {
   const userId = interaction.user.id;
 
-  await interaction.deferReply();
-
   try {
-    // Get user from database
+    // Buscar dados do usuário no banco de dados
     const user = await client.database.client.user.findUnique({
       where: { id: userId },
     });
 
     if (!user || !user.pubgUsername) {
-      const embed = new EmbedBuilder()
-        .setColor('#ff6b6b')
-        .setTitle('❌ Conta não vinculada')
-        .setDescription(
-          'Você precisa vincular sua conta PUBG primeiro. Use `/pubg link` para vincular.'
-        )
-        .setTimestamp();
+      const notRegisteredEmbed = new EmbedBuilder()
+        .setTitle('❌ Não registrado')
+        .setDescription('Você precisa se registrar no PUBG primeiro. Use `/register`.') 
+        .setColor('#FF0000');
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.reply({ embeds: [notRegisteredEmbed], flags: MessageFlags.Ephemeral });
       return;
     }
 
-    // Verificar se o serviço de maestria de armas está disponível
-    if (!client.services?.weaponMastery) {
-      throw new Error('Weapon mastery service not available');
-    }
+    // Mostrar embed de carregamento
+    const loadingEmbed = new EmbedBuilder()
+      .setTitle('🔄 Sincronizando...')
+      .setDescription('Buscando dados de maestria de armas na API do PUBG...')
+      .setColor('#FFA500');
 
-    // Force sync weapon mastery
-    const synced = await client.services.weaponMastery.forceSyncUserWeaponMastery(
-      userId,
-      user.pubgUsername
-    );
+    await interaction.reply({ embeds: [loadingEmbed] });
 
-    if (synced) {
-      const embed = new EmbedBuilder()
-        .setColor('#4caf50')
+    try {
+      // Buscar dados de maestria na API
+      const masteryData = await client.services.weaponMastery.getUserWeaponMastery(
+        user.id
+      );
+
+      if (!masteryData || masteryData.weapons.length === 0) {
+        const noDataEmbed = new EmbedBuilder()
+          .setTitle('📊 Nenhum dado encontrado')
+          .setDescription('Não foram encontrados dados de maestria de armas para sua conta.')
+          .setColor('#FFA500');
+
+        await interaction.editReply({ embeds: [noDataEmbed] });
+        return;
+      }
+
+      // Sincronizar dados no banco de dados
+      await client.services.weaponMastery.syncUserWeaponMastery(userId, user.pubgUsername);
+
+      const successEmbed = new EmbedBuilder()
         .setTitle('✅ Sincronização concluída')
-        .setDescription(
-          `Dados de maestria de armas sincronizados com sucesso para **${user.pubgUsername}**.\n\n` +
-            'Use `/weapon-mastery view` para visualizar seus dados atualizados.'
-        )
-        .setTimestamp();
+        .setDescription(`Dados de maestria de ${masteryData.weapons.length} armas foram sincronizados com sucesso!`)
+        .setColor('#00FF00');
 
-      await interaction.editReply({ embeds: [embed] });
-    } else {
-      const embed = new EmbedBuilder()
-        .setColor('#ffa500')
-        .setTitle('⚠️ Sincronização falhou')
-        .setDescription(
-          'Não foi possível sincronizar os dados de maestria de armas. Possíveis causas:\n\n' +
-            '• Jogador não encontrado na API PUBG\n' +
-            '• Dados de maestria não disponíveis\n' +
-            '• Erro temporário da API\n\n' +
-            'Tente novamente em alguns minutos.'
-        )
-        .setTimestamp();
+      await interaction.editReply({ embeds: [successEmbed] });
+    } catch (apiError) {
+      logger.error('Error syncing weapon mastery:', apiError);
 
-      await interaction.editReply({ embeds: [embed] });
+      const errorEmbed = new EmbedBuilder()
+        .setTitle('❌ Erro na sincronização')
+        .setDescription('Ocorreu um erro ao sincronizar os dados de maestria de armas.')
+        .setColor('#FF0000');
+
+      await interaction.editReply({ embeds: [errorEmbed] });
     }
   } catch (error) {
-    console.error('Error in sync command:', error);
-
-    const embed = new EmbedBuilder()
-      .setColor('#ff6b6b')
-      .setTitle('❌ Erro na sincronização')
-      .setDescription('Ocorreu um erro durante a sincronização. Tente novamente mais tarde.')
-      .setTimestamp();
-
-    await interaction.editReply({ embeds: [embed] });
+    logger.error('Error in sync command:', error);
+    
+    const errorEmbed = new EmbedBuilder()
+      .setTitle('❌ Erro interno')
+      .setDescription('Ocorreu um erro interno durante a sincronização.')
+      .setColor('#FF0000');
+    
+    if (interaction.replied) {
+      await interaction.editReply({ embeds: [errorEmbed] });
+    } else {
+      await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+    }
   }
 }
 
@@ -263,7 +291,7 @@ async function handleLeaderboardCommand(
   interaction: ChatInputCommandInteraction,
   client: ExtendedClient
 ): Promise<void> {
-  const limit = interaction.options.getInteger('limit') || 10;
+  const limit = Math.min(interaction.options.getInteger('limit') || 10, 20);
 
   await interaction.deferReply();
 
@@ -307,10 +335,11 @@ async function handleLeaderboardCommand(
     }
 
     embed.setDescription(description);
+    embed.setFooter({ text: `Mostrando top ${leaderboard.length} jogadores` });
 
     await interaction.editReply({ embeds: [embed] });
   } catch (error) {
-    console.error('Error in leaderboard command:', error);
+    logger.error('Error in leaderboard command:', error);
 
     const embed = new EmbedBuilder()
       .setColor('#ff6b6b')
@@ -332,7 +361,12 @@ async function handleStatsCommand(
   await interaction.deferReply();
 
   try {
-    const stats = await (client as any).weaponMasteryService.getWeaponMasteryStats();
+    // Verificar se o serviço de maestria de armas está disponível
+    if (!client.services?.weaponMastery) {
+      throw new Error('Weapon mastery service not available');
+    }
+
+    const stats = await client.services.weaponMastery.getWeaponMasteryStats();
 
     const embed = new EmbedBuilder()
       .setColor('#2196f3')
@@ -340,24 +374,24 @@ async function handleStatsCommand(
       .addFields(
         {
           name: '👥 Usuários',
-          value: `**${stats.totalUsers}** jogadores\n**${stats.totalWeapons}** armas registradas`,
+          value: `**${stats.totalUsers || 0}** jogadores\n**${stats.totalWeapons || 0}** armas registradas`,
           inline: true,
         },
         {
           name: '📈 Médias',
-          value: `**${stats.averageLevel.toFixed(1)}** nível médio por jogador`,
+          value: `**${(stats.averageLevel || 0).toFixed(1)}** nível médio por jogador`,
           inline: true,
         },
         {
           name: '🔫 Armas Populares',
           value:
             stats.topWeapons
-              .slice(0, 5)
-              .map(
+              ?.slice(0, 5)
+              ?.map(
                 (weapon: any, index: number) =>
                   `**${index + 1}.** ${weapon.name} (${weapon.users} usuários)`
               )
-              .join('\n') || 'Nenhuma arma registrada',
+              ?.join('\n') || 'Nenhuma arma registrada',
           inline: false,
         }
       )
@@ -365,7 +399,7 @@ async function handleStatsCommand(
 
     await interaction.editReply({ embeds: [embed] });
   } catch (error) {
-    console.error('Error in stats command:', error);
+    logger.error('Error in stats command:', error);
 
     const embed = new EmbedBuilder()
       .setColor('#ff6b6b')
@@ -397,7 +431,7 @@ async function displayWeaponMastery(
     const embed = new EmbedBuilder()
       .setColor('#4caf50')
       .setTitle(`🔫 Maestria de Armas - ${masteryData.pubgName}`)
-      .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
+      .setThumbnail(targetUser.displayAvatarURL())
       .addFields({
         name: '📊 Resumo Geral',
         value:
@@ -577,9 +611,9 @@ async function handleSyncFromButton(
  * Create a progress bar for weapon level
  */
 function createProgressBar(current: number, max: number, length: number = 10): string {
-  const percentage = Math.min(current / max, 1);
-  const filled = Math.round(length * percentage);
-  const empty = length - filled;
+  const percentage = Math.min(Math.max(current, 0) / Math.max(max, 1), 1);
+  const filled = Math.round(percentage * length);
+  const empty = Math.max(length - filled, 0);
 
   return `[${'█'.repeat(filled)}${'░'.repeat(empty)}] ${current}/${max}`;
 }
@@ -588,32 +622,156 @@ function createProgressBar(current: number, max: number, length: number = 10): s
  * Get emoji for weapon type
  */
 function getWeaponEmoji(weaponName: string): string {
+  if (!weaponName || typeof weaponName !== 'string') {
+    return '🔫';
+  }
+
   const weaponEmojis: Record<string, string> = {
+    // Assault Rifles
     AKM: '🔫',
     M416: '🔫',
     'SCAR-L': '🔫',
     M16A4: '🔫',
+    'AUG A3': '🔫',
+    QBZ95: '🔫',
+    Groza: '🔫',
+    'Beryl M762': '🔫',
+    'Mk47 Mutant': '🔫',
+    G36C: '🔫',
+    ACE32: '🔫',
+    FAMAS: '🔫',
+    
+    // SMGs
+    UMP45: '🔫',
+    Vector: '🔫',
+    Uzi: '🔫',
+    'Tommy Gun': '🔫',
+    MP5K: '🔫',
+    Bizon: '🔫',
+    P90: '🔫',
+    JS9: '🔫',
+    
+    // Sniper Rifles
     Kar98k: '🎯',
     M24: '🎯',
     AWM: '🎯',
+    Win94: '🎯',
+    'Mosin-Nagant': '🎯',
+    'Lynx AMR': '🎯',
+    
+    // DMRs
+    SKS: '🎯',
+    Mini14: '🎯',
+    'Mk14 EBR': '🎯',
+    QBU88: '🎯',
+    SLR: '🎯',
     VSS: '🎯',
-    UMP45: '🔫',
-    Vector: '🔫',
-    'Tommy Gun': '🔫',
-    S12K: '💥',
+    Mk12: '🎯',
+    
+    // Shotguns
     S1897: '💥',
     S686: '💥',
+    S12K: '💥',
     DBS: '💥',
-    P92: '🔫',
+    'Sawed-off': '💥',
+    O12: '💥',
+    
+    // LMGs
+    M249: '💪',
+    'DP-27': '💪',
+    MG3: '💪',
+    
+    // Pistols
     P1911: '🔫',
-    P18C: '🔫',
+    P92: '🔫',
     R1895: '🔫',
+    P18C: '🔫',
+    R45: '🔫',
+    Deagle: '🔫',
+    Skorpion: '🔫',
+    
+    // Crossbows
     Crossbow: '🏹',
+    
+    // Throwables
+    'Frag Grenade': '💣',
+    'Smoke Grenade': '💨',
+    'Stun Grenade': '⚡',
+    'Molotov Cocktail': '🔥',
+    
+    // Melee
     Pan: '🍳',
+    Crowbar: '🔧',
     Machete: '🔪',
     Sickle: '🔪',
-    Crowbar: '🔧',
   };
 
   return weaponEmojis[weaponName] || '🔫';
+}
+
+/**
+ * Create mastery embed for weapon mastery data
+ */
+function createMasteryEmbed(weaponMasteryData: any[], targetUser: User): EmbedBuilder {
+  const embed = new EmbedBuilder()
+    .setTitle(`🔫 Maestria de Armas - ${targetUser.username}`)
+    .setThumbnail(targetUser.displayAvatarURL())
+    .setColor('#4CAF50')
+    .setTimestamp();
+
+  if (weaponMasteryData.length === 0) {
+    embed.setDescription('Nenhum dado de maestria de armas encontrado.');
+    return embed;
+  }
+
+  // Calcular estatísticas gerais
+  const totalLevel = weaponMasteryData.reduce((sum, weapon) => sum + (weapon.level || 0), 0);
+  const totalXP = weaponMasteryData.reduce((sum, weapon) => sum + (weapon.xp || 0), 0);
+  const maxLevelWeapons = weaponMasteryData.filter(weapon => weapon.level >= 100).length;
+
+  // Encontrar arma favorita (maior nível)
+  const favoriteWeapon = weaponMasteryData.reduce((prev, current) => 
+    (prev.level || 0) > (current.level || 0) ? prev : current
+  );
+
+  embed.addFields({
+    name: '📊 Resumo Geral',
+    value: 
+      `**Nível Total:** ${totalLevel}\n` +
+      `**XP Total:** ${totalXP.toLocaleString()}\n` +
+      `**Armas Registradas:** ${weaponMasteryData.length}\n` +
+      `**Armas Dominadas:** ${maxLevelWeapons}\n` +
+      `**Arma Favorita:** ${favoriteWeapon.weaponName || 'N/A'} (Nível ${favoriteWeapon.level || 0})`,
+    inline: false,
+  });
+
+  // Mostrar top 10 armas
+  const topWeapons = weaponMasteryData
+    .sort((a, b) => (b.level || 0) - (a.level || 0))
+    .slice(0, 10);
+
+  let weaponsText = '';
+  topWeapons.forEach((weapon, index) => {
+    const emoji = getWeaponEmoji(weapon.weaponName);
+    const progressBar = createProgressBar(weapon.level || 0, 100, 8);
+    
+    weaponsText += `**${index + 1}.** ${emoji} ${weapon.weaponName}\n`;
+    weaponsText += `├ Nível: **${weapon.level || 0}** ${progressBar}\n`;
+    weaponsText += `├ XP: **${(weapon.xp || 0).toLocaleString()}**\n`;
+    weaponsText += `└ Tier: **${weapon.tier || 'N/A'}**\n\n`;
+  });
+
+  if (weaponsText) {
+    embed.addFields({
+      name: '🏆 Top 10 Armas',
+      value: weaponsText,
+      inline: false,
+    });
+  }
+
+  embed.setFooter({ 
+    text: `Total de ${weaponMasteryData.length} armas registradas` 
+  });
+
+  return embed;
 }

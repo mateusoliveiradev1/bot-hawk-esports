@@ -374,3 +374,79 @@ export interface InternalRankingEntry {
   };
   lastUpdated: Date;
 }
+
+/**
+ * PUBG Weapon Mastery Types
+ */
+export interface WeaponMedal {
+  id: string;
+  name: string;
+  tier: string;
+  count: number;
+  description?: string;
+}
+
+export interface WeaponMasteryData {
+  attributes: {
+    weaponMasterySummary: {
+      weaponSummaries: Record<string, {
+        Level: number;
+        XP: number;
+        Medals: WeaponMedal[];
+        Tier?: string;
+        Kills?: number;
+        Headshots?: number;
+        Damage?: number;
+        Accuracy?: number;
+      }>;
+    };
+  };
+}
+
+export interface WeaponMasteryBadge {
+  weaponName: string;
+  level: number;
+  xp: number;
+  medals: WeaponMedal[];
+  tier: string;
+  kills?: number;
+  headshots?: number;
+  damage?: number;
+  accuracy?: number;
+}
+
+/**
+ * PUBG Survival Mastery Types
+ */
+export interface SurvivalMasteryData {
+  attributes: Record<string, {
+    level: number;
+    xp: number;
+    tier?: string;
+    category?: string;
+  }>;
+}
+
+export interface SurvivalMasteryBadge {
+  category: string;
+  level: number;
+  xp: number;
+  tier: string;
+}
+
+/**
+ * Circuit Breaker and API Operation Types
+ */
+export enum CircuitBreakerState {
+  CLOSED = 'closed',
+  OPEN = 'open',
+  HALF_OPEN = 'half-open'
+}
+
+export interface ApiOperationResult<T> {
+  success: boolean;
+  data?: T;
+  error?: Error;
+  fromCache?: boolean;
+  responseTime?: number;
+}
