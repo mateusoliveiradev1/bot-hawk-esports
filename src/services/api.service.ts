@@ -1031,6 +1031,8 @@ export class APIService {
           discriminator: '0001',
           avatar: null,
           guildId: guildId,
+          roles: [] as string[],
+          permissions: [] as string[],
         };
 
         // In production, implement proper Discord OAuth flow:
