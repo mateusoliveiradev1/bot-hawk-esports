@@ -37,6 +37,7 @@ describe('ValidationUtils', () => {
     mockInteraction = {
       user: { id: 'user123' },
       guildId: 'guild123',
+      guild: { id: 'guild123' },
       editReply: jest.fn(),
       member: null
     } as any;
@@ -52,6 +53,9 @@ describe('ValidationUtils', () => {
     mockMember = {
       permissions: {
         has: jest.fn()
+      },
+      guild: {
+        id: 'guild123'
       }
     } as any;
   });
