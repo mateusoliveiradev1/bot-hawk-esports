@@ -46,6 +46,14 @@ export interface WeaponMasteryStats {
   totalUsers: number;
   totalWeapons: number;
   averageLevel: number;
+  totalPlayers: number;
+  totalKills: number;
+  mostPopularWeapon: string;
+  averageKillsPerPlayer: number;
+  highestMastery?: {
+    weapon: string;
+    kills: number;
+  };
   topWeapons: Array<{
     name: string;
     users: number;
@@ -588,7 +596,9 @@ export class WeaponMasteryService {
       const totalUsers = records.length;
       let totalWeapons = 0;
       let totalLevels = 0;
-      const weaponStats: Record<string, { users: number; totalLevel: number }> = {};
+      let totalKills = 0;
+      const weaponStats: Record<string, { users: number; totalLevel: number; kills: number }> = {};
+      let highestKillsWeapon = { weapon: '', kills: 0 };
 
       for (const record of records) {
         const weapons: WeaponMasteryData[] = JSON.parse(record.weapons);
@@ -596,11 +606,18 @@ export class WeaponMasteryService {
         totalLevels += record.totalLevel;
 
         for (const weapon of weapons) {
+          totalKills += weapon.kills;
+          
           if (!weaponStats[weapon.weaponName]) {
-            weaponStats[weapon.weaponName] = { users: 0, totalLevel: 0 };
+            weaponStats[weapon.weaponName] = { users: 0, totalLevel: 0, kills: 0 };
           }
           weaponStats[weapon.weaponName]!.users++;
           weaponStats[weapon.weaponName]!.totalLevel += weapon.level;
+          weaponStats[weapon.weaponName]!.kills += weapon.kills;
+          
+          if (weapon.kills > highestKillsWeapon.kills) {
+            highestKillsWeapon = { weapon: weapon.weaponName, kills: weapon.kills };
+          }
         }
       }
 
@@ -623,10 +640,18 @@ export class WeaponMasteryService {
         .sort((a, b) => b.totalLevel - a.totalLevel)
         .slice(0, 10);
 
+      const mostPopularWeapon = Object.entries(weaponStats)
+        .sort(([, a], [, b]) => b.users - a.users)[0]?.[0] || 'N/A';
+
       return {
         totalUsers,
         totalWeapons,
         averageLevel: totalUsers > 0 ? totalLevels / totalUsers : 0,
+        totalPlayers: totalUsers,
+        totalKills,
+        mostPopularWeapon,
+        averageKillsPerPlayer: totalUsers > 0 ? totalKills / totalUsers : 0,
+        highestMastery: highestKillsWeapon.kills > 0 ? highestKillsWeapon : undefined,
         topWeapons,
         topPlayers,
       };
@@ -636,6 +661,11 @@ export class WeaponMasteryService {
         totalUsers: 0,
         totalWeapons: 0,
         averageLevel: 0,
+        totalPlayers: 0,
+        totalKills: 0,
+        mostPopularWeapon: 'N/A',
+        averageKillsPerPlayer: 0,
+        highestMastery: undefined,
         topWeapons: [],
         topPlayers: [],
       };

@@ -15,63 +15,66 @@ import { ExtendedClient } from '../../types/client';
 import { Logger } from '../../utils/logger';
 import { GameService, QuizSettings } from '../../services/game.service';
 import { DatabaseService } from '../../database/database.service';
+import { BaseCommand } from '../../utils/base-command.util';
 
 /**
  * Quiz command - Interactive PUBG and gaming quizzes with modern UI/UX
  */
-const quiz: Command = {
-  data: new SlashCommandBuilder()
-    .setName('quiz')
-    .setDescription('🎯 Inicia um quiz interativo sobre PUBG com interface moderna')
-    .addStringOption(option =>
-      option
-        .setName('category')
-        .setDescription('Categoria do quiz')
-        .setRequired(false)
-        .addChoices(
-          { name: '🎮 PUBG - Mapas & Estratégias', value: 'pubg' },
-          { name: '🔫 PUBG - Armas & Equipamentos', value: 'pubg_weapons' },
-          { name: '🏆 PUBG - Esports & Competitivo', value: 'pubg_esports' },
-          { name: '📚 PUBG - História & Lore', value: 'pubg_lore' },
-          { name: '🎯 Gaming Geral', value: 'gaming' },
-          { name: '🎲 Misto', value: 'mixed' },
-        ),
-    )
-    .addStringOption(option =>
-      option
-        .setName('difficulty')
-        .setDescription('Dificuldade do quiz')
-        .setRequired(false)
-        .addChoices(
-          { name: '🟢 Iniciante (Fácil)', value: 'easy' },
-          { name: '🟡 Veterano (Médio)', value: 'medium' },
-          { name: '🔴 Pro Player (Difícil)', value: 'hard' },
-          { name: '💀 Chicken Dinner (Extremo)', value: 'extreme' },
-          { name: '🌈 Misto', value: 'mixed' },
-        ),
-    )
-    .addIntegerOption(option =>
-      option
-        .setName('questions')
-        .setDescription('Número de perguntas (5-25)')
-        .setRequired(false)
-        .setMinValue(5)
-        .setMaxValue(25),
-    )
-    .addIntegerOption(option =>
-      option
-        .setName('time')
-        .setDescription('Tempo por pergunta em segundos (10-180)')
-        .setRequired(false)
-        .setMinValue(10)
-        .setMaxValue(180),
-    ) as SlashCommandBuilder,
-
-  category: CommandCategory.GENERAL,
-  cooldown: 15,
+class QuizCommand extends BaseCommand {
+  constructor() {
+    super({
+      data: new SlashCommandBuilder()
+        .setName('quiz')
+        .setDescription('🎯 Inicia um quiz interativo sobre PUBG com interface moderna')
+        .addStringOption(option =>
+          option
+            .setName('category')
+            .setDescription('Categoria do quiz')
+            .setRequired(false)
+            .addChoices(
+              { name: '🎮 PUBG - Mapas & Estratégias', value: 'pubg' },
+              { name: '🔫 PUBG - Armas & Equipamentos', value: 'pubg_weapons' },
+              { name: '🏆 PUBG - Esports & Competitivo', value: 'pubg_esports' },
+              { name: '📚 PUBG - História & Lore', value: 'pubg_lore' },
+              { name: '🎯 Gaming Geral', value: 'gaming' },
+              { name: '🎲 Misto', value: 'mixed' },
+            ),
+        )
+        .addStringOption(option =>
+          option
+            .setName('difficulty')
+            .setDescription('Dificuldade do quiz')
+            .setRequired(false)
+            .addChoices(
+              { name: '🟢 Iniciante (Fácil)', value: 'easy' },
+              { name: '🟡 Veterano (Médio)', value: 'medium' },
+              { name: '🔴 Pro Player (Difícil)', value: 'hard' },
+              { name: '💀 Chicken Dinner (Extremo)', value: 'extreme' },
+              { name: '🌈 Misto', value: 'mixed' },
+            ),
+        )
+        .addIntegerOption(option =>
+          option
+            .setName('questions')
+            .setDescription('Número de perguntas (5-25)')
+            .setRequired(false)
+            .setMinValue(5)
+            .setMaxValue(25),
+        )
+        .addIntegerOption(option =>
+          option
+            .setName('time')
+            .setDescription('Tempo por pergunta em segundos (10-180)')
+            .setRequired(false)
+            .setMinValue(10)
+            .setMaxValue(180),
+        ) as SlashCommandBuilder,
+      category: CommandCategory.GENERAL,
+      cooldown: 15,
+    });
+  }
 
   async execute(interaction: any, client: ExtendedClient) {
-    const logger = new Logger();
 
     try {
       const gameService = client.services?.game as GameService;
@@ -98,7 +101,7 @@ const quiz: Command = {
 
       // Show quiz configuration menu if no specific options provided
       if (!interaction.options.getString('category') && !interaction.options.getString('difficulty')) {
-        return await showQuizConfigurationMenu(interaction, gameService);
+        return await this.showQuizConfigurationMenu(interaction, gameService);
       }
 
       // Create enhanced quiz settings
@@ -135,8 +138,8 @@ const quiz: Command = {
       }
 
       // Create modern PUBG-themed embed
-      const categoryInfo = getCategoryInfo(category);
-      const difficultyInfo = getDifficultyInfo(difficulty);
+      const categoryInfo = this.getCategoryInfo(category);
+      const difficultyInfo = this.getDifficultyInfo(difficulty);
       
       const embed = new EmbedBuilder()
         .setTitle(`${categoryInfo.emoji} ${categoryInfo.name} - Quiz Iniciado!`)
@@ -159,17 +162,17 @@ const quiz: Command = {
           },
           { 
             name: '🏅 Sistema de Pontuação', 
-            value: `• Resposta correta: **+${getPointsForDifficulty(difficulty)} pts**\n• Streak bonus: **+50% pts**\n• Tempo bonus: **até +25% pts**`, 
+            value: `• Resposta correta: **+${this.getPointsForDifficulty(difficulty)} pts**\n• Streak bonus: **+50% pts**\n• Tempo bonus: **até +25% pts**`, 
             inline: true, 
           },
           { 
             name: '🎁 Recompensas Possíveis', 
-            value: `• **${getXPReward(difficulty, questionCount)} XP**\n• **${getCoinReward(difficulty, questionCount)} Moedas**\n• **Badges especiais**`, 
+            value: `• **${this.getXPReward(difficulty, questionCount)} XP**\n• **${this.getCoinReward(difficulty, questionCount)} Moedas**\n• **Badges especiais**`, 
             inline: true, 
           },
         )
         .setFooter({ 
-          text: `PUBG Quiz System • Participantes: 0/${getMaxParticipants()}`, 
+          text: `PUBG Quiz System • Participantes: 0/${this.getMaxParticipants()}`, 
           iconURL: 'https://cdn.discordapp.com/emojis/852869487845515264.png', 
         })
         .setTimestamp();
@@ -198,9 +201,9 @@ const quiz: Command = {
       });
 
       // Enhanced countdown with live updates
-      await startEnhancedCountdown(interaction, session, gameService, 15);
+      await this.startEnhancedCountdown(interaction, session, gameService, 15);
     } catch (error) {
-      logger.error('Error in quiz command:', error);
+      this.logger.error('Error in quiz command:', error);
 
       const errorEmbed = new EmbedBuilder()
         .setTitle('💥 Erro Crítico')
@@ -221,19 +224,18 @@ const quiz: Command = {
         await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       }
     }
-  },
-};
+  }
 
 // Duplicate function removed - using enhanced version below
 
-/**
- * End quiz and show results
- */
-async function endQuiz(
-  interaction: ChatInputCommandInteraction,
-  session: any,
-  gameService: GameService,
-) {
+  /**
+   * End quiz and show results
+   */
+  private async endQuiz(
+    interaction: ChatInputCommandInteraction,
+    session: any,
+    gameService: GameService,
+  ) {
   const results = await gameService.endQuiz(session.id);
 
   if (results.length === 0) {
@@ -279,7 +281,7 @@ async function endQuiz(
 /**
  * Enhanced helper functions for modern UI/UX
  */
-function getCategoryInfo(category: string): { name: string; emoji: string; color: number; thumbnail: string } {
+  private getCategoryInfo(category: string): { name: string; emoji: string; color: number; thumbnail: string } {
   const categories = {
     pubg: {
       name: 'PUBG - Mapas & Estratégias',
@@ -321,7 +323,7 @@ function getCategoryInfo(category: string): { name: string; emoji: string; color
   return categories[category as keyof typeof categories] || categories.mixed;
 }
 
-function getDifficultyInfo(difficulty: string): { name: string; emoji: string; multiplier: number } {
+  private getDifficultyInfo(difficulty: string): { name: string; emoji: string; multiplier: number } {
   const difficulties = {
     easy: { name: 'Iniciante', emoji: '🟢', multiplier: 1.0 },
     medium: { name: 'Veterano', emoji: '🟡', multiplier: 1.5 },
@@ -332,26 +334,26 @@ function getDifficultyInfo(difficulty: string): { name: string; emoji: string; m
   return difficulties[difficulty as keyof typeof difficulties] || difficulties.medium;
 }
 
-function getPointsForDifficulty(difficulty: string): number {
+  private getPointsForDifficulty(difficulty: string): number {
   const points = { easy: 10, medium: 15, hard: 25, extreme: 40, mixed: 20 };
   return points[difficulty as keyof typeof points] || 15;
 }
 
-function getXPReward(difficulty: string, questionCount: number): number {
-  const baseXP = getPointsForDifficulty(difficulty) * questionCount;
-  return Math.floor(baseXP * 2.5);
-}
+  private getXPReward(difficulty: string, questionCount: number): number {
+    const baseXP = this.getPointsForDifficulty(difficulty) * questionCount;
+    return Math.floor(baseXP * 2.5);
+  }
 
-function getCoinReward(difficulty: string, questionCount: number): number {
-  const baseCoins = getPointsForDifficulty(difficulty) * questionCount;
-  return Math.floor(baseCoins * 1.2);
-}
+  private getCoinReward(difficulty: string, questionCount: number): number {
+    const baseCoins = this.getPointsForDifficulty(difficulty) * questionCount;
+    return Math.floor(baseCoins * 1.2);
+  }
 
-function getMaxParticipants(): number {
+  private getMaxParticipants(): number {
   return 20;
 }
 
-function getDifficultyColor(difficulty: string): number {
+  private getDifficultyColor(difficulty: string): number {
   const colors = {
     easy: 0x00ff00,
     medium: 0xffa500,
@@ -363,7 +365,7 @@ function getDifficultyColor(difficulty: string): number {
 /**
  * Show interactive quiz configuration menu
  */
-async function showQuizConfigurationMenu(interaction: ChatInputCommandInteraction, gameService: GameService) {
+  private async showQuizConfigurationMenu(interaction: ChatInputCommandInteraction, gameService: GameService) {
   const embed = new EmbedBuilder()
     .setTitle('🎯 Configuração do Quiz PUBG')
     .setDescription(
@@ -479,12 +481,12 @@ async function showQuizConfigurationMenu(interaction: ChatInputCommandInteractio
 /**
  * Enhanced countdown with live updates and participant tracking
  */
-async function startEnhancedCountdown(
-  interaction: ChatInputCommandInteraction,
-  session: any,
-  gameService: GameService,
-  seconds: number,
-) {
+  private async startEnhancedCountdown(
+    interaction: ChatInputCommandInteraction,
+    session: any,
+    gameService: GameService,
+    seconds: number,
+  ) {
   const originalMessage = await interaction.fetchReply();
   let currentSeconds = seconds;
   let participantCount = 0;
@@ -516,8 +518,8 @@ async function startEnhancedCountdown(
         });
       }
     } else if (buttonInteraction.customId === `quiz_info_${session.id}`) {
-      const categoryInfo = getCategoryInfo(session.settings.category);
-      const difficultyInfo = getDifficultyInfo(session.settings.difficulty);
+      const categoryInfo = this.getCategoryInfo(session.settings.category);
+      const difficultyInfo = this.getDifficultyInfo(session.settings.difficulty);
       
       const infoEmbed = new EmbedBuilder()
         .setTitle('📋 Regras do Quiz PUBG')
@@ -528,12 +530,12 @@ async function startEnhancedCountdown(
           '• Respostas rápidas ganham bônus de tempo\n' +
           '• Sequências de acertos ganham bônus de streak\n\n' +
           '**Sistema de Pontuação:**\n' +
-          `• Resposta correta: **${getPointsForDifficulty(session.settings.difficulty)} pontos**\n` +
+          `• Resposta correta: **${this.getPointsForDifficulty(session.settings.difficulty)} pontos**\n` +
           '• Bônus de tempo: **até +25%** (resposta em <50% do tempo)\n' +
           '• Bônus de streak: **+10%** por resposta consecutiva\n\n' +
           '**Recompensas Finais:**\n' +
-          `• **${getXPReward(session.settings.difficulty, session.settings.questionCount)} XP** para o vencedor\n` +
-          `• **${getCoinReward(session.settings.difficulty, session.settings.questionCount)} Moedas** para o vencedor\n` +
+          `• **${this.getXPReward(session.settings.difficulty, session.settings.questionCount)} XP** para o vencedor\n` +
+          `• **${this.getCoinReward(session.settings.difficulty, session.settings.questionCount)} Moedas** para o vencedor\n` +
           '• **Badges especiais** para conquistas\n' +
           '• **XP de participação** para todos',
         )
@@ -582,14 +584,14 @@ async function startEnhancedCountdown(
     if (currentSeconds <= 0) {
       clearInterval(countdownInterval);
       collector.stop('timeout');
-      await startQuizQuestions(interaction, session, gameService);
+      await this.startQuizQuestions(interaction, session, gameService);
       return;
     }
 
     // Update embed every 5 seconds or in the last 5 seconds
     if (currentSeconds % 5 === 0 || currentSeconds <= 5) {
-      const categoryInfo = getCategoryInfo(session.settings.category);
-      const difficultyInfo = getDifficultyInfo(session.settings.difficulty);
+      const categoryInfo = this.getCategoryInfo(session.settings.category);
+      const difficultyInfo = this.getDifficultyInfo(session.settings.difficulty);
       
       const updatedEmbed = new EmbedBuilder()
         .setTitle(`${categoryInfo.emoji} ${categoryInfo.name} - Quiz Iniciado!`)
@@ -612,17 +614,17 @@ async function startEnhancedCountdown(
           },
           { 
             name: '🏅 Sistema de Pontuação', 
-            value: `• Resposta correta: **+${getPointsForDifficulty(session.settings.difficulty)} pts**\n• Streak bonus: **+50% pts**\n• Tempo bonus: **até +25% pts**`, 
+            value: `• Resposta correta: **+${this.getPointsForDifficulty(session.settings.difficulty)} pts**\n• Streak bonus: **+50% pts**\n• Tempo bonus: **até +25% pts**`, 
             inline: true, 
           },
           { 
             name: '🎁 Recompensas Possíveis', 
-            value: `• **${getXPReward(session.settings.difficulty, session.settings.questionCount)} XP**\n• **${getCoinReward(session.settings.difficulty, session.settings.questionCount)} Moedas**\n• **Badges especiais**`, 
+            value: `• **${this.getXPReward(session.settings.difficulty, session.settings.questionCount)} XP**\n• **${this.getCoinReward(session.settings.difficulty, session.settings.questionCount)} Moedas**\n• **Badges especiais**`, 
             inline: true, 
           },
         )
         .setFooter({ 
-          text: `PUBG Quiz System • Participantes: ${participantCount}/${getMaxParticipants()}`, 
+          text: `PUBG Quiz System • Participantes: ${participantCount}/${this.getMaxParticipants()}`, 
           iconURL: 'https://cdn.discordapp.com/emojis/852869487845515264.png', 
         })
         .setTimestamp();
@@ -646,11 +648,11 @@ async function startEnhancedCountdown(
 /**
  * Start the actual quiz questions
  */
-async function startQuizQuestions(
-  interaction: ChatInputCommandInteraction,
-  session: any,
-  gameService: GameService,
-) {
+  private async startQuizQuestions(
+    interaction: ChatInputCommandInteraction,
+    session: any,
+    gameService: GameService,
+  ) {
   try {
     // Check if we have participants
     const participants = Array.from(session.participants.values());
@@ -672,7 +674,7 @@ async function startQuizQuestions(
     }
 
     // Start the quiz
-    const categoryInfo = getCategoryInfo(session.settings.category);
+    const categoryInfo = this.getCategoryInfo(session.settings.category);
     const startEmbed = new EmbedBuilder()
       .setTitle(`🚀 ${categoryInfo.name} - Quiz Iniciado!`)
       .setDescription(
@@ -728,4 +730,16 @@ async function startQuizQuestions(
   }
 }
 
-export default quiz;
+}
+
+const commandInstance = new QuizCommand();
+
+export const command = {
+  data: commandInstance.data,
+  category: CommandCategory.GENERAL,
+  cooldown: 5,
+  execute: (interaction: any, client: ExtendedClient) => 
+    commandInstance.execute(interaction, client),
+};
+
+export default command;

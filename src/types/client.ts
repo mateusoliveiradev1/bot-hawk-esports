@@ -25,6 +25,10 @@ import { PresenceEnhancementsService } from '../services/presence-enhancements.s
 import { BadgeOptimizationService } from '../services/badge-optimization.service';
 import { ExclusiveBadgeService } from '../services/exclusive-badge.service';
 import { DynamicBadgeService } from '../services/dynamic-badge.service';
+import { AdaptiveChallengeService } from '../services/adaptive-challenge.service';
+import { AdvancedPUBGBadgesService } from '../services/advanced-pubg-badges.service';
+import { InteractiveQuizService } from '../services/interactive-quiz.service';
+import { IntegratedMiniGamesService } from '../services/integrated-minigames.service';
 import { CommandManager } from '../commands';
 import { Command } from './command';
 
@@ -59,6 +63,10 @@ export interface ExtendedClient extends Client {
   badgeOptimizationService?: BadgeOptimizationService;
   exclusiveBadgeService?: ExclusiveBadgeService;
   dynamicBadgeService?: DynamicBadgeService;
+  adaptiveChallengeService?: AdaptiveChallengeService;
+  advancedPUBGBadgesService?: AdvancedPUBGBadgesService;
+  interactiveQuizService?: InteractiveQuizService;
+  integratedMiniGamesService?: IntegratedMiniGamesService;
   // New properties for the updated architecture
   db?: DatabaseService;
   services?: {
@@ -82,6 +90,7 @@ export interface ExtendedClient extends Client {
     badgeOptimization: BadgeOptimizationService;
     exclusiveBadge: ExclusiveBadgeService;
     dynamicBadge: DynamicBadgeService;
+    xp: any; // XPService
     pubgMonitor: any;
   };
 }

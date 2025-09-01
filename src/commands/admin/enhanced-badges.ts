@@ -139,6 +139,47 @@ export default {
             .setName('user')
             .setDescription('Usuário para verificar')
             .setRequired(true),
+        )
+        .addStringOption(option =>
+          option
+            .setName('category')
+            .setDescription('Categoria de badges para verificar')
+            .addChoices(
+              { name: 'Sequência', value: 'streak' },
+              { name: 'Comunidade', value: 'community' },
+              { name: 'Colaboração', value: 'collaboration' },
+              { name: 'Sazonal', value: 'seasonal' },
+              { name: 'PUBG', value: 'pubg' },
+            ),
+        ),
+    )
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName('test-pubg')
+        .setDescription('Testar badges específicas do PUBG')
+        .addUserOption(option =>
+          option
+            .setName('user')
+            .setDescription('Usuário para testar')
+            .setRequired(true),
+        )
+        .addStringOption(option =>
+          option
+            .setName('type')
+            .setDescription('Tipo de atividade PUBG')
+            .setRequired(true)
+            .addChoices(
+              { name: 'Distância Percorrida', value: 'distance' },
+              { name: 'Tempo de Sobrevivência', value: 'survival' },
+              { name: 'Kills com Veículo', value: 'vehicle_kill' },
+              { name: 'Top 10 Finish', value: 'top_10' },
+            ),
+        )
+        .addNumberOption(option =>
+          option
+            .setName('amount')
+            .setDescription('Quantidade (distância em km, tempo em minutos, kills)')
+            .setMinValue(1),
         ),
     )
     .setDefaultMemberPermissions('0'),
@@ -174,6 +215,9 @@ export default {
         break;
       case 'user-progress':
         await handleUserProgress(interaction, badgeService);
+        break;
+      case 'test-pubg':
+        await handleTestPubg(interaction, badgeService);
         break;
       default:
         await interaction.reply({
@@ -394,39 +438,44 @@ async function handleUserProgress(
 
   try {
     const user = interaction.options.getUser('user', true);
+    const category = interaction.options.getString('category');
     const userBadges = await badgeService.getUserBadges(user.id);
     const badgeStats = await badgeService.getUserBadgeStats(user.id);
 
-    const newCategories = ['streak', 'community', 'collaboration', 'seasonal'];
-    const newBadges = userBadges.filter(badge => newCategories.includes(badge.category));
+    const newCategories = ['streak', 'community', 'collaboration', 'seasonal', 'pubg'];
+    let filteredBadges = userBadges.filter(badge => newCategories.includes(badge.category));
+    
+    if (category) {
+      filteredBadges = filteredBadges.filter(badge => badge.category === category);
+    }
 
     const embed = new EmbedBuilder()
       .setTitle(`📊 Progresso de Badges - ${user.displayName}`)
-      .setDescription('Progresso nas novas categorias de badges')
+      .setDescription(category ? `Categoria: **${category}**` : 'Progresso nas novas categorias de badges')
       .addFields(
         { name: '🏆 Total de Badges', value: badgeStats.total.toString(), inline: true },
-        { name: '🆕 Novas Badges', value: newBadges.length.toString(), inline: true },
+        { name: '🆕 Novas Badges', value: filteredBadges.length.toString(), inline: true },
         { name: '💎 Badge Mais Rara', value: badgeStats.rarest?.name || 'Nenhuma', inline: true },
       )
       .setColor('#9B59B6')
       .setTimestamp();
 
-    if (newBadges.length > 0) {
-      const badgesByCategory = newBadges.reduce((acc, badge) => {
+    if (filteredBadges.length > 0) {
+      const badgesByCategory = filteredBadges.reduce((acc, badge) => {
         if (!acc[badge.category]) {
           acc[badge.category] = [];
         }
         acc[badge.category].push(badge);
         return acc;
-      }, {} as Record<string, typeof newBadges>);
+      }, {} as Record<string, typeof filteredBadges>);
 
-      for (const [category, badges] of Object.entries(badgesByCategory)) {
+      for (const [cat, badges] of Object.entries(badgesByCategory)) {
         const badgeList = badges
           .map(badge => `${badge.icon} ${badge.name}`)
           .join('\n');
         
         embed.addFields({
-          name: `📂 ${category.charAt(0).toUpperCase() + category.slice(1)}`,
+          name: `📂 ${cat.charAt(0).toUpperCase() + cat.slice(1)}`,
           value: badgeList.length > 1024 ? badgeList.substring(0, 1021) + '...' : badgeList,
           inline: false,
         });
@@ -434,7 +483,7 @@ async function handleUserProgress(
     } else {
       embed.addFields({
         name: '📝 Status',
-        value: 'Nenhuma badge das novas categorias conquistada ainda.',
+        value: category ? `Nenhuma badge da categoria ${category} conquistada ainda.` : 'Nenhuma badge das novas categorias conquistada ainda.',
         inline: false,
       });
     }
@@ -444,6 +493,46 @@ async function handleUserProgress(
     console.error('Erro ao verificar progresso:', error);
     await interaction.editReply({
       content: '❌ Erro ao verificar progresso do usuário.',
+    });
+  }
+}
+
+async function handleTestPubg(
+  interaction: ChatInputCommandInteraction,
+  badgeService: BadgeService,
+): Promise<void> {
+  await interaction.deferReply({ ephemeral: true });
+
+  try {
+    const user = interaction.options.getUser('user', true);
+    const type = interaction.options.getString('type', true);
+    const amount = interaction.options.getNumber('amount') || 1;
+
+    await badgeService.onPubgActivity(user.id, type, amount);
+
+    const typeNames = {
+      distance: 'Distância Percorrida',
+      survival: 'Tempo de Sobrevivência',
+      vehicle_kill: 'Kills com Veículo',
+      top_10: 'Top 10 Finish',
+    };
+
+    const embed = new EmbedBuilder()
+      .setTitle('✅ Teste de Atividade PUBG Executado')
+      .setDescription(`Atividade PUBG registrada para ${user.displayName}`)
+      .addFields(
+        { name: '👤 Usuário', value: user.displayName, inline: true },
+        { name: '🎮 Atividade', value: typeNames[type as keyof typeof typeNames], inline: true },
+        { name: '🔢 Quantidade', value: amount.toString(), inline: true },
+      )
+      .setColor('#00FF00')
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embed] });
+  } catch (error) {
+    console.error('Erro no teste PUBG:', error);
+    await interaction.editReply({
+      content: '❌ Erro ao executar teste de atividade PUBG.',
     });
   }
 }

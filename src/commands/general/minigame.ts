@@ -7,43 +7,47 @@ import {
   ComponentType,
   ChatInputCommandInteraction,
   MessageFlags,
+  CommandInteraction,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
 import { Logger } from '../../utils/logger';
 import { GameService, MiniGame } from '../../services/game.service';
 import { DatabaseService } from '../../database/database.service';
+import { BaseCommand } from '../../utils/base-command.util';
 
 /**
  * Mini Game command - Interactive mini-games for entertainment and rewards
  */
-const minigame: Command = {
-  data: new SlashCommandBuilder()
-    .setName('minigame')
-    .setDescription('🎮 Mini-games temáticos de PUBG para ganhar XP, moedas e badges')
-    .addStringOption(option =>
-      option
-        .setName('game')
-        .setDescription('Escolha o mini-game PUBG')
-        .setRequired(false)
-        .addChoices(
-          { name: '⚡ Reflexos de Combate', value: 'reaction_test' },
-          { name: '⌨️ Comunicação Rápida', value: 'typing_race' },
-          { name: '🧮 Cálculo de Dano', value: 'math_challenge' },
-          { name: '🧠 Memorização de Mapas', value: 'memory_game' },
-          { name: '📦 Lootbox Virtual', value: 'lootbox' },
-          { name: '🪂 Drop Aéreo', value: 'airdrop' },
-          { name: '🎲 Aleatório', value: 'random' },
-        ),
-    ) as SlashCommandBuilder,
+class MinigameCommand extends BaseCommand {
+  constructor() {
+    super({
+      data: new SlashCommandBuilder()
+        .setName('minigame')
+        .setDescription('🎮 Mini-games temáticos de PUBG para ganhar XP, moedas e badges')
+        .addStringOption(option =>
+          option
+            .setName('game')
+            .setDescription('Escolha o mini-game PUBG')
+            .setRequired(false)
+            .addChoices(
+              { name: '⚡ Reflexos de Combate', value: 'reaction_test' },
+              { name: '⌨️ Comunicação Rápida', value: 'typing_race' },
+              { name: '🧮 Cálculo de Dano', value: 'math_challenge' },
+              { name: '🧠 Memorização de Mapas', value: 'memory_game' },
+              { name: '📦 Lootbox Virtual', value: 'lootbox' },
+              { name: '🪂 Drop Aéreo', value: 'airdrop' },
+              { name: '🎲 Aleatório', value: 'random' },
+            ),
+        ) as SlashCommandBuilder,
+      category: CommandCategory.GENERAL,
+      cooldown: 30, // Reduced cooldown for better UX
+    });
+  }
 
-  category: CommandCategory.GENERAL,
-  cooldown: 30, // Reduced cooldown for better UX
-
-  async execute(interaction: any, client: ExtendedClient) {
-    const logger = new Logger();
+  async execute(interaction: CommandInteraction, client: ExtendedClient): Promise<void> {
     const gameService = new GameService(client);
-    const database = new DatabaseService();
+    const database = client.database;
 
     try {
       // Check if user is registered
@@ -60,14 +64,15 @@ const minigame: Command = {
           .setColor(0xff0000)
           .setTimestamp();
 
-        return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        return;
       }
 
       // Get selected game or show selection
-      const selectedGame = interaction.options.getString('game');
+      const selectedGame = (interaction as any).options.getString('game');
 
       if (!selectedGame) {
-        await showGameSelection(interaction, gameService);
+        await this.showGameSelection(interaction as ChatInputCommandInteraction, gameService);
         return;
       }
 
@@ -84,7 +89,8 @@ const minigame: Command = {
           .setColor(0xffa500)
           .setTimestamp();
 
-        return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        return;
       }
 
       // Get game info
@@ -104,7 +110,8 @@ const minigame: Command = {
           .setColor(0xff0000)
           .setTimestamp();
 
-        return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+          return;
       }
 
       // Start the mini-game
@@ -122,34 +129,35 @@ const minigame: Command = {
           .setColor(0xff0000)
           .setTimestamp();
 
-        return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+          return;
       }
 
       // Handle different game types
       switch (gameToStart.type) {
         case 'reaction':
-          await startReactionTest(interaction, session, gameToStart, gameService);
+          await this.startReactionTest(interaction as ChatInputCommandInteraction, session, gameToStart, gameService);
           break;
         case 'typing':
-          await startTypingRace(interaction, session, gameToStart, gameService);
+          await this.startTypingRace(interaction as ChatInputCommandInteraction, session, gameToStart, gameService);
           break;
         case 'math':
-          await startMathChallenge(interaction, session, gameToStart, gameService);
+          await this.startMathChallenge(interaction as ChatInputCommandInteraction, session, gameToStart, gameService);
           break;
         case 'memory':
-          await startMemoryGame(interaction, session, gameToStart, gameService);
+          await this.startMemoryGame(interaction as ChatInputCommandInteraction, session, gameToStart, gameService);
           break;
         case 'lootbox':
-          await startLootbox(interaction, session, gameToStart, gameService);
+          await this.startLootbox(interaction as ChatInputCommandInteraction, session, gameToStart, gameService);
           break;
         case 'airdrop':
-          await startAirdrop(interaction, session, gameToStart, gameService);
+          await this.startAirdrop(interaction as ChatInputCommandInteraction, session, gameToStart, gameService);
           break;
         default:
           throw new Error(`Unsupported game type: ${gameToStart.type}`);
       }
     } catch (error) {
-      logger.error('Error in minigame command:', error);
+      this.logger.error('Error in minigame command:', error);
 
       const errorEmbed = new EmbedBuilder()
         .setTitle('❌ Erro')
@@ -163,16 +171,15 @@ const minigame: Command = {
         await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       }
     }
-  },
-};
+  }
 
-/**
- * Show enhanced PUBG-themed game selection menu
- */
-async function showGameSelection(
-  interaction: ChatInputCommandInteraction,
-  gameService: GameService,
-) {
+  /**
+   * Show enhanced PUBG-themed game selection menu
+   */
+  private async showGameSelection(
+    interaction: ChatInputCommandInteraction,
+    gameService: GameService,
+  ) {
   const games = gameService.getMiniGames();
 
   const embed = new EmbedBuilder()
@@ -292,7 +299,7 @@ async function showGameSelection(
     const loadingEmbed = new EmbedBuilder()
       .setTitle('🎮 Preparando Arena...')
       .setDescription(
-        `**Carregando ${getGameDisplayName(gameId)}...**\n\n` +
+        `**Carregando ${this.getGameDisplayName(gameId)}...**\n\n` +
         '```yaml\nInicializando sistemas de combate...\nCarregando mapa...\nPreparando recompensas...```\n\n' +
         '⏳ *Aguarde alguns segundos...*',
       )
@@ -313,7 +320,7 @@ async function showGameSelection(
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     // Re-execute with selected game
-    await minigame.execute(interaction, buttonInteraction.client as ExtendedClient);
+    await this.execute(interaction, buttonInteraction.client as ExtendedClient);
   });
 
   collector.on('end', async (collected, reason) => {
@@ -335,12 +342,12 @@ async function showGameSelection(
       }
     }
   });
-}
+  }
 
-/**
- * Start Reaction Test game
- */
-async function startReactionTest(
+  /**
+   * Start Reaction Test game
+   */
+  private async startReactionTest(
   interaction: ChatInputCommandInteraction,
   session: any,
   game: MiniGame,
@@ -421,22 +428,22 @@ async function startReactionTest(
     });
 
     collector.on('end', async () => {
-      await endReactionTest(interaction, session, game, gameService, reactions, winner);
+      await this.endReactionTest(interaction, session, game, gameService, reactions, winner);
     });
   }, delay);
 }
 
-/**
- * End Reaction Test and show results
- */
-async function endReactionTest(
-  interaction: ChatInputCommandInteraction,
-  session: any,
-  game: MiniGame,
-  gameService: GameService,
-  reactions: Array<{ userId: string; username: string; time: number }>,
-  winner: string | null,
-) {
+  /**
+   * End Reaction Test and show results
+   */
+  private async endReactionTest(
+    interaction: ChatInputCommandInteraction,
+    session: any,
+    game: MiniGame,
+    gameService: GameService,
+    reactions: Array<{ userId: string; username: string; time: number }>,
+    winner: string | null,
+  ) {
   const results = await gameService.endMiniGame(session.id);
 
   if (reactions.length === 0) {
@@ -474,12 +481,12 @@ async function endReactionTest(
 /**
  * Start Typing Race game
  */
-async function startTypingRace(
-  interaction: ChatInputCommandInteraction,
-  session: any,
-  game: MiniGame,
-  gameService: GameService,
-) {
+  private async startTypingRace(
+    interaction: ChatInputCommandInteraction,
+    session: any,
+    game: MiniGame,
+    gameService: GameService,
+  ) {
   const phrases = [
     'Winner winner chicken dinner!',
     'The zone is closing in fast!',
@@ -550,19 +557,19 @@ async function startTypingRace(
   });
 
   collector?.on('end', async () => {
-    await endTypingRace(interaction, session, game, gameService);
+    await this.endTypingRace(interaction, session, game, gameService);
   });
 }
 
 /**
  * End Typing Race and show results
  */
-async function endTypingRace(
-  interaction: ChatInputCommandInteraction,
-  session: any,
-  game: MiniGame,
-  gameService: GameService,
-) {
+  private async endTypingRace(
+    interaction: ChatInputCommandInteraction,
+    session: any,
+    game: MiniGame,
+    gameService: GameService,
+  ) {
   const results = await gameService.endMiniGame(session.id);
   const submissions = session.data.submissions || [];
 
@@ -602,12 +609,12 @@ async function endTypingRace(
 /**
  * Start Math Challenge game
  */
-async function startMathChallenge(
-  interaction: ChatInputCommandInteraction,
-  session: any,
-  game: MiniGame,
-  gameService: GameService,
-) {
+  private async startMathChallenge(
+    interaction: ChatInputCommandInteraction,
+    session: any,
+    game: MiniGame,
+    gameService: GameService,
+  ) {
   const embed = new EmbedBuilder()
     .setTitle('🧮 Desafio Matemático')
     .setDescription(
@@ -660,22 +667,22 @@ async function startMathChallenge(
   session.data.scores = new Map();
   session.data.startTime = Date.now();
 
-  await showMathProblem(interaction, session, game, gameService);
+  await this.showMathProblem(interaction, session, game, gameService);
 }
 
 /**
  * Show current math problem
  */
-async function showMathProblem(
-  interaction: ChatInputCommandInteraction,
-  session: any,
-  game: MiniGame,
-  gameService: GameService,
-) {
+  private async showMathProblem(
+    interaction: ChatInputCommandInteraction,
+    session: any,
+    game: MiniGame,
+    gameService: GameService,
+  ) {
   const problem = session.data.problems[session.data.currentProblem];
 
   if (!problem) {
-    await endMathChallenge(interaction, session, game, gameService);
+    await this.endMathChallenge(interaction, session, game, gameService);
     return;
   }
 
@@ -729,7 +736,7 @@ async function showMathProblem(
 
       setTimeout(() => {
         collector?.stop();
-        showMathProblem(interaction, session, game, gameService);
+        this.showMathProblem(interaction, session, game, gameService);
       }, 2000);
     } else {
       await message.react('❌');
@@ -739,7 +746,7 @@ async function showMathProblem(
   collector?.on('end', async () => {
     if (!answered) {
       session.data.currentProblem++;
-      await showMathProblem(interaction, session, game, gameService);
+      await this.showMathProblem(interaction, session, game, gameService);
     }
   });
 }
@@ -747,12 +754,12 @@ async function showMathProblem(
 /**
  * End Math Challenge and show results
  */
-async function endMathChallenge(
-  interaction: ChatInputCommandInteraction,
-  session: any,
-  game: MiniGame,
-  gameService: GameService,
-) {
+  private async endMathChallenge(
+    interaction: ChatInputCommandInteraction,
+    session: any,
+    game: MiniGame,
+    gameService: GameService,
+  ) {
   const results = await gameService.endMiniGame(session.id);
   const scoresMap = session.data.scores;
   const scores: Array<{ userId: string; username: any; score: number }> = [];
@@ -801,12 +808,12 @@ async function endMathChallenge(
 /**
  * Start Memory Game
  */
-async function startMemoryGame(
-  interaction: ChatInputCommandInteraction,
-  session: any,
-  game: MiniGame,
-  gameService: GameService,
-) {
+  private async startMemoryGame(
+    interaction: ChatInputCommandInteraction,
+    session: any,
+    game: MiniGame,
+    gameService: GameService,
+  ) {
   const embed = new EmbedBuilder()
     .setTitle('🧠 Jogo da Memória')
     .setDescription(
@@ -830,19 +837,19 @@ async function startMemoryGame(
   session.data.round = 1;
   session.data.players = new Map();
 
-  await showMemorySequence(interaction, session, game, gameService, emojis);
+  await this.showMemorySequence(interaction, session, game, gameService, emojis);
 }
 
 /**
  * Show memory sequence
  */
-async function showMemorySequence(
-  interaction: ChatInputCommandInteraction,
-  session: any,
-  game: MiniGame,
-  gameService: GameService,
-  emojis: string[],
-) {
+  private async showMemorySequence(
+    interaction: ChatInputCommandInteraction,
+    session: any,
+    game: MiniGame,
+    gameService: GameService,
+    emojis: string[],
+  ) {
   // Add new emoji to sequence
   const newEmoji = emojis[Math.floor(Math.random() * emojis.length)];
   session.data.sequence.push(newEmoji);
@@ -860,20 +867,20 @@ async function showMemorySequence(
   const showTime = 3000 + session.data.sequence.length * 1000;
 
   setTimeout(async () => {
-    await askMemorySequence(interaction, session, game, gameService, emojis);
+    await this.askMemorySequence(interaction, session, game, gameService, emojis);
   }, showTime);
 }
 
 /**
  * Ask user to repeat the sequence
  */
-async function askMemorySequence(
-  interaction: ChatInputCommandInteraction,
-  session: any,
-  game: MiniGame,
-  gameService: GameService,
-  emojis: string[],
-) {
+  private async askMemorySequence(
+    interaction: ChatInputCommandInteraction,
+    session: any,
+    game: MiniGame,
+    gameService: GameService,
+    emojis: string[],
+  ) {
   const embed = new EmbedBuilder()
     .setTitle(`🧠 Rodada ${session.data.round} - Repita a Sequência`)
     .setDescription(
@@ -902,19 +909,19 @@ async function askMemorySequence(
   // Simplified memory game - just end after timeout
   // In a full implementation, you would handle button interactions here
   setTimeout(() => {
-    endMemoryGame(interaction, session, game, gameService);
+    this.endMemoryGame(interaction, session, game, gameService);
   }, 30000);
 }
 
 /**
  * End Memory Game and show results
  */
-async function endMemoryGame(
-  interaction: ChatInputCommandInteraction,
-  session: any,
-  game: MiniGame,
-  gameService: GameService,
-) {
+  private async endMemoryGame(
+    interaction: ChatInputCommandInteraction,
+    session: any,
+    game: MiniGame,
+    gameService: GameService,
+  ) {
   const results = await gameService.endMiniGame(session.id);
   const playersMap = session.data.players;
   const scores: Array<{ userId: string; username: any; score: number }> = [];
@@ -964,12 +971,12 @@ async function endMemoryGame(
 /**
  * Start Lootbox Virtual game
  */
-async function startLootbox(
-  interaction: ChatInputCommandInteraction,
-  session: any,
-  game: MiniGame,
-  gameService: GameService,
-) {
+  private async startLootbox(
+    interaction: ChatInputCommandInteraction,
+    session: any,
+    game: MiniGame,
+    gameService: GameService,
+  ) {
   const lootItems = [
     { name: 'AKM', rarity: 'comum', emoji: '🔫' },
     { name: 'M416', rarity: 'comum', emoji: '🔫' },
@@ -1071,20 +1078,20 @@ async function startLootbox(
   });
 
   collector?.on('end', async () => {
-    await endLootbox(interaction, session, game, gameService, collectedItems);
+    await this.endLootbox(interaction, session, game, gameService, collectedItems);
   });
 }
 
 /**
  * End Lootbox game and show results
  */
-async function endLootbox(
-  interaction: ChatInputCommandInteraction,
-  session: any,
-  game: MiniGame,
-  gameService: GameService,
-  collectedItems: Array<{ userId: string; username: string; item: any }>,
-) {
+  private async endLootbox(
+    interaction: ChatInputCommandInteraction,
+    session: any,
+    game: MiniGame,
+    gameService: GameService,
+    collectedItems: Array<{ userId: string; username: string; item: any }>,
+  ) {
   const results = await gameService.endMiniGame(session.id);
 
   if (collectedItems.length === 0) {
@@ -1125,12 +1132,12 @@ async function endLootbox(
 /**
  * Start Airdrop game
  */
-async function startAirdrop(
-  interaction: ChatInputCommandInteraction,
-  session: any,
-  game: MiniGame,
-  gameService: GameService,
-) {
+  private async startAirdrop(
+    interaction: ChatInputCommandInteraction,
+    session: any,
+    game: MiniGame,
+    gameService: GameService,
+  ) {
   const embed = new EmbedBuilder()
     .setTitle('🪂 Drop Aéreo Clicável')
     .setDescription(
@@ -1194,7 +1201,7 @@ async function startAirdrop(
     });
 
     collector?.on('end', async () => {
-      await endAirdrop(interaction, session, game, gameService, winner);
+      await this.endAirdrop(interaction, session, game, gameService, winner);
     });
   }, dropDelay);
 }
@@ -1202,13 +1209,13 @@ async function startAirdrop(
 /**
  * End Airdrop game and show results
  */
-async function endAirdrop(
-  interaction: ChatInputCommandInteraction,
-  session: any,
-  game: MiniGame,
-  gameService: GameService,
-  winner: string | null,
-) {
+  private async endAirdrop(
+    interaction: ChatInputCommandInteraction,
+    session: any,
+    game: MiniGame,
+    gameService: GameService,
+    winner: string | null,
+  ) {
   const results = await gameService.endMiniGame(session.id);
 
   const embed = new EmbedBuilder()
@@ -1241,7 +1248,7 @@ async function endAirdrop(
 /**
  * Get display name for games
  */
-function getGameDisplayName(gameId: string): string {
+  private getGameDisplayName(gameId: string): string {
   const names: Record<string, string> = {
     reaction_test: 'Reflexos de Combate',
     typing_race: 'Comunicação Rápida',
@@ -1258,7 +1265,7 @@ function getGameDisplayName(gameId: string): string {
 /**
  * Get emoji for game types with PUBG theme
  */
-function getGameEmoji(type: string): string {
+  private getGameEmoji(type: string): string {
   const emojis: Record<string, string> = {
     reaction_test: '⚡',
     typing_race: '⌨️',
@@ -1269,7 +1276,18 @@ function getGameEmoji(type: string): string {
     random: '🎲',
   };
 
-  return emojis[type] || '🎯';
+  return emojis[type] || '🎮';
+  }
 }
 
-export default minigame;
+const commandInstance = new MinigameCommand();
+
+export const command = {
+  data: commandInstance.data,
+  category: CommandCategory.GENERAL,
+  cooldown: 5,
+  execute: (interaction: CommandInteraction, client: ExtendedClient) => 
+    commandInstance.execute(interaction, client),
+};
+
+export default command;

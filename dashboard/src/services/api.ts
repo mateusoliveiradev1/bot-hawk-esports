@@ -231,6 +231,39 @@ class ApiService {
     const data = await this.request<T>(endpoint);
     return { success: true, data };
   }
+
+  // Gamification API methods
+  async getUserXP(userId: string, guildId: string): Promise<any> {
+    return this.request(`/gamification/xp/${userId}/${guildId}`);
+  }
+
+  async getGuildXPOverview(guildId: string): Promise<any> {
+    return this.request(`/gamification/xp/overview/${guildId}`);
+  }
+
+  async getRankings(guildId: string, type: 'overall' | 'weekly' | 'monthly' = 'overall', limit: number = 10): Promise<any[]> {
+    return this.request(`/gamification/rankings/${guildId}?type=${type}&limit=${limit}`);
+  }
+
+  async getActiveMiniGames(guildId: string): Promise<any[]> {
+    return this.request(`/gamification/minigames/active/${guildId}`);
+  }
+
+  async getMiniGameStats(userId: string, guildId: string): Promise<any> {
+    return this.request(`/gamification/minigames/stats/${userId}/${guildId}`);
+  }
+
+  async getUserAchievements(userId: string, guildId: string): Promise<any[]> {
+    return this.request(`/gamification/achievements/${userId}/${guildId}`);
+  }
+
+  async getUserChallenges(userId: string, guildId: string): Promise<any[]> {
+    return this.request(`/gamification/challenges/${userId}/${guildId}`);
+  }
+
+  async getGuildBadges(guildId: string, showProgress: boolean = false): Promise<any[]> {
+    return this.request(`/gamification/badges/${guildId}?showProgress=${showProgress}`);
+  }
 }
 
 export const apiService = new ApiService();

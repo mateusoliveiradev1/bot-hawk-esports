@@ -5,9 +5,9 @@ import {
   ComponentType,
   ButtonStyle,
 } from 'discord.js';
-import { Command, CommandCategory } from '../../types/command';
+import { CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
-import { Logger } from '../../utils/logger';
+import { BaseCommand } from '../../utils/base-command.util';
 import { DatabaseService } from '../../database/database.service';
 import { HawkEmbedBuilder } from '../../utils/hawk-embed-builder';
 import { HawkComponentFactory } from '../../utils/hawk-component-factory';
@@ -35,10 +35,12 @@ interface SessionRankingData {
 /**
  * Session ranking command - View participation-based rankings
  */
-const sessionRanking: Command = {
-  data: new SlashCommandBuilder()
-    .setName('session-ranking')
-    .setDescription(`${HAWK_EMOJIS.TROPHY} Ver ranking baseado na participação em sessões`)
+class SessionRankingCommand extends BaseCommand {
+  constructor() {
+    super({
+      data: new SlashCommandBuilder()
+        .setName('session-ranking')
+        .setDescription(`${HAWK_EMOJIS.TROPHY} Ver ranking baseado na participação em sessões`)
     .addStringOption(option =>
       option
         .setName('periodo')
@@ -62,23 +64,22 @@ const sessionRanking: Command = {
           { name: `${HAWK_EMOJIS.MEDAL} Ranked`, value: 'ranked' },
         ),
     ) as SlashCommandBuilder,
-
-  category: CommandCategory.GENERAL,
-  cooldown: 10,
+      category: CommandCategory.GENERAL,
+      cooldown: 10,
+    });
+  }
 
   async execute(
-    interaction: CommandInteraction | ChatInputCommandInteraction,
+    interaction: ChatInputCommandInteraction,
     client: ExtendedClient,
   ): Promise<void> {
-    const logger = new Logger();
-    const database = new DatabaseService();
+    const database = client.database;
 
     try {
       await interaction.deferReply();
 
-      const periodo =
-        (interaction as ChatInputCommandInteraction).options.getString('periodo') || 'monthly';
-      const tipoFiltro = (interaction as ChatInputCommandInteraction).options.getString('tipo');
+      const periodo = interaction.options.getString('periodo') || 'monthly';
+      const tipoFiltro = interaction.options.getString('tipo');
       const guildId = interaction.guild!.id;
 
       // Calculate date range based on period
@@ -99,7 +100,7 @@ const sessionRanking: Command = {
       }
 
       // Get session data from presence records
-      const sessionData = await getSessionRankingData(database, guildId, startDate, tipoFiltro);
+      const sessionData = await this.getSessionRankingData(database, guildId, startDate, tipoFiltro);
 
       if (sessionData.length === 0) {
         const noDataEmbed = HawkEmbedBuilder.createWarning(
@@ -112,7 +113,7 @@ const sessionRanking: Command = {
       }
 
       // Create ranking embed
-      const embed = await createRankingEmbed(sessionData, periodo, tipoFiltro, interaction.user.id);
+      const embed = await this.createRankingEmbed(sessionData, periodo, tipoFiltro, interaction.user.id);
 
       // Create navigation buttons
       const buttons = HawkComponentFactory.createButtonRow([
@@ -161,12 +162,12 @@ const sessionRanking: Command = {
         try {
           switch (buttonInteraction.customId) {
             case 'session_ranking_details':
-              const detailsEmbed = await createDetailsEmbed(sessionData.slice(0, 5));
+              const detailsEmbed = await this.createDetailsEmbed(sessionData.slice(0, 5));
               await buttonInteraction.editReply({ embeds: [detailsEmbed] });
               break;
 
             case 'session_ranking_personal':
-              const personalEmbed = await createPersonalRankingEmbed(
+              const personalEmbed = await this.createPersonalRankingEmbed(
                 sessionData,
                 interaction.user.id,
               );
@@ -174,8 +175,8 @@ const sessionRanking: Command = {
               break;
 
             case 'session_ranking_refresh':
-              const newData = await getSessionRankingData(database, guildId, startDate, tipoFiltro);
-              const newEmbed = await createRankingEmbed(
+              const newData = await this.getSessionRankingData(database, guildId, startDate, tipoFiltro);
+              const newEmbed = await this.createRankingEmbed(
                 newData,
                 periodo,
                 tipoFiltro,
@@ -185,7 +186,7 @@ const sessionRanking: Command = {
               break;
           }
         } catch (error) {
-          logger.error('Error handling session ranking button:', error);
+          this.logger.error('Error handling session ranking button:', error);
         }
       });
 
@@ -208,7 +209,7 @@ const sessionRanking: Command = {
         }
       });
     } catch (error) {
-      logger.error('Error in session-ranking command:', error);
+      this.logger.error('Error in session-ranking command:', error);
 
       const errorEmbed = HawkEmbedBuilder.createError(
         `${HAWK_EMOJIS.ERROR} Erro`,
@@ -217,18 +218,17 @@ const sessionRanking: Command = {
 
       await interaction.editReply({ embeds: [errorEmbed] });
     }
-  },
-};
+  }
 
-/**
- * Get session ranking data from database
- */
-async function getSessionRankingData(
-  database: DatabaseService,
-  guildId: string,
-  startDate: Date,
-  typeFilter?: string | null,
-): Promise<SessionRankingData[]> {
+  /**
+   * Get session ranking data from database
+   */
+  private async getSessionRankingData(
+    database: DatabaseService,
+    guildId: string,
+    startDate: Date,
+    typeFilter?: string | null,
+  ): Promise<SessionRankingData[]> {
   try {
     // Get all presence records for the period
     const presenceRecords = await database.client.presence.findMany({
@@ -335,7 +335,7 @@ async function getSessionRankingData(
           : 0;
 
       // Calculate points based on participation
-      userStats.points = calculateSessionPoints(userStats);
+      userStats.points = this.calculateSessionPoints(userStats);
 
       // Calculate streak (simplified - days since last session)
       const daysSinceLastSession = Math.floor(
@@ -359,10 +359,10 @@ async function getSessionRankingData(
   }
 }
 
-/**
- * Calculate points based on session participation
- */
-function calculateSessionPoints(userStats: SessionRankingData): number {
+  /**
+   * Calculate points based on session participation
+   */
+  private calculateSessionPoints(userStats: SessionRankingData): number {
   let points = 0;
 
   // Base points for sessions
@@ -383,15 +383,15 @@ function calculateSessionPoints(userStats: SessionRankingData): number {
   return points;
 }
 
-/**
- * Create main ranking embed
- */
-async function createRankingEmbed(
-  data: SessionRankingData[],
-  period: string,
-  typeFilter: string | null,
-  requesterId: string,
-): Promise<any> {
+  /**
+   * Create main ranking embed
+   */
+  private async createRankingEmbed(
+    data: SessionRankingData[],
+    period: string,
+    typeFilter: string | null,
+    requesterId: string,
+  ): Promise<any> {
   const periodNames = {
     weekly: 'Semanal',
     monthly: 'Mensal',
@@ -462,10 +462,10 @@ async function createRankingEmbed(
   return embed;
 }
 
-/**
- * Create details embed for top users
- */
-async function createDetailsEmbed(topUsers: SessionRankingData[]): Promise<any> {
+  /**
+   * Create details embed for top users
+   */
+  private async createDetailsEmbed(topUsers: SessionRankingData[]): Promise<any> {
   const embed = HawkEmbedBuilder.createSuccess(
     'Detalhes dos Top Participantes',
     `${HAWK_EMOJIS.STATS} Estatísticas detalhadas dos melhores jogadores`,
@@ -512,13 +512,13 @@ async function createDetailsEmbed(topUsers: SessionRankingData[]): Promise<any> 
   return embed;
 }
 
-/**
- * Create personal ranking embed
- */
-async function createPersonalRankingEmbed(
-  data: SessionRankingData[],
-  userId: string,
-): Promise<any> {
+  /**
+   * Create personal ranking embed
+   */
+  private async createPersonalRankingEmbed(
+    data: SessionRankingData[],
+    userId: string,
+  ): Promise<any> {
   const userStats = data.find(u => u.userId === userId);
 
   const embed = HawkEmbedBuilder.createInfo(
@@ -573,4 +573,16 @@ async function createPersonalRankingEmbed(
   return embed;
 }
 
-export default sessionRanking;
+}
+
+const commandInstance = new SessionRankingCommand();
+
+export const command = {
+  data: commandInstance.data,
+  category: CommandCategory.GENERAL,
+  cooldown: 5,
+  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) => 
+    commandInstance.execute(interaction, client),
+};
+
+export default command;

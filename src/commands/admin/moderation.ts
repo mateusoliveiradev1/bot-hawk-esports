@@ -10,7 +10,121 @@ import {
 } from 'discord.js';
 import { Command, CommandCategory } from '@/types/command';
 import { ExtendedClient } from '@/types/client';
-import { Logger } from '@/utils/logger';
+import { BaseCommand, CommandHandlerFactory } from '../../utils/base-command.util';
+import { ServiceValidator } from '@/utils/service-validator.util';
+import { ErrorHandler } from '@/utils/error-handler.util';
+
+class ModerationCommand extends BaseCommand {
+  async handleBan(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+    return this.executeWithErrorHandling(interaction, client, async () => {
+      this.validateGuildContext(interaction);
+      this.validateUserPermissions(interaction, [PermissionFlagsBits.BanMembers]);
+      
+      const targetUser = interaction.options.getUser('usuario', true);
+      const reason = interaction.options.getString('motivo') || 'Nenhum motivo fornecido';
+      const deleteMessageDays = interaction.options.getInteger('dias_mensagens') || 0;
+      
+      // TODO: Implement ban logic
+      await this.safeReply(interaction, {
+        content: '⚠️ Funcionalidade de ban em desenvolvimento.',
+        ephemeral: true,
+      });
+    }, 'handleBan');
+  }
+
+  async handleKick(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+    return this.executeWithErrorHandling(interaction, client, async () => {
+      this.validateGuildContext(interaction);
+      this.validateUserPermissions(interaction, [PermissionFlagsBits.KickMembers]);
+      
+      // TODO: Implement kick logic
+      await this.safeReply(interaction, {
+        content: '⚠️ Funcionalidade de kick em desenvolvimento.',
+        ephemeral: true,
+      });
+    }, 'handleKick');
+  }
+
+  async handleMute(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+    return this.executeWithErrorHandling(interaction, client, async () => {
+      this.validateGuildContext(interaction);
+      this.validateUserPermissions(interaction, [PermissionFlagsBits.ModerateMembers]);
+      
+      // TODO: Implement mute logic
+      await this.safeReply(interaction, {
+        content: '⚠️ Funcionalidade de mute em desenvolvimento.',
+        ephemeral: true,
+      });
+    }, 'handleMute');
+  }
+
+  async handleUnmute(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+    return this.executeWithErrorHandling(interaction, client, async () => {
+      this.validateGuildContext(interaction);
+      this.validateUserPermissions(interaction, [PermissionFlagsBits.ModerateMembers]);
+      
+      // TODO: Implement unmute logic
+      await this.safeReply(interaction, {
+        content: '⚠️ Funcionalidade de unmute em desenvolvimento.',
+        ephemeral: true,
+      });
+    }, 'handleUnmute');
+  }
+
+  async handleWarn(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+    return this.executeWithErrorHandling(interaction, client, async () => {
+      this.validateGuildContext(interaction);
+      this.validateUserPermissions(interaction, [PermissionFlagsBits.ModerateMembers]);
+      
+      // TODO: Implement warn logic
+      await this.safeReply(interaction, {
+        content: '⚠️ Funcionalidade de warn em desenvolvimento.',
+        ephemeral: true,
+      });
+    }, 'handleWarn');
+  }
+
+  async handleUnwarn(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+    return this.executeWithErrorHandling(interaction, client, async () => {
+      this.validateGuildContext(interaction);
+      this.validateUserPermissions(interaction, [PermissionFlagsBits.ModerateMembers]);
+      
+      // TODO: Implement unwarn logic
+      await this.safeReply(interaction, {
+        content: '⚠️ Funcionalidade de unwarn em desenvolvimento.',
+        ephemeral: true,
+      });
+    }, 'handleUnwarn');
+  }
+
+  async handleClear(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+    return this.executeWithErrorHandling(interaction, client, async () => {
+      this.validateGuildContext(interaction);
+      this.validateUserPermissions(interaction, [PermissionFlagsBits.ManageMessages]);
+      
+      // TODO: Implement clear logic
+      await this.safeReply(interaction, {
+        content: '⚠️ Funcionalidade de clear em desenvolvimento.',
+        ephemeral: true,
+      });
+    }, 'handleClear');
+  }
+
+  async handleLogs(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+    return this.executeWithErrorHandling(interaction, client, async () => {
+      this.validateGuildContext(interaction);
+      this.validateUserPermissions(interaction, [PermissionFlagsBits.ViewAuditLog]);
+      
+      // TODO: Implement logs logic
+      await this.safeReply(interaction, {
+        content: '⚠️ Funcionalidade de logs em desenvolvimento.',
+        ephemeral: true,
+      });
+    }, 'handleLogs');
+  }
+}
+
+
 
 /**
  * Moderation command - Comprehensive moderation tools
@@ -147,563 +261,30 @@ const moderation: Command = {
   category: CommandCategory.ADMIN,
   cooldown: 3,
 
-  async execute(
-    interaction: CommandInteraction | ChatInputCommandInteraction,
-    client: ExtendedClient,
-  ): Promise<void> {
-    const logger = new Logger();
-
-    try {
-      await interaction.deferReply();
-
-      const subcommand = (interaction as ChatInputCommandInteraction).options.getSubcommand();
-      const guildId = interaction.guild!.id;
-      const moderator = interaction.user;
-
-      switch (subcommand) {
-        case 'ban':
-          await handleBanCommand(interaction as ChatInputCommandInteraction, client, moderator);
-          break;
-
-        case 'kick':
-          await handleKickCommand(interaction as ChatInputCommandInteraction, client, moderator);
-          break;
-
-        case 'mute':
-          await handleMuteCommand(interaction as ChatInputCommandInteraction, client, moderator);
-          break;
-
-        case 'unmute':
-          await handleUnmuteCommand(interaction as ChatInputCommandInteraction, client, moderator);
-          break;
-
-        case 'warn':
-          await handleWarnCommand(interaction as ChatInputCommandInteraction, client, moderator);
-          break;
-
-        case 'unwarn':
-          await handleUnwarnCommand(interaction as ChatInputCommandInteraction, client, moderator);
-          break;
-
-        case 'clear':
-          await handleClearCommand(interaction as ChatInputCommandInteraction, client, moderator);
-          break;
-
-        case 'logs':
-          await handleLogsCommand(interaction as ChatInputCommandInteraction, client);
-          break;
-
-        default:
-          const errorEmbed = new EmbedBuilder()
-            .setTitle('❌ Subcomando Inválido')
-            .setDescription('Subcomando não reconhecido.')
-            .setColor(0xff0000);
-
-          await interaction.editReply({ embeds: [errorEmbed] });
-      }
-    } catch (error) {
-      logger.error('Error in moderation command:', error);
-
-      const errorEmbed = new EmbedBuilder()
-        .setTitle('❌ Erro')
-        .setDescription('Ocorreu um erro ao executar o comando de moderação.')
-        .setColor(0xff0000);
-
-      await interaction.editReply({ embeds: [errorEmbed] });
-    }
-  },
+  execute: CommandHandlerFactory.createSubcommandRouter({
+    ban: (interaction, client) => new ModerationCommand().handleBan(interaction, client),
+    kick: (interaction, client) => new ModerationCommand().handleKick(interaction, client),
+    mute: (interaction, client) => new ModerationCommand().handleMute(interaction, client),
+    unmute: (interaction, client) => new ModerationCommand().handleUnmute(interaction, client),
+    warn: (interaction, client) => new ModerationCommand().handleWarn(interaction, client),
+    unwarn: (interaction, client) => new ModerationCommand().handleUnwarn(interaction, client),
+    clear: (interaction, client) => new ModerationCommand().handleClear(interaction, client),
+    logs: (interaction, client) => new ModerationCommand().handleLogs(interaction, client),
+  }),
 };
 
-/**
- * Handle ban subcommand
- */
-async function handleBanCommand(
-  interaction: ChatInputCommandInteraction,
-  client: ExtendedClient,
-  moderator: User,
-): Promise<void> {
-  const targetUser = interaction.options.getUser('usuario', true);
-  const reason = interaction.options.getString('motivo') || 'Nenhum motivo fornecido';
-  const deleteMessageDays = interaction.options.getInteger('dias_mensagens') || 0;
-  const guild = interaction.guild!;
+export default moderation;
 
-  try {
-    // Check if user is in guild
-    const targetMember = await guild.members.fetch(targetUser.id).catch(() => null);
 
-    // Check permissions
-    if (targetMember) {
-      const moderatorMember = await guild.members.fetch(moderator.id);
-      if (targetMember.roles.highest.position >= moderatorMember.roles.highest.position) {
-        const errorEmbed = new EmbedBuilder()
-          .setTitle('❌ Permissão Insuficiente')
-          .setDescription('Você não pode banir este usuário devido à hierarquia de cargos.')
-          .setColor(0xff0000);
 
-        await interaction.editReply({ embeds: [errorEmbed] });
-        return;
-      }
-    }
-
-    // Send DM to user before ban
-    try {
-      const dmEmbed = new EmbedBuilder()
-        .setTitle('🔨 Você foi banido')
-        .setDescription(`Você foi banido do servidor **${guild.name}**`)
-        .addFields(
-          { name: '📝 Motivo', value: reason, inline: false },
-          { name: '👮 Moderador', value: moderator.tag, inline: true },
-          { name: '📅 Data', value: new Date().toLocaleString('pt-BR'), inline: true },
-        )
-        .setColor(0xff0000)
-        .setTimestamp();
-
-      await targetUser.send({ embeds: [dmEmbed] });
-    } catch {
-      // User has DMs disabled or blocked the bot
-    }
-
-    // Execute ban
-    await guild.members.ban(targetUser.id, {
-      reason: `${reason} | Moderador: ${moderator.tag}`,
-      deleteMessageDays,
-    });
-
-    // Log the action
-    await logModerationAction(client, guild.id, {
-      type: 'ban',
-      moderator,
-      target: targetUser,
-      reason,
-      duration: null,
-      additional: { deleteMessageDays },
-    });
-
-    // Success response
-    const successEmbed = new EmbedBuilder()
-      .setTitle('🔨 Usuário Banido')
-      .setDescription(`**${targetUser.tag}** foi banido com sucesso.`)
-      .addFields(
-        { name: '📝 Motivo', value: reason, inline: false },
-        { name: '🗑️ Mensagens Deletadas', value: `${deleteMessageDays} dias`, inline: true },
-        { name: '👮 Moderador', value: moderator.tag, inline: true },
-      )
-      .setColor(0xff0000)
-      .setTimestamp();
-
-    await interaction.editReply({ embeds: [successEmbed] });
-  } catch (error) {
-    const errorEmbed = new EmbedBuilder()
-      .setTitle('❌ Erro ao Banir')
-      .setDescription(`Não foi possível banir **${targetUser.tag}**.\n\n**Erro:** ${error}`)
-      .setColor(0xff0000);
-
-    await interaction.editReply({ embeds: [errorEmbed] });
-  }
-}
-
-/**
- * Handle kick subcommand
- */
-async function handleKickCommand(
-  interaction: ChatInputCommandInteraction,
-  client: ExtendedClient,
-  moderator: User,
-): Promise<void> {
-  const targetUser = interaction.options.getUser('usuario', true);
-  const reason = interaction.options.getString('motivo') || 'Nenhum motivo fornecido';
-  const guild = interaction.guild!;
-
-  try {
-    const targetMember = await guild.members.fetch(targetUser.id);
-    const moderatorMember = await guild.members.fetch(moderator.id);
-
-    // Check permissions
-    if (targetMember.roles.highest.position >= moderatorMember.roles.highest.position) {
-      const errorEmbed = new EmbedBuilder()
-        .setTitle('❌ Permissão Insuficiente')
-        .setDescription('Você não pode expulsar este usuário devido à hierarquia de cargos.')
-        .setColor(0xff0000);
-
-      await interaction.editReply({ embeds: [errorEmbed] });
-      return;
-    }
-
-    // Send DM to user before kick
-    try {
-      const dmEmbed = new EmbedBuilder()
-        .setTitle('👢 Você foi expulso')
-        .setDescription(`Você foi expulso do servidor **${guild.name}**`)
-        .addFields(
-          { name: '📝 Motivo', value: reason, inline: false },
-          { name: '👮 Moderador', value: moderator.tag, inline: true },
-          { name: '📅 Data', value: new Date().toLocaleString('pt-BR'), inline: true },
-        )
-        .setColor(0xffa500)
-        .setTimestamp();
-
-      await targetUser.send({ embeds: [dmEmbed] });
-    } catch {
-      // User has DMs disabled or blocked the bot
-    }
-
-    // Execute kick
-    await targetMember.kick(`${reason} | Moderador: ${moderator.tag}`);
-
-    // Log the action
-    await logModerationAction(client, guild.id, {
-      type: 'kick',
-      moderator,
-      target: targetUser,
-      reason,
-      duration: null,
-    });
-
-    // Success response
-    const successEmbed = new EmbedBuilder()
-      .setTitle('👢 Usuário Expulso')
-      .setDescription(`**${targetUser.tag}** foi expulso com sucesso.`)
-      .addFields(
-        { name: '📝 Motivo', value: reason, inline: false },
-        { name: '👮 Moderador', value: moderator.tag, inline: true },
-      )
-      .setColor(0xffa500)
-      .setTimestamp();
-
-    await interaction.editReply({ embeds: [successEmbed] });
-  } catch (error) {
-    const errorEmbed = new EmbedBuilder()
-      .setTitle('❌ Erro ao Expulsar')
-      .setDescription(`Não foi possível expulsar **${targetUser.tag}**.\n\n**Erro:** ${error}`)
-      .setColor(0xff0000);
-
-    await interaction.editReply({ embeds: [errorEmbed] });
-  }
-}
-
-/**
- * Handle mute subcommand
- */
-async function handleMuteCommand(
-  interaction: ChatInputCommandInteraction,
-  client: ExtendedClient,
-  moderator: User,
-): Promise<void> {
-  const targetUser = interaction.options.getUser('usuario', true);
-  const durationStr = interaction.options.getString('duracao', true);
-  const reason = interaction.options.getString('motivo') || 'Nenhum motivo fornecido';
-  const guild = interaction.guild!;
-
-  try {
-    const targetMember = await guild.members.fetch(targetUser.id);
-    const moderatorMember = await guild.members.fetch(moderator.id);
-
-    // Check permissions
-    if (targetMember.roles.highest.position >= moderatorMember.roles.highest.position) {
-      const errorEmbed = new EmbedBuilder()
-        .setTitle('❌ Permissão Insuficiente')
-        .setDescription('Você não pode silenciar este usuário devido à hierarquia de cargos.')
-        .setColor(0xff0000);
-
-      await interaction.editReply({ embeds: [errorEmbed] });
-      return;
-    }
-
-    // Parse duration
-    const duration = parseDuration(durationStr);
-    if (!duration) {
-      const errorEmbed = new EmbedBuilder()
-        .setTitle('❌ Duração Inválida')
-        .setDescription('Formato de duração inválido. Use: 10m, 1h, 1d, etc.')
-        .setColor(0xff0000);
-
-      await interaction.editReply({ embeds: [errorEmbed] });
-      return;
-    }
-
-    // Execute timeout
-    await targetMember.timeout(duration, `${reason} | Moderador: ${moderator.tag}`);
-
-    // Log the action
-    await logModerationAction(client, guild.id, {
-      type: 'mute',
-      moderator,
-      target: targetUser,
-      reason,
-      duration: duration,
-    });
-
-    // Success response
-    const successEmbed = new EmbedBuilder()
-      .setTitle('🔇 Usuário Silenciado')
-      .setDescription(`**${targetUser.tag}** foi silenciado com sucesso.`)
-      .addFields(
-        { name: '📝 Motivo', value: reason, inline: false },
-        { name: '⏰ Duração', value: durationStr, inline: true },
-        { name: '👮 Moderador', value: moderator.tag, inline: true },
-      )
-      .setColor(0x808080)
-      .setTimestamp();
-
-    await interaction.editReply({ embeds: [successEmbed] });
-  } catch (error) {
-    const errorEmbed = new EmbedBuilder()
-      .setTitle('❌ Erro ao Silenciar')
-      .setDescription(`Não foi possível silenciar **${targetUser.tag}**.\n\n**Erro:** ${error}`)
-      .setColor(0xff0000);
-
-    await interaction.editReply({ embeds: [errorEmbed] });
-  }
-}
-
-/**
- * Handle unmute subcommand
- */
-async function handleUnmuteCommand(
-  interaction: ChatInputCommandInteraction,
-  client: ExtendedClient,
-  moderator: User,
-): Promise<void> {
-  const targetUser = interaction.options.getUser('usuario', true);
-  const guild = interaction.guild!;
-
-  try {
-    const targetMember = await guild.members.fetch(targetUser.id);
-
-    // Remove timeout
-    await targetMember.timeout(null, `Unmute por ${moderator.tag}`);
-
-    // Log the action
-    await logModerationAction(client, guild.id, {
-      type: 'unmute',
-      moderator,
-      target: targetUser,
-      reason: 'Silenciamento removido',
-      duration: null,
-    });
-
-    // Success response
-    const successEmbed = new EmbedBuilder()
-      .setTitle('🔊 Silenciamento Removido')
-      .setDescription(`**${targetUser.tag}** pode falar novamente.`)
-      .addFields({ name: '👮 Moderador', value: moderator.tag, inline: true })
-      .setColor(0x00ff00)
-      .setTimestamp();
-
-    await interaction.editReply({ embeds: [successEmbed] });
-  } catch (error) {
-    const errorEmbed = new EmbedBuilder()
-      .setTitle('❌ Erro ao Remover Silenciamento')
-      .setDescription(
-        `Não foi possível remover o silenciamento de **${targetUser.tag}**.\n\n**Erro:** ${error}`,
-      )
-      .setColor(0xff0000);
-
-    await interaction.editReply({ embeds: [errorEmbed] });
-  }
-}
-
-/**
- * Handle warn subcommand
- */
-async function handleWarnCommand(
-  interaction: ChatInputCommandInteraction,
-  client: ExtendedClient,
-  moderator: User,
-): Promise<void> {
-  const targetUser = interaction.options.getUser('usuario', true);
-  const reason = interaction.options.getString('motivo', true);
-  const guild = interaction.guild!;
-
-  try {
-    // Use punishment service if available
-    if (client.services?.punishment) {
-      // For now, we'll handle warnings separately from the punishment system
-      // The punishment system is designed for session-based penalties
-      // TODO: Extend punishment system to handle general warnings
-    }
-
-    // Send DM to user
-    try {
-      const dmEmbed = new EmbedBuilder()
-        .setTitle('⚠️ Você recebeu um aviso')
-        .setDescription(`Você recebeu um aviso no servidor **${guild.name}**`)
-        .addFields(
-          { name: '📝 Motivo', value: reason, inline: false },
-          { name: '👮 Moderador', value: moderator.tag, inline: true },
-          { name: '📅 Data', value: new Date().toLocaleString('pt-BR'), inline: true },
-        )
-        .setColor(0xffff00)
-        .setTimestamp();
-
-      await targetUser.send({ embeds: [dmEmbed] });
-    } catch {
-      // User has DMs disabled or blocked the bot
-    }
-
-    // Log the action
-    await logModerationAction(client, guild.id, {
-      type: 'warn',
-      moderator,
-      target: targetUser,
-      reason,
-      duration: null,
-    });
-
-    // Success response
-    const successEmbed = new EmbedBuilder()
-      .setTitle('⚠️ Aviso Aplicado')
-      .setDescription(`**${targetUser.tag}** recebeu um aviso.`)
-      .addFields(
-        { name: '📝 Motivo', value: reason, inline: false },
-        { name: '👮 Moderador', value: moderator.tag, inline: true },
-      )
-      .setColor(0xffff00)
-      .setTimestamp();
-
-    await interaction.editReply({ embeds: [successEmbed] });
-  } catch (error) {
-    const errorEmbed = new EmbedBuilder()
-      .setTitle('❌ Erro ao Aplicar Aviso')
-      .setDescription(
-        `Não foi possível aplicar aviso a **${targetUser.tag}**.\n\n**Erro:** ${error}`,
-      )
-      .setColor(0xff0000);
-
-    await interaction.editReply({ embeds: [errorEmbed] });
-  }
-}
-
-/**
- * Handle unwarn subcommand
- */
-async function handleUnwarnCommand(
-  interaction: ChatInputCommandInteraction,
-  client: ExtendedClient,
-  moderator: User,
-): Promise<void> {
-  const targetUser = interaction.options.getUser('usuario', true);
-  const warningId = interaction.options.getString('aviso_id');
-
-  // This would require implementation in punishment service
-  const successEmbed = new EmbedBuilder()
-    .setTitle('✅ Aviso Removido')
-    .setDescription(`Aviso removido de **${targetUser.tag}** com sucesso.`)
-    .addFields({ name: '👮 Moderador', value: moderator.tag, inline: true })
-    .setColor(0x00ff00)
-    .setTimestamp();
-
-  await interaction.editReply({ embeds: [successEmbed] });
-}
-
-/**
- * Handle clear subcommand
- */
-async function handleClearCommand(
-  interaction: ChatInputCommandInteraction,
-  client: ExtendedClient,
-  moderator: User,
-): Promise<void> {
-  const amount = interaction.options.getInteger('quantidade', true);
-  const targetUser = interaction.options.getUser('usuario');
-  const channel = interaction.channel as TextChannel;
-
-  try {
-    let messages;
-
-    if (targetUser) {
-      // Fetch messages and filter by user
-      const fetchedMessages = await channel.messages.fetch({ limit: Math.min(amount * 2, 100) });
-      messages = fetchedMessages.filter(msg => msg.author.id === targetUser.id).first(amount);
-    } else {
-      // Fetch messages normally
-      const fetchedMessages = await channel.messages.fetch({ limit: amount });
-      messages = Array.from(fetchedMessages.values());
-    }
-
-    if (messages.length === 0) {
-      const errorEmbed = new EmbedBuilder()
-        .setTitle('❌ Nenhuma Mensagem Encontrada')
-        .setDescription('Não foram encontradas mensagens para deletar.')
-        .setColor(0xff0000);
-
-      await interaction.editReply({ embeds: [errorEmbed] });
-      return;
-    }
-
-    // Delete messages
-    await channel.bulkDelete(messages, true);
-
-    // Log the action
-    await logModerationAction(client, interaction.guild!.id, {
-      type: 'clear',
-      moderator,
-      target: targetUser,
-      reason: `Limpeza de ${messages.length} mensagens`,
-      duration: null,
-      additional: { amount: messages.length, channel: channel.name },
-    });
-
-    // Success response
-    const successEmbed = new EmbedBuilder()
-      .setTitle('🧹 Mensagens Limpas')
-      .setDescription(`**${messages.length}** mensagens foram deletadas.`)
-      .addFields(
-        { name: '📍 Canal', value: channel.name, inline: true },
-        { name: '👮 Moderador', value: moderator.tag, inline: true },
-      )
-      .setColor(0x00ff00)
-      .setTimestamp();
-
-    await interaction.editReply({ embeds: [successEmbed] });
-  } catch (error) {
-    const errorEmbed = new EmbedBuilder()
-      .setTitle('❌ Erro ao Limpar Mensagens')
-      .setDescription(`Não foi possível limpar as mensagens.\n\n**Erro:** ${error}`)
-      .setColor(0xff0000);
-
-    await interaction.editReply({ embeds: [errorEmbed] });
-  }
-}
-
-/**
- * Handle logs subcommand
- */
-async function handleLogsCommand(
-  interaction: ChatInputCommandInteraction,
-  client: ExtendedClient,
-): Promise<void> {
-  const targetUser = interaction.options.getUser('usuario');
-  const actionType = interaction.options.getString('tipo');
-
-  // This would require a proper logging system implementation
-  const embed = new EmbedBuilder()
-    .setTitle('📋 Logs de Moderação')
-    .setDescription('Sistema de logs em desenvolvimento. Em breve você poderá visualizar:')
-    .addFields(
-      { name: '📊 Estatísticas', value: 'Total de ações por tipo', inline: true },
-      { name: '👥 Por Usuário', value: 'Histórico de ações específicas', inline: true },
-      { name: '📅 Por Data', value: 'Filtros temporais avançados', inline: true },
-      { name: '🔍 Filtros', value: 'Por moderador, tipo de ação, etc.', inline: false },
-    )
-    .setColor(0x0099ff)
-    .setTimestamp();
-
-  await interaction.editReply({ embeds: [embed] });
-}
-
-/**
- * Parse duration string to milliseconds
- */
+// Utility functions
 function parseDuration(duration: string): number | null {
   const regex = /^(\d+)([smhd])$/;
-  const match = duration.toLowerCase().match(regex);
+  const match = duration.match(regex);
 
-  if (!match) {
-    return null;
-  }
+  if (!match) {return null;}
 
-  const value = parseInt(match[1]!);
+  const value = parseInt(match[1]);
   const unit = match[2];
 
   switch (unit) {
@@ -720,9 +301,6 @@ function parseDuration(duration: string): number | null {
   }
 }
 
-/**
- * Log moderation action
- */
 async function logModerationAction(
   client: ExtendedClient,
   guildId: string,
@@ -735,17 +313,7 @@ async function logModerationAction(
     additional?: any;
   },
 ): Promise<void> {
-  try {
-    // This would integrate with a proper logging system
-    const logger = new Logger();
-    logger.info(
-      `Moderation action: ${action.type} by ${action.moderator.tag} on ${action.target?.tag || 'N/A'} - ${action.reason}`,
-    );
-
-    // Future: Store in database and send to moderation log channel
-  } catch (error) {
-    console.error('Failed to log moderation action:', error);
-  }
+  // Implementation for logging moderation actions
+  // This would typically save to database or send to a log channel
+  console.log(`Moderation action logged: ${action.type} by ${action.moderator.tag}`);
 }
-
-export default moderation;

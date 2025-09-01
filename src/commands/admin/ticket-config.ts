@@ -5,15 +5,16 @@ import {
   PermissionFlagsBits,
   MessageFlags,
 } from 'discord.js';
-import { Command } from '../../types/command';
+import { CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
-import { Logger } from '../../utils/logger';
+import { BaseCommand } from '../../utils/base-command.util';
+import { HawkEmbedBuilder } from '../../utils/hawk-embed-builder';
 
-const logger = new Logger();
-
-export default {
-  category: 'admin',
-  data: new SlashCommandBuilder()
+/**
+ * Admin command to configure ticket system settings
+ */
+export class TicketConfigCommand extends BaseCommand {
+  public data = new SlashCommandBuilder()
     .setName('ticket-config')
     .setDescription('Configurar sistema de tickets')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
@@ -99,423 +100,391 @@ export default {
     )
     .addSubcommand(subcommand =>
       subcommand.setName('view').setDescription('Ver configurações atuais do sistema de tickets'),
-    ),
+    );
 
-  async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
+  public category = CommandCategory.ADMIN;
+  public cooldown = 5;
+
+  public async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
+    let subcommand: string | undefined;
+    
     try {
-      const subcommand = interaction.options.getSubcommand();
+      // Validate interaction and client
+      this.validateInteraction(interaction);
+      this.validateClient(client);
+      this.validateGuildContext(interaction);
+      this.validateUserPermissions(interaction, [PermissionFlagsBits.Administrator]);
+
+      // Validate required services
       const ticketService = client.services?.ticket;
 
       if (!ticketService) {
-        const errorEmbed = new EmbedBuilder()
-          .setTitle('❌ Erro')
-          .setDescription('Serviço de tickets não está disponível.')
-          .setColor('#FF0000');
-
-        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+        await this.sendServiceUnavailableError(interaction, 'Ticket');
         return;
       }
 
+      subcommand = interaction.options.getSubcommand();
+
       switch (subcommand) {
         case 'timeout':
-          await handleTimeoutConfig(interaction, ticketService);
+          await this.handleTimeoutConfig(interaction, ticketService);
           break;
         case 'max-tickets':
-          await handleMaxTicketsConfig(interaction, ticketService);
+          await this.handleMaxTicketsConfig(interaction, ticketService);
           break;
         case 'auto-assign':
-          await handleAutoAssignConfig(interaction, ticketService);
+          await this.handleAutoAssignConfig(interaction, ticketService);
           break;
         case 'require-reason':
-          await handleRequireReasonConfig(interaction, ticketService);
+          await this.handleRequireReasonConfig(interaction, ticketService);
           break;
         case 'notifications':
-          await handleNotificationsConfig(interaction, ticketService);
+          await this.handleNotificationsConfig(interaction, ticketService);
           break;
         case 'view':
-          await handleViewConfig(interaction, ticketService);
+          await this.handleViewConfig(interaction, ticketService);
           break;
         default:
-          await interaction.reply({ content: 'Subcomando não reconhecido.', flags: MessageFlags.Ephemeral });
+          throw new Error(`Unknown subcommand: ${subcommand}`);
       }
     } catch (error) {
-      logger.error('Error in ticket-config command:', error);
+      this.logger.error('Error in ticket-config command:', {
+        userId: interaction.user.id,
+        guildId: interaction.guildId,
+        commandName: 'ticket-config',
+        error,
+        metadata: { subcommand },
+      });
 
-      const errorEmbed = new EmbedBuilder()
-        .setTitle('❌ Erro')
-        .setDescription('Ocorreu um erro ao processar o comando.')
-        .setColor('#FF0000');
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      const embed = HawkEmbedBuilder.createErrorEmbed('Erro no Comando de Configuração de Tickets')
+        .setDescription(`Erro ao executar comando: ${errorMessage}`);
 
-      if (interaction.replied || interaction.deferred) {
-        await interaction.editReply({ embeds: [errorEmbed] });
-      } else {
-        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+      await this.safeReply(interaction, { embeds: [embed] });
+    }
+  }
+
+  /**
+   * Handle timeout configuration
+   */
+  private async handleTimeoutConfig(interaction: ChatInputCommandInteraction, ticketService: any) {
+    const horas = interaction.options.getInteger('horas', true);
+    const guildId = interaction.guildId!;
+
+    await this.deferWithLoading(interaction, true);
+
+    try {
+      const currentSettings = ticketService.getTicketSettings(guildId);
+      const newSettings = {
+        ...currentSettings,
+        closeAfterInactivity: horas,
+      };
+
+      await ticketService.updateTicketSettings(guildId, newSettings);
+
+      const embed = HawkEmbedBuilder.createSuccessEmbed('Configuração Atualizada')
+        .setDescription(
+          horas === 0
+            ? 'Fechamento automático por inatividade foi **desabilitado**.'
+            : `Tickets serão fechados automaticamente após **${horas} horas** de inatividade.`,
+        )
+        .addFields(
+          {
+            name: '⏰ Tempo Anterior',
+            value: `${currentSettings.closeAfterInactivity}h`,
+            inline: true,
+          },
+          { name: '🆕 Novo Tempo', value: horas === 0 ? 'Desabilitado' : `${horas}h`, inline: true },
+        )
+        .setTimestamp();
+
+      await this.safeReply(interaction, { embeds: [embed] });
+    } catch (error) {
+      throw new Error(`Não foi possível atualizar a configuração de timeout: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Handle max tickets configuration
+   */
+  private async handleMaxTicketsConfig(
+    interaction: ChatInputCommandInteraction,
+    ticketService: any,
+  ) {
+    const quantidade = interaction.options.getInteger('quantidade', true);
+    const guildId = interaction.guildId!;
+
+    await this.deferWithLoading(interaction, true);
+
+    try {
+      const currentSettings = ticketService.getTicketSettings(guildId);
+      const newSettings = {
+        ...currentSettings,
+        maxTicketsPerUser: quantidade,
+      };
+
+      await ticketService.updateTicketSettings(guildId, newSettings);
+
+      const embed = HawkEmbedBuilder.createSuccessEmbed('Configuração Atualizada')
+        .setDescription(`Número máximo de tickets por usuário definido para **${quantidade}**.`)
+        .addFields(
+          { name: '📊 Limite Anterior', value: `${currentSettings.maxTicketsPerUser}`, inline: true },
+          { name: '🆕 Novo Limite', value: `${quantidade}`, inline: true },
+        )
+        .setTimestamp();
+
+      await this.safeReply(interaction, { embeds: [embed] });
+    } catch (error) {
+      throw new Error(`Não foi possível atualizar a configuração de limite de tickets: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Handle auto assign configuration
+   */
+  private async handleAutoAssignConfig(
+    interaction: ChatInputCommandInteraction,
+    ticketService: any,
+  ) {
+    const ativo = interaction.options.getBoolean('ativo', true);
+    const guildId = interaction.guildId!;
+
+    await this.deferWithLoading(interaction, true);
+
+    try {
+      const currentSettings = ticketService.getTicketSettings(guildId);
+      const newSettings = {
+        ...currentSettings,
+        autoAssign: ativo,
+      };
+
+      await ticketService.updateTicketSettings(guildId, newSettings);
+
+      const embed = HawkEmbedBuilder.createSuccessEmbed('Configuração Atualizada')
+        .setDescription(
+          ativo
+            ? 'Atribuição automática de tickets foi **ativada**.'
+            : 'Atribuição automática de tickets foi **desativada**.',
+        )
+        .addFields(
+          {
+            name: '🔄 Status Anterior',
+            value: currentSettings.autoAssign ? 'Ativo' : 'Inativo',
+            inline: true,
+          },
+          { name: '🆕 Novo Status', value: ativo ? 'Ativo' : 'Inativo', inline: true },
+        )
+        .setTimestamp();
+
+      await this.safeReply(interaction, { embeds: [embed] });
+    } catch (error) {
+      throw new Error(`Não foi possível atualizar a configuração de atribuição automática: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Handle require reason configuration
+   */
+  private async handleRequireReasonConfig(
+    interaction: ChatInputCommandInteraction,
+    ticketService: any,
+  ) {
+    const obrigatorio = interaction.options.getBoolean('obrigatorio', true);
+    const guildId = interaction.guildId!;
+
+    await this.deferWithLoading(interaction, true);
+
+    try {
+      const currentSettings = ticketService.getTicketSettings(guildId);
+      const newSettings = {
+        ...currentSettings,
+        requireReason: obrigatorio,
+      };
+
+      await ticketService.updateTicketSettings(guildId, newSettings);
+
+      const embed = HawkEmbedBuilder.createSuccessEmbed('Configuração Atualizada')
+        .setDescription(
+          obrigatorio
+            ? 'Motivo agora é **obrigatório** para criar tickets.'
+            : 'Motivo agora é **opcional** para criar tickets.',
+        )
+        .addFields(
+          {
+            name: '📝 Status Anterior',
+            value: currentSettings.requireReason ? 'Obrigatório' : 'Opcional',
+            inline: true,
+          },
+          { name: '🆕 Novo Status', value: obrigatorio ? 'Obrigatório' : 'Opcional', inline: true },
+        )
+        .setTimestamp();
+
+      await this.safeReply(interaction, { embeds: [embed] });
+    } catch (error) {
+      throw new Error(`Não foi possível atualizar a configuração de motivo obrigatório: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Handle notifications configuration
+   */
+  private async handleNotificationsConfig(
+    interaction: ChatInputCommandInteraction,
+    ticketService: any,
+  ) {
+    const criar = interaction.options.getBoolean('criar');
+    const atribuir = interaction.options.getBoolean('atribuir');
+    const fechar = interaction.options.getBoolean('fechar');
+    const reabrir = interaction.options.getBoolean('reabrir');
+    const guildId = interaction.guildId!;
+
+    await this.deferWithLoading(interaction, true);
+
+    try {
+      const currentSettings = ticketService.getTicketSettings(guildId);
+      const newNotificationSettings = {
+        onCreate: criar !== null ? criar : currentSettings.notificationSettings.onCreate,
+        onAssign: atribuir !== null ? atribuir : currentSettings.notificationSettings.onAssign,
+        onClose: fechar !== null ? fechar : currentSettings.notificationSettings.onClose,
+        onReopen: reabrir !== null ? reabrir : currentSettings.notificationSettings.onReopen,
+      };
+
+      const newSettings = {
+        ...currentSettings,
+        notificationSettings: newNotificationSettings,
+      };
+
+      await ticketService.updateTicketSettings(guildId, newSettings);
+
+      const embed = HawkEmbedBuilder.createSuccessEmbed('Notificações Atualizadas')
+        .setDescription('Configurações de notificação foram atualizadas com sucesso.')
+        .addFields(
+          {
+            name: '🎫 Criar Ticket',
+            value: newNotificationSettings.onCreate ? '✅ Ativo' : '❌ Inativo',
+            inline: true,
+          },
+          {
+            name: '🎯 Atribuir Ticket',
+            value: newNotificationSettings.onAssign ? '✅ Ativo' : '❌ Inativo',
+            inline: true,
+          },
+          {
+            name: '🔒 Fechar Ticket',
+            value: newNotificationSettings.onClose ? '✅ Ativo' : '❌ Inativo',
+            inline: true,
+          },
+          {
+            name: '🔓 Reabrir Ticket',
+            value: newNotificationSettings.onReopen ? '✅ Ativo' : '❌ Inativo',
+            inline: true,
+          },
+        )
+        .setTimestamp();
+
+      await this.safeReply(interaction, { embeds: [embed] });
+    } catch (error) {
+      throw new Error(`Não foi possível atualizar as configurações de notificação: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Handle view configuration
+   */
+  private async handleViewConfig(interaction: ChatInputCommandInteraction, ticketService: any) {
+    const guildId = interaction.guildId!;
+
+    await this.deferWithLoading(interaction, true);
+
+    try {
+      const settings = ticketService.getTicketSettings(guildId);
+
+      const embed = HawkEmbedBuilder.createInfoEmbed('Configurações do Sistema de Tickets')
+        .setDescription('Configurações atuais do sistema de tickets para este servidor.')
+        .addFields(
+          { name: '🔧 Sistema', value: settings.enabled ? '✅ Ativo' : '❌ Inativo', inline: true },
+          { name: '📊 Max Tickets/Usuário', value: `${settings.maxTicketsPerUser}`, inline: true },
+          {
+            name: '🔄 Atribuição Automática',
+            value: settings.autoAssign ? '✅ Ativo' : '❌ Inativo',
+            inline: true,
+          },
+          {
+            name: '📝 Motivo Obrigatório',
+            value: settings.requireReason ? '✅ Sim' : '❌ Não',
+            inline: true,
+          },
+          {
+            name: '👤 Tickets Anônimos',
+            value: settings.allowAnonymous ? '✅ Permitido' : '❌ Não Permitido',
+            inline: true,
+          },
+          {
+            name: '⏰ Fechamento Automático',
+            value:
+              settings.closeAfterInactivity > 0
+                ? `${settings.closeAfterInactivity}h`
+                : '❌ Desabilitado',
+            inline: true,
+          },
+        )
+        .addFields(
+          { name: '🔔 Notificações', value: '\u200B', inline: false },
+          {
+            name: '🎫 Criar',
+            value: settings.notificationSettings.onCreate ? '✅' : '❌',
+            inline: true,
+          },
+          {
+            name: '🎯 Atribuir',
+            value: settings.notificationSettings.onAssign ? '✅' : '❌',
+            inline: true,
+          },
+          {
+            name: '🔒 Fechar',
+            value: settings.notificationSettings.onClose ? '✅' : '❌',
+            inline: true,
+          },
+          {
+            name: '🔓 Reabrir',
+            value: settings.notificationSettings.onReopen ? '✅' : '❌',
+            inline: true,
+          },
+        )
+        .setTimestamp();
+
+      if (settings.logChannelId) {
+        embed.addFields({
+          name: '📋 Canal de Logs',
+          value: `<#${settings.logChannelId}>`,
+          inline: true,
+        });
       }
+
+      if (settings.supportRoleId) {
+        embed.addFields({
+          name: '👥 Cargo de Suporte',
+          value: `<@&${settings.supportRoleId}>`,
+          inline: true,
+        });
+      }
+
+      await this.safeReply(interaction, { embeds: [embed] });
+    } catch (error) {
+      throw new Error(`Não foi possível carregar as configurações: ${error instanceof Error ? error.message : String(error)}`);
     }
-  },
-} as Command;
-
-/**
- * Handle timeout configuration
- */
-async function handleTimeoutConfig(interaction: ChatInputCommandInteraction, ticketService: any) {
-  const horas = interaction.options.getInteger('horas', true);
-  const guildId = interaction.guildId!;
-
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-  try {
-    const currentSettings = ticketService.getTicketSettings(guildId);
-    const newSettings = {
-      ...currentSettings,
-      closeAfterInactivity: horas,
-    };
-
-    await ticketService.updateTicketSettings(guildId, newSettings);
-
-    const embed = new EmbedBuilder()
-      .setTitle('✅ Configuração Atualizada')
-      .setDescription(
-        horas === 0
-          ? 'Fechamento automático por inatividade foi **desabilitado**.'
-          : `Tickets serão fechados automaticamente após **${horas} horas** de inatividade.`,
-      )
-      .setColor('#00FF00')
-      .addFields(
-        {
-          name: '⏰ Tempo Anterior',
-          value: `${currentSettings.closeAfterInactivity}h`,
-          inline: true,
-        },
-        { name: '🆕 Novo Tempo', value: horas === 0 ? 'Desabilitado' : `${horas}h`, inline: true },
-      )
-      .setTimestamp();
-
-    await interaction.editReply({ embeds: [embed] });
-  } catch (error) {
-    logger.error('Error updating timeout config:', error);
-
-    const errorEmbed = new EmbedBuilder()
-      .setTitle('❌ Erro')
-      .setDescription('Não foi possível atualizar a configuração de timeout.')
-      .setColor('#FF0000');
-
-    await interaction.editReply({ embeds: [errorEmbed] });
   }
 }
 
-/**
- * Handle max tickets configuration
- */
-async function handleMaxTicketsConfig(
-  interaction: ChatInputCommandInteraction,
-  ticketService: any,
-) {
-  const quantidade = interaction.options.getInteger('quantidade', true);
-  const guildId = interaction.guildId!;
+// Export as default for compatibility
+const commandInstance = new TicketConfigCommand();
 
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+const command = {
+  data: commandInstance.data,
+  category: commandInstance.category,
+  cooldown: commandInstance.cooldown,
+  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) => 
+    commandInstance.execute(interaction, client),  
+};
 
-  try {
-    const currentSettings = ticketService.getTicketSettings(guildId);
-    const newSettings = {
-      ...currentSettings,
-      maxTicketsPerUser: quantidade,
-    };
-
-    await ticketService.updateTicketSettings(guildId, newSettings);
-
-    const embed = new EmbedBuilder()
-      .setTitle('✅ Configuração Atualizada')
-      .setDescription(`Número máximo de tickets por usuário definido para **${quantidade}**.`)
-      .setColor('#00FF00')
-      .addFields(
-        { name: '📊 Limite Anterior', value: `${currentSettings.maxTicketsPerUser}`, inline: true },
-        { name: '🆕 Novo Limite', value: `${quantidade}`, inline: true },
-      )
-      .setTimestamp();
-
-    await interaction.editReply({ embeds: [embed] });
-  } catch (error) {
-    logger.error('Error updating max tickets config:', error);
-
-    const errorEmbed = new EmbedBuilder()
-      .setTitle('❌ Erro')
-      .setDescription('Não foi possível atualizar a configuração de limite de tickets.')
-      .setColor('#FF0000');
-
-    await interaction.editReply({ embeds: [errorEmbed] });
-  }
-}
-
-/**
- * Handle auto assign configuration
- */
-async function handleAutoAssignConfig(
-  interaction: ChatInputCommandInteraction,
-  ticketService: any,
-) {
-  const ativo = interaction.options.getBoolean('ativo', true);
-  const guildId = interaction.guildId!;
-
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-  try {
-    const currentSettings = ticketService.getTicketSettings(guildId);
-    const newSettings = {
-      ...currentSettings,
-      autoAssign: ativo,
-    };
-
-    await ticketService.updateTicketSettings(guildId, newSettings);
-
-    const embed = new EmbedBuilder()
-      .setTitle('✅ Configuração Atualizada')
-      .setDescription(
-        ativo
-          ? 'Atribuição automática de tickets foi **ativada**.'
-          : 'Atribuição automática de tickets foi **desativada**.',
-      )
-      .setColor('#00FF00')
-      .addFields(
-        {
-          name: '🔄 Status Anterior',
-          value: currentSettings.autoAssign ? 'Ativo' : 'Inativo',
-          inline: true,
-        },
-        { name: '🆕 Novo Status', value: ativo ? 'Ativo' : 'Inativo', inline: true },
-      )
-      .setTimestamp();
-
-    await interaction.editReply({ embeds: [embed] });
-  } catch (error) {
-    logger.error('Error updating auto assign config:', error);
-
-    const errorEmbed = new EmbedBuilder()
-      .setTitle('❌ Erro')
-      .setDescription('Não foi possível atualizar a configuração de atribuição automática.')
-      .setColor('#FF0000');
-
-    await interaction.editReply({ embeds: [errorEmbed] });
-  }
-}
-
-/**
- * Handle require reason configuration
- */
-async function handleRequireReasonConfig(
-  interaction: ChatInputCommandInteraction,
-  ticketService: any,
-) {
-  const obrigatorio = interaction.options.getBoolean('obrigatorio', true);
-  const guildId = interaction.guildId!;
-
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-  try {
-    const currentSettings = ticketService.getTicketSettings(guildId);
-    const newSettings = {
-      ...currentSettings,
-      requireReason: obrigatorio,
-    };
-
-    await ticketService.updateTicketSettings(guildId, newSettings);
-
-    const embed = new EmbedBuilder()
-      .setTitle('✅ Configuração Atualizada')
-      .setDescription(
-        obrigatorio
-          ? 'Motivo agora é **obrigatório** para criar tickets.'
-          : 'Motivo agora é **opcional** para criar tickets.',
-      )
-      .setColor('#00FF00')
-      .addFields(
-        {
-          name: '📝 Status Anterior',
-          value: currentSettings.requireReason ? 'Obrigatório' : 'Opcional',
-          inline: true,
-        },
-        { name: '🆕 Novo Status', value: obrigatorio ? 'Obrigatório' : 'Opcional', inline: true },
-      )
-      .setTimestamp();
-
-    await interaction.editReply({ embeds: [embed] });
-  } catch (error) {
-    logger.error('Error updating require reason config:', error);
-
-    const errorEmbed = new EmbedBuilder()
-      .setTitle('❌ Erro')
-      .setDescription('Não foi possível atualizar a configuração de motivo obrigatório.')
-      .setColor('#FF0000');
-
-    await interaction.editReply({ embeds: [errorEmbed] });
-  }
-}
-
-/**
- * Handle notifications configuration
- */
-async function handleNotificationsConfig(
-  interaction: ChatInputCommandInteraction,
-  ticketService: any,
-) {
-  const criar = interaction.options.getBoolean('criar');
-  const atribuir = interaction.options.getBoolean('atribuir');
-  const fechar = interaction.options.getBoolean('fechar');
-  const reabrir = interaction.options.getBoolean('reabrir');
-  const guildId = interaction.guildId!;
-
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-  try {
-    const currentSettings = ticketService.getTicketSettings(guildId);
-    const newNotificationSettings = {
-      onCreate: criar !== null ? criar : currentSettings.notificationSettings.onCreate,
-      onAssign: atribuir !== null ? atribuir : currentSettings.notificationSettings.onAssign,
-      onClose: fechar !== null ? fechar : currentSettings.notificationSettings.onClose,
-      onReopen: reabrir !== null ? reabrir : currentSettings.notificationSettings.onReopen,
-    };
-
-    const newSettings = {
-      ...currentSettings,
-      notificationSettings: newNotificationSettings,
-    };
-
-    await ticketService.updateTicketSettings(guildId, newSettings);
-
-    const embed = new EmbedBuilder()
-      .setTitle('✅ Notificações Atualizadas')
-      .setDescription('Configurações de notificação foram atualizadas com sucesso.')
-      .setColor('#00FF00')
-      .addFields(
-        {
-          name: '🎫 Criar Ticket',
-          value: newNotificationSettings.onCreate ? '✅ Ativo' : '❌ Inativo',
-          inline: true,
-        },
-        {
-          name: '🎯 Atribuir Ticket',
-          value: newNotificationSettings.onAssign ? '✅ Ativo' : '❌ Inativo',
-          inline: true,
-        },
-        {
-          name: '🔒 Fechar Ticket',
-          value: newNotificationSettings.onClose ? '✅ Ativo' : '❌ Inativo',
-          inline: true,
-        },
-        {
-          name: '🔓 Reabrir Ticket',
-          value: newNotificationSettings.onReopen ? '✅ Ativo' : '❌ Inativo',
-          inline: true,
-        },
-      )
-      .setTimestamp();
-
-    await interaction.editReply({ embeds: [embed] });
-  } catch (error) {
-    logger.error('Error updating notifications config:', error);
-
-    const errorEmbed = new EmbedBuilder()
-      .setTitle('❌ Erro')
-      .setDescription('Não foi possível atualizar as configurações de notificação.')
-      .setColor('#FF0000');
-
-    await interaction.editReply({ embeds: [errorEmbed] });
-  }
-}
-
-/**
- * Handle view configuration
- */
-async function handleViewConfig(interaction: ChatInputCommandInteraction, ticketService: any) {
-  const guildId = interaction.guildId!;
-
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-  try {
-    const settings = ticketService.getTicketSettings(guildId);
-
-    const embed = new EmbedBuilder()
-      .setTitle('⚙️ Configurações do Sistema de Tickets')
-      .setDescription('Configurações atuais do sistema de tickets para este servidor.')
-      .setColor('#0099FF')
-      .addFields(
-        { name: '🔧 Sistema', value: settings.enabled ? '✅ Ativo' : '❌ Inativo', inline: true },
-        { name: '📊 Max Tickets/Usuário', value: `${settings.maxTicketsPerUser}`, inline: true },
-        {
-          name: '🔄 Atribuição Automática',
-          value: settings.autoAssign ? '✅ Ativo' : '❌ Inativo',
-          inline: true,
-        },
-        {
-          name: '📝 Motivo Obrigatório',
-          value: settings.requireReason ? '✅ Sim' : '❌ Não',
-          inline: true,
-        },
-        {
-          name: '👤 Tickets Anônimos',
-          value: settings.allowAnonymous ? '✅ Permitido' : '❌ Não Permitido',
-          inline: true,
-        },
-        {
-          name: '⏰ Fechamento Automático',
-          value:
-            settings.closeAfterInactivity > 0
-              ? `${settings.closeAfterInactivity}h`
-              : '❌ Desabilitado',
-          inline: true,
-        },
-      )
-      .addFields(
-        { name: '🔔 Notificações', value: '\u200B', inline: false },
-        {
-          name: '🎫 Criar',
-          value: settings.notificationSettings.onCreate ? '✅' : '❌',
-          inline: true,
-        },
-        {
-          name: '🎯 Atribuir',
-          value: settings.notificationSettings.onAssign ? '✅' : '❌',
-          inline: true,
-        },
-        {
-          name: '🔒 Fechar',
-          value: settings.notificationSettings.onClose ? '✅' : '❌',
-          inline: true,
-        },
-        {
-          name: '🔓 Reabrir',
-          value: settings.notificationSettings.onReopen ? '✅' : '❌',
-          inline: true,
-        },
-      )
-      .setTimestamp();
-
-    if (settings.logChannelId) {
-      embed.addFields({
-        name: '📋 Canal de Logs',
-        value: `<#${settings.logChannelId}>`,
-        inline: true,
-      });
-    }
-
-    if (settings.supportRoleId) {
-      embed.addFields({
-        name: '👥 Cargo de Suporte',
-        value: `<@&${settings.supportRoleId}>`,
-        inline: true,
-      });
-    }
-
-    await interaction.editReply({ embeds: [embed] });
-  } catch (error) {
-    logger.error('Error viewing config:', error);
-
-    const errorEmbed = new EmbedBuilder()
-      .setTitle('❌ Erro')
-      .setDescription('Não foi possível carregar as configurações.')
-      .setColor('#FF0000');
-
-    await interaction.editReply({ embeds: [errorEmbed] });
-  }
-}
+export default command;

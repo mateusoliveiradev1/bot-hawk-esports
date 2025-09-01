@@ -3,6 +3,7 @@ import { Logger } from '../utils/logger';
 import { CacheService } from './cache.service';
 import { LoggingService } from './logging.service';
 import { EmbedBuilder, TextChannel } from 'discord.js';
+import { AdvancedPUBGBadgesService } from './advanced-pubg-badges.service';
 
 import {
   PUBGPlayer,
@@ -59,6 +60,7 @@ export class PUBGService {
 
   // Services
   private readonly loggingService: LoggingService | null = null;
+  private advancedBadgesService: AdvancedPUBGBadgesService | null = null;
 
   constructor(cache?: CacheService, loggingService?: LoggingService) {
     this.logger = new Logger();
@@ -1697,6 +1699,15 @@ export class PUBGService {
       const cacheKey = this.cache.keyGenerators.pubgStats(`${platform}:${pubgPlayerId}`, 'current', 'all');
       await this.cache.del(cacheKey);
 
+      // Update advanced badges if service is available
+      if (this.advancedBadgesService) {
+        try {
+          await this.advancedBadgesService.onMatchResult(userId, stats);
+        } catch (error: any) {
+          this.logger.warn(`Failed to update advanced badges for user ${userId}:`, error);
+        }
+      }
+
       // Log successful update
       await this.logApiOperation(
         'PUBG Stats Update',
@@ -1774,6 +1785,14 @@ export class PUBGService {
       
       return 0;
     }
+  }
+
+  /**
+   * Sets the advanced badges service for integration
+   * @param service - The AdvancedPUBGBadgesService instance
+   */
+  public setAdvancedBadgesService(service: AdvancedPUBGBadgesService): void {
+    this.advancedBadgesService = service;
   }
 
   public async healthCheck(): Promise<{

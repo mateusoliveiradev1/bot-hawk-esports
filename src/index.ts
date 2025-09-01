@@ -11,6 +11,7 @@ import { ExtendedClient } from '@/types/client';
 import { Logger } from '@/utils/logger';
 import { DatabaseService } from '@/database/database.service';
 import { CacheService } from '@/services/cache.service';
+import { CacheManager, initializeCacheManager } from '@/utils/cache-manager';
 import { PUBGService } from '@/services/pubg.service';
 import { MusicService } from '@/services/music.service';
 import { GameService } from '@/services/game.service';
@@ -37,6 +38,10 @@ import { PresenceEnhancementsService } from './services/presence-enhancements.se
 import { BadgeOptimizationService } from './services/badge-optimization.service';
 import { ExclusiveBadgeService } from './services/exclusive-badge.service';
 import { DynamicBadgeService } from './services/dynamic-badge.service';
+import { AdaptiveChallengeService } from './services/adaptive-challenge.service';
+import { AdvancedPUBGBadgesService } from './services/advanced-pubg-badges.service';
+import { InteractiveQuizService } from './services/interactive-quiz.service';
+import { IntegratedMiniGamesService } from './services/integrated-minigames.service';
 import { PUBGMonitorService } from './services/pubg-monitor.service';
 import { CommandManager } from './commands/index';
 import { MemberEvents } from './events/memberEvents';
@@ -63,6 +68,7 @@ class HawkEsportsBot {
   private logger: Logger;
   private db: DatabaseService;
   private cache: CacheService;
+  private cacheManager: CacheManager;
   private services: {
     api: APIService;
     automod: AutoModerationService;
@@ -72,6 +78,10 @@ class HawkEsportsBot {
     exclusiveBadge: ExclusiveBadgeService;
     dynamicBadge: DynamicBadgeService;
     challenge: ChallengeService;
+    adaptiveChallenge: AdaptiveChallengeService;
+    advancedPUBGBadges: AdvancedPUBGBadgesService;
+    interactiveQuiz: InteractiveQuizService;
+    integratedMiniGames: IntegratedMiniGamesService;
     logging: LoggingService;
     music: MusicService;
     onboarding: OnboardingService;
@@ -97,21 +107,31 @@ class HawkEsportsBot {
   private isShuttingDown = false;
 
   constructor() {
-    this.logger = new Logger();
+    try {
+      this.logger = new Logger();
+      this.logger.info('🔧 Initializing HawkEsportsBot constructor...');
 
-    // Validate monitoring configuration
-    const configValidation = validateMonitoringConfig(this.monitoringConfig);
-    if (!configValidation.isValid) {
-      this.logger.error('Invalid monitoring configuration:', { metadata: { errors: configValidation.errors } });
-      throw new Error(`Invalid monitoring configuration: ${configValidation.errors.join(', ')}`);
-    }
+      // Validate monitoring configuration
+      const configValidation = validateMonitoringConfig(this.monitoringConfig);
+      if (!configValidation.isValid) {
+        this.logger.error('Invalid monitoring configuration:', { metadata: { errors: configValidation.errors } });
+        throw new Error(`Invalid monitoring configuration: ${configValidation.errors.join(', ')}`);
+      }
+      this.logger.info('✅ Monitoring configuration validated');
 
     // Initialize structured logger
+    this.logger.info('🔧 Initializing StructuredLogger...');
     this.structuredLogger = new StructuredLogger(this.monitoringConfig.logging, 'bot-hawk-esports');
+    this.logger.info('✅ StructuredLogger initialized');
 
     // Initialize database and cache first
+    this.logger.info('🔧 Initializing DatabaseService...');
     this.db = new DatabaseService(this.monitoringConfig.logging);
+    this.logger.info('✅ DatabaseService initialized');
+    
+    this.logger.info('🔧 Initializing CacheService...');
     this.cache = new CacheService();
+    this.logger.info('✅ CacheService initialized');
 
     // Create Discord client with required intents
     this.client = new Client({
@@ -143,6 +163,10 @@ class HawkEsportsBot {
     this.client.logger = this.logger;
 
     // Initialize services with proper dependencies
+    this.logger.info('🔧 Initializing Discord Client...');
+    this.logger.info('✅ Discord Client initialized');
+    
+    this.logger.info('🔧 Initializing core services...');
     const ticketService = new TicketService(this.client);
     const punishmentService = new PunishmentService(this.client, this.db);
     const roleManagerService = new RoleManagerService();
@@ -153,20 +177,40 @@ class HawkEsportsBot {
     this.client.loggingService = loggingService;
     (this.client as any).pubg = pubgService;
 
+    // Cache manager will be initialized in start() method
+
     // Initialize XPService first as it's needed by other services
     const xpService = new XPService(this.client);
     const badgeService = new BadgeService(this.client, xpService, loggingService);
+    this.logger.info('✅ Core services initialized');
 
+    this.logger.info('🔧 Creating services object...');
+    
+    this.logger.info('🔧 Creating APIService...');
+    const apiService = new APIService(this.client);
+    this.logger.info('✅ APIService created');
+    
+    this.logger.info('🔧 Creating AutoModerationService...');
+    const automodService = new AutoModerationService(this.client, this.db, punishmentService);
+    this.logger.info('✅ AutoModerationService created');
+    
+    // Create scheduler service first as it's needed by other services
+    const schedulerService = new SchedulerService(this.client);
+    
     this.services = {
-      api: new APIService(this.client),
-      automod: new AutoModerationService(this.client, this.db, punishmentService),
+      api: apiService,
+      automod: automodService,
       xp: xpService,
       badge: badgeService,
       badgeOptimization: new BadgeOptimizationService(this.client, badgeService, pubgService),
       exclusiveBadge: new ExclusiveBadgeService(this.client, badgeService),
       dynamicBadge: new DynamicBadgeService(this.client, badgeService, pubgService),
       challenge: new ChallengeService(this.client),
-      logging: loggingService,
+        adaptiveChallenge: new AdaptiveChallengeService(this.client),
+        advancedPUBGBadges: new AdvancedPUBGBadgesService(this.client),
+        interactiveQuiz: new InteractiveQuizService(this.client),
+        integratedMiniGames: new IntegratedMiniGamesService(this.client),
+        logging: loggingService,
       music: new MusicService(this.cache, this.db),
       onboarding: new OnboardingService(this.client),
       presence: new PresenceService(this.client),
@@ -175,7 +219,7 @@ class HawkEsportsBot {
       punishment: punishmentService,
       rank: new RankService(this.client),
       roleManager: roleManagerService,
-      scheduler: new SchedulerService(this.client),
+      scheduler: schedulerService,
       weaponMastery: new WeaponMasteryService(this.client),
       clip: new ClipService(this.client),
       ticket: ticketService,
@@ -183,9 +227,9 @@ class HawkEsportsBot {
         this.client,
         this.db,
         this.cache,
-        this.services.scheduler,
-        this.services.logging,
-        this.services.pubg,
+        schedulerService,
+        loggingService,
+        pubgService,
         this.monitoringConfig.alerts,
         this.monitoringConfig.logging,
       ),
@@ -193,6 +237,7 @@ class HawkEsportsBot {
       alert: new AlertService(this.monitoringConfig.alerts),
       backup: null as any, // Will be initialized after metrics
     } as any;
+    this.logger.info('✅ Services object created');
 
     // Initialize PUBG Monitor service
     this.services.pubgMonitor = new PUBGMonitorService(pubgService, this.cache, loggingService);
@@ -251,7 +296,10 @@ class HawkEsportsBot {
     (this.client as any).roleManagerService = this.services.roleManager;
     (this.client as any).pubgService = this.services.pubg;
     (this.client as any).challengeService = this.services.challenge;
-    (this.client as any).rankService = this.services.rank;
+     (this.client as any).adaptiveChallengeService = this.services.adaptiveChallenge;
+     (this.client as any).advancedPUBGBadgesService = this.services.advancedPUBGBadges;
+     (this.client as any).interactiveQuizService = this.services.interactiveQuiz;
+     (this.client as any).rankService = this.services.rank;
     (this.client as any).xpService = this.services.xp;
     (this.client as any).badgeService = this.services.badge;
     // rankingService is not implemented yet
@@ -263,7 +311,18 @@ class HawkEsportsBot {
     // Attach services to client
     this.client.services = this.services as any;
 
+    // Connect Advanced PUBG Badges Service to PUBG Service
+    this.services.pubg.setAdvancedBadgesService(this.services.advancedPUBGBadges);
+
     // Services are available through this.services, this.db, this.cache, and this.commands
+    this.logger.info('✅ HawkEsportsBot constructor completed successfully');
+    } catch (error) {
+      console.error('❌ Error in HawkEsportsBot constructor:', error);
+      if (this.logger) {
+        this.logger.error('Constructor failed:', { error: error });
+      }
+      throw error;
+    }
   }
 
   /**
@@ -274,25 +333,44 @@ class HawkEsportsBot {
       this.logger.info('🚀 Starting Hawk Esports Bot...');
 
       // Validate environment variables
+      this.logger.info('📋 Validating environment variables...');
       this.validateEnvironment();
+      this.logger.info('✅ Environment variables validated');
 
       // Initialize database connection
+      this.logger.info('🗄️ Initializing database connection...');
       await this.initializeDatabase();
+      this.logger.info('✅ Database initialized successfully');
 
       // Initialize cache service
+      this.logger.info('💾 Initializing cache service...');
       await this.initializeCache();
+      this.logger.info('✅ Cache service initialized successfully');
+
+      // Initialize cache manager
+      this.logger.info('🔧 Initializing cache manager...');
+      this.cacheManager = await initializeCacheManager(this.cache);
+      this.logger.info('✅ Cache manager initialized successfully');
 
       // Initialize services
+      this.logger.info('⚙️ Initializing services...');
       await this.initializeServices();
+      this.logger.info('✅ Services initialized successfully');
 
       // Load commands
+      this.logger.info('📝 Loading commands...');
       await this.loadCommands();
+      this.logger.info('✅ Commands loaded successfully');
 
       // Setup event listeners
+      this.logger.info('👂 Setting up event listeners...');
       await this.setupEventListeners();
+      this.logger.info('✅ Event listeners setup successfully');
 
       // Login to Discord
+      this.logger.info('🔐 Logging into Discord...');
       await this.client.login(process.env.DISCORD_TOKEN);
+      this.logger.info('✅ Successfully logged into Discord');
     } catch (error) {
       this.logger.error('Failed to start bot:', error);
       process.exit(1);
@@ -344,7 +422,11 @@ class HawkEsportsBot {
    */
   private async initializeCache(): Promise<void> {
     try {
+      // Initialize basic cache service
       await this.cache.connect();
+
+      // Initialize distributed cache manager
+      this.cacheManager = await initializeCacheManager(this.cache);
 
       // Test cache connection if Redis is available
       if (this.cache.isRedisConnected()) {
@@ -356,9 +438,18 @@ class HawkEsportsBot {
         } else {
           this.logger.info('✅ Cache service connected and tested');
         }
+
+        // Warm up distributed cache
+        await this.cacheManager.warmUp();
+        this.logger.info('✅ Distributed cache manager initialized and warmed up');
       } else {
         this.logger.info('✅ Cache service initialized with memory fallback');
+        this.logger.info('✅ Distributed cache manager initialized with memory tier');
       }
+
+      // Setup cache event listeners
+      this.setupCacheEventListeners();
+
     } catch (error) {
       this.logger.warn('⚠️ Cache initialization failed, continuing with fallback:', error);
       // Don't throw error, allow bot to continue without Redis
@@ -771,6 +862,63 @@ class HawkEsportsBot {
   }
 
   /**
+   * Setup cache event listeners for monitoring and logging
+   */
+  private setupCacheEventListeners(): void {
+    if (!this.cacheManager) {
+      return;
+    }
+
+    // Log cache operations for monitoring
+    this.cacheManager.on('cache:set', (data) => {
+      this.structuredLogger.debug('Cache set operation', {
+        metadata: {
+          cache: data.cache,
+          key: data.key,
+          tier: data.tier,
+          ttl: data.ttl,
+        },
+      });
+    });
+
+    this.cacheManager.on('cache:delete', (data) => {
+      this.structuredLogger.debug('Cache delete operation', {
+        metadata: {
+          cache: data.cache,
+          key: data.key,
+        },
+      });
+    });
+
+    this.cacheManager.on('cache:invalidate', (data) => {
+      this.structuredLogger.info('Cache invalidation triggered', {
+        metadata: {
+          cache: data.cache,
+          pattern: data.pattern,
+          count: data.count,
+        },
+      });
+    });
+
+    this.cacheManager.on('warmup:start', () => {
+      this.structuredLogger.info('Cache warm-up process started');
+    });
+
+    this.cacheManager.on('invalidate:all', () => {
+      this.structuredLogger.warn('All caches invalidated');
+    });
+
+    this.cacheManager.on('invalidation:triggered', (data) => {
+      this.structuredLogger.debug('Cache invalidation event triggered', {
+        metadata: {
+          event: data.event,
+          data: data.data,
+        },
+      });
+    });
+  }
+
+  /**
    * Graceful shutdown
    */
   private async shutdown(signal: string): Promise<void> {
@@ -818,6 +966,12 @@ class HawkEsportsBot {
       // Disconnect from Discord
       if (this.client) {
         this.client.destroy();
+      }
+
+      // Shutdown cache manager
+      if (this.cacheManager) {
+        await this.cacheManager.shutdown();
+        this.structuredLogger.info('Cache manager shutdown completed');
       }
 
       // Close database connection

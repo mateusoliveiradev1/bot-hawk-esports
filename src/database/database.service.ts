@@ -106,14 +106,16 @@ export class DatabaseService {
         this.logger.debug('Error event listener not available:', errorEventError);
       }
 
-      try {
-        // @ts-ignore - Prisma event types may vary by version
-        this.prisma.$on('info', (e: any) => {
-          this.logger.info('Database info event:', e.message);
-        });
-      } catch (infoEventError) {
-        this.logger.debug('Info event listener not available:', infoEventError);
-      }
+      // Temporarily disabled info event listener to debug startup issue
+      // try {
+      //   // @ts-ignore - Prisma event types may vary by version
+      //   this.prisma.$on('info', (e: any) => {
+      //     this.logger.info('Database info event:', e.message || e);
+      //     // Continue execution after logging
+      //   });
+      // } catch (infoEventError) {
+      //   this.logger.debug('Info event listener not available:', infoEventError);
+      // }
 
       try {
         // @ts-ignore - Prisma event types may vary by version
@@ -262,6 +264,42 @@ export class DatabaseService {
    */
   public isDbConnected(): boolean {
     return this.isConnected;
+  }
+
+  /**
+   * Execute raw SQL query
+   */
+  public async query(sql: string, params?: any[]): Promise<any[]> {
+    if (!this.isConnected) {
+      throw new Error('Database is not connected. Call connect() first.');
+    }
+    
+    try {
+      // For queries with parameters, use $queryRaw with template literal
+      if (params && params.length > 0) {
+        // Replace ? placeholders with actual values for $queryRawUnsafe
+        let processedSql = sql;
+        params.forEach((param, index) => {
+          const placeholder = '$' + (index + 1);
+          if (typeof param === 'string') {
+            processedSql = processedSql.replace('?', `'${param.replace(/'/g, '\'\'')}'`);
+          } else if (param === null) {
+            processedSql = processedSql.replace('?', 'NULL');
+          } else {
+            processedSql = processedSql.replace('?', String(param));
+          }
+        });
+        return await this.prisma.$queryRawUnsafe(processedSql);
+      } else {
+        // For simple queries without parameters
+        return await this.prisma.$queryRawUnsafe(sql);
+      }
+    } catch (error) {
+      this.logger.error('Database query failed:', {
+        error: error as Error,
+      });
+      throw error;
+    }
   }
 
   /**

@@ -21,23 +21,27 @@ export class CommandManager {
   public contextMenus: Collection<string, ContextMenuCommand>;
   public aliases: Collection<string, string>;
   public cooldowns: Collection<string, Collection<string, number>>;
+  private commandPaths: Map<string, string>; // Map command names to file paths
+  private lazyLoadingEnabled: boolean;
 
-  constructor(client?: ExtendedClient) {
+  constructor(client?: ExtendedClient, lazyLoading: boolean = true) {
     this.client = client!;
     this.logger = new Logger();
     this.commands = new Collection();
     this.contextMenus = new Collection();
     this.aliases = new Collection();
     this.cooldowns = new Collection();
+    this.commandPaths = new Map();
+    this.lazyLoadingEnabled = lazyLoading;
   }
 
   /**
-   * Load all commands from directories
+   * Load all commands from directories (with lazy loading support)
    */
   public async loadCommands(): Promise<void> {
     try {
       const commandsPath = path.join(__dirname);
-      this.logger.debug(`Loading commands from: ${commandsPath}`);
+      this.logger.debug(`${this.lazyLoadingEnabled ? 'Indexing' : 'Loading'} commands from: ${commandsPath}`);
 
       const commandFolders = fs
         .readdirSync(commandsPath)
@@ -57,23 +61,63 @@ export class CommandManager {
 
         for (const file of commandFiles) {
           const filePath = path.join(folderPath, file);
-          this.logger.debug(`Loading command from: ${filePath}`);
-          const command = await this.loadCommand(filePath);
-
-          if (command) {
-            this.registerCommand(command);
-            this.logger.debug(`Successfully loaded command: ${command.data.name}`);
+          
+          if (this.lazyLoadingEnabled) {
+            // Index command without loading it
+            await this.indexCommand(filePath);
           } else {
-            this.logger.warn(`Failed to load command from: ${filePath}`);
+            // Load command immediately (legacy behavior)
+            this.logger.debug(`Loading command from: ${filePath}`);
+            const command = await this.loadCommand(filePath);
+
+            if (command) {
+              this.registerCommand(command);
+              this.logger.debug(`Successfully loaded command: ${command.data.name}`);
+            } else {
+              this.logger.warn(`Failed to load command from: ${filePath}`);
+            }
           }
         }
       }
 
-      this.logger.info(
-        `Loaded ${this.commands.size} slash commands and ${this.contextMenus.size} context menu commands`,
-      );
+      if (this.lazyLoadingEnabled) {
+        this.logger.info(`Indexed ${this.commandPaths.size} commands for lazy loading`);
+      } else {
+        this.logger.info(
+          `Loaded ${this.commands.size} slash commands and ${this.contextMenus.size} context menu commands`,
+        );
+      }
     } catch (error) {
       this.logger.error('Error loading commands:', error);
+    }
+  }
+
+  /**
+   * Index a command file for lazy loading
+   */
+  private async indexCommand(filePath: string): Promise<void> {
+    try {
+      // Quick check to get command name without full loading
+      const commandModule = require(filePath);
+      const command = commandModule.default || commandModule;
+      
+      if (command && command.data && command.data.name) {
+        this.commandPaths.set(command.data.name, filePath);
+        
+        // Also index aliases if they exist
+        if (command.aliases) {
+          for (const alias of command.aliases) {
+            this.aliases.set(alias, command.data.name);
+          }
+        }
+        
+        this.logger.debug(`Indexed command: ${command.data.name}`);
+      }
+      
+      // Clear from cache to avoid memory buildup during indexing
+      delete require.cache[require.resolve(filePath)];
+    } catch (error) {
+      this.logger.warn(`Failed to index command ${filePath}:`, error);
     }
   }
 
@@ -135,9 +179,39 @@ export class CommandManager {
   }
 
   /**
-   * Get command by name or alias
+   * Get command by name or alias (with lazy loading support)
    */
-  public getCommand(name: string): Command | null {
+  public async getCommand(name: string): Promise<Command | null> {
+    // Check if command is already loaded
+    const existingCommand = this.commands.get(name) || this.commands.get(this.aliases.get(name) || '');
+    if (existingCommand) {
+      return existingCommand;
+    }
+
+    // If lazy loading is enabled, try to load the command on demand
+    if (this.lazyLoadingEnabled) {
+      const commandName = this.aliases.get(name) || name;
+      const filePath = this.commandPaths.get(commandName);
+      
+      if (filePath) {
+        this.logger.debug(`Lazy loading command: ${commandName}`);
+        const command = await this.loadCommand(filePath);
+        
+        if (command) {
+          this.registerCommand(command);
+          this.logger.debug(`Successfully lazy loaded command: ${command.data.name}`);
+          return command as Command;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Get command by name or alias (synchronous - for backward compatibility)
+   */
+  public getCommandSync(name: string): Command | null {
     return this.commands.get(name) || this.commands.get(this.aliases.get(name) || '') || null;
   }
 
@@ -283,7 +357,7 @@ export class CommandManager {
     interaction: ChatInputCommandInteraction,
     client: ExtendedClient,
   ): Promise<void> {
-    const command = this.getCommand(interaction.commandName);
+    const command = await this.getCommand(interaction.commandName);
     if (!command) {
       return;
     }
@@ -344,7 +418,7 @@ export class CommandManager {
     interaction: AutocompleteInteraction,
     client: ExtendedClient,
   ): Promise<void> {
-    const command = this.getCommand(interaction.commandName);
+    const command = await this.getCommand(interaction.commandName);
     if (!command || !command.autocomplete) {
       return;
     }

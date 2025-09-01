@@ -32,6 +32,11 @@ import {
   useToast,
   toast,
 } from '../components/ui';
+import BadgesWidget from '../components/Gamification/BadgesWidget';
+import XPWidget from '../components/Gamification/XPWidget';
+import RankingWidget from '../components/Gamification/RankingWidget';
+import MiniGamesWidget from '../components/Gamification/MiniGamesWidget';
+import AchievementsWidget from '../components/Gamification/AchievementsWidget';
 
 // Real-time data will be fetched from API - no more mock data
 
@@ -392,6 +397,54 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Gamification Section */}
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold text-card-foreground mb-6">Sistema de Gamificação</h2>
+        
+        {/* Gamification Grid */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+          {/* XP and Level Widget */}
+          <XPWidget 
+            guildId={guildId}
+            showRanking={true}
+            showProgress={true}
+          />
+          
+          {/* Badges Widget */}
+          <BadgesWidget 
+            guildId={guildId}
+            showProgress={true}
+            showRarity={true}
+          />
+          
+          {/* Mini-Games Widget */}
+          <MiniGamesWidget 
+            guildId={guildId}
+            showStats={true}
+            showActiveGames={true}
+          />
+        </div>
+        
+        {/* Second Row - Ranking and Achievements */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mt-6">
+          {/* Ranking Widget */}
+          <RankingWidget 
+            guildId={guildId}
+            type="overall"
+            limit={10}
+            showBadges={true}
+          />
+          
+          {/* Achievements Widget */}
+          <AchievementsWidget 
+            userId="" // Will be populated when user authentication is implemented
+            guildId={guildId}
+            showChallenges={true}
+            showCompleted={false}
+          />
         </div>
       </div>
     </div>

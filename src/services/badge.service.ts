@@ -1,10 +1,14 @@
 import { Logger } from '../utils/logger';
 import { CacheService } from './cache.service';
+import { getCacheManager } from '../utils/cache-manager';
 import { DatabaseService } from '../database/database.service';
 import { ExtendedClient } from '../types/client';
 import { XPService } from './xp.service.js';
 import { LoggingService } from './logging.service';
 import { User, GuildMember, TextChannel, EmbedBuilder } from 'discord.js';
+import { BaseService } from './base.service';
+import { ServiceValidator, CommonValidationRules } from '../utils/service-validator.util';
+import { ErrorHandler } from '../utils/error-handler.util';
 
 export interface BadgeDefinition {
   id: string;
@@ -56,7 +60,11 @@ export interface BadgeRequirement {
     | 'shared_clips'
     | 'community_votes'
     | 'tournament_participation'
-    | 'seasonal_activity';
+    | 'seasonal_activity'
+    | 'distance'
+    | 'survival_time'
+    | 'vehicle_kills'
+    | 'top_10_finishes';
   operator: 'gte' | 'lte' | 'eq' | 'between';
   value: number | [number, number];
   timeframe?: 'daily' | 'weekly' | 'monthly' | 'all_time';
@@ -82,13 +90,10 @@ export interface BadgeProgress {
 /**
  * Service for managing user badges and achievements
  */
-export class BadgeService {
-  private logger: Logger;
-  private cache?: CacheService;
-  private database?: DatabaseService;
-  private client: ExtendedClient;
+export class BadgeService extends BaseService {
   private xpService: XPService;
   private loggingService: LoggingService;
+  private cacheManager: any; // Will be initialized in initialize() method
 
   private badges: Map<string, BadgeDefinition> = new Map();
   private userBadges: Map<string, Set<string>> = new Map(); // userId -> badgeIds
@@ -151,35 +156,28 @@ export class BadgeService {
   };
 
   constructor(client: ExtendedClient, xpService: XPService, loggingService: LoggingService) {
-    this.client = client;
+    super(client, ['database', 'cache']);
+    
+    ServiceValidator.validateRequiredServices(client, ['database', 'cache'], 'BadgeService');
+    
     this.xpService = xpService;
     this.loggingService = loggingService;
-    this.logger = new Logger();
-    
-    this.database = client.database as DatabaseService;
-
-    // Initialize asynchronously
-    this.initializeAsync().catch(error => {
-      this.logger.error('Failed to initialize BadgeService:', error);
-    });
   }
 
-  /**
-   * Initialize the service asynchronously
-   */
-  private async initializeAsync(): Promise<void> {
-    try {
-      await this.initializeBadges();
-      await this.loadUserBadges();
-      await this.createWeeklyBadges();
-      this.startProgressTracker();
-      this.startAutomaticValidation();
-      this.startWeeklyBadgeProcessor();
-      this.logger.info('✅ BadgeService initialized successfully with automatic validation and dynamic badges');
-    } catch (error) {
-      this.logger.error('❌ Failed to initialize BadgeService:', error);
-      throw error;
-    }
+  async initialize(): Promise<void> {
+    await this.initializeService();
+  }
+
+  protected async initializeService(): Promise<void> {
+    // Initialize cache manager
+    this.cacheManager = getCacheManager();
+    
+    await this.initializeBadges();
+    await this.loadUserBadges();
+    await this.createWeeklyBadges();
+    this.startProgressTracker();
+    this.startAutomaticValidation();
+    this.startWeeklyBadgeProcessor();
   }
 
   /**
@@ -773,6 +771,232 @@ export class BadgeService {
           isSecret: false,
           isActive: true,
         },
+
+        // PUBG Official Medal System Badges
+        {
+          id: 'pubg_sharpshooter',
+          name: 'Atirador de Elite',
+          description: 'Demonstre precisão excepcional com headshots',
+          icon: '🎯',
+          category: 'pubg',
+          rarity: 'rare',
+          requirements: [
+            {
+              type: 'headshots',
+              operator: 'gte',
+              value: 100,
+              timeframe: 'all_time',
+            },
+          ],
+          rewards: {
+            xp: 500,
+            coins: 250,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'pubg_survivor',
+          name: 'Sobrevivente Nato',
+          description: 'Sobreviva por longos períodos sem morrer',
+          icon: '🛡️',
+          category: 'pubg',
+          rarity: 'epic',
+          requirements: [
+            {
+              type: 'games',
+              operator: 'gte',
+              value: 50,
+              timeframe: 'all_time',
+              additional: { minSurvivalTime: 1200 }, // 20 minutos
+            },
+          ],
+          rewards: {
+            xp: 750,
+            coins: 400,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'pubg_chicken_dinner',
+          name: 'Chicken Dinner',
+          description: 'Conquiste sua primeira vitória no PUBG',
+          icon: '🍗',
+          category: 'pubg',
+          rarity: 'legendary',
+          requirements: [
+            {
+              type: 'wins',
+              operator: 'gte',
+              value: 1,
+              timeframe: 'all_time',
+            },
+          ],
+          rewards: {
+            xp: 1000,
+            coins: 500,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'pubg_chicken_master',
+          name: 'Mestre do Chicken Dinner',
+          description: 'Conquiste 10 vitórias no PUBG',
+          icon: '👑',
+          category: 'pubg',
+          rarity: 'mythic',
+          requirements: [
+            {
+              type: 'wins',
+              operator: 'gte',
+              value: 10,
+              timeframe: 'all_time',
+            },
+          ],
+          rewards: {
+            xp: 2000,
+            coins: 1000,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'pubg_damage_dealer',
+          name: 'Causador de Dano',
+          description: 'Cause uma quantidade massiva de dano',
+          icon: '💥',
+          category: 'pubg',
+          rarity: 'rare',
+          requirements: [
+            {
+              type: 'damage',
+              operator: 'gte',
+              value: 50000,
+              timeframe: 'all_time',
+            },
+          ],
+          rewards: {
+            xp: 600,
+            coins: 300,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'pubg_kill_streak',
+          name: 'Sequência Mortal',
+          description: 'Elimine 5 inimigos em uma única partida',
+          icon: '🔥',
+          category: 'pubg',
+          rarity: 'epic',
+          requirements: [
+            {
+              type: 'kills',
+              operator: 'gte',
+              value: 5,
+              timeframe: 'daily',
+              additional: { singleMatch: true },
+            },
+          ],
+          rewards: {
+            xp: 800,
+            coins: 450,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'pubg_distance_traveler',
+          name: 'Viajante de Longa Distância',
+          description: 'Percorra grandes distâncias no mapa',
+          icon: '🏃',
+          category: 'pubg',
+          rarity: 'uncommon',
+          requirements: [
+            {
+              type: 'distance',
+              operator: 'gte',
+              value: 100000, // 100km
+              timeframe: 'all_time',
+            },
+          ],
+          rewards: {
+            xp: 400,
+            coins: 200,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'pubg_top_10_consistent',
+          name: 'Top 10 Consistente',
+          description: 'Alcance o Top 10 em múltiplas partidas consecutivas',
+          icon: '🏆',
+          category: 'pubg',
+          rarity: 'epic',
+          requirements: [
+            {
+              type: 'streak',
+              operator: 'gte',
+              value: 5,
+              timeframe: 'weekly',
+              additional: { type: 'top_10' },
+            },
+          ],
+          rewards: {
+            xp: 750,
+            coins: 375,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'pubg_vehicle_master',
+          name: 'Mestre dos Veículos',
+          description: 'Elimine inimigos usando veículos',
+          icon: '🚗',
+          category: 'pubg',
+          rarity: 'rare',
+          requirements: [
+            {
+              type: 'kills',
+              operator: 'gte',
+              value: 10,
+              timeframe: 'all_time',
+              additional: { weaponType: 'vehicle' },
+            },
+          ],
+          rewards: {
+            xp: 600,
+            coins: 300,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'pubg_medic',
+          name: 'Médico de Campo',
+          description: 'Reviva companheiros de equipe múltiplas vezes',
+          icon: '🏥',
+          category: 'pubg',
+          rarity: 'uncommon',
+          requirements: [
+            {
+              type: 'revives',
+              operator: 'gte',
+              value: 25,
+              timeframe: 'all_time',
+            },
+          ],
+          rewards: {
+            xp: 450,
+            coins: 225,
+          },
+          isSecret: false,
+          isActive: true,
+        },
       ];
 
       // Add weapon mastery badges
@@ -873,7 +1097,11 @@ export class BadgeService {
     value: number,
     operation: 'set' | 'increment' = 'increment',
   ): Promise<void> {
-    try {
+    return ErrorHandler.executeWithLogging(
+      async () => {
+        // Validate inputs
+        ServiceValidator.validateObjectProperties({ userId, requirementType }, ['userId', 'requirementType'], 'updateProgress parameters');
+        ServiceValidator.validateRange(value, 0, Number.MAX_SAFE_INTEGER, 'value');
       if (!this.badgeProgress.has(userId)) {
         this.badgeProgress.set(userId, new Map());
       }
@@ -930,10 +1158,11 @@ export class BadgeService {
           `🏆 User ${userId} earned ${newlyEarnedBadges.length} new badges: ${newlyEarnedBadges.join(', ')}`,
         );
       }
-    } catch (error) {
-      this.logger.error(`❌ Failed to update progress for user ${userId}:`, error);
-      throw error;
-    }
+      },
+      this.logger,
+      `updateProgress for user ${userId}`,
+      `Guild: ${userId}, Type: ${requirementType}, Value: ${value}, Operation: ${operation}`,
+    );
   }
 
   /**
@@ -973,8 +1202,14 @@ export class BadgeService {
     badgeId: string,
     notify: boolean = true,
   ): Promise<boolean> {
-    try {
-      // Check if badge exists
+    return ErrorHandler.executeWithLogging(
+      async () => {
+        // Validate inputs
+        ServiceValidator.validateObjectProperties({ userId, badgeId }, ['userId', 'badgeId'], 'awardBadge parameters');
+        ServiceValidator.validateNonEmptyString(userId, 'userId');
+        ServiceValidator.validateNonEmptyString(badgeId, 'badgeId');
+        
+        // Check if badge exists
       const badge = this.badges.get(badgeId);
       if (!badge) {
         this.logger.warn(this.MESSAGES.ERRORS.BADGE_NOT_FOUND(badgeId));
@@ -1021,15 +1256,22 @@ export class BadgeService {
         await this.sendBadgeNotification(userId, badge);
       }
 
-      // Clear user cache
-      await this.clearBadgeCache(userId);
+      // Invalidate user cache using distributed cache system
+      try {
+        await this.cacheManager.user.invalidate(userId);
+      } catch (cacheError) {
+        this.logger.warn(`Failed to invalidate cache for user ${userId}: ${cacheError instanceof Error ? cacheError.message : String(cacheError)}`);
+        // Fallback to old cache clearing method
+        await this.clearBadgeCache(userId);
+      }
 
-      this.logger.info(this.MESSAGES.SUCCESS.BADGE_AWARDED(badge.name, userId));
-      return true;
-    } catch (error) {
-      this.logger.error(`❌ Failed to award badge ${badgeId} to user ${userId}:`, error);
-      return false;
-    }
+        this.logger.info(this.MESSAGES.SUCCESS.BADGE_AWARDED(badge.name, userId));
+        return true;
+      },
+      this.logger,
+      `awardBadge ${badgeId} to user ${userId}`,
+      `User: ${userId}, Badge: ${badgeId}, Notify: ${notify}`,
+    ) || false;
   }
 
   /**
@@ -1205,48 +1447,43 @@ export class BadgeService {
    * Get user's badges
    */
   public async getUserBadges(userId: string): Promise<BadgeDefinition[]> {
-    const cacheKey = `user_badges:${userId}`;
-    
-    // Tentar buscar do cache primeiro
-    if (this.cache) {
-      try {
-        const cached = await this.cache.get(cacheKey);
-        if (cached) {
-          return JSON.parse(cached as string).map((badgeData: any) => ({
-            ...badgeData,
-            createdAt: new Date(badgeData.createdAt),
-          }));
+    try {
+      // Use distributed cache with intelligent TTL
+      return await this.cacheManager.user.get(userId, 'badges', async () => {
+        const userBadgeIds = this.userBadges.get(userId);
+        if (!userBadgeIds) {
+          return [];
         }
-      } catch (error) {
-        this.logger.warn('Erro ao buscar badges do cache', { metadata: { userId, error } });
+
+        const badges: BadgeDefinition[] = [];
+        for (const badgeId of userBadgeIds) {
+          const badge = this.badges.get(badgeId);
+          if (badge) {
+            badges.push(badge);
+          }
+        }
+
+        return badges.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      });
+    } catch (error) {
+      this.logger.warn('Erro ao buscar badges do usuário', { metadata: { userId, error } });
+      
+      // Fallback to direct memory access
+      const userBadgeIds = this.userBadges.get(userId);
+      if (!userBadgeIds) {
+        return [];
       }
-    }
 
-    const userBadgeIds = this.userBadges.get(userId);
-    if (!userBadgeIds) {
-      return [];
-    }
-
-    const badges: BadgeDefinition[] = [];
-    for (const badgeId of userBadgeIds) {
-      const badge = this.badges.get(badgeId);
-      if (badge) {
-        badges.push(badge);
+      const badges: BadgeDefinition[] = [];
+      for (const badgeId of userBadgeIds) {
+        const badge = this.badges.get(badgeId);
+        if (badge) {
+          badges.push(badge);
+        }
       }
-    }
 
-    const sortedBadges = badges.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-    
-    // Salvar no cache por 5 minutos
-    if (this.cache && sortedBadges.length > 0) {
-      try {
-        await this.cache.set(cacheKey, JSON.stringify(sortedBadges), 300);
-      } catch (error) {
-        this.logger.warn('Erro ao salvar badges no cache', { metadata: { userId, error } });
-      }
+      return badges.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     }
-
-    return sortedBadges;
   }
 
   /**
@@ -1553,6 +1790,11 @@ export class BadgeService {
         'community_vote': 'community_votes',
         'tournament_participation': 'tournament_participation',
         'seasonal_activity': 'seasonal_activity',
+        // PUBG specific activity types
+        'distance_traveled': 'distance',
+        'survival_time': 'survival_time',
+        'vehicle_kill': 'vehicle_kills',
+        'top_10_finish': 'top_10_finishes',
       };
       
       const mappedType = activityMappings[activityType];
@@ -1658,6 +1900,80 @@ export class BadgeService {
       this.logger.info(`👥 Community interaction recorded for user ${userId}: ${interactionType} +${value}`);
     } catch (error) {
       this.logger.error(`❌ Error recording community interaction for user ${userId}:`, error);
+    }
+  }
+
+  /**
+   * Handle PUBG distance traveled for badges
+   */
+  public async onDistanceTraveled(userId: string, distance: number): Promise<void> {
+    try {
+      await this.updateProgress(userId, 'distance', distance, 'increment');
+      this.logger.info(`🏃 Distance traveled recorded for user ${userId}: ${distance}km`);
+    } catch (error) {
+      this.logger.error(`❌ Error handling distance traveled for user ${userId}:`, error);
+    }
+  }
+
+  /**
+   * Handle PUBG survival time for badges
+   */
+  public async onSurvivalTime(userId: string, survivalTime: number): Promise<void> {
+    try {
+      await this.updateProgress(userId, 'survival_time', survivalTime, 'increment');
+      this.logger.info(`⏱️ Survival time recorded for user ${userId}: ${survivalTime} minutes`);
+    } catch (error) {
+      this.logger.error(`❌ Error handling survival time for user ${userId}:`, error);
+    }
+  }
+
+  /**
+   * Handle PUBG vehicle kills for badges
+   */
+  public async onVehicleKill(userId: string, kills: number = 1): Promise<void> {
+    try {
+      await this.updateProgress(userId, 'vehicle_kills', kills, 'increment');
+      this.logger.info(`🚗 Vehicle kills recorded for user ${userId}: +${kills}`);
+    } catch (error) {
+      this.logger.error(`❌ Error handling vehicle kills for user ${userId}:`, error);
+    }
+  }
+
+  /**
+   * Handle PUBG top 10 finishes for badges
+   */
+  public async onTop10Finish(userId: string): Promise<void> {
+    try {
+      await this.updateProgress(userId, 'top_10_finishes', 1, 'increment');
+      this.logger.info(`🏆 Top 10 finish recorded for user ${userId}`);
+    } catch (error) {
+      this.logger.error(`❌ Error handling top 10 finish for user ${userId}:`, error);
+    }
+  }
+
+  /**
+   * Handle general PUBG activities for testing
+   */
+  public async onPubgActivity(userId: string, activityType: string, amount: number = 1): Promise<void> {
+    try {
+      switch (activityType) {
+        case 'distance':
+          await this.onDistanceTraveled(userId, amount);
+          break;
+        case 'survival':
+          await this.onSurvivalTime(userId, amount);
+          break;
+        case 'vehicle_kill':
+          await this.onVehicleKill(userId, amount);
+          break;
+        case 'top_10':
+          await this.onTop10Finish(userId);
+          break;
+        default:
+          this.logger.warn(`Unknown PUBG activity type: ${activityType}`);
+      }
+    } catch (error) {
+      this.logger.error(`❌ Error handling PUBG activity ${activityType} for user ${userId}:`, error);
     }
   }
 
@@ -1844,6 +2160,42 @@ export class BadgeService {
   }
 
   /**
+   * Register a badge (used by advanced badge services)
+   */
+  public async registerBadge(badgeData: any): Promise<boolean> {
+    try {
+      // Check if badge ID already exists
+      if (this.badges.has(badgeData.id)) {
+        this.logger.debug(`Badge with ID ${badgeData.id} already exists, skipping registration`);
+        return true; // Return true since badge exists
+      }
+
+      const badge: BadgeDefinition = {
+        id: badgeData.id,
+        name: badgeData.name,
+        description: badgeData.description,
+        icon: badgeData.icon,
+        category: badgeData.category,
+        rarity: badgeData.rarity,
+        requirements: badgeData.requirements,
+        rewards: badgeData.rewards,
+        isSecret: badgeData.isSecret || false,
+        isActive: badgeData.isActive !== false, // Default to true
+        createdAt: new Date(),
+      };
+
+      // Store in memory
+      this.badges.set(badge.id, badge);
+
+      this.logger.info(`✅ Registered advanced badge: ${badge.name} (${badge.id})`);
+      return true;
+    } catch (error) {
+      this.logger.error('❌ Failed to register badge:', error);
+      return false;
+    }
+  }
+
+  /**
    * Create a custom badge (admin only)
    */
   public async createCustomBadge(badgeData: Omit<BadgeDefinition, 'createdAt'>): Promise<boolean> {
@@ -1909,8 +2261,14 @@ export class BadgeService {
         });
       }
 
-      // Clear user cache
-      await this.clearBadgeCache(userId);
+      // Invalidate user cache using distributed cache system
+      try {
+        await this.cacheManager.user.invalidate(userId);
+      } catch (cacheError) {
+        this.logger.warn(`Failed to invalidate cache for user ${userId}: ${cacheError instanceof Error ? cacheError.message : String(cacheError)}`);
+        // Fallback to old cache clearing method
+        await this.clearBadgeCache(userId);
+      }
 
       // Send removal notification if requested and badge exists
       if (notify && badge) {
@@ -2720,11 +3078,13 @@ export class BadgeService {
    */
   public getHealthStatus(): {
     status: 'healthy' | 'degraded' | 'unhealthy';
+    serviceName: string;
     details: {
       badgesLoaded: boolean;
       userBadgesLoaded: boolean;
       databaseConnected: boolean;
       cacheConnected: boolean;
+      clientConnected: boolean;
       totalBadges: number;
       totalUserBadges: number;
     };
@@ -2753,11 +3113,13 @@ export class BadgeService {
 
     return {
       status,
+      serviceName: this.serviceName,
       details: {
         badgesLoaded,
         userBadgesLoaded,
         databaseConnected,
         cacheConnected,
+        clientConnected: !!this.client,
         totalBadges: this.badges.size,
         totalUserBadges,
       },

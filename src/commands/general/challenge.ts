@@ -8,46 +8,50 @@ import {
   ChatInputCommandInteraction,
   MessageFlags,
 } from 'discord.js';
-import { Command, CommandCategory } from '../../types/command';
+import { CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
 import { Logger } from '../../utils/logger';
 import { GameService, Challenge, ChallengeProgress } from '../../services/game.service';
 import { DatabaseService } from '../../database/database.service';
+import { BaseCommand } from '../../utils/base-command.util';
 
 /**
  * Challenge command - Daily, weekly, and monthly challenges with rewards
  */
-const challenge: Command = {
-  data: new SlashCommandBuilder()
-    .setName('challenge')
-    .setDescription('🏅 Visualiza e gerencia desafios diários, semanais e mensais')
-    .addStringOption(option =>
-      option
-        .setName('action')
-        .setDescription('Ação a ser executada')
-        .setRequired(false)
-        .addChoices(
-          { name: '📋 Ver Desafios Ativos', value: 'list' },
-          { name: '📊 Meu Progresso', value: 'progress' },
-          { name: '🎁 Resgatar Recompensas', value: 'claim' },
-          { name: '📈 Estatísticas', value: 'stats' },
-        ),
-    )
-    .addStringOption(option =>
-      option
-        .setName('type')
-        .setDescription('Filtrar por tipo de desafio')
-        .setRequired(false)
-        .addChoices(
-          { name: '📅 Diários', value: 'daily' },
-          { name: '📆 Semanais', value: 'weekly' },
-          { name: '🗓️ Mensais', value: 'monthly' },
-          { name: '⭐ Especiais', value: 'special' },
-        ),
-    ) as SlashCommandBuilder,
-
-  category: CommandCategory.GENERAL,
-  cooldown: 10,
+class ChallengeCommand extends BaseCommand {
+  constructor() {
+    super({
+      data: new SlashCommandBuilder()
+        .setName('challenge')
+        .setDescription('🏅 Visualiza e gerencia desafios diários, semanais e mensais')
+        .addStringOption(option =>
+          option
+            .setName('action')
+            .setDescription('Ação a ser executada')
+            .setRequired(false)
+            .addChoices(
+              { name: '📋 Ver Desafios Ativos', value: 'list' },
+              { name: '📊 Meu Progresso', value: 'progress' },
+              { name: '🎁 Resgatar Recompensas', value: 'claim' },
+              { name: '📈 Estatísticas', value: 'stats' },
+            ),
+        )
+        .addStringOption(option =>
+          option
+            .setName('type')
+            .setDescription('Filtrar por tipo de desafio')
+            .setRequired(false)
+            .addChoices(
+              { name: '📅 Diários', value: 'daily' },
+              { name: '📆 Semanais', value: 'weekly' },
+              { name: '🗓️ Mensais', value: 'monthly' },
+              { name: '⭐ Especiais', value: 'special' },
+            ),
+        ) as SlashCommandBuilder,
+      category: CommandCategory.GENERAL,
+      cooldown: 10,
+    });
+  }
 
   async execute(interaction: any, client: ExtendedClient) {
     const logger = new Logger();
@@ -77,19 +81,19 @@ const challenge: Command = {
 
       switch (action) {
         case 'list':
-          await showActiveChallenges(interaction, gameService, type);
+          await this.showActiveChallenges(interaction, gameService, type);
           break;
         case 'progress':
-          await showUserProgress(interaction, gameService, user.id, type);
+          await this.showUserProgress(interaction, gameService, user.id, type);
           break;
         case 'claim':
-          await showClaimableRewards(interaction, gameService, user.id);
+          await this.showClaimableRewards(interaction, gameService, user.id);
           break;
         case 'stats':
-          await showChallengeStats(interaction, gameService, database, user.id);
+          await this.showChallengeStats(interaction, gameService, database, user.id);
           break;
         default:
-          await showActiveChallenges(interaction, gameService, type);
+          await this.showActiveChallenges(interaction, gameService, type);
       }
     } catch (error) {
       logger.error('Error in challenge command:', error);
@@ -106,17 +110,16 @@ const challenge: Command = {
         await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       }
     }
-  },
-};
+  }
 
-/**
- * Show active challenges
- */
-async function showActiveChallenges(
-  interaction: ChatInputCommandInteraction,
-  gameService: GameService,
-  typeFilter?: string | null,
-) {
+  /**
+   * Show active challenges
+   */
+  private async showActiveChallenges(
+    interaction: ChatInputCommandInteraction,
+    gameService: GameService,
+    typeFilter?: string | null,
+  ) {
   const challenges = gameService.getActiveChallenges();
 
   let filteredChallenges = challenges;
@@ -129,7 +132,7 @@ async function showActiveChallenges(
       .setTitle('🏅 Desafios Ativos')
       .setDescription(
         typeFilter
-          ? `Não há desafios ${getChallengeTypeName(typeFilter)} ativos no momento.`
+          ? `Não há desafios ${this.getChallengeTypeName(typeFilter)} ativos no momento.`
           : 'Não há desafios ativos no momento. Novos desafios são criados automaticamente!',
       )
       .setColor(0xffa500)
@@ -155,15 +158,15 @@ async function showActiveChallenges(
     .setDescription(
       Object.entries(challengesByType)
         .map(([type, challenges]) => {
-          const typeEmoji = getChallengeTypeEmoji(type);
-          const typeName = getChallengeTypeName(type);
+          const typeEmoji = this.getChallengeTypeEmoji(type);
+          const typeName = this.getChallengeTypeName(type);
 
           return (
             `**${typeEmoji} ${typeName}**\n` +
             challenges
               .map(challenge => {
-                const timeLeft = getTimeLeft(challenge.endDate);
-                const difficultyEmoji = getCategoryEmoji(challenge.category);
+                const timeLeft = this.getTimeLeft(challenge.endDate);
+                const difficultyEmoji = this.getCategoryEmoji(challenge.category);
 
                 return (
                   `${difficultyEmoji} **${challenge.name}**\n` +
@@ -220,14 +223,14 @@ async function showActiveChallenges(
 
     switch (buttonInteraction.customId) {
       case 'challenge_progress':
-        await showUserProgress(buttonInteraction, gameService, interaction.user.id);
+        await this.showUserProgress(buttonInteraction, gameService, interaction.user.id);
         break;
       case 'challenge_claim':
-        await showClaimableRewards(buttonInteraction, gameService, interaction.user.id);
+        await this.showClaimableRewards(buttonInteraction, gameService, interaction.user.id);
         break;
       case 'challenge_stats':
         const database = new DatabaseService();
-        await showChallengeStats(buttonInteraction, gameService, database, interaction.user.id);
+        await this.showChallengeStats(buttonInteraction, gameService, database, interaction.user.id);
         break;
     }
   });
@@ -243,15 +246,15 @@ async function showActiveChallenges(
   return response;
 }
 
-/**
- * Show user progress on challenges
- */
-async function showUserProgress(
-  interaction: any,
-  gameService: GameService,
-  userId: string,
-  typeFilter?: string | null,
-) {
+  /**
+   * Show user progress on challenges
+   */
+  private async showUserProgress(
+    interaction: any,
+    gameService: GameService,
+    userId: string,
+    typeFilter?: string | null,
+  ) {
   const userProgress = gameService.getUserChallengeProgress(userId);
   const activeChallenges = gameService.getActiveChallenges();
 
@@ -282,16 +285,16 @@ async function showUserProgress(
         .map(req => {
           const current = progress.progress.get(req.type) || 0;
           const percentage = Math.min((current / req.target) * 100, 100);
-          const progressBar = createProgressBar(percentage);
+          const progressBar = this.createProgressBar(percentage);
 
-          return `${getRequirementEmoji(req.type)} ${getRequirementName(req.type)}: ${current}/${req.target}\n${progressBar} ${percentage.toFixed(1)}%`;
+        return `${this.getRequirementEmoji(req.type)} ${this.getRequirementName(req.type)}: ${current}/${req.target}\n${progressBar} ${percentage.toFixed(1)}%`;
         })
         .join('\n');
     } else {
       progressText = challenge.requirements
         .map(req => {
-          const progressBar = createProgressBar(0);
-          return `${getRequirementEmoji(req.type)} ${getRequirementName(req.type)}: 0/${req.target}\n${progressBar} 0%`;
+          const progressBar = this.createProgressBar(0);
+        return `${this.getRequirementEmoji(req.type)} ${this.getRequirementName(req.type)}: 0/${req.target}\n${progressBar} 0%`;
         })
         .join('\n');
     }
@@ -322,10 +325,10 @@ async function showUserProgress(
   await editMethod.call(interaction, { embeds: [embed] });
 }
 
-/**
- * Show claimable rewards
- */
-async function showClaimableRewards(interaction: any, gameService: GameService, userId: string) {
+  /**
+   * Show claimable rewards
+   */
+  private async showClaimableRewards(interaction: any, gameService: GameService, userId: string) {
   const userProgress = gameService.getUserChallengeProgress(userId);
   const activeChallenges = gameService.getActiveChallenges();
 
@@ -363,7 +366,7 @@ async function showClaimableRewards(interaction: any, gameService: GameService, 
       `**Desafios Completados:** ${claimableChallenges.length}\n\n` +
         claimableChallenges
           .map(challenge => {
-            const typeEmoji = getChallengeTypeEmoji(challenge.type);
+            const typeEmoji = this.getChallengeTypeEmoji(challenge.type);
             return (
               `${typeEmoji} **${challenge.name}**\n` +
               `🎁 ${challenge.rewards.xp} XP + ${challenge.rewards.coins} moedas`
@@ -438,27 +441,27 @@ async function showClaimableRewards(interaction: any, gameService: GameService, 
 
       await buttonInteraction.editReply({ embeds: [successEmbed], components: [] });
     } else if (buttonInteraction.customId === 'claim_individual') {
-      await showIndividualClaimMenu(buttonInteraction, gameService, userId, claimableChallenges);
+      await this.showIndividualClaimMenu(buttonInteraction, gameService, userId, claimableChallenges);
     }
   });
 }
 
 /**
- * Show individual claim menu
- */
-async function showIndividualClaimMenu(
-  interaction: any,
-  gameService: GameService,
-  userId: string,
-  claimableChallenges: Challenge[],
-) {
+   * Show individual claim menu for multiple rewards
+   */
+  private async showIndividualClaimMenu(
+    interaction: any,
+    gameService: GameService,
+    userId: string,
+    claimableChallenges: Challenge[],
+  ) {
   const embed = new EmbedBuilder()
     .setTitle('📋 Resgatar Recompensas Individuais')
     .setDescription(
       'Selecione quais desafios você deseja resgatar:\n\n' +
         claimableChallenges
           .map((challenge: any, index: number) => {
-            const typeEmoji = getChallengeTypeEmoji(challenge.type);
+            const typeEmoji = this.getChallengeTypeEmoji(challenge.type);
             return (
               `**${index + 1}.** ${typeEmoji} ${challenge.name}\n` +
               `🎁 ${challenge.rewards.xp} XP + ${challenge.rewards.coins} moedas`
@@ -532,15 +535,15 @@ async function showIndividualClaimMenu(
   });
 }
 
-/**
- * Show challenge statistics
- */
-async function showChallengeStats(
-  interaction: any,
-  gameService: GameService,
-  database: DatabaseService,
-  userId: string,
-) {
+  /**
+   * Show challenge statistics
+   */
+  private async showChallengeStats(
+    interaction: any,
+    gameService: GameService,
+    database: DatabaseService,
+    userId: string,
+  ) {
   try {
     // Get user stats from database
     const user = await database.client.user.findUnique({
@@ -602,8 +605,8 @@ async function showChallengeStats(
           '**📋 Por Tipo:**\n' +
           Object.entries(typeStats)
             .map(([type, stats]) => {
-              const typeEmoji = getChallengeTypeEmoji(type);
-              const typeName = getChallengeTypeName(type);
+              const typeEmoji = this.getChallengeTypeEmoji(type);
+      const typeName = this.getChallengeTypeName(type);
               const rate = stats.total > 0 ? (stats.completed / stats.total) * 100 : 0;
               return `${typeEmoji} **${typeName}:** ${stats.completed}/${stats.total} (${rate.toFixed(1)}%)`;
             })
@@ -614,7 +617,7 @@ async function showChallengeStats(
           `• Moedas: ${user.coins.toLocaleString()}\n` +
           `• Comandos usados: ${user.stats?.commandsUsed || 0}\n` +
           `• Mensagens enviadas: ${user.stats?.messagesCount || 0}\n` +
-          `• Tempo em voz: ${formatVoiceTime(user.stats?.voiceTime || 0)}\n` +
+          `• Tempo em voz: ${this.formatVoiceTime(user.stats?.voiceTime || 0)}\n` +
           `• Jogos jogados: ${user.stats?.gamesPlayed || 0}\n` +
           `• Quizzes completados: ${user.stats?.quizzesCompleted || 0}`,
       )
@@ -638,100 +641,114 @@ async function showChallengeStats(
   }
 }
 
-/**
- * Helper functions
- */
-function getChallengeTypeEmoji(type: string): string {
-  const emojis = {
-    daily: '📅',
-    weekly: '📆',
-    monthly: '🗓️',
-    special: '⭐',
-  };
-  return emojis[type as keyof typeof emojis] || '🏅';
-}
-
-function getChallengeTypeName(type: string): string {
-  const names = {
-    daily: 'Diários',
-    weekly: 'Semanais',
-    monthly: 'Mensais',
-    special: 'Especiais',
-  };
-  return names[type as keyof typeof names] || 'Desconhecido';
-}
-
-function getCategoryEmoji(category: string): string {
-  const emojis = {
-    pubg: '🎮',
-    social: '💬',
-    gaming: '🎯',
-    participation: '🤝',
-  };
-  return emojis[category as keyof typeof emojis] || '🏅';
-}
-
-function getRequirementEmoji(type: string): string {
-  const emojis = {
-    kills: '💀',
-    wins: '🏆',
-    games: '🎮',
-    messages: '💬',
-    voice_time: '🎤',
-    quiz_score: '🧠',
-    mini_game_wins: '🎯',
-  };
-  return emojis[type as keyof typeof emojis] || '📊';
-}
-
-function getRequirementName(type: string): string {
-  const names = {
-    kills: 'Kills',
-    wins: 'Vitórias',
-    games: 'Partidas',
-    messages: 'Mensagens',
-    voice_time: 'Tempo em Voz',
-    quiz_score: 'Pontos em Quiz',
-    mini_game_wins: 'Vitórias em Mini-Games',
-  };
-  return names[type as keyof typeof names] || 'Desconhecido';
-}
-
-function createProgressBar(percentage: number, length: number = 10): string {
-  const filled = Math.round((percentage / 100) * length);
-  const empty = length - filled;
-  return '█'.repeat(filled) + '░'.repeat(empty);
-}
-
-function getTimeLeft(endDate: Date): string {
-  const now = new Date();
-  const diff = endDate.getTime() - now.getTime();
-
-  if (diff <= 0) {
-    return 'Expirado';
+  /**
+   * Helper methods
+   */
+  private getChallengeTypeEmoji(type: string): string {
+    const emojis = {
+      daily: '📅',
+      weekly: '📆',
+      monthly: '🗓️',
+      special: '⭐',
+    };
+    return emojis[type as keyof typeof emojis] || '🏅';
   }
 
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  private getChallengeTypeName(type: string): string {
+    const names = {
+      daily: 'Diários',
+      weekly: 'Semanais',
+      monthly: 'Mensais',
+      special: 'Especiais',
+    };
+    return names[type as keyof typeof names] || 'Desconhecido';
+  }
 
-  if (days > 0) {
-    return `${days}d ${hours}h`;
+  private getCategoryEmoji(category: string): string {
+    const emojis = {
+      pubg: '🎮',
+      social: '💬',
+      gaming: '🎯',
+      participation: '🤝',
+    };
+    return emojis[category as keyof typeof emojis] || '🏅';
   }
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
+
+  private getRequirementEmoji(type: string): string {
+    const emojis = {
+      kills: '💀',
+      wins: '🏆',
+      games: '🎮',
+      messages: '💬',
+      voice_time: '🎤',
+      quiz_score: '🧠',
+      mini_game_wins: '🎯',
+    };
+    return emojis[type as keyof typeof emojis] || '📊';
   }
-  return `${minutes}m`;
+
+  private getRequirementName(type: string): string {
+    const names = {
+      kills: 'Kills',
+      wins: 'Vitórias',
+      games: 'Partidas',
+      messages: 'Mensagens',
+      voice_time: 'Tempo em Voz',
+      quiz_score: 'Pontos em Quiz',
+      mini_game_wins: 'Vitórias em Mini-Games',
+    };
+    return names[type as keyof typeof names] || 'Desconhecido';
+  }
+
+  private createProgressBar(percentage: number, length: number = 10): string {
+    const filled = Math.round((percentage / 100) * length);
+    const empty = length - filled;
+    return '█'.repeat(filled) + '░'.repeat(empty);
+  }
+
+  private getTimeLeft(endDate: Date): string {
+    const now = new Date();
+    const diff = endDate.getTime() - now.getTime();
+
+    if (diff <= 0) {
+      return 'Expirado';
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (days > 0) {
+      return `${days}d ${hours}h`;
+    }
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  }
+
+  private formatVoiceTime(seconds: number): string {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  }
 }
 
-function formatVoiceTime(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
+const commandInstance = new ChallengeCommand();
 
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-  return `${minutes}m`;
-}
+export const command = {
+  data: commandInstance.data,
+  category: commandInstance.category,
+  cooldown: commandInstance.cooldown,
+  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) => 
+    commandInstance.execute(interaction, client),
+};
 
-export default challenge;
+export default command;
+
+// Export class for testing
+export { ChallengeCommand };

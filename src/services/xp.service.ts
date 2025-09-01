@@ -1,6 +1,11 @@
 import { PrismaClient } from '@prisma/client';
 import { Logger } from '../utils/logger';
 import { CacheService } from './cache.service';
+import { XPAnimationsService, XPAnimationData, LevelUpAnimation } from './xp-animations.service';
+import { TextChannel } from 'discord.js';
+import { BaseService } from './base.service';
+import { ServiceValidator } from '../utils/service-validator.util';
+import { ErrorHandler } from '../utils/error-handler.util';
 
 export interface ActivityType {
   MM: 25;
@@ -25,11 +30,13 @@ export interface XPGainResult {
   leveledUp: boolean;
 }
 
-export class XPService {
-  private prisma: PrismaClient;
-  private logger: Logger;
-  private cache: CacheService;
-  private client: any;
+export class XPService extends BaseService {
+  private animationsService: XPAnimationsService;
+
+  async initialize(): Promise<void> {
+    // XPService initialization logic if needed
+    this.logger.info('XPService initialized successfully');
+  }
 
   // XP base por tipo de atividade (REBALANCEADO)
   private readonly ACTIVITY_XP: Record<string, number> = {
@@ -73,22 +80,11 @@ export class XPService {
   private readonly PRESTIGE_XP_BONUS = 0.1; // NOVO - 10% bônus XP após prestígio
 
   constructor(client: any) {
-    if (!client) {
-      throw new Error('Client is required for XPService');
-    }
+    super(client);
+  }
 
-    if (!client.database?.client) {
-      throw new Error('Database client is required for XPService');
-    }
-
-    if (!client.cache) {
-      throw new Error('Cache service is required for XPService');
-    }
-
-    this.prisma = client.database.client;
-    this.logger = new Logger();
-    this.cache = client.cache;
-
+  protected async initializeService(): Promise<void> {
+    this.animationsService = new XPAnimationsService(this.client);
     this.logger.info('✅ XPService initialized successfully');
   }
 
@@ -143,26 +139,19 @@ export class XPService {
     timeSpent?: number, // em horas
     multiplier: number = 1,
   ): Promise<XPGainResult> {
-    try {
-      // Validar entrada
-      if (!userId || typeof userId !== 'string') {
-        throw new Error('User ID is required and must be a string');
-      }
-
-      if (!activityType || typeof activityType !== 'string') {
-        throw new Error('Activity type is required and must be a string');
-      }
-
-      if (multiplier < 0 || multiplier > 10) {
-        throw new Error('Multiplier must be between 0 and 10');
-      }
-
-      if (timeSpent !== undefined && (timeSpent < 0 || timeSpent > 24)) {
-        throw new Error('Time spent must be between 0 and 24 hours');
-      }
+    return ErrorHandler.executeWithLogging(
+      async () => {
+        // Validate inputs
+        ServiceValidator.validateInput(userId, 'userId', [{ validator: (v) => v && typeof v === 'string', message: 'userId is required' }]);
+        ServiceValidator.validateInput(activityType, 'activityType', [{ validator: (v) => v && typeof v === 'string', message: 'activityType is required' }]);
+        ServiceValidator.validateRange(multiplier, 0, 10, 'multiplier');
+        
+        if (timeSpent !== undefined) {
+          ServiceValidator.validateRange(timeSpent, 0, 24, 'timeSpent');
+        }
 
       // Buscar usuário atual com transação
-      const user = await this.prisma.user.findUnique({
+      const user = await this.database?.client.user.findUnique({
         where: { id: userId },
         select: {
           id: true,
@@ -227,7 +216,7 @@ export class XPService {
       const leveledUp = newLevel > user.level;
 
       // Usar transação para garantir consistência
-      const updatedUser = await this.prisma.$transaction(async tx => {
+      const updatedUser = await this.database?.client.$transaction(async tx => {
         return await tx.user.update({
           where: { id: userId },
           data: {
@@ -242,7 +231,7 @@ export class XPService {
       // Notify BadgeService about XP gain
       const badgeService = this.client?.services?.badge;
       if (badgeService) {
-        await badgeService.onXPGained(userId, totalXPGain, newLevel);
+        await badgeService.onXPGained(userId, totalXPGain, newLevel, user.level);
       }
 
       // Limpar cache do usuário
@@ -289,17 +278,20 @@ export class XPService {
       // Se subiu de nível, processar recompensas
       if (leveledUp) {
         await this.processLevelUpRewards(userId, user.level, newLevel);
+        
+        // Criar animação de level up
+        await this.createLevelUpAnimation(userId, newLevel, result);
+      } else {
+        // Criar animação de ganho de XP
+        await this.createXPGainAnimation(userId, result, activityType);
       }
 
-      return result;
-    } catch (error) {
-      this.logger.error('Failed to add XP:', {
-        error: error instanceof Error ? error : new Error(String(error)),
-        userId,
-        metadata: { activityType, timeSpent, multiplier },
-      });
-      throw error;
-    }
+        return result;
+      },
+      this.logger,
+      `addXP for user ${userId}`,
+      `userId: ${userId}, activityType: ${activityType}, timeSpent: ${timeSpent}, multiplier: ${multiplier}`,
+    );
   }
 
   /**
@@ -332,7 +324,7 @@ export class XPService {
       }
 
       // Usar transação para garantir consistência
-      await this.prisma.$transaction(async tx => {
+      await this.database?.client.$transaction(async tx => {
         // Atualizar coins do usuário
         await tx.user.update({
           where: { id: userId },
@@ -362,7 +354,7 @@ export class XPService {
       });
 
       // Verificar se deve ganhar badges por nível
-      await this.checkLevelBadges(userId, newLevel);
+      await this.checkLevelBadges(userId, newLevel, oldLevel);
 
       this.logger.info(`🎉 Level up rewards processed for user ${userId}:`, {
         userId,
@@ -381,7 +373,7 @@ export class XPService {
   /**
    * Verifica e concede badges baseadas no nível
    */
-  private async checkLevelBadges(userId: string, level: number): Promise<void> {
+  private async checkLevelBadges(userId: string, level: number, oldLevel: number = 0): Promise<void> {
     try {
       if (!userId || !Number.isInteger(level) || level < 1) {
         return;
@@ -390,7 +382,7 @@ export class XPService {
       // Use BadgeService if available
       const badgeService = this.client?.services?.badge;
       if (badgeService) {
-        await badgeService.onXPGained(userId, 0, level);
+        await badgeService.onXPGained(userId, 0, level, oldLevel);
         return;
       }
 
@@ -414,7 +406,7 @@ export class XPService {
       }
 
       // Verificar badges já concedidos
-      const existingBadges = await this.prisma.userBadge.findMany({
+      const existingBadges = await this.database?.client.userBadge.findMany({
         where: {
           userId,
           badge: {
@@ -435,7 +427,7 @@ export class XPService {
       for (const badgeInfo of newBadges) {
         try {
           // Buscar ou criar o badge
-          const badge = await this.prisma.badge.upsert({
+          const badge = await this.database?.client.badge.upsert({
             where: { name: badgeInfo.name },
             update: {},
             create: {
@@ -448,7 +440,7 @@ export class XPService {
           });
 
           // Conceder badge ao usuário
-          await this.prisma.userBadge.create({
+          await this.database?.client.userBadge.create({
             data: {
               userId,
               badgeId: badge.id,
@@ -527,7 +519,7 @@ export class XPService {
         }
       }
 
-      const user = await this.prisma.user.findUnique({
+      const user = await this.database?.client.user.findUnique({
         where: { id: userId },
         select: {
           level: true,
@@ -595,7 +587,7 @@ export class XPService {
    */
   private async getUserRankingPosition(userId: string): Promise<number> {
     try {
-      const result = await this.prisma.user.findMany({
+      const result = await this.database?.client.user.findMany({
         where: {
           totalXp: {
             gt: 0,
@@ -674,7 +666,7 @@ export class XPService {
         };
       }
 
-      const users = await this.prisma.user.findMany({
+      const users = await this.database?.client.user.findMany({
         where: whereClause,
         select: {
           id: true,
@@ -755,7 +747,7 @@ export class XPService {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const existingCheckIn = await this.prisma.auditLog.findFirst({
+      const existingCheckIn = await this.database?.client.auditLog.findFirst({
         where: {
           userId,
           action: 'DAILY_CHECKIN',
@@ -772,7 +764,7 @@ export class XPService {
       const result = await this.addXP(userId, 'CHECK_IN');
 
       // Registrar atividade
-      await this.prisma.auditLog.create({
+      await this.database?.client.auditLog.create({
         data: {
           userId,
           action: 'DAILY_CHECKIN',
@@ -811,7 +803,7 @@ export class XPService {
       const result = await this.addXP(userId, 'DAILY_CHALLENGE', undefined, multiplier);
 
       // Registrar atividade
-      await this.prisma.auditLog.create({
+      await this.database?.client.auditLog.create({
         data: {
           userId,
           action: 'DAILY_CHALLENGE',
@@ -855,7 +847,7 @@ export class XPService {
       const result = await this.addXP(userId, 'ACHIEVEMENT', undefined, multiplier);
 
       // Registrar atividade
-      await this.prisma.auditLog.create({
+      await this.database?.client.auditLog.create({
         data: {
           userId,
           action: 'ACHIEVEMENT',
@@ -912,7 +904,7 @@ export class XPService {
       );
 
       // Registrar atividade
-      await this.prisma.auditLog.create({
+      await this.database?.client.auditLog.create({
         data: {
           userId,
           action: 'CHALLENGE',
@@ -955,7 +947,7 @@ export class XPService {
       const result = await this.addXP(userId, 'WEAPON_MASTERY', undefined, multiplier);
 
       // Registrar atividade
-      await this.prisma.auditLog.create({
+      await this.database?.client.auditLog.create({
         data: {
           userId,
           action: 'WEAPON_MASTERY',
@@ -1007,7 +999,7 @@ export class XPService {
       const result = await this.addXP(userId, 'TOURNAMENT_WIN', undefined, multiplier);
 
       // Registrar atividade
-      await this.prisma.auditLog.create({
+      await this.database?.client.auditLog.create({
         data: {
           userId,
           action: 'TOURNAMENT_WIN',
@@ -1052,7 +1044,7 @@ export class XPService {
       const result = await this.addXP(userId, 'STREAK_BONUS', undefined, multiplier);
 
       // Registrar atividade no audit log
-      await this.prisma.auditLog.create({
+      await this.database?.client.auditLog.create({
         data: {
           userId,
           action: 'STREAK_BONUS',
@@ -1090,7 +1082,7 @@ export class XPService {
         throw new Error('User ID is required and must be a string');
       }
 
-      const user = await this.prisma.user.findUnique({
+      const user = await this.database?.client.user.findUnique({
         where: { id: userId },
         select: {
           level: true,
@@ -1130,7 +1122,7 @@ export class XPService {
       const bonusXPPercent = this.calculatePrestigeBonusPercent(newPrestigeLevel);
 
       // Usar transação para garantir consistência
-      await this.prisma.$transaction(async tx => {
+      await this.database?.client.$transaction(async tx => {
         // Resetar nível mas manter XP total para histórico
         await tx.user.update({
           where: { id: userId },
@@ -1204,7 +1196,7 @@ export class XPService {
         return 0;
       }
 
-      const user = await this.prisma.user.findUnique({
+      const user = await this.database?.client.user.findUnique({
         where: { id: userId },
         select: { prestigeLevel: true },
       });
@@ -1286,7 +1278,7 @@ export class XPService {
         throw new Error('User ID is required and must be a string');
       }
 
-      const user = await this.prisma.user.findUnique({
+      const user = await this.database?.client.user.findUnique({
         where: { id: userId },
         select: {
           level: true,
@@ -1358,6 +1350,211 @@ export class XPService {
   }
 
   /**
+   * Criar animação de ganho de XP
+   */
+  private async createXPGainAnimation(
+    userId: string,
+    xpResult: XPGainResult,
+    activityType: string,
+  ): Promise<void> {
+    try {
+      const user = await this.client.users.fetch(userId).catch(() => null);
+      if (!user) {return;}
+
+      const userXPInfo = await this.getUserXPInfo(userId);
+      if (!userXPInfo) {return;}
+
+      const animationData: XPAnimationData = {
+        userId,
+        oldXP: xpResult.totalXP - xpResult.baseXP - xpResult.bonusXP,
+        newXP: userXPInfo.totalXp,
+        oldLevel: xpResult.oldLevel,
+        newLevel: xpResult.newLevel,
+        xpGained: xpResult.totalXP,
+        progressPercentage: userXPInfo.xpProgressPercent,
+        nextLevelXP: userXPInfo.xpForNextLevel,
+        currentLevelXP: userXPInfo.xpForCurrentLevel,
+      };
+
+      // Tentar encontrar um canal apropriado para enviar a notificação
+      const channel = await this.findNotificationChannel(userId);
+      if (channel) {
+        await this.animationsService.sendRealTimeNotification(
+          user,
+          animationData,
+          activityType,
+          channel,
+        );
+      }
+    } catch (error) {
+      this.logger.error('Erro ao criar animação de ganho de XP:', error);
+    }
+  }
+
+  /**
+   * Criar animação de level up
+   */
+  private async createLevelUpAnimation(
+    userId: string,
+    newLevel: number,
+    xpResult: XPGainResult,
+  ): Promise<void> {
+    try {
+      const user = await this.client.users.fetch(userId).catch(() => null);
+      if (!user) {return;}
+
+      const levelUpData: LevelUpAnimation = {
+        userId,
+        newLevel,
+        rewards: {
+          xp: xpResult.totalXP,
+          coins: this.calculateLevelUpCoins(newLevel),
+          badges: await this.getLevelUpBadges(newLevel),
+          roles: await this.getLevelUpRoles(newLevel),
+        },
+        achievements: await this.getLevelUpAchievements(newLevel),
+      };
+
+      // Tentar encontrar um canal apropriado para enviar a celebração
+      const channel = await this.findNotificationChannel(userId);
+      if (channel) {
+        await this.animationsService.createCelebrationEffect(user, newLevel, channel);
+        
+        const embeds = await this.animationsService.createLevelUpAnimation(
+          user,
+          levelUpData,
+          channel,
+        );
+        
+        for (const embed of embeds) {
+          await channel.send({ embeds: [embed] });
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Delay entre embeds
+        }
+      }
+    } catch (error) {
+      this.logger.error('Erro ao criar animação de level up:', error);
+    }
+  }
+
+  /**
+   * Encontrar canal apropriado para notificações
+   */
+  private async findNotificationChannel(userId: string): Promise<TextChannel | null> {
+    try {
+      // Tentar encontrar o usuário em algum servidor
+      for (const guild of this.client.guilds.cache.values()) {
+        const member = await guild.members.fetch(userId).catch(() => null);
+        if (member) {
+          // Procurar por canais específicos de XP/level up
+          const xpChannels = guild.channels.cache.filter(channel => 
+            channel.isTextBased() && 
+            (channel.name.includes('xp') || 
+             channel.name.includes('level') || 
+             channel.name.includes('progresso') ||
+             channel.name.includes('conquistas')),
+          );
+          
+          if (xpChannels.size > 0) {
+            return xpChannels.first() as TextChannel;
+          }
+          
+          // Fallback para canal geral
+          const generalChannel = guild.channels.cache.find(channel => 
+            channel.isTextBased() && 
+            (channel.name.includes('geral') || 
+             channel.name.includes('general') ||
+             channel.name.includes('chat')),
+          );
+          
+          if (generalChannel) {
+            return generalChannel as TextChannel;
+          }
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      this.logger.error('Erro ao encontrar canal de notificação:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Calcular moedas de level up
+   */
+  private calculateLevelUpCoins(level: number): number {
+    const baseCoins = 50;
+    const levelMultiplier = Math.floor(level / 5) * 25;
+    return baseCoins + levelMultiplier;
+  }
+
+  /**
+   * Obter badges de level up
+   */
+  private async getLevelUpBadges(level: number): Promise<string[]> {
+    const badges: string[] = [];
+    
+    // Badges de marcos de nível
+    const milestones = [5, 10, 15, 25, 30, 50, 75, 100];
+    if (milestones.includes(level)) {
+      badges.push(`Nível ${level}`);
+    }
+    
+    // Badges especiais
+    if (level === 10) {badges.push('Veterano');}
+    if (level === 25) {badges.push('Elite');}
+    if (level === 50) {badges.push('Lenda');}
+    if (level === 100) {badges.push('Imortal');}
+    
+    return badges;
+  }
+
+  /**
+   * Obter cargos de level up
+   */
+  private async getLevelUpRoles(level: number): Promise<string[]> {
+    const roles: string[] = [];
+    
+    // Cargos baseados em nível
+    if (level === 10) {roles.push('Jogador Experiente');}
+    if (level === 25) {roles.push('Veterano');}
+    if (level === 50) {roles.push('Elite');}
+    if (level === 75) {roles.push('Mestre');}
+    if (level === 100) {roles.push('Lenda');}
+    
+    return roles;
+  }
+
+  /**
+   * Obter conquistas de level up
+   */
+  private async getLevelUpAchievements(level: number): Promise<string[]> {
+    const achievements: string[] = [];
+    
+    if (level === 5) {achievements.push('Primeiro Marco Alcançado');}
+    if (level === 10) {achievements.push('Dedicação Comprovada');}
+    if (level === 25) {achievements.push('Jogador Sério');}
+    if (level === 50) {achievements.push('Meio Caminho para a Lenda');}
+    if (level === 100) {achievements.push('Lenda Absoluta');}
+    
+    return achievements;
+  }
+
+  /**
+   * Obter configurações de animação
+   */
+  public getAnimationConfig() {
+    return this.animationsService.getConfig();
+  }
+
+  /**
+   * Atualizar configurações de animação
+   */
+  public updateAnimationConfig(config: any) {
+    this.animationsService.updateConfig(config);
+  }
+
+  /**
    * Obtém estatísticas do sistema de XP
    */
   public async getXPSystemStats(): Promise<{
@@ -1370,7 +1567,7 @@ export class XPService {
     topPrestige: number;
   }> {
     try {
-      const stats = await this.prisma.user.aggregate({
+      const stats = await this.database?.client.user.aggregate({
         _count: {
           id: true,
         },
@@ -1389,7 +1586,7 @@ export class XPService {
         },
       });
 
-      const prestigeUsers = await this.prisma.user.count({
+      const prestigeUsers = await this.database?.client.user.count({
         where: {
           prestigeLevel: {
             gt: 0,

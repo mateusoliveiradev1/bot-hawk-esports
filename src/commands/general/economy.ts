@@ -2,6 +2,7 @@ import {
   SlashCommandBuilder,
   MessageFlags,
   EmbedBuilder,
+  ChatInputCommandInteraction,
 } from 'discord.js';
 import { Command, CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
@@ -10,92 +11,95 @@ import { HawkEmbedBuilder } from '../../utils/hawk-embed-builder';
 import { HawkComponentFactory } from '../../utils/hawk-component-factory';
 import { HAWK_EMOJIS } from '../../constants/hawk-emojis';
 import { DatabaseService } from '../../database/database.service';
+import { BaseCommand } from '../../utils/base-command.util';
 
 /**
  * Economy command - Shows user economy stats and leaderboards
  */
-const economy: Command = {
-  data: new SlashCommandBuilder()
-    .setName('economy')
-    .setDescription(`${HAWK_EMOJIS.ECONOMY.MONEY} Visualize informações de economia e XP`)
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('perfil')
-        .setDescription('Mostra suas informações de economia')
-        .addUserOption(option =>
-          option
-            .setName('usuario')
-            .setDescription('Ver economia de outro usuário')
-            .setRequired(false),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('ranking')
-        .setDescription('Ranking de economia')
-        .addStringOption(option =>
-          option
-            .setName('tipo')
-            .setDescription('Tipo de ranking')
-            .setRequired(true)
-            .addChoices(
-              { name: `${HAWK_EMOJIS.SYSTEM.STAR} XP`, value: 'xp' },
-              { name: `${HAWK_EMOJIS.ECONOMY.COIN} Moedas`, value: 'coins' },
-              { name: `${HAWK_EMOJIS.SYSTEM.LEVEL} Nível`, value: 'level' },
+class EconomyCommand extends BaseCommand {
+  constructor() {
+    super({
+      data: new SlashCommandBuilder()
+        .setName('economy')
+        .setDescription(`${HAWK_EMOJIS.ECONOMY.MONEY} Visualize informações de economia e XP`)
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('perfil')
+            .setDescription('Mostra suas informações de economia')
+            .addUserOption(option =>
+              option
+                .setName('usuario')
+                .setDescription('Ver economia de outro usuário')
+                .setRequired(false),
             ),
         )
-        .addIntegerOption(option =>
-          option
-            .setName('limite')
-            .setDescription('Número de usuários no ranking (padrão: 10)')
-            .setRequired(false)
-            .setMinValue(5)
-            .setMaxValue(25),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('historico')
-        .setDescription('Histórico de transações')
-        .addIntegerOption(option =>
-          option
-            .setName('limite')
-            .setDescription('Número de transações (padrão: 10)')
-            .setRequired(false)
-            .setMinValue(5)
-            .setMaxValue(50),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand.setName('daily').setDescription('Resgatar recompensa diária'),
-    ) as SlashCommandBuilder,
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('ranking')
+            .setDescription('Ranking de economia')
+            .addStringOption(option =>
+              option
+                .setName('tipo')
+                .setDescription('Tipo de ranking')
+                .setRequired(true)
+                .addChoices(
+                  { name: `${HAWK_EMOJIS.SYSTEM.STAR} XP`, value: 'xp' },
+                  { name: `${HAWK_EMOJIS.ECONOMY.COIN} Moedas`, value: 'coins' },
+                  { name: `${HAWK_EMOJIS.SYSTEM.LEVEL} Nível`, value: 'level' },
+                ),
+            )
+            .addIntegerOption(option =>
+              option
+                .setName('limite')
+                .setDescription('Número de usuários no ranking (padrão: 10)')
+                .setRequired(false)
+                .setMinValue(5)
+                .setMaxValue(25),
+            ),
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('historico')
+            .setDescription('Histórico de transações')
+            .addIntegerOption(option =>
+              option
+                .setName('limite')
+                .setDescription('Número de transações (padrão: 10)')
+                .setRequired(false)
+                .setMinValue(5)
+                .setMaxValue(50),
+            ),
+        )
+        .addSubcommand(subcommand =>
+          subcommand.setName('daily').setDescription('Resgatar recompensa diária'),
+        ) as SlashCommandBuilder,
+      category: CommandCategory.ECONOMY,
+      cooldown: 5,
+    });
+  }
 
-  category: CommandCategory.ECONOMY,
-  cooldown: 5,
-
-  async execute(interaction: any, client: ExtendedClient) {
-    const logger = new Logger();
-    const database = new DatabaseService();
+  async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+    const database = client.database;
 
     try {
       const subcommand = interaction.options.getSubcommand();
 
       switch (subcommand) {
         case 'perfil':
-          await handleEconomyProfile(interaction, database, logger);
+          await this.handleEconomyProfile(interaction, database);
           break;
         case 'ranking':
-          await handleEconomyRanking(interaction, database, client, logger);
+          await this.handleEconomyRanking(interaction, database, client);
           break;
         case 'historico':
-          await handleTransactionHistory(interaction, database, logger);
+          await this.handleTransactionHistory(interaction, database);
           break;
         case 'daily':
-          await handleDailyReward(interaction, database, logger);
+          await this.handleDailyReward(interaction, database);
           break;
       }
     } catch (error) {
-      logger.error('Error in economy command:', error);
+      this.logger.error('Error in economy command:', error);
 
       const errorEmbed = new EmbedBuilder()
         .setColor('#ff0000')
@@ -109,13 +113,12 @@ const economy: Command = {
         await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       }
     }
-  },
-};
+  }
 
-/**
- * Handle "perfil" subcommand - Show user's economy profile
- */
-async function handleEconomyProfile(interaction: any, database: DatabaseService, logger: Logger) {
+  /**
+   * Handle "perfil" subcommand - Show user's economy profile
+   */
+  private async handleEconomyProfile(interaction: ChatInputCommandInteraction, database: DatabaseService) {
   const targetUser = interaction.options.getUser('usuario') || interaction.user;
   const userId = targetUser.id;
 
@@ -136,15 +139,15 @@ async function handleEconomyProfile(interaction: any, database: DatabaseService,
     }
 
     // Calculate level from XP
-    const level = calculateLevel(userData.xp || 0);
-    const currentLevelXP = calculateXPForLevel(level);
-    const nextLevelXP = calculateXPForLevel(level + 1);
+    const level = this.calculateLevel(userData.xp || 0);
+    const currentLevelXP = this.calculateXPForLevel(level);
+    const nextLevelXP = this.calculateXPForLevel(level + 1);
     const progressXP = (userData.xp || 0) - currentLevelXP;
     const neededXP = nextLevelXP - currentLevelXP;
     const progressPercentage = Math.floor((progressXP / neededXP) * 100);
 
     // Create progress bar
-    const progressBar = createProgressBar(progressPercentage);
+    const progressBar = this.createProgressBar(progressPercentage);
 
     const embed = HawkEmbedBuilder.createSuccess(
       `${HAWK_EMOJIS.ECONOMY.MONEY} Economia de ${targetUser.username}`,
@@ -187,20 +190,19 @@ async function handleEconomyProfile(interaction: any, database: DatabaseService,
 
     await interaction.editReply({ embeds: [embed] });
   } catch (error) {
-    logger.error('Error fetching economy profile:', error);
+    this.logger.error('Error fetching economy profile:', error);
     throw error;
   }
-}
+  }
 
-/**
- * Handle "ranking" subcommand - Show economy leaderboard
- */
-async function handleEconomyRanking(
-  interaction: any,
-  database: DatabaseService,
-  client: ExtendedClient,
-  logger: Logger,
-) {
+  /**
+   * Handle "ranking" subcommand - Show economy leaderboard
+   */
+  private async handleEconomyRanking(
+    interaction: ChatInputCommandInteraction,
+    database: DatabaseService,
+    client: ExtendedClient,
+  ) {
   const type = interaction.options.getString('tipo');
   const limit = interaction.options.getInteger('limite') || 10;
 
@@ -271,7 +273,7 @@ async function handleEconomyRanking(
               value = `${user.coins || 0} moedas`;
               break;
             case 'level':
-              const level = calculateLevel(user.xp || 0);
+              const level = this.calculateLevel(user.xp || 0);
               value = `Nível ${level} (${user.xp || 0} XP)`;
               break;
             default:
@@ -293,19 +295,18 @@ async function handleEconomyRanking(
 
     await interaction.editReply({ embeds: [embed] });
   } catch (error) {
-    logger.error('Error fetching economy ranking:', error);
+    this.logger.error('Error fetching economy ranking:', error);
     throw error;
   }
-}
+  }
 
-/**
- * Handle "historico" subcommand - Show transaction history
- */
-async function handleTransactionHistory(
-  interaction: any,
-  database: DatabaseService,
-  logger: Logger,
-) {
+  /**
+   * Handle "historico" subcommand - Show transaction history
+   */
+  private async handleTransactionHistory(
+    interaction: ChatInputCommandInteraction,
+    database: DatabaseService,
+  ) {
   const limit = interaction.options.getInteger('limite') || 10;
   const userId = interaction.user.id;
 
@@ -364,15 +365,15 @@ async function handleTransactionHistory(
 
     await interaction.editReply({ embeds: [embed] });
   } catch (error) {
-    logger.error('Error fetching transaction history:', error);
+    this.logger.error('Error fetching transaction history:', error);
     throw error;
   }
-}
+  }
 
-/**
- * Handle "daily" subcommand - Claim daily reward
- */
-async function handleDailyReward(interaction: any, database: DatabaseService, logger: Logger) {
+  /**
+   * Handle "daily" subcommand - Claim daily reward
+   */
+  private async handleDailyReward(interaction: ChatInputCommandInteraction, database: DatabaseService) {
   const userId = interaction.user.id;
 
   await interaction.deferReply();
@@ -473,40 +474,67 @@ async function handleDailyReward(interaction: any, database: DatabaseService, lo
 
     await interaction.editReply({ embeds: [embed] });
 
-    logger.info(
+    this.logger.info(
       `Daily reward claimed by user ${userId}: ${xpReward} XP, ${coinReward} coins (streak: ${currentStreak})`,
     );
   } catch (error) {
-    logger.error('Error claiming daily reward:', error);
+    this.logger.error('Error claiming daily reward:', error);
     throw error;
+  }
+  }
+
+  /**
+   * Calculate level from XP
+   */
+  private calculateLevel(xp: number): number {
+    // Level formula: level = floor(sqrt(xp / 100))
+    // This means: Level 1 = 100 XP, Level 2 = 400 XP, Level 3 = 900 XP, etc.
+    return Math.floor(Math.sqrt(xp / 100)) + 1;
+  }
+
+  /**
+   * Calculate XP required for a specific level
+   */
+  private calculateXPForLevel(level: number): number {
+    // XP formula: xp = (level - 1)^2 * 100
+    return Math.pow(level - 1, 2) * 100;
+  }
+
+  /**
+   * Create a progress bar
+   */
+  private createProgressBar(percentage: number, length: number = 10): string {
+    const filled = Math.floor((percentage / 100) * length);
+    const empty = length - filled;
+
+    return '█'.repeat(filled) + '░'.repeat(empty);
   }
 }
 
-/**
- * Calculate level from XP
- */
-function calculateLevel(xp: number): number {
-  // Level formula: level = floor(sqrt(xp / 100))
-  // This means: Level 1 = 100 XP, Level 2 = 400 XP, Level 3 = 900 XP, etc.
+// Create instance and export
+const commandInstance = new EconomyCommand();
+
+export const command = {
+  data: commandInstance.data,
+  category: commandInstance.category,
+  cooldown: commandInstance.cooldown,
+  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) => 
+    commandInstance.execute(interaction, client),
+};
+
+// Utility function exports for compatibility
+export function calculateLevel(xp: number): number {
   return Math.floor(Math.sqrt(xp / 100)) + 1;
 }
 
-/**
- * Calculate XP required for a specific level
- */
-function calculateXPForLevel(level: number): number {
-  // XP formula: xp = (level - 1)^2 * 100
+export function calculateXPForLevel(level: number): number {
   return Math.pow(level - 1, 2) * 100;
 }
 
-/**
- * Create a progress bar
- */
-function createProgressBar(percentage: number, length: number = 10): string {
+export function createProgressBar(percentage: number, length: number = 10): string {
   const filled = Math.floor((percentage / 100) * length);
   const empty = length - filled;
-
   return '█'.repeat(filled) + '░'.repeat(empty);
 }
 
-export default economy;
+export default command;
