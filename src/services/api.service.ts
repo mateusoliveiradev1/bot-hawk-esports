@@ -27,6 +27,8 @@ import { SecurityService } from './security.service';
 import { HealthService } from './health.service';
 import { AlertService, AlertConfig } from './alert.service';
 import { StructuredLogger, LoggerConfig, createDefaultLoggerConfig } from './structured-logger.service';
+import { AdvancedRateLimitService } from './advanced-rate-limit.service';
+import { RateLimitConfiguration, RateLimitMiddleware } from '../config/rate-limit.config';
 
 export interface APIConfig {
   port: number;
@@ -88,6 +90,7 @@ export class APIService {
   private healthService: HealthService | null = null;
   private alertService: AlertService | null = null;
   private structuredLogger: StructuredLogger;
+  private advancedRateLimitService: AdvancedRateLimitService;
 
   private upload!: multer.Multer;
 
@@ -102,6 +105,12 @@ export class APIService {
     // Setup structured logging
     const defaultLoggerConfig = createDefaultLoggerConfig(process.env.NODE_ENV || 'development');
     this.structuredLogger = new StructuredLogger(defaultLoggerConfig, 'APIService');
+    
+    // Initialize advanced rate limiting service
+    this.advancedRateLimitService = new AdvancedRateLimitService(
+      this.cache,
+      this.structuredLogger
+    );
     
     this.database = client.database;
     this.cache = client.cache;
@@ -308,76 +317,61 @@ export class APIService {
       }),
     );
 
-    // Enhanced rate limiting with different limits for different endpoints
-    const generalLimiter = rateLimit({
-      windowMs: this.config.rateLimitWindowMs,
-      max: this.config.rateLimitMax,
-      message: {
-        success: false,
-        error: 'Too many requests, please try again later.',
-        retryAfter: Math.ceil(this.config.rateLimitWindowMs / 1000),
-      },
-      standardHeaders: true,
-      legacyHeaders: false,
-      keyGenerator: (req) => {
-        // Use IP + User-Agent for better tracking
-        return `${req.ip}-${req.get('User-Agent') || 'unknown'}`;
-      },
-      skip: (req) => {
-        // Skip rate limiting for health checks
-        return req.path === '/api/health';
-      },
-    });
-
-    // Strict rate limiting for authentication endpoints
-    const authLimiter = rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 5, // 5 attempts per 15 minutes
-      message: {
-        success: false,
-        error: 'Too many authentication attempts. Please try again in 15 minutes.',
-        retryAfter: 900,
-      },
-      standardHeaders: true,
-      legacyHeaders: false,
-      keyGenerator: (req) => `auth-${req.ip}`,
-      skipSuccessfulRequests: true, // Don't count successful requests
-    });
-
-    // Very strict rate limiting for registration
-    const registerLimiter = rateLimit({
-      windowMs: 60 * 60 * 1000, // 1 hour
-      max: 3, // 3 registrations per hour per IP
-      message: {
-        success: false,
-        error: 'Registration limit exceeded. Please try again in 1 hour.',
-        retryAfter: 3600,
-      },
-      standardHeaders: true,
-      legacyHeaders: false,
-      keyGenerator: (req) => `register-${req.ip}`,
-    });
-
-    // Moderate rate limiting for file uploads
-    const uploadLimiter = rateLimit({
-      windowMs: 10 * 60 * 1000, // 10 minutes
-      max: 10, // 10 uploads per 10 minutes
-      message: {
-        success: false,
-        error: 'Upload limit exceeded. Please try again in 10 minutes.',
-        retryAfter: 600,
-      },
-      standardHeaders: true,
-      legacyHeaders: false,
-      keyGenerator: (req) => `upload-${req.ip}`,
-    });
-
-    // Apply rate limiters
-    this.app.use('/api/', generalLimiter);
-    this.app.use('/api/auth/login', authLimiter);
-    this.app.use('/api/auth/register', registerLimiter);
-    this.app.use('/api/clips/upload', uploadLimiter);
-    this.app.use('/api/*/upload', uploadLimiter);
+    // Advanced rate limiting with intelligent behavior analysis
+    const rateLimitMiddleware = new RateLimitMiddleware();
+    
+    // Apply intelligent rate limiting for different endpoint types
+    this.app.use('/api/', rateLimitMiddleware.createMiddleware(
+      RateLimitConfiguration.getConfigByType('general'),
+      this.advancedRateLimitService
+    ));
+    
+    this.app.use('/api/auth/login', rateLimitMiddleware.createMiddleware(
+      RateLimitConfiguration.getConfigByType('auth'),
+      this.advancedRateLimitService
+    ));
+    
+    this.app.use('/api/auth/register', rateLimitMiddleware.createMiddleware(
+      RateLimitConfiguration.getConfigByType('auth'),
+      this.advancedRateLimitService
+    ));
+    
+    this.app.use('/api/clips/upload', rateLimitMiddleware.createMiddleware(
+      RateLimitConfiguration.getConfigByType('upload'),
+      this.advancedRateLimitService
+    ));
+    
+    this.app.use('/api/*/upload', rateLimitMiddleware.createMiddleware(
+      RateLimitConfiguration.getConfigByType('upload'),
+      this.advancedRateLimitService
+    ));
+    
+    // Apply progressive rate limiting for repeated violations
+    this.app.use('/api/auth/', rateLimitMiddleware.createProgressiveRateLimit(
+      RateLimitConfiguration.getConfigByType('auth'),
+      this.advancedRateLimitService
+    ));
+    
+    // Apply API-specific rate limiting
+    this.app.use('/api/pubg/', rateLimitMiddleware.createMiddleware(
+      RateLimitConfiguration.getConfigByType('pubg_api'),
+      this.advancedRateLimitService
+    ));
+    
+    this.app.use('/api/stats/', rateLimitMiddleware.createMiddleware(
+      RateLimitConfiguration.getConfigByType('stats'),
+      this.advancedRateLimitService
+    ));
+    
+    this.app.use('/api/ranking/', rateLimitMiddleware.createMiddleware(
+      RateLimitConfiguration.getConfigByType('ranking'),
+      this.advancedRateLimitService
+    ));
+    
+    this.app.use('/api/admin/', rateLimitMiddleware.createMiddleware(
+      RateLimitConfiguration.getConfigByType('admin'),
+      this.advancedRateLimitService
+    ));
 
     // Security middleware for bot detection
     this.app.use('/api/auth/register', (req: Request, res: Response, next: NextFunction) => {
