@@ -1,0 +1,260 @@
+# Alertmanager Configuration for Hawk Esports Bot
+global:
+  # The smarthost and SMTP sender used for mail notifications.
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alertmanager@hawk-esports.local'
+  smtp_auth_username: 'alertmanager@hawk-esports.local'
+  smtp_auth_password: 'your-smtp-password'
+  
+  # The API URL to use for Slack notifications.
+  slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+  
+  # Global HTTP config
+  http_config:
+    tls_config:
+      insecure_skip_verify: true
+
+# The directory from which notification templates are read.
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# The root route on which each incoming alert enters.
+route:
+  # The labels by which incoming alerts are grouped together.
+  group_by: ['alertname', 'service', 'severity']
+  
+  # When a new group of alerts is created by an incoming alert, wait at
+  # least 'group_wait' to send the initial notification.
+  group_wait: 10s
+  
+  # When the first notification was sent, wait 'group_interval' to send a batch
+  # of new alerts that started firing for that group.
+  group_interval: 10s
+  
+  # If an alert has successfully been sent, wait 'repeat_interval' to
+  # resend them.
+  repeat_interval: 1h
+  
+  # A default receiver
+  receiver: 'web.hook'
+  
+  # All the above attributes are inherited by all child routes and can
+  # overwritten on each.
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 0s
+      group_interval: 5s
+      repeat_interval: 30m
+      routes:
+        # Bot down alerts
+        - match:
+            alertname: BotDown
+          receiver: 'bot-down-alerts'
+          group_wait: 0s
+          repeat_interval: 15m
+        
+        # Database alerts
+        - match:
+            service: database
+          receiver: 'database-alerts'
+          group_wait: 30s
+          repeat_interval: 1h
+    
+    # Warning alerts - less frequent notifications
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 2h
+    
+    # Infrastructure alerts
+    - match:
+        service: infrastructure
+      receiver: 'infrastructure-alerts'
+      group_wait: 1m
+      group_interval: 10m
+      repeat_interval: 4h
+    
+    # Security alerts (rate limiting, etc.)
+    - match:
+        service: security
+      receiver: 'security-alerts'
+      group_wait: 0s
+      group_interval: 1m
+      repeat_interval: 1h
+
+# Inhibition rules allow to mute a set of alerts given that another alert is firing.
+inhibit_rules:
+  # Mute any warning-level notifications if the same alert is already critical.
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    # Apply inhibition if the alert name is the same.
+    equal: ['alertname', 'service']
+  
+  # Mute database connection warnings if database is completely down
+  - source_match:
+      alertname: 'DatabaseConnectionFailed'
+    target_match:
+      service: 'database'
+    equal: ['service']
+  
+  # Mute individual service alerts if the bot is down
+  - source_match:
+      alertname: 'BotDown'
+    target_match_re:
+      alertname: '(HighMemoryUsage|HighCPUUsage|DatabaseConnectionFailed|CacheConnectionFailed)'
+    equal: ['service']
+
+receivers:
+  # Default webhook receiver
+  - name: 'web.hook'
+    webhook_configs:
+      - url: 'http://localhost:5001/'
+        send_resolved: true
+        http_config:
+          basic_auth:
+            username: 'webhook-user'
+            password: 'webhook-password'
+  
+  # Critical alerts - multiple channels
+  - name: 'critical-alerts'
+    # Discord webhook for critical alerts
+    webhook_configs:
+      - url: 'https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN'
+        send_resolved: true
+        title: '🚨 CRITICAL ALERT - {{ .GroupLabels.alertname }}'
+        text: |
+          **Service:** {{ .GroupLabels.service }}
+          **Severity:** {{ .GroupLabels.severity }}
+          **Description:** {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+          **Time:** {{ .Alerts.0.StartsAt.Format "2006-01-02 15:04:05" }}
+        http_config:
+          tls_config:
+            insecure_skip_verify: true
+    
+    # Email for critical alerts
+    email_configs:
+      - to: 'admin@hawk-esports.local'
+        from: 'alertmanager@hawk-esports.local'
+        subject: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+        body: |
+          Critical alert detected in Hawk Esports Bot monitoring system.
+          
+          Alert: {{ .GroupLabels.alertname }}
+          Service: {{ .GroupLabels.service }}
+          Severity: {{ .GroupLabels.severity }}
+          
+          Details:
+          {{ range .Alerts }}
+          - {{ .Annotations.summary }}
+            Description: {{ .Annotations.description }}
+            Started: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ end }}
+          
+          Please investigate immediately.
+        headers:
+          Priority: 'high'
+  
+  # Bot down specific alerts
+  - name: 'bot-down-alerts'
+    webhook_configs:
+      - url: 'https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN'
+        send_resolved: true
+        title: '🔴 BOT DOWN - Hawk Esports Bot Offline'
+        text: |
+          **URGENT:** The Hawk Esports Bot is currently offline!
+          
+          **Started:** {{ .Alerts.0.StartsAt.Format "2006-01-02 15:04:05" }}
+          **Duration:** {{ .Alerts.0.StartsAt | since }}
+          
+          Please check the bot status immediately and restart if necessary.
+        http_config:
+          tls_config:
+            insecure_skip_verify: true
+  
+  # Database alerts
+  - name: 'database-alerts'
+    webhook_configs:
+      - url: 'https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN'
+        send_resolved: true
+        title: '💾 Database Alert - {{ .GroupLabels.alertname }}'
+        text: |
+          **Database Issue Detected**
+          
+          **Alert:** {{ .GroupLabels.alertname }}
+          **Description:** {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+          **Time:** {{ .Alerts.0.StartsAt.Format "2006-01-02 15:04:05" }}
+          
+          Database connectivity or performance may be affected.
+        http_config:
+          tls_config:
+            insecure_skip_verify: true
+  
+  # Warning alerts
+  - name: 'warning-alerts'
+    webhook_configs:
+      - url: 'https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN'
+        send_resolved: true
+        title: '⚠️ Warning - {{ .GroupLabels.alertname }}'
+        text: |
+          **Warning Alert**
+          
+          **Service:** {{ .GroupLabels.service }}
+          **Alert:** {{ .GroupLabels.alertname }}
+          **Description:** {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+          **Time:** {{ .Alerts.0.StartsAt.Format "2006-01-02 15:04:05" }}
+        http_config:
+          tls_config:
+            insecure_skip_verify: true
+  
+  # Infrastructure alerts
+  - name: 'infrastructure-alerts'
+    webhook_configs:
+      - url: 'https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN'
+        send_resolved: true
+        title: '🏗️ Infrastructure Alert - {{ .GroupLabels.alertname }}'
+        text: |
+          **Infrastructure Issue**
+          
+          **Component:** {{ .GroupLabels.service }}
+          **Alert:** {{ .GroupLabels.alertname }}
+          **Description:** {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+          **Time:** {{ .Alerts.0.StartsAt.Format "2006-01-02 15:04:05" }}
+        http_config:
+          tls_config:
+            insecure_skip_verify: true
+  
+  # Security alerts
+  - name: 'security-alerts'
+    webhook_configs:
+      - url: 'https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN'
+        send_resolved: true
+        title: '🔒 Security Alert - {{ .GroupLabels.alertname }}'
+        text: |
+          **Security Issue Detected**
+          
+          **Type:** {{ .GroupLabels.alertname }}
+          **Description:** {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+          **Time:** {{ .Alerts.0.StartsAt.Format "2006-01-02 15:04:05" }}
+          
+          Please review security logs and take appropriate action.
+        http_config:
+          tls_config:
+            insecure_skip_verify: true
+
+# Silence configuration
+silences:
+  # Example: Silence maintenance windows
+  # - matchers:
+  #     - name: alertname
+  #       value: MaintenanceMode
+  #   startsAt: "2024-01-01T00:00:00Z"
+  #   endsAt: "2024-01-01T06:00:00Z"
+  #   createdBy: "admin@hawk-esports.local"
+  #   comment: "Scheduled maintenance window"

@@ -1,0 +1,231 @@
+# Recording Rules for Hawk Esports Bot Monitoring
+# These rules pre-compute frequently needed expressions and store them as new time series
+
+groups:
+  - name: hawk-esports-bot-recording
+    interval: 30s
+    rules:
+      # System Performance Metrics
+      - record: hawk:system_cpu_usage_5m
+        expr: avg_over_time(system_cpu_usage[5m])
+        labels:
+          service: bot
+
+      - record: hawk:system_memory_usage_5m
+        expr: avg_over_time(system_memory_percentage[5m])
+        labels:
+          service: bot
+
+      - record: hawk:system_load_5m
+        expr: avg_over_time(system_load_average[5m])
+        labels:
+          service: bot
+
+      # Discord Performance Metrics
+      - record: hawk:discord_latency_5m
+        expr: avg_over_time(discord_latency[5m])
+        labels:
+          service: discord
+
+      - record: hawk:discord_commands_rate_5m
+        expr: rate(discord_commands_total[5m])
+        labels:
+          service: discord
+
+      - record: hawk:discord_events_rate_5m
+        expr: rate(discord_events_total[5m])
+        labels:
+          service: discord
+
+      # Database Performance Metrics
+      - record: hawk:database_query_rate_5m
+        expr: rate(database_queries_total[5m])
+        labels:
+          service: database
+
+      - record: hawk:database_error_rate_5m
+        expr: rate(database_errors_total[5m])
+        labels:
+          service: database
+
+      - record: hawk:database_response_time_5m
+        expr: avg_over_time(database_response_time[5m])
+        labels:
+          service: database
+
+      - record: hawk:database_connections_5m
+        expr: avg_over_time(database_connections[5m])
+        labels:
+          service: database
+
+      # Cache Performance Metrics
+      - record: hawk:cache_hit_rate_5m
+        expr: (rate(cache_hits[5m]) / (rate(cache_hits[5m]) + rate(cache_misses[5m]))) * 100
+        labels:
+          service: cache
+
+      - record: hawk:cache_operations_rate_5m
+        expr: rate(cache_operations_total[5m])
+        labels:
+          service: cache
+
+      - record: hawk:cache_response_time_5m
+        expr: avg_over_time(cache_response_time[5m])
+        labels:
+          service: cache
+
+      # API Performance Metrics
+      - record: hawk:api_request_rate_5m
+        expr: rate(api_requests_total[5m])
+        labels:
+          service: api
+
+      - record: hawk:api_error_rate_5m
+        expr: rate(api_errors_total[5m])
+        labels:
+          service: api
+
+      - record: hawk:api_response_time_5m
+        expr: avg_over_time(api_response_time[5m])
+        labels:
+          service: api
+
+      - record: hawk:api_success_rate_5m
+        expr: (rate(api_requests_total[5m]) - rate(api_errors_total[5m])) / rate(api_requests_total[5m]) * 100
+        labels:
+          service: api
+
+      # Rate Limiting Metrics
+      - record: hawk:rate_limit_violations_rate_5m
+        expr: rate(rate_limit_violations_total[5m])
+        labels:
+          service: security
+
+      - record: hawk:rate_limit_usage_5m
+        expr: avg_over_time(rate_limit_current_usage[5m])
+        labels:
+          service: security
+
+      # Health Check Metrics
+      - record: hawk:health_check_success_rate_5m
+        expr: avg_over_time(health_check_status[5m])
+        labels:
+          service: health
+
+      - record: hawk:health_check_duration_5m
+        expr: avg_over_time(health_check_duration[5m])
+        labels:
+          service: health
+
+      # Backup Metrics
+      - record: hawk:backup_success_rate_24h
+        expr: (increase(backup_success_total[24h]) / (increase(backup_success_total[24h]) + increase(backup_failure_total[24h]))) * 100
+        labels:
+          service: backup
+
+      - record: hawk:backup_duration_5m
+        expr: avg_over_time(backup_duration[5m])
+        labels:
+          service: backup
+
+  - name: hawk-esports-aggregations
+    interval: 1m
+    rules:
+      # Overall System Health Score
+      - record: hawk:system_health_score
+        expr: |
+          (
+            (hawk:system_cpu_usage_5m < 80) * 0.25 +
+            (hawk:system_memory_usage_5m < 90) * 0.25 +
+            (hawk:database_error_rate_5m < 0.01) * 0.2 +
+            (hawk:cache_hit_rate_5m > 70) * 0.15 +
+            (hawk:api_success_rate_5m > 95) * 0.15
+          ) * 100
+        labels:
+          service: overall
+
+      # Service Availability
+      - record: hawk:service_availability_5m
+        expr: avg_over_time(up[5m]) * 100
+        labels:
+          metric_type: availability
+
+      # Total Request Rate
+      - record: hawk:total_request_rate_5m
+        expr: |
+          sum(
+            hawk:discord_commands_rate_5m +
+            hawk:api_request_rate_5m
+          )
+        labels:
+          service: overall
+
+      # Total Error Rate
+      - record: hawk:total_error_rate_5m
+        expr: |
+          sum(
+            hawk:database_error_rate_5m +
+            hawk:api_error_rate_5m +
+            hawk:rate_limit_violations_rate_5m
+          )
+        labels:
+          service: overall
+
+      # Performance Score
+      - record: hawk:performance_score
+        expr: |
+          (
+            (hawk:api_response_time_5m < 1000) * 0.3 +
+            (hawk:database_response_time_5m < 500) * 0.3 +
+            (hawk:cache_response_time_5m < 100) * 0.2 +
+            (hawk:discord_latency_5m < 500) * 0.2
+          ) * 100
+        labels:
+          service: overall
+
+  - name: hawk-esports-hourly
+    interval: 5m
+    rules:
+      # Hourly Aggregations
+      - record: hawk:discord_commands_hourly
+        expr: increase(discord_commands_total[1h])
+        labels:
+          service: discord
+          aggregation: hourly
+
+      - record: hawk:api_requests_hourly
+        expr: increase(api_requests_total[1h])
+        labels:
+          service: api
+          aggregation: hourly
+
+      - record: hawk:database_queries_hourly
+        expr: increase(database_queries_total[1h])
+        labels:
+          service: database
+          aggregation: hourly
+
+      - record: hawk:cache_operations_hourly
+        expr: increase(cache_operations_total[1h])
+        labels:
+          service: cache
+          aggregation: hourly
+
+      # Daily Aggregations
+      - record: hawk:discord_commands_daily
+        expr: increase(discord_commands_total[24h])
+        labels:
+          service: discord
+          aggregation: daily
+
+      - record: hawk:api_requests_daily
+        expr: increase(api_requests_total[24h])
+        labels:
+          service: api
+          aggregation: daily
+
+      - record: hawk:database_queries_daily
+        expr: increase(database_queries_total[24h])
+        labels:
+          service: database
+          aggregation: daily

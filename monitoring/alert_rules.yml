@@ -1,0 +1,216 @@
+# Alert Rules for Hawk Esports Bot Monitoring
+groups:
+  - name: hawk-esports-bot-alerts
+    rules:
+      # System Health Alerts
+      - alert: BotDown
+        expr: up{job="hawk-esports-bot"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: bot
+        annotations:
+          summary: "Hawk Esports Bot is down"
+          description: "The Hawk Esports Bot has been down for more than 1 minute."
+
+      - alert: HighMemoryUsage
+        expr: system_memory_percentage > 90
+        for: 5m
+        labels:
+          severity: critical
+          service: bot
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}% for more than 5 minutes."
+
+      - alert: HighCPUUsage
+        expr: system_cpu_usage > 80
+        for: 10m
+        labels:
+          severity: warning
+          service: bot
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}% for more than 10 minutes."
+
+      # Discord Connection Alerts
+      - alert: DiscordDisconnected
+        expr: discord_connected == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: discord
+        annotations:
+          summary: "Discord connection lost"
+          description: "Bot has been disconnected from Discord for more than 2 minutes."
+
+      - alert: HighDiscordLatency
+        expr: discord_latency > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: discord
+        annotations:
+          summary: "High Discord latency"
+          description: "Discord latency is {{ $value }}ms for more than 5 minutes."
+
+      # Database Alerts
+      - alert: DatabaseConnectionFailed
+        expr: health_check_status{service="database"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "Database connection failed"
+          description: "Database health check has been failing for more than 1 minute."
+
+      - alert: HighDatabaseErrors
+        expr: rate(database_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High database error rate"
+          description: "Database error rate is {{ $value }} errors/second for more than 5 minutes."
+
+      # Cache Alerts
+      - alert: CacheConnectionFailed
+        expr: health_check_status{service="cache"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "Cache connection failed"
+          description: "Cache health check has been failing for more than 2 minutes."
+
+      - alert: LowCacheHitRate
+        expr: (cache_hits / (cache_hits + cache_misses)) * 100 < 70
+        for: 10m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate is {{ $value }}% for more than 10 minutes."
+
+      # API Performance Alerts
+      - alert: HighAPIErrorRate
+        expr: rate(api_errors_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "High API error rate"
+          description: "API error rate is {{ $value }} errors/second for more than 5 minutes."
+
+      - alert: SlowAPIResponse
+        expr: api_response_time > 2000
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "Slow API response time"
+          description: "API response time is {{ $value }}ms for more than 5 minutes."
+
+      # Rate Limiting Alerts
+      - alert: HighRateLimitViolations
+        expr: rate(rate_limit_violations_total[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "High rate limit violations"
+          description: "Rate limit violations are {{ $value }} per second for more than 5 minutes."
+
+      # Health Check Alerts
+      - alert: HealthCheckDegraded
+        expr: health_check_status == 0.5
+        for: 5m
+        labels:
+          severity: warning
+          service: health
+        annotations:
+          summary: "System health degraded"
+          description: "System health has been degraded for more than 5 minutes."
+
+      - alert: LongHealthCheckDuration
+        expr: health_check_duration > 5000
+        for: 3m
+        labels:
+          severity: warning
+          service: health
+        annotations:
+          summary: "Long health check duration"
+          description: "Health check duration is {{ $value }}ms for more than 3 minutes."
+
+      # Backup Alerts
+      - alert: BackupFailed
+        expr: increase(backup_failure_total[1h]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          service: backup
+        annotations:
+          summary: "Backup failed"
+          description: "Database backup has failed in the last hour."
+
+      - alert: BackupNotRunning
+        expr: time() - backup_last_success_timestamp > 86400
+        for: 0m
+        labels:
+          severity: warning
+          service: backup
+        annotations:
+          summary: "Backup not running"
+          description: "No successful backup in the last 24 hours."
+
+  - name: infrastructure-alerts
+    rules:
+      # Node Exporter Alerts
+      - alert: NodeDown
+        expr: up{job="node-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "Node exporter is down"
+          description: "Node exporter has been down for more than 1 minute."
+
+      - alert: HighDiskUsage
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "High disk usage"
+          description: "Disk usage is above 90% for more than 5 minutes."
+
+      # PostgreSQL Alerts
+      - alert: PostgreSQLDown
+        expr: up{job="postgres-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL has been down for more than 1 minute."
+
+      # Redis Alerts
+      - alert: RedisDown
+        expr: up{job="redis-exporter"} == 0
+        for: 1m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has been down for more than 1 minute."
