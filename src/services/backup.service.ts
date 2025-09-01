@@ -137,7 +137,7 @@ export class BackupService {
             compression: this.config.compression.enabled,
             retention: this.config.retention,
           },
-        }
+        },
       });
     } catch (error) {
       this.logger.error('Failed to initialize backup service', error);
@@ -223,14 +223,14 @@ export class BackupService {
         await this.notifyBackupResult(metadata, true);
       }
 
-      this.logger.info(`Backup completed successfully`, {
+      this.logger.info('Backup completed successfully', {
         metadata: {
           backupId,
           type,
           size: metadata.size,
           duration: metadata.duration,
           compressed: metadata.compressed,
-        }
+        },
       });
 
       return metadata;
@@ -256,12 +256,12 @@ export class BackupService {
         await this.notifyBackupResult(metadata, false);
       }
 
-      this.logger.error(`Backup failed`, error, {
+      this.logger.error('Backup failed', error, {
         metadata: {
           backupId,
           type,
           duration: metadata.duration,
-        }
+        },
       });
 
       throw error;
@@ -282,7 +282,7 @@ export class BackupService {
         throw new Error(`Cannot restore incomplete backup: ${backupId}`);
       }
 
-      this.logger.info(`Starting backup restoration`, { metadata: { backupId } });
+      this.logger.info('Starting backup restoration', { metadata: { backupId } });
 
       // Verificar se o arquivo existe
       if (!await this.fileExists(backup.filePath)) {
@@ -314,9 +314,9 @@ export class BackupService {
         await fs.promises.unlink(restoreFilePath);
       }
 
-      this.logger.info(`Backup restored successfully`, { metadata: { backupId } });
+      this.logger.info('Backup restored successfully', { metadata: { backupId } });
     } catch (error) {
-      this.logger.error(`Failed to restore backup`, error, { metadata: { backupId } });
+      this.logger.error('Failed to restore backup', error, { metadata: { backupId } });
       throw error;
     }
   }
@@ -409,20 +409,20 @@ export class BackupService {
           }
 
           const ageInDays = Math.floor((now.getTime() - backup.timestamp.getTime()) / (24 * 60 * 60 * 1000));
-          this.logger.debug(`Deleted old backup`, {
+          this.logger.debug('Deleted old backup', {
             metadata: {
               backupId: backup.id,
               type: backup.type,
               age: ageInDays,
-            }
+            },
           });
         } catch (error) {
-          this.logger.warn(`Failed to delete backup file`, {
+          this.logger.warn('Failed to delete backup file', {
           metadata: {
             backupId: backup.id,
             filePath: backup.filePath,
             error: error instanceof Error ? error.message : String(error),
-          }
+          },
         });
         }
       }
@@ -515,9 +515,9 @@ export class BackupService {
   private parseCronToInterval(cron: string): number {
     // Implementação simplificada para demonstração
     // Em produção, usar biblioteca como node-cron ou cron-parser
-    if (cron === '0 2 * * *') return 24 * 60 * 60 * 1000; // Daily
-    if (cron === '0 3 * * 0') return 7 * 24 * 60 * 60 * 1000; // Weekly
-    if (cron === '0 4 1 * *') return 30 * 24 * 60 * 60 * 1000; // Monthly
+    if (cron === '0 2 * * *') {return 24 * 60 * 60 * 1000;} // Daily
+    if (cron === '0 3 * * 0') {return 7 * 24 * 60 * 60 * 1000;} // Weekly
+    if (cron === '0 4 1 * *') {return 30 * 24 * 60 * 60 * 1000;} // Monthly
     return 0;
   }
 
@@ -695,7 +695,7 @@ export class BackupService {
   }
 
   private formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) {return '0 Bytes';}
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));

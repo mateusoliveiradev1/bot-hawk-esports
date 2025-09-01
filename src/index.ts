@@ -185,7 +185,7 @@ class HawkEsportsBot {
         this.services.logging,
         this.services.pubg,
         this.monitoringConfig.alerts,
-        this.monitoringConfig.logging
+        this.monitoringConfig.logging,
       ),
       metrics: new MetricsService(),
       alert: new AlertService(this.monitoringConfig.alerts),
@@ -198,7 +198,7 @@ class HawkEsportsBot {
       this.structuredLogger,
       this.services.health,
       this.services.metrics,
-      this.monitoringConfig.backup
+      this.monitoringConfig.backup,
     );
 
     this.services = {
@@ -418,7 +418,7 @@ class HawkEsportsBot {
       this.backupScheduler = createBackupScheduler(
         this.services.backup,
         this.structuredLogger,
-        this.services.alert
+        this.services.alert,
       );
       
       if (this.monitoringConfig.backup.enabled) {

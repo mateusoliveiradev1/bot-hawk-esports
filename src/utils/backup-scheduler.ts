@@ -62,8 +62,8 @@ export class BackupScheduler {
         },
         {
           scheduled: false,
-          timezone: 'America/Sao_Paulo'
-        }
+          timezone: 'America/Sao_Paulo',
+        },
       );
 
       this.scheduledTask.start();
@@ -71,8 +71,8 @@ export class BackupScheduler {
 
       this.logger.info('Backup scheduler started successfully', {
            metadata: {
-             schedule: cronExpression
-           }
+             schedule: cronExpression,
+           },
          });
 
       // Send startup notification if enabled
@@ -84,14 +84,14 @@ export class BackupScheduler {
           'backup_scheduler',
           {
             component: 'backup-scheduler',
-            schedule: config.backup.schedule
-          }
+            schedule: config.backup.schedule,
+          },
         );
       }
     } catch (error) {
       this.logger.error('Failed to start backup scheduler', {
         error: error instanceof Error ? error.message : String(error),
-        schedule: config.backup.schedule
+        schedule: config.backup.schedule,
       });
 
       await this.alertService.createAlert(
@@ -101,8 +101,8 @@ export class BackupScheduler {
            'backup_scheduler',
            {
              component: 'backup-scheduler',
-             error: String(error)
-           }
+             error: String(error),
+           },
          );
 
       throw error;
@@ -162,8 +162,8 @@ export class BackupScheduler {
     try {
       this.logger.info('Starting scheduled backup', {
         metadata: {
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       });
 
       const result = await this.backupService.createBackup();
@@ -176,8 +176,8 @@ export class BackupScheduler {
            backupPath: result.backupPath,
            size: result.size,
            compressed: result.compressed,
-           checksum: result.checksum
-         }
+           checksum: result.checksum,
+         },
         });
 
       // Send success notification if enabled
@@ -193,8 +193,8 @@ export class BackupScheduler {
             duration,
             size: result.size,
             backupPath: result.backupPath,
-            checksum: result.checksum
-          }
+            checksum: result.checksum,
+          },
         );
       }
     } catch (error) {
@@ -205,7 +205,7 @@ export class BackupScheduler {
         isManual,
         duration,
         error: errorMessage,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // Send failure notification if enabled
@@ -219,8 +219,8 @@ export class BackupScheduler {
              component: 'backup-service',
              isManual,
              duration,
-             error: errorMessage
-           }
+             error: errorMessage,
+           },
          );
       }
 
@@ -235,7 +235,7 @@ export class BackupScheduler {
    * Format bytes to human readable format
    */
   private formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) {return '0 Bytes';}
     
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -251,7 +251,7 @@ export class BackupScheduler {
 export function createBackupScheduler(
   backupService: BackupService,
   logger: StructuredLogger,
-  alertService: AlertService
+  alertService: AlertService,
 ): BackupScheduler {
   return new BackupScheduler(backupService, logger, alertService);
 }
