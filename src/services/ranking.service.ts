@@ -1068,6 +1068,171 @@ export class RankingService {
   /**
    * Obtém estatísticas de balanceamento do ranking
    */
+  /**
+   * Update quiz statistics for a user
+   */
+  public async updateQuizStats(
+    guildId: string,
+    userId: string,
+    score: number,
+    correctAnswers: number,
+    totalQuestions: number,
+  ): Promise<void> {
+    try {
+      const guildRankings = this.rankings.get(guildId);
+      if (!guildRankings) {return;}
+
+      const userData = guildRankings.get(userId);
+      if (!userData) {return;}
+
+      // Update quiz statistics
+      userData.stats.quizScore += score;
+      userData.lastUpdated = new Date();
+
+      // Log the quiz statistics update
+      await this.loggingService.logStatisticsUpdate(guildId, {
+        userId,
+        statType: 'quiz_stats',
+        newValue: userData.stats.quizScore,
+        change: score,
+        source: 'quiz_completion',
+      });
+
+      // Save to database
+      await this.saveUserRanking(guildId, userData);
+    } catch (error) {
+      this.logger.error(`Error updating quiz stats for user ${userId}:`, error);
+    }
+  }
+
+  /**
+   * Update minigame statistics for a user
+   */
+  public async updateMiniGameStats(
+    guildId: string,
+    userId: string,
+    gameType: string,
+    score: number,
+    won: boolean,
+  ): Promise<void> {
+    try {
+      const guildRankings = this.rankings.get(guildId);
+      if (!guildRankings) {return;}
+
+      const userData = guildRankings.get(userId);
+      if (!userData) {return;}
+
+      // Update minigame statistics
+      if (won) {
+        userData.stats.miniGameWins += 1;
+      }
+      userData.lastUpdated = new Date();
+
+      // Log the minigame statistics update
+      await this.loggingService.logStatisticsUpdate(guildId, {
+        userId,
+        statType: 'minigame_stats',
+        newValue: userData.stats.miniGameWins,
+        change: won ? 1 : 0,
+        source: `minigame_${gameType}`,
+      });
+
+      // Save to database
+      await this.saveUserRanking(guildId, userData);
+    } catch (error) {
+      this.logger.error(`Error updating minigame stats for user ${userId}:`, error);
+    }
+  }
+
+  /**
+   * Get game-specific statistics for a user
+   */
+  public getGameStats(guildId: string, userId: string): {
+    quizScore: number;
+    miniGameWins: number;
+    totalGamesPlayed: number;
+    averageQuizScore: number;
+    gameRank: number;
+  } | null {
+    const guildRankings = this.rankings.get(guildId);
+    if (!guildRankings) {return null;}
+
+    const userData = guildRankings.get(userId);
+    if (!userData) {return null;}
+
+    // Calculate game-specific rank based on combined quiz score and minigame wins
+    const gameScore = userData.stats.quizScore + (userData.stats.miniGameWins * 50);
+    const allUsers = Array.from(guildRankings.values());
+    const sortedByGameScore = allUsers
+      .map(user => ({
+        userId: user.userId,
+        gameScore: user.stats.quizScore + (user.stats.miniGameWins * 50),
+      }))
+      .sort((a, b) => b.gameScore - a.gameScore);
+
+    const gameRank = sortedByGameScore.findIndex(u => u.userId === userId) + 1;
+
+    return {
+      quizScore: userData.stats.quizScore,
+      miniGameWins: userData.stats.miniGameWins,
+      totalGamesPlayed: userData.stats.miniGameWins, // Approximation
+      averageQuizScore: userData.stats.quizScore / Math.max(1, userData.stats.miniGameWins),
+      gameRank,
+    };
+  }
+
+  /**
+   * Get leaderboard for game activities
+   */
+  public getGameLeaderboard(
+    guildId: string,
+    type: 'quiz' | 'minigames' | 'combined',
+    limit: number = 10,
+  ): Array<{
+    userId: string;
+    username: string;
+    score: number;
+    rank: number;
+  }> {
+    const guildRankings = this.rankings.get(guildId);
+    if (!guildRankings) {return [];}
+
+    const users = Array.from(guildRankings.values());
+    let sortedUsers: Array<{ userId: string; username: string; score: number }> = [];
+
+    switch (type) {
+      case 'quiz':
+        sortedUsers = users.map(user => ({
+          userId: user.userId,
+          username: user.username,
+          score: user.stats.quizScore,
+        }));
+        break;
+      case 'minigames':
+        sortedUsers = users.map(user => ({
+          userId: user.userId,
+          username: user.username,
+          score: user.stats.miniGameWins,
+        }));
+        break;
+      case 'combined':
+        sortedUsers = users.map(user => ({
+          userId: user.userId,
+          username: user.username,
+          score: user.stats.quizScore + (user.stats.miniGameWins * 50),
+        }));
+        break;
+    }
+
+    return sortedUsers
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit)
+      .map((user, index) => ({
+        ...user,
+        rank: index + 1,
+      }));
+  }
+
   public getRankingBalance(guildId: string): {
     totalUsers: number;
     activeUsers: number;

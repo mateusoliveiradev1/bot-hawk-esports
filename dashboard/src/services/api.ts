@@ -81,8 +81,8 @@ class ApiService {
         },
         body: JSON.stringify({
           code: 'dev-code',
-          guildId: 'mock-guild-id'
-        })
+          guildId: 'mock-guild-id',
+        }),
       });
       
       if (response.ok) {

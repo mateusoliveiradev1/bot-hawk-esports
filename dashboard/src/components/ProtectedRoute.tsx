@@ -11,7 +11,7 @@ interface ProtectedRouteProps {
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
   requiredPermissions = [], 
-  requiredRoles = [] 
+  requiredRoles = [], 
 }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
@@ -36,7 +36,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Check permissions if required
   if (requiredPermissions.length > 0 && user) {
     const hasPermission = requiredPermissions.some(permission => 
-      user.permissions?.includes(permission)
+      user.permissions?.includes(permission),
     );
     
     if (!hasPermission) {
@@ -64,7 +64,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Check roles if required
   if (requiredRoles.length > 0 && user) {
     const hasRole = requiredRoles.some(role => 
-      user.roles?.includes(role)
+      user.roles?.includes(role),
     );
     
     if (!hasRole) {

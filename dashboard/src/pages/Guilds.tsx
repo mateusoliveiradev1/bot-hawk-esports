@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
 import {
   Search,
   Filter,
@@ -9,8 +9,8 @@ import {
 
   Activity,
   TrendingUp,
-} from 'lucide-react'
-import { formatNumber, formatRelativeTime } from '../lib/utils'
+} from 'lucide-react';
+import { formatNumber, formatRelativeTime } from '../lib/utils';
 
 // Real guilds data will be fetched from API
 
@@ -19,22 +19,22 @@ const categoryColors = {
   Music: 'bg-purple-100 text-purple-800',
   Community: 'bg-green-100 text-green-800',
   Other: 'bg-secondary-100 text-secondary-800',
-}
+};
 
 const featureIcons = {
   music: '🎵',
   moderation: '🛡️',
   leveling: '📈',
   tournaments: '🏆',
-}
+};
 
 export default function Guilds() {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterCategory, setFilterCategory] = useState<string>('all')
-  const [guilds, setGuilds] = useState<any[]>([])
-  const [filterPremium, setFilterPremium] = useState('all')
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [guilds, setGuilds] = useState<any[]>([]);
+  const [filterPremium, setFilterPremium] = useState('all');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Suppress unused variable warnings for now
   void isLoading;
@@ -42,37 +42,37 @@ export default function Guilds() {
 
   const fetchGuilds = async () => {
     try {
-      setIsLoading(true)
-      setError(null)
+      setIsLoading(true);
+      setError(null);
       
-      const response = await fetch('/api/guilds')
+      const response = await fetch('/api/guilds');
       if (response.ok) {
-        const data = await response.json()
-        setGuilds(data.guilds || [])
+        const data = await response.json();
+        setGuilds(data.guilds || []);
       } else {
-        throw new Error('Failed to fetch guilds')
+        throw new Error('Failed to fetch guilds');
       }
     } catch (err) {
-      console.error('Failed to fetch guilds:', err)
-      setError('Failed to load guilds')
+      console.error('Failed to fetch guilds:', err);
+      setError('Failed to load guilds');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchGuilds()
-  }, [])
+    fetchGuilds();
+  }, []);
 
   const filteredGuilds = guilds.filter(guild => {
     const matchesSearch = guild.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         guild.owner.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = filterCategory === 'all' || guild.category === filterCategory
+                         guild.owner.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterCategory === 'all' || guild.category === filterCategory;
     const matchesPremium = filterPremium === 'all' || 
                           (filterPremium === 'premium' && guild.premium) ||
-                          (filterPremium === 'free' && !guild.premium)
-    return matchesSearch && matchesCategory && matchesPremium
-  }) || []
+                          (filterPremium === 'free' && !guild.premium);
+    return matchesSearch && matchesCategory && matchesPremium;
+  }) || [];
 
   return (
     <div className="space-y-6">
@@ -274,5 +274,5 @@ export default function Guilds() {
         </div>
       )}
     </div>
-  )
+  );
 }

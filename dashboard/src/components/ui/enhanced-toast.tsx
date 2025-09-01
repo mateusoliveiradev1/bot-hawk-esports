@@ -41,7 +41,7 @@ export const EnhancedToastProvider: React.FC<{ children: React.ReactNode }> = ({
     const newToast: Toast = {
       ...toast,
       id,
-      duration: toast.duration ?? 5000
+      duration: toast.duration ?? 5000,
     };
 
     setToasts(prev => [...prev, newToast]);
@@ -107,29 +107,29 @@ const ToastItem: React.FC<{ toast: Toast }> = ({ toast }) => {
       bgColor: 'bg-green-50 dark:bg-green-900/90',
       borderColor: 'border-green-200 dark:border-green-800',
       textColor: 'text-green-800 dark:text-green-200',
-      iconColor: 'text-green-600 dark:text-green-400'
+      iconColor: 'text-green-600 dark:text-green-400',
     },
     error: {
       icon: XCircle,
       bgColor: 'bg-red-50 dark:bg-red-900/90',
       borderColor: 'border-red-200 dark:border-red-800',
       textColor: 'text-red-800 dark:text-red-200',
-      iconColor: 'text-red-600 dark:text-red-400'
+      iconColor: 'text-red-600 dark:text-red-400',
     },
     warning: {
       icon: AlertCircle,
       bgColor: 'bg-yellow-50 dark:bg-yellow-900/90',
       borderColor: 'border-yellow-200 dark:border-yellow-800',
       textColor: 'text-yellow-800 dark:text-yellow-200',
-      iconColor: 'text-yellow-600 dark:text-yellow-400'
+      iconColor: 'text-yellow-600 dark:text-yellow-400',
     },
     info: {
       icon: Info,
       bgColor: 'bg-blue-50 dark:bg-blue-900/90',
       borderColor: 'border-blue-200 dark:border-blue-800',
       textColor: 'text-blue-800 dark:text-blue-200',
-      iconColor: 'text-blue-600 dark:text-blue-400'
-    }
+      iconColor: 'text-blue-600 dark:text-blue-400',
+    },
   };
 
   const config = toastConfig[toast.type];
@@ -141,14 +141,14 @@ const ToastItem: React.FC<{ toast: Toast }> = ({ toast }) => {
         'transform transition-all duration-300 ease-in-out',
         isVisible && !isRemoving
           ? 'translate-x-0 opacity-100 scale-100'
-          : 'translate-x-full opacity-0 scale-95'
+          : 'translate-x-full opacity-0 scale-95',
       )}
     >
       <div
         className={cn(
           'rounded-lg border shadow-lg backdrop-blur-sm p-4',
           config.bgColor,
-          config.borderColor
+          config.borderColor,
         )}
       >
         <div className="flex items-start space-x-3">
@@ -167,7 +167,7 @@ const ToastItem: React.FC<{ toast: Toast }> = ({ toast }) => {
                 onClick={toast.action.onClick}
                 className={cn(
                   'mt-2 text-xs font-medium underline hover:no-underline',
-                  config.textColor
+                  config.textColor,
                 )}
               >
                 {toast.action.label}
@@ -178,7 +178,7 @@ const ToastItem: React.FC<{ toast: Toast }> = ({ toast }) => {
             onClick={handleRemove}
             className={cn(
               'flex-shrink-0 rounded-md p-1.5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors',
-              config.textColor
+              config.textColor,
             )}
           >
             <X className="h-4 w-4" />
@@ -214,7 +214,7 @@ export const toast = {
     if (context) {
       context.addToast({ type: 'info', message, ...options });
     }
-  }
+  },
 };
 
 // Componente de notificação inline
@@ -233,7 +233,7 @@ export const InlineNotification: React.FC<InlineNotificationProps> = ({
   message,
   className,
   showIcon = true,
-  onClose
+  onClose,
 }) => {
   const config = {
     success: {
@@ -241,29 +241,29 @@ export const InlineNotification: React.FC<InlineNotificationProps> = ({
       bgColor: 'bg-green-50 dark:bg-green-900/20',
       borderColor: 'border-green-200 dark:border-green-800',
       textColor: 'text-green-800 dark:text-green-200',
-      iconColor: 'text-green-600 dark:text-green-400'
+      iconColor: 'text-green-600 dark:text-green-400',
     },
     error: {
       icon: XCircle,
       bgColor: 'bg-red-50 dark:bg-red-900/20',
       borderColor: 'border-red-200 dark:border-red-800',
       textColor: 'text-red-800 dark:text-red-200',
-      iconColor: 'text-red-600 dark:text-red-400'
+      iconColor: 'text-red-600 dark:text-red-400',
     },
     warning: {
       icon: AlertCircle,
       bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
       borderColor: 'border-yellow-200 dark:border-yellow-800',
       textColor: 'text-yellow-800 dark:text-yellow-200',
-      iconColor: 'text-yellow-600 dark:text-yellow-400'
+      iconColor: 'text-yellow-600 dark:text-yellow-400',
     },
     info: {
       icon: Info,
       bgColor: 'bg-blue-50 dark:bg-blue-900/20',
       borderColor: 'border-blue-200 dark:border-blue-800',
       textColor: 'text-blue-800 dark:text-blue-200',
-      iconColor: 'text-blue-600 dark:text-blue-400'
-    }
+      iconColor: 'text-blue-600 dark:text-blue-400',
+    },
   }[type];
 
   const Icon = config.icon;
@@ -274,7 +274,7 @@ export const InlineNotification: React.FC<InlineNotificationProps> = ({
         'rounded-lg border p-4',
         config.bgColor,
         config.borderColor,
-        className
+        className,
       )}
     >
       <div className="flex items-start space-x-3">
@@ -296,7 +296,7 @@ export const InlineNotification: React.FC<InlineNotificationProps> = ({
             onClick={onClose}
             className={cn(
               'flex-shrink-0 rounded-md p-1.5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors',
-              config.textColor
+              config.textColor,
             )}
           >
             <X className="h-4 w-4" />

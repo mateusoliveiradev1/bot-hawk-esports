@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   BarChart3,
   Bot,
@@ -13,11 +13,11 @@ import {
   LogOut,
   User,
   Palette,
-} from 'lucide-react'
-import { cn } from '../lib/utils'
-import { useAuth } from '../contexts/AuthContext'
-import NotificationSystem from './NotificationSystem'
-import ThemeToggle from './ThemeToggle'
+} from 'lucide-react';
+import { cn } from '../lib/utils';
+import { useAuth } from '../contexts/AuthContext';
+import NotificationSystem from './NotificationSystem';
+import ThemeToggle from './ThemeToggle';
 
 interface LayoutProps {
   children: React.ReactNode
@@ -31,20 +31,20 @@ const navigation = [
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'Configurações', href: '/settings', icon: Settings },
   { name: 'Showcase', href: '/showcase', icon: Palette },
-]
+];
 
 export default function Layout({ children }: LayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [userMenuOpen, setUserMenuOpen] = useState(false)
-  const location = useLocation()
-  const { user, logout } = useAuth()
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const location = useLocation();
+  const { user, logout } = useAuth();
 
   return (
     <div className="flex h-screen bg-background">
       {/* Mobile sidebar */}
       <div className={cn(
         'fixed inset-0 z-50 lg:hidden',
-        sidebarOpen ? 'block' : 'hidden'
+        sidebarOpen ? 'block' : 'hidden',
       )}>
         <div className="fixed inset-0 bg-black/50 dark:bg-black/75" onClick={() => setSidebarOpen(false)} />
         <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-card border-r border-border">
@@ -62,7 +62,7 @@ export default function Layout({ children }: LayoutProps) {
           </div>
           <nav className="flex-1 space-y-1 px-4 py-4">
             {navigation.map((item) => {
-              const isActive = location.pathname === item.href
+              const isActive = location.pathname === item.href;
               return (
                 <Link
                   key={item.name}
@@ -71,19 +71,19 @@ export default function Layout({ children }: LayoutProps) {
                     'group flex items-center rounded-md px-2 py-2 text-sm font-medium transition-colors',
                     isActive
                       ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                   )}
                   onClick={() => setSidebarOpen(false)}
                 >
                   <item.icon
                     className={cn(
                       'mr-3 h-5 w-5 flex-shrink-0',
-                      isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-accent-foreground'
+                      isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-accent-foreground',
                     )}
                   />
                   {item.name}
                 </Link>
-              )
+              );
             })}
           </nav>
         </div>
@@ -98,7 +98,7 @@ export default function Layout({ children }: LayoutProps) {
           </div>
           <nav className="flex-1 space-y-1 px-4 py-4">
             {navigation.map((item) => {
-              const isActive = location.pathname === item.href
+              const isActive = location.pathname === item.href;
               return (
                 <Link
                   key={item.name}
@@ -107,18 +107,18 @@ export default function Layout({ children }: LayoutProps) {
                     'group flex items-center rounded-md px-2 py-2 text-sm font-medium transition-colors',
                     isActive
                       ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                   )}
                 >
                   <item.icon
                     className={cn(
                       'mr-3 h-5 w-5 flex-shrink-0',
-                      isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-accent-foreground'
+                      isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-accent-foreground',
                     )}
                   />
                   {item.name}
                 </Link>
-              )
+              );
             })}
           </nav>
         </div>
@@ -207,5 +207,5 @@ export default function Layout({ children }: LayoutProps) {
         </main>
       </div>
     </div>
-  )
+  );
 }

@@ -20,23 +20,25 @@ import { DatabaseService } from '../../database/database.service';
 const minigame: Command = {
   data: new SlashCommandBuilder()
     .setName('minigame')
-    .setDescription('🎯 Inicia um mini-game interativo para ganhar XP e moedas')
+    .setDescription('🎮 Mini-games temáticos de PUBG para ganhar XP, moedas e badges')
     .addStringOption(option =>
       option
         .setName('game')
-        .setDescription('Escolha o mini-game')
+        .setDescription('Escolha o mini-game PUBG')
         .setRequired(false)
         .addChoices(
-          { name: '⚡ Teste de Reação', value: 'reaction_test' },
-          { name: '⌨️ Corrida de Digitação', value: 'typing_race' },
-          { name: '🧮 Desafio Matemático', value: 'math_challenge' },
-          { name: '🧠 Jogo da Memória', value: 'memory_game' },
+          { name: '⚡ Reflexos de Combate', value: 'reaction_test' },
+          { name: '⌨️ Comunicação Rápida', value: 'typing_race' },
+          { name: '🧮 Cálculo de Dano', value: 'math_challenge' },
+          { name: '🧠 Memorização de Mapas', value: 'memory_game' },
+          { name: '📦 Lootbox Virtual', value: 'lootbox' },
+          { name: '🪂 Drop Aéreo', value: 'airdrop' },
           { name: '🎲 Aleatório', value: 'random' },
         ),
     ) as SlashCommandBuilder,
 
   category: CommandCategory.GENERAL,
-  cooldown: 60, // 1 minute cooldown to prevent spam
+  cooldown: 30, // Reduced cooldown for better UX
 
   async execute(interaction: any, client: ExtendedClient) {
     const logger = new Logger();
@@ -137,6 +139,12 @@ const minigame: Command = {
         case 'memory':
           await startMemoryGame(interaction, session, gameToStart, gameService);
           break;
+        case 'lootbox':
+          await startLootbox(interaction, session, gameToStart, gameService);
+          break;
+        case 'airdrop':
+          await startAirdrop(interaction, session, gameToStart, gameService);
+          break;
         default:
           throw new Error(`Unsupported game type: ${gameToStart.type}`);
       }
@@ -159,7 +167,7 @@ const minigame: Command = {
 };
 
 /**
- * Show game selection menu
+ * Show enhanced PUBG-themed game selection menu
  */
 async function showGameSelection(
   interaction: ChatInputCommandInteraction,
@@ -168,63 +176,111 @@ async function showGameSelection(
   const games = gameService.getMiniGames();
 
   const embed = new EmbedBuilder()
-    .setTitle('🎯 Escolha um Mini-Game')
+    .setTitle('🎮 Arena de Mini-Games PUBG')
     .setDescription(
-      'Selecione um dos mini-games disponíveis para jogar e ganhar recompensas!\n\n' +
-        games
-          .map((game: any) => {
-            const difficultyEmoji =
-              (
-                {
-                  easy: '🟢',
-                  medium: '🟡',
-                  hard: '🔴',
-                } as Record<string, string>
-              )[game.difficulty] || '⚪';
+      '**Bem-vindo à Arena de Treinamento!** 🏟️\n\n' +
+      'Escolha seu desafio e prove suas habilidades de sobrevivência:\n\n' +
+      '```yaml\nCada vitória te aproxima do topo do ranking!```\n\n' +
+      games
+        .map((game: any) => {
+          const difficultyEmoji = {
+            easy: '🟢 **Iniciante**',
+            medium: '🟡 **Veterano**',
+            hard: '🔴 **Pro Player**',
+            extreme: '💀 **Chicken Dinner**',
+          }[game.difficulty] || '⚪ **Padrão**';
 
-            return (
-              `**${getGameEmoji(game.type)} ${game.name}** ${difficultyEmoji}\n` +
-              `${game.description}\n` +
-              `⏱️ ${game.duration}s • 🎁 ${game.rewards.xp} XP + ${game.rewards.coins} moedas`
-            );
-          })
-          .join('\n\n'),
+          const themeEmoji = {
+            reaction_test: '⚡',
+            typing_race: '⌨️',
+            math_challenge: '🧮',
+            memory_game: '🧠',
+            lootbox: '📦',
+            airdrop: '🪂',
+          }[game.id] || '🎯';
+
+          return (
+            `${themeEmoji} **${game.name}** ${difficultyEmoji}\n` +
+            `*${game.description}*\n` +
+            `⏱️ **${game.duration}s** • 🎁 **${game.rewards.xp} XP** • 🪙 **${game.rewards.coins} moedas**`
+          );
+        })
+        .join('\n\n'),
     )
-    .setColor(0x0099ff)
-    .setFooter({ text: 'Use /minigame <jogo> para iniciar diretamente!' })
+    .setColor(0xff6b35)
+    .setThumbnail('https://cdn.discordapp.com/emojis/852869487845515264.png')
+    .addFields(
+      {
+        name: '🏆 Sistema de Recompensas',
+        value: '• **XP:** Experiência para subir de nível\n• **Moedas:** Compre itens na loja\n• **Badges:** Conquistas especiais\n• **Ranking:** Posição global',
+        inline: true,
+      },
+      {
+        name: '🎯 Dicas de Sobrevivência',
+        value: '• Pratique regularmente\n• Mire na precisão\n• Velocidade é crucial\n• Mantenha a calma',
+        inline: true,
+      },
+    )
+    .setFooter({ text: 'PUBG Mini-Games • Escolha seu desafio abaixo!' })
     .setTimestamp();
 
-  const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    ...games.slice(0, 4).map((game: any) =>
-      new ButtonBuilder()
-        .setCustomId(`minigame_start_${game.id}`)
-        .setLabel(`${getGameEmoji(game.type)} ${game.name}`)
-        .setStyle(ButtonStyle.Primary),
-    ),
+  // Create game selection buttons with PUBG theme
+  const gameButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId('minigame_start_reaction_test')
+      .setLabel('⚡ Reflexos')
+      .setStyle(ButtonStyle.Danger)
+      .setEmoji('🎯'),
+    new ButtonBuilder()
+      .setCustomId('minigame_start_typing_race')
+      .setLabel('⌨️ Comunicação')
+      .setStyle(ButtonStyle.Primary)
+      .setEmoji('📡'),
+    new ButtonBuilder()
+      .setCustomId('minigame_start_math_challenge')
+      .setLabel('🧮 Cálculos')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('🔢'),
+    new ButtonBuilder()
+      .setCustomId('minigame_start_memory_game')
+      .setLabel('🧠 Memória')
+      .setStyle(ButtonStyle.Success)
+      .setEmoji('🗺️'),
   );
 
-  const randomButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
+  const specialButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId('minigame_start_lootbox')
+      .setLabel('📦 Lootbox')
+      .setStyle(ButtonStyle.Primary)
+      .setEmoji('🎁'),
+    new ButtonBuilder()
+      .setCustomId('minigame_start_airdrop')
+      .setLabel('🪂 Drop Aéreo')
+      .setStyle(ButtonStyle.Success)
+      .setEmoji('📦'),
     new ButtonBuilder()
       .setCustomId('minigame_start_random')
-      .setLabel('🎲 Jogo Aleatório')
-      .setStyle(ButtonStyle.Secondary),
+      .setLabel('🎲 Aleatório')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('❓'),
   );
 
   const response = await interaction.reply({
     embeds: [embed],
-    components: [buttons, randomButton],
+    components: [gameButtons, specialButtons],
   });
 
-  // Set up button collector
+  // Set up enhanced button collector with better UX
   const collector = response.createMessageComponentCollector({
     componentType: ComponentType.Button,
-    time: 60000, // 1 minute
+    time: 120000, // 2 minutes for better UX
   });
 
   collector.on('collect', async (buttonInteraction: any) => {
     if (buttonInteraction.user.id !== interaction.user.id) {
       await buttonInteraction.reply({
-        content: '❌ Apenas quem iniciou o comando pode selecionar o jogo!',
+        content: '⚠️ **Acesso Negado!** Apenas quem iniciou o comando pode selecionar o jogo! 🔒',
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -232,21 +288,51 @@ async function showGameSelection(
 
     const gameId = buttonInteraction.customId.replace('minigame_start_', '');
 
+    // Show loading message with PUBG theme
+    const loadingEmbed = new EmbedBuilder()
+      .setTitle('🎮 Preparando Arena...')
+      .setDescription(
+        `**Carregando ${getGameDisplayName(gameId)}...**\n\n` +
+        '```yaml\nInicializando sistemas de combate...\nCarregando mapa...\nPreparando recompensas...```\n\n' +
+        '⏳ *Aguarde alguns segundos...*',
+      )
+      .setColor(0xff6b35)
+      .setThumbnail('https://cdn.discordapp.com/emojis/852869487845515264.png')
+      .setFooter({ text: 'PUBG Mini-Games • Preparando batalha...' })
+      .setTimestamp();
+
+    await buttonInteraction.update({ embeds: [loadingEmbed], components: [] });
+    collector.stop();
+
     // Update the original interaction options and re-execute
     (interaction as any).options = {
       getString: (name: string) => (gameId === 'random' ? 'random' : gameId),
     };
 
-    await buttonInteraction.deferUpdate();
-    collector.stop();
+    // Small delay for better UX
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
     // Re-execute with selected game
     await minigame.execute(interaction, buttonInteraction.client as ExtendedClient);
   });
 
-  collector.on('end', async collected => {
-    if (collected.size === 0) {
-      await interaction.editReply({ components: [] });
+  collector.on('end', async (collected, reason) => {
+    if (collected.size === 0 && reason === 'time') {
+      const timeoutEmbed = new EmbedBuilder()
+        .setTitle('⏰ Tempo Esgotado')
+        .setDescription(
+          '**A seleção de mini-game expirou!**\n\n' +
+          'Use `/minigame` novamente para escolher um jogo.',
+        )
+        .setColor(0x666666)
+        .setFooter({ text: 'PUBG Mini-Games • Sessão expirada' })
+        .setTimestamp();
+
+      try {
+        await interaction.editReply({ embeds: [timeoutEmbed], components: [] });
+      } catch (error) {
+        // Ignore edit errors
+      }
     }
   });
 }
@@ -876,17 +962,314 @@ async function endMemoryGame(
 }
 
 /**
- * Helper function to get game emoji
+ * Start Lootbox Virtual game
+ */
+async function startLootbox(
+  interaction: ChatInputCommandInteraction,
+  session: any,
+  game: MiniGame,
+  gameService: GameService,
+) {
+  const lootItems = [
+    { name: 'AKM', rarity: 'comum', emoji: '🔫' },
+    { name: 'M416', rarity: 'comum', emoji: '🔫' },
+    { name: 'AWM', rarity: 'raro', emoji: '🎯' },
+    { name: 'Groza', rarity: 'épico', emoji: '💥' },
+    { name: 'Capacete Nível 3', rarity: 'raro', emoji: '🪖' },
+    { name: 'Colete Nível 3', rarity: 'raro', emoji: '🦺' },
+    { name: 'Kit Médico', rarity: 'comum', emoji: '🏥' },
+    { name: 'Bebida Energética', rarity: 'comum', emoji: '🥤' },
+    { name: 'Ghillie Suit', rarity: 'lendário', emoji: '🥷' },
+    { name: 'Pan', rarity: 'meme', emoji: '🍳' },
+  ];
+
+  const embed = new EmbedBuilder()
+    .setTitle('📦 Lootbox Virtual PUBG')
+    .setDescription(
+      `**${game.description}**\n\n` +
+        '🎁 **Clique nos botões para abrir as lootboxes!**\n\n' +
+        '🏆 **Raridades:**\n' +
+        '⚪ Comum • 🔵 Raro • 🟣 Épico • 🟡 Lendário • 🎭 Meme\n\n' +
+        `⏰ Você tem ${game.duration} segundos para coletar!`,
+    )
+    .setColor(0x8b4513)
+    .setThumbnail('https://i.imgur.com/lootbox.png')
+    .setTimestamp();
+
+  const lootboxButtons = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('lootbox_1')
+        .setLabel('Caixa 1')
+        .setEmoji('📦')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('lootbox_2')
+        .setLabel('Caixa 2')
+        .setEmoji('📦')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('lootbox_3')
+        .setLabel('Caixa 3')
+        .setEmoji('📦')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('lootbox_4')
+        .setLabel('Caixa 4')
+        .setEmoji('📦')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('lootbox_5')
+        .setLabel('Caixa 5')
+        .setEmoji('📦')
+        .setStyle(ButtonStyle.Primary),
+    );
+
+  await interaction.editReply({ embeds: [embed], components: [lootboxButtons] });
+
+  const collector = interaction.channel?.createMessageComponentCollector({
+    componentType: ComponentType.Button,
+    time: game.duration * 1000,
+  });
+
+  const openedBoxes = new Set<string>();
+  const collectedItems: Array<{ userId: string; username: string; item: any }> = [];
+
+  collector?.on('collect', async (buttonInteraction) => {
+    if (!buttonInteraction.customId.startsWith('lootbox_')) {return;}
+
+    const boxId = buttonInteraction.customId;
+    if (openedBoxes.has(boxId)) {
+      await buttonInteraction.reply({
+        content: '📦 Esta caixa já foi aberta!',
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    openedBoxes.add(boxId);
+    const randomItem = lootItems[Math.floor(Math.random() * lootItems.length)];
+    
+    collectedItems.push({
+      userId: buttonInteraction.user.id,
+      username: buttonInteraction.user.username,
+      item: randomItem,
+    });
+
+    const rarityColors = {
+      comum: '⚪',
+      raro: '🔵',
+      épico: '🟣',
+      lendário: '🟡',
+      meme: '🎭',
+    };
+
+    await buttonInteraction.reply({
+      content: `${randomItem.emoji} **${randomItem.name}** ${rarityColors[randomItem.rarity as keyof typeof rarityColors]} (${randomItem.rarity})`,
+      flags: MessageFlags.Ephemeral,
+    });
+  });
+
+  collector?.on('end', async () => {
+    await endLootbox(interaction, session, game, gameService, collectedItems);
+  });
+}
+
+/**
+ * End Lootbox game and show results
+ */
+async function endLootbox(
+  interaction: ChatInputCommandInteraction,
+  session: any,
+  game: MiniGame,
+  gameService: GameService,
+  collectedItems: Array<{ userId: string; username: string; item: any }>,
+) {
+  const results = await gameService.endMiniGame(session.id);
+
+  if (collectedItems.length === 0) {
+    const embed = new EmbedBuilder()
+      .setTitle('📦 Lootbox Virtual - Finalizado')
+      .setDescription('Nenhuma caixa foi aberta! 😅')
+      .setColor(0xffa500)
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embed], components: [] });
+    return;
+  }
+
+  const itemCounts = collectedItems.reduce((acc, { item }) => {
+    acc[item.name] = (acc[item.name] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const embed = new EmbedBuilder()
+    .setTitle('📦 Lootbox Virtual - Resultados')
+    .setDescription(
+      '🎁 **Itens Coletados:**\n\n' +
+        Object.entries(itemCounts)
+          .map(([itemName, count]) => {
+            const item = collectedItems.find(c => c.item.name === itemName)?.item;
+            return `${item?.emoji} **${itemName}** x${count}`;
+          })
+          .join('\n') +
+        `\n\n🏆 **Total de participantes:** ${new Set(collectedItems.map(c => c.userId)).size}`,
+    )
+    .setColor(0x8b4513)
+    .setFooter({ text: `Caixas abertas: ${collectedItems.length}` })
+    .setTimestamp();
+
+  await interaction.editReply({ embeds: [embed], components: [] });
+}
+
+/**
+ * Start Airdrop game
+ */
+async function startAirdrop(
+  interaction: ChatInputCommandInteraction,
+  session: any,
+  game: MiniGame,
+  gameService: GameService,
+) {
+  const embed = new EmbedBuilder()
+    .setTitle('🪂 Drop Aéreo Clicável')
+    .setDescription(
+      `**${game.description}**\n\n` +
+        '✈️ **Um avião está se aproximando...**\n\n' +
+        '🎯 Fique atento! O drop aéreo aparecerá em alguns segundos\n' +
+        '⚡ Seja o primeiro a clicar para reivindicar o loot!\n\n' +
+        `⏰ Duração total: ${game.duration} segundos`,
+    )
+    .setColor(0x87ceeb)
+    .setThumbnail('https://i.imgur.com/airplane.png')
+    .setTimestamp();
+
+  await interaction.editReply({ embeds: [embed], components: [] });
+
+  // Random delay between 5-15 seconds for the airdrop to appear
+  const dropDelay = Math.floor(Math.random() * 10000) + 5000;
+
+  setTimeout(async () => {
+    const airdropButton = new ActionRowBuilder<ButtonBuilder>()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId('claim_airdrop')
+          .setLabel('REIVINDICAR DROP!')
+          .setEmoji('🪂')
+          .setStyle(ButtonStyle.Danger),
+      );
+
+    const dropEmbed = new EmbedBuilder()
+      .setTitle('🪂 DROP AÉREO DISPONÍVEL!')
+      .setDescription(
+        '🎁 **Um drop aéreo pousou!**\n\n' +
+          '⚡ **CLIQUE RÁPIDO PARA REIVINDICAR!**\n\n' +
+          '🏆 Contém: AWM, Munição .300, Colete Nível 3, Kit Médico',
+      )
+      .setColor(0xff4500)
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [dropEmbed], components: [airdropButton] });
+
+    const collector = interaction.channel?.createMessageComponentCollector({
+      componentType: ComponentType.Button,
+      time: (game.duration * 1000) - dropDelay,
+      max: 1, // Only first click wins
+    });
+
+    let winner: string | null = null;
+    const startTime = Date.now();
+
+    collector?.on('collect', async (buttonInteraction) => {
+      if (buttonInteraction.customId !== 'claim_airdrop') {return;}
+
+      winner = buttonInteraction.user.id;
+      const reactionTime = Date.now() - startTime;
+
+      await buttonInteraction.reply({
+        content: `🏆 **${buttonInteraction.user.username}** reivindicou o drop aéreo em ${reactionTime}ms!`,
+      });
+
+      collector.stop();
+    });
+
+    collector?.on('end', async () => {
+      await endAirdrop(interaction, session, game, gameService, winner);
+    });
+  }, dropDelay);
+}
+
+/**
+ * End Airdrop game and show results
+ */
+async function endAirdrop(
+  interaction: ChatInputCommandInteraction,
+  session: any,
+  game: MiniGame,
+  gameService: GameService,
+  winner: string | null,
+) {
+  const results = await gameService.endMiniGame(session.id);
+
+  const embed = new EmbedBuilder()
+    .setTitle('🪂 Drop Aéreo - Finalizado')
+    .setColor(winner ? 0x00ff00 : 0xffa500)
+    .setTimestamp();
+
+  if (winner) {
+    const user = await interaction.client.users.fetch(winner);
+    embed.setDescription(
+      `🏆 **Vencedor:** ${user.username}\n\n` +
+        '🎁 **Loot obtido:**\n' +
+        '🎯 AWM + Munição .300\n' +
+        '🦺 Colete Nível 3\n' +
+        '🏥 Kit Médico\n' +
+        '💊 Analgésicos\n\n' +
+        '🎖️ Parabéns pela vitória!',
+    );
+  } else {
+    embed.setDescription(
+      '💨 **O drop aéreo foi perdido!**\n\n' +
+        '😅 Ninguém conseguiu reivindicar a tempo\n' +
+        '🔄 Tente novamente na próxima vez!',
+    );
+  }
+
+  await interaction.editReply({ embeds: [embed], components: [] });
+}
+
+/**
+ * Get display name for games
+ */
+function getGameDisplayName(gameId: string): string {
+  const names: Record<string, string> = {
+    reaction_test: 'Reflexos de Combate',
+    typing_race: 'Comunicação Rápida',
+    math_challenge: 'Cálculo de Dano',
+    memory_game: 'Memorização de Mapas',
+    lootbox: 'Lootbox Virtual',
+    airdrop: 'Drop Aéreo',
+    random: 'Jogo Aleatório',
+  };
+
+  return names[gameId] || 'Mini-Game';
+}
+
+/**
+ * Get emoji for game types with PUBG theme
  */
 function getGameEmoji(type: string): string {
-  const emojis = {
-    reaction: '⚡',
-    typing: '⌨️',
-    math: '🧮',
-    memory: '🧠',
-    trivia: '🧠',
+  const emojis: Record<string, string> = {
+    reaction_test: '⚡',
+    typing_race: '⌨️',
+    math_challenge: '🧮',
+    memory_game: '🧠',
+    lootbox: '📦',
+    airdrop: '🪂',
+    random: '🎲',
   };
-  return emojis[type as keyof typeof emojis] || '🎯';
+
+  return emojis[type] || '🎯';
 }
 
 export default minigame;

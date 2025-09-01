@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
 import {
   BarChart,
   Bar,
@@ -14,7 +14,7 @@ import {
   Cell,
   AreaChart,
   Area,
-} from 'recharts'
+} from 'recharts';
 import {
 
   TrendingUp,
@@ -22,71 +22,71 @@ import {
   Command,
   Server,
   Activity,
-} from 'lucide-react'
-import { formatNumber } from '../lib/utils'
-import { apiService } from '../services/api'
-import { useAuth } from '../contexts/AuthContext'
-import { useDashboardWebSocket } from '../hooks/useWebSocket'
+} from 'lucide-react';
+import { formatNumber } from '../lib/utils';
+import { apiService } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
+import { useDashboardWebSocket } from '../hooks/useWebSocket';
 
 // Real analytics data will be fetched from API
 
 export default function Analytics() {
-  const { user } = useAuth()
-  const { stats } = useDashboardWebSocket(user?.guildId || '')
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { user } = useAuth();
+  const { stats } = useDashboardWebSocket(user?.guildId || '');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Suppress unused variable warnings for now
   void stats;
   void isLoading;
   void error;
-  const [dailyStats, setDailyStats] = useState<any[]>([])
-  const [hourlyActivity, setHourlyActivity] = useState<any[]>([])
-  const [commandCategories, setCommandCategories] = useState<any[]>([])
-  const [topCommands, setTopCommands] = useState<any[]>([])
-  const [growthData, setGrowthData] = useState<any[]>([])
-  const [timeRange, setTimeRange] = useState('7d')
+  const [dailyStats, setDailyStats] = useState<any[]>([]);
+  const [hourlyActivity, setHourlyActivity] = useState<any[]>([]);
+  const [commandCategories, setCommandCategories] = useState<any[]>([]);
+  const [topCommands, setTopCommands] = useState<any[]>([]);
+  const [growthData, setGrowthData] = useState<any[]>([]);
+  const [timeRange, setTimeRange] = useState('7d');
 
   const fetchAnalytics = async () => {
     try {
-      setIsLoading(true)
-      setError(null)
+      setIsLoading(true);
+      setError(null);
       
       // Fetch analytics data from API
-      const response = await apiService.get('/stats/analytics')
+      const response = await apiService.get('/stats/analytics');
       
       if (response.success) {
-        const data = response.data as any
+        const data = response.data as any;
         
         // Set daily stats (last 7 days)
-        setDailyStats(data.dailyStats || [])
+        setDailyStats(data.dailyStats || []);
         
         // Set hourly activity (last 24 hours)
-        setHourlyActivity(data.hourlyActivity || [])
+        setHourlyActivity(data.hourlyActivity || []);
         
         // Set command categories
-        setCommandCategories(data.commandCategories || [])
+        setCommandCategories(data.commandCategories || []);
         
         // Set top commands
-        setTopCommands(data.topCommands || [])
+        setTopCommands(data.topCommands || []);
         
         // Set growth data
-        setGrowthData(data.growthData || [])
+        setGrowthData(data.growthData || []);
       }
       
-      setIsLoading(false)
+      setIsLoading(false);
     } catch (err) {
-      console.error('Failed to fetch analytics data:', err)
-      setError('Failed to fetch analytics data')
-      setIsLoading(false)
+      console.error('Failed to fetch analytics data:', err);
+      setError('Failed to fetch analytics data');
+      setIsLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     if (user) {
-      fetchAnalytics()
+      fetchAnalytics();
     }
-  }, [user, timeRange])
+  }, [user, timeRange]);
 
   return (
     <div className="space-y-6">
@@ -367,9 +367,9 @@ export default function Analytics() {
             </thead>
             <tbody className="bg-white divide-y divide-secondary-200">
               {dailyStats?.map((stat, index) => {
-                const prevStat = dailyStats[index - 1]
+                const prevStat = dailyStats[index - 1];
                 const growthRate = prevStat ? 
-                  ((stat.users - prevStat.users) / prevStat.users * 100).toFixed(1) : '0.0'
+                  ((stat.users - prevStat.users) / prevStat.users * 100).toFixed(1) : '0.0';
                 
                 return (
                   <tr key={stat.date} className="hover:bg-secondary-50">
@@ -391,12 +391,12 @@ export default function Analytics() {
                       </span>
                     </td>
                   </tr>
-                )
+                );
               })}
             </tbody>
           </table>
         </div>
       </div>
     </div>
-  )
+  );
 }

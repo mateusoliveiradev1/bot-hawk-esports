@@ -11,7 +11,7 @@ const sizeClasses = {
   sm: 'h-4 w-4',
   md: 'h-6 w-6',
   lg: 'h-8 w-8',
-  xl: 'h-12 w-12'
+  xl: 'h-12 w-12',
 };
 
 const colorClasses = {
@@ -19,14 +19,14 @@ const colorClasses = {
   secondary: 'border-secondary',
   success: 'border-green-500',
   warning: 'border-yellow-500',
-  error: 'border-red-500'
+  error: 'border-red-500',
 };
 
 // Spinner com efeito de onda
 export const WaveSpinner: React.FC<AdvancedSpinnerProps> = ({ 
   size = 'md', 
   className, 
-  color = 'primary' 
+  color = 'primary', 
 }) => {
   return (
     <div className={cn('flex space-x-1', className)}>
@@ -36,11 +36,11 @@ export const WaveSpinner: React.FC<AdvancedSpinnerProps> = ({
           className={cn(
             'bg-current rounded-full animate-pulse',
             size === 'sm' ? 'h-2 w-1' : size === 'md' ? 'h-3 w-1.5' : size === 'lg' ? 'h-4 w-2' : 'h-6 w-3',
-            colorClasses[color]
+            colorClasses[color],
           )}
           style={{
             animationDelay: `${index * 0.1}s`,
-            animationDuration: '1.2s'
+            animationDuration: '1.2s',
           }}
         />
       ))}
@@ -52,7 +52,7 @@ export const WaveSpinner: React.FC<AdvancedSpinnerProps> = ({
 export const GrowSpinner: React.FC<AdvancedSpinnerProps> = ({ 
   size = 'md', 
   className, 
-  color = 'primary' 
+  color = 'primary', 
 }) => {
   return (
     <div className={cn('flex space-x-1', className)}>
@@ -63,10 +63,10 @@ export const GrowSpinner: React.FC<AdvancedSpinnerProps> = ({
             'rounded-full animate-bounce',
             sizeClasses[size],
             colorClasses[color],
-            'bg-current'
+            'bg-current',
           )}
           style={{
-            animationDelay: `${index * 0.16}s`
+            animationDelay: `${index * 0.16}s`,
           }}
         />
       ))}
@@ -78,20 +78,20 @@ export const GrowSpinner: React.FC<AdvancedSpinnerProps> = ({
 export const OrbitSpinner: React.FC<AdvancedSpinnerProps> = ({ 
   size = 'md', 
   className, 
-  color = 'primary' 
+  color = 'primary', 
 }) => {
   const containerSize = {
     sm: 'h-8 w-8',
     md: 'h-12 w-12',
     lg: 'h-16 w-16',
-    xl: 'h-24 w-24'
+    xl: 'h-24 w-24',
   };
 
   const dotSize = {
     sm: 'h-1.5 w-1.5',
     md: 'h-2 w-2',
     lg: 'h-3 w-3',
-    xl: 'h-4 w-4'
+    xl: 'h-4 w-4',
   };
 
   return (
@@ -100,14 +100,14 @@ export const OrbitSpinner: React.FC<AdvancedSpinnerProps> = ({
         <div className={cn(
           'absolute top-0 left-1/2 transform -translate-x-1/2 rounded-full bg-current',
           dotSize[size],
-          colorClasses[color]
+          colorClasses[color],
         )} />
       </div>
       <div className="absolute inset-0 animate-spin" style={{ animationDelay: '0.5s' }}>
         <div className={cn(
           'absolute bottom-0 left-1/2 transform -translate-x-1/2 rounded-full bg-current opacity-60',
           dotSize[size],
-          colorClasses[color]
+          colorClasses[color],
         )} />
       </div>
     </div>
@@ -118,7 +118,7 @@ export const OrbitSpinner: React.FC<AdvancedSpinnerProps> = ({
 export const ScaleSpinner: React.FC<AdvancedSpinnerProps> = ({ 
   size = 'md', 
   className, 
-  color = 'primary' 
+  color = 'primary', 
 }) => {
   return (
     <div className={cn('grid grid-cols-3 gap-1', className)}>
@@ -128,11 +128,11 @@ export const ScaleSpinner: React.FC<AdvancedSpinnerProps> = ({
           className={cn(
             'rounded-sm bg-current',
             size === 'sm' ? 'h-1 w-1' : size === 'md' ? 'h-1.5 w-1.5' : size === 'lg' ? 'h-2 w-2' : 'h-3 w-3',
-            colorClasses[color]
+            colorClasses[color],
           )}
           style={{
             animation: 'pulse 1.5s ease-in-out infinite',
-            animationDelay: `${index * 0.1}s`
+            animationDelay: `${index * 0.1}s`,
           }}
         />
       ))}
@@ -145,13 +145,13 @@ export const ScaleSpinner: React.FC<AdvancedSpinnerProps> = ({
 export const DNASpinner: React.FC<AdvancedSpinnerProps> = ({ 
   size = 'md', 
   className, 
-  color = 'primary' 
+  color = 'primary', 
 }) => {
   const containerHeight = {
     sm: 'h-8',
     md: 'h-12',
     lg: 'h-16',
-    xl: 'h-24'
+    xl: 'h-24',
   };
 
   return (
@@ -163,12 +163,12 @@ export const DNASpinner: React.FC<AdvancedSpinnerProps> = ({
             className={cn(
               'absolute rounded-full bg-current',
               size === 'sm' ? 'h-1.5 w-1.5' : size === 'md' ? 'h-2 w-2' : size === 'lg' ? 'h-3 w-3' : 'h-4 w-4',
-              colorClasses[color]
+              colorClasses[color],
             )}
             style={{
               left: `${index * 8}px`,
               animation: 'spin 2s ease-in-out infinite',
-              animationDelay: `${index * 0.15}s`
+              animationDelay: `${index * 0.15}s`,
             }}
           />
         ))}
@@ -182,7 +182,7 @@ export const DNASpinner: React.FC<AdvancedSpinnerProps> = ({
 export const HeartbeatSpinner: React.FC<AdvancedSpinnerProps> = ({ 
   size = 'md', 
   className, 
-  color = 'primary' 
+  color = 'primary', 
 }) => {
   return (
     <div className={cn('flex items-center justify-center', className)}>
@@ -190,10 +190,10 @@ export const HeartbeatSpinner: React.FC<AdvancedSpinnerProps> = ({
         className={cn(
           'rounded-full bg-current',
           sizeClasses[size],
-          colorClasses[color]
+          colorClasses[color],
         )}
         style={{
-          animation: 'pulse 1.5s ease-in-out infinite'
+          animation: 'pulse 1.5s ease-in-out infinite',
         }}
       />
 

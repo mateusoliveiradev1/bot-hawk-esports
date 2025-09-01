@@ -102,7 +102,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             ...userData,
             guildId: (userData as any).guildId || '',
             roles: (userData as any).roles || [],
-            permissions: (userData as any).permissions || []
+            permissions: (userData as any).permissions || [],
           };
           setUser(completeUserData);
         } catch (error) {
@@ -133,7 +133,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     ...userData,
                     guildId: (userData as any).guildId || '',
                     roles: (userData as any).roles || [],
-                    permissions: (userData as any).permissions || []
+                    permissions: (userData as any).permissions || [],
                   };
                   setUser(completeUserData);
                 } else {
@@ -201,7 +201,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             ...userData,
             guildId: (userData as any).guildId || guildId,
             roles: (userData as any).roles || [],
-            permissions: (userData as any).permissions || []
+            permissions: (userData as any).permissions || [],
           };
           setUser(completeUserData);
         }
@@ -223,15 +223,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const validateSession = async (): Promise<boolean> => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) return false;
+      if (!token) {return false;}
 
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3002/api'}/auth/validate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -261,9 +261,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
-          credentials: 'include'
+          credentials: 'include',
         });
       }
     } catch (error) {
@@ -287,7 +287,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Periodic session validation
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {return;}
 
     const interval = setInterval(() => {
       validateSession();

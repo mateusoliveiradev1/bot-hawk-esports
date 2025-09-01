@@ -21,7 +21,7 @@ import {
   ShimmerSkeleton,
   EnhancedToastProvider,
   useEnhancedToast,
-  InlineNotification
+  InlineNotification,
 } from './ui';
 import { Play, Pause, RefreshCw } from 'lucide-react';
 
@@ -37,7 +37,7 @@ const LoadingShowcaseContent: React.FC = () => {
       success: 'Operação realizada com sucesso!',
       error: 'Ocorreu um erro durante a operação.',
       warning: 'Atenção: Verifique os dados inseridos.',
-      info: 'Informação importante sobre o sistema.'
+      info: 'Informação importante sobre o sistema.',
     };
 
     addToast({
@@ -46,8 +46,8 @@ const LoadingShowcaseContent: React.FC = () => {
       message: messages[type],
       action: {
         label: 'Desfazer',
-        onClick: () => console.log('Ação desfeita')
-      }
+        onClick: () => console.log('Ação desfeita'),
+      },
     });
   };
 
@@ -55,7 +55,7 @@ const LoadingShowcaseContent: React.FC = () => {
     'Carregando dados do servidor...',
     'Processando informações...',
     'Sincronizando com a API...',
-    'Finalizando operação...'
+    'Finalizando operação...',
   ];
 
   return (

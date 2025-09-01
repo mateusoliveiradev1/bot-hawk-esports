@@ -144,7 +144,7 @@ const Setup: React.FC = () => {
             </p>
           </div>
         </div>
-      )
+      ),
     },
     {
       id: 1,
@@ -234,7 +234,7 @@ const Setup: React.FC = () => {
             </div>
           </div>
         </div>
-      )
+      ),
     },
     {
       id: 2,
@@ -361,7 +361,7 @@ const Setup: React.FC = () => {
             </div>
           </div>
         </div>
-      )
+      ),
     },
     {
       id: 3,
@@ -494,8 +494,8 @@ const Setup: React.FC = () => {
             </div>
           </div>
         </div>
-      )
-    }
+      ),
+    },
   ];
 
   const progress = ((currentStep + 1) / steps.length) * 100;
@@ -515,7 +515,7 @@ const Setup: React.FC = () => {
           transition={{
             duration: 20,
             repeat: Infinity,
-            ease: "linear"
+            ease: 'linear',
           }}
           className="absolute top-1/4 left-1/4 w-64 h-64 bg-purple-200/20 rounded-full blur-3xl"
         />
@@ -527,7 +527,7 @@ const Setup: React.FC = () => {
           transition={{
             duration: 25,
             repeat: Infinity,
-            ease: "linear"
+            ease: 'linear',
           }}
           className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-200/20 rounded-full blur-3xl"
         />

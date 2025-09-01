@@ -19,29 +19,29 @@ const feedbackConfig = {
     bgColor: 'bg-green-50 dark:bg-green-900/20',
     borderColor: 'border-green-200 dark:border-green-800',
     textColor: 'text-green-800 dark:text-green-200',
-    iconColor: 'text-green-600 dark:text-green-400'
+    iconColor: 'text-green-600 dark:text-green-400',
   },
   error: {
     icon: XCircle,
     bgColor: 'bg-red-50 dark:bg-red-900/20',
     borderColor: 'border-red-200 dark:border-red-800',
     textColor: 'text-red-800 dark:text-red-200',
-    iconColor: 'text-red-600 dark:text-red-400'
+    iconColor: 'text-red-600 dark:text-red-400',
   },
   warning: {
     icon: AlertCircle,
     bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
     borderColor: 'border-yellow-200 dark:border-yellow-800',
     textColor: 'text-yellow-800 dark:text-yellow-200',
-    iconColor: 'text-yellow-600 dark:text-yellow-400'
+    iconColor: 'text-yellow-600 dark:text-yellow-400',
   },
   info: {
     icon: Info,
     bgColor: 'bg-blue-50 dark:bg-blue-900/20',
     borderColor: 'border-blue-200 dark:border-blue-800',
     textColor: 'text-blue-800 dark:text-blue-200',
-    iconColor: 'text-blue-600 dark:text-blue-400'
-  }
+    iconColor: 'text-blue-600 dark:text-blue-400',
+  },
 };
 
 // Componente de Alert animado
@@ -53,7 +53,7 @@ export const AnimatedAlert: React.FC<FeedbackProps> = ({
   onClose,
   className,
   showIcon = true,
-  closable = true
+  closable = true,
 }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -77,7 +77,7 @@ export const AnimatedAlert: React.FC<FeedbackProps> = ({
     }, 300);
   };
 
-  if (!isVisible) return null;
+  if (!isVisible) {return null;}
 
   return (
     <div
@@ -86,7 +86,7 @@ export const AnimatedAlert: React.FC<FeedbackProps> = ({
         config.bgColor,
         config.borderColor,
         isAnimating ? 'opacity-0 transform scale-95' : 'opacity-100 transform scale-100',
-        className
+        className,
       )}
     >
       <div className="flex items-start space-x-3">
@@ -108,7 +108,7 @@ export const AnimatedAlert: React.FC<FeedbackProps> = ({
             onClick={handleClose}
             className={cn(
               'flex-shrink-0 rounded-md p-1.5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors',
-              config.textColor
+              config.textColor,
             )}
           >
             <X className="h-4 w-4" />
@@ -139,21 +139,21 @@ export const ProgressFeedback: React.FC<ProgressFeedbackProps> = ({
   showPercentage = true,
   animated = true,
   className,
-  label
+  label,
 }) => {
   const percentage = Math.min((value / max) * 100, 100);
   
   const sizeClasses = {
     sm: 'h-2',
     md: 'h-3',
-    lg: 'h-4'
+    lg: 'h-4',
   };
 
   const variantClasses = {
     default: 'bg-primary',
     success: 'bg-green-500',
     warning: 'bg-yellow-500',
-    error: 'bg-red-500'
+    error: 'bg-red-500',
   };
 
   return (
@@ -168,13 +168,13 @@ export const ProgressFeedback: React.FC<ProgressFeedbackProps> = ({
       )}
       <div className={cn(
         'w-full bg-muted rounded-full overflow-hidden',
-        sizeClasses[size]
+        sizeClasses[size],
       )}>
         <div
           className={cn(
             'h-full rounded-full transition-all duration-500 ease-out',
             variantClasses[variant],
-            animated && 'animate-pulse'
+            animated && 'animate-pulse',
           )}
           style={{ width: `${percentage}%` }}
         />
@@ -197,31 +197,31 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   label,
   size = 'md',
   animated = true,
-  className
+  className,
 }) => {
   const statusConfig = {
     online: {
       color: 'bg-green-500',
-      label: 'Online'
+      label: 'Online',
     },
     offline: {
       color: 'bg-gray-400',
-      label: 'Offline'
+      label: 'Offline',
     },
     busy: {
       color: 'bg-red-500',
-      label: 'Ocupado'
+      label: 'Ocupado',
     },
     away: {
       color: 'bg-yellow-500',
-      label: 'Ausente'
-    }
+      label: 'Ausente',
+    },
   };
 
   const sizeClasses = {
     sm: 'h-2 w-2',
     md: 'h-3 w-3',
-    lg: 'h-4 w-4'
+    lg: 'h-4 w-4',
   };
 
   const config = statusConfig[status];
@@ -233,7 +233,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
           className={cn(
             'rounded-full',
             config.color,
-            sizeClasses[size]
+            sizeClasses[size],
           )}
         />
         {animated && status === 'online' && (
@@ -241,7 +241,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
             className={cn(
               'absolute inset-0 rounded-full animate-ping',
               config.color,
-              'opacity-75'
+              'opacity-75',
             )}
           />
         )}
@@ -265,12 +265,12 @@ interface LoadingStateProps {
 export const LoadingState: React.FC<LoadingStateProps> = ({
   messages,
   interval = 2000,
-  className
+  className,
 }) => {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
 
   useEffect(() => {
-    if (messages.length <= 1) return;
+    if (messages.length <= 1) {return;}
 
     const timer = setInterval(() => {
       setCurrentMessageIndex((prev) => (prev + 1) % messages.length);
@@ -303,7 +303,7 @@ interface ShimmerSkeletonProps {
 export const ShimmerSkeleton: React.FC<ShimmerSkeletonProps> = ({
   className,
   lines = 3,
-  avatar = false
+  avatar = false,
 }) => {
   return (
     <div className={cn('animate-pulse space-y-3', className)}>
@@ -322,7 +322,7 @@ export const ShimmerSkeleton: React.FC<ShimmerSkeletonProps> = ({
             key={index}
             className={cn(
               'h-4 bg-muted rounded',
-              index === lines - 1 ? 'w-3/4' : 'w-full'
+              index === lines - 1 ? 'w-3/4' : 'w-full',
             )}
           />
         ))}

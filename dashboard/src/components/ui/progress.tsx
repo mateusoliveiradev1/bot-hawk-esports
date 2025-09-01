@@ -13,14 +13,14 @@ interface ProgressProps extends React.HTMLAttributes<HTMLDivElement> {
 const sizeClasses = {
   sm: 'h-2',
   md: 'h-3',
-  lg: 'h-4'
+  lg: 'h-4',
 };
 
 const variantClasses = {
   default: 'bg-primary',
   success: 'bg-green-500',
   warning: 'bg-yellow-500',
-  error: 'bg-red-500'
+  error: 'bg-red-500',
 };
 
 const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
@@ -43,20 +43,20 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
           ref={ref}
           className={cn(
             'w-full bg-muted rounded-full overflow-hidden',
-            sizeClasses[size]
+            sizeClasses[size],
           )}
         >
           <div
             className={cn(
               'h-full rounded-full transition-all duration-300 ease-in-out',
-              variantClasses[variant]
+              variantClasses[variant],
             )}
             style={{ width: `${percentage}%` }}
           />
         </div>
       </div>
     );
-  }
+  },
 );
 
 Progress.displayName = 'Progress';
@@ -76,7 +76,7 @@ export const CircularProgress: React.FC<{
   strokeWidth = 8,
   className,
   variant = 'default',
-  showLabel = true
+  showLabel = true,
 }) => {
   const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
   const radius = (size - strokeWidth) / 2;
@@ -88,7 +88,7 @@ export const CircularProgress: React.FC<{
     default: 'stroke-primary',
     success: 'stroke-green-500',
     warning: 'stroke-yellow-500',
-    error: 'stroke-red-500'
+    error: 'stroke-red-500',
   };
 
   return (
@@ -152,8 +152,8 @@ export const StepProgress: React.FC<{
                     {
                       'bg-primary text-primary-foreground': isCompleted || isCurrent,
                       'bg-muted text-muted-foreground': isUpcoming,
-                      'ring-2 ring-primary ring-offset-2': isCurrent
-                    }
+                      'ring-2 ring-primary ring-offset-2': isCurrent,
+                    },
                   )}
                 >
                   {isCompleted ? '✓' : index + 1}
@@ -163,8 +163,8 @@ export const StepProgress: React.FC<{
                     'mt-2 text-xs text-center max-w-[80px] truncate',
                     {
                       'text-foreground font-medium': isCompleted || isCurrent,
-                      'text-muted-foreground': isUpcoming
-                    }
+                      'text-muted-foreground': isUpcoming,
+                    },
                   )}
                 >
                   {step}
@@ -176,8 +176,8 @@ export const StepProgress: React.FC<{
                     'flex-1 h-0.5 mx-4 transition-all duration-200',
                     {
                       'bg-primary': index < currentStep,
-                      'bg-muted': index >= currentStep
-                    }
+                      'bg-muted': index >= currentStep,
+                    },
                   )}
                 />
               )}

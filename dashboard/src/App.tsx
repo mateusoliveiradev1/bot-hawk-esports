@@ -1,20 +1,20 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './contexts/AuthContext'
-import { ThemeProvider } from './contexts/ThemeContext'
-import { ToastProvider } from './components/ui/toast'
-import { NavigationTransition, AnimatedPage } from './components/PageTransition'
-import Layout from './components/Layout'
-import ProtectedRoute from './components/ProtectedRoute'
-import Login from './pages/Login'
-import Onboarding from './pages/Onboarding'
-import Setup from './pages/Setup'
-import Dashboard from './pages/Dashboard'
-import Users from './pages/Users'
-import Guilds from './pages/Guilds'
-import Commands from './pages/Commands'
-import Analytics from './pages/Analytics'
-import Settings from './pages/Settings'
-import LoadingShowcase from './components/LoadingShowcase'
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { ToastProvider } from './components/ui/toast';
+import { NavigationTransition, AnimatedPage } from './components/PageTransition';
+import Layout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
+import Login from './pages/Login';
+import Onboarding from './pages/Onboarding';
+import Setup from './pages/Setup';
+import Dashboard from './pages/Dashboard';
+import Users from './pages/Users';
+import Guilds from './pages/Guilds';
+import Commands from './pages/Commands';
+import Analytics from './pages/Analytics';
+import Settings from './pages/Settings';
+import LoadingShowcase from './components/LoadingShowcase';
 
 function App() {
   return (
@@ -133,7 +133,7 @@ function App() {
         </AuthProvider>
       </ToastProvider>
     </ThemeProvider>
-  )
+  );
 }
 
-export default App
+export default App;

@@ -1,5 +1,5 @@
-import { ReactNode, useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { ReactNode, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 
 interface PageTransitionProps {
   children: ReactNode
@@ -7,15 +7,15 @@ interface PageTransitionProps {
 }
 
 export function PageTransition({ children, className = '' }: PageTransitionProps) {
-  const location = useLocation()
-  const [displayLocation, setDisplayLocation] = useState(location)
-  const [transitionStage, setTransitionStage] = useState('fadeIn')
+  const location = useLocation();
+  const [displayLocation, setDisplayLocation] = useState(location);
+  const [transitionStage, setTransitionStage] = useState('fadeIn');
 
   useEffect(() => {
     if (location !== displayLocation) {
-      setTransitionStage('fadeOut')
+      setTransitionStage('fadeOut');
     }
-  }, [location, displayLocation])
+  }, [location, displayLocation]);
 
   return (
     <div
@@ -24,27 +24,27 @@ export function PageTransition({ children, className = '' }: PageTransitionProps
       } ${className}`}
       onTransitionEnd={() => {
         if (transitionStage === 'fadeOut') {
-          setDisplayLocation(location)
-          setTransitionStage('fadeIn')
+          setDisplayLocation(location);
+          setTransitionStage('fadeIn');
         }
       }}
     >
       {children}
     </div>
-  )
+  );
 }
 
 // Componente para animações de slide
 export function SlideTransition({ children, className = '' }: PageTransitionProps) {
-  const location = useLocation()
-  const [displayLocation, setDisplayLocation] = useState(location)
-  const [transitionStage, setTransitionStage] = useState('slideIn')
+  const location = useLocation();
+  const [displayLocation, setDisplayLocation] = useState(location);
+  const [transitionStage, setTransitionStage] = useState('slideIn');
 
   useEffect(() => {
     if (location !== displayLocation) {
-      setTransitionStage('slideOut')
+      setTransitionStage('slideOut');
     }
-  }, [location, displayLocation])
+  }, [location, displayLocation]);
 
   return (
     <div
@@ -55,27 +55,27 @@ export function SlideTransition({ children, className = '' }: PageTransitionProp
       } ${className}`}
       onTransitionEnd={() => {
         if (transitionStage === 'slideOut') {
-          setDisplayLocation(location)
-          setTransitionStage('slideIn')
+          setDisplayLocation(location);
+          setTransitionStage('slideIn');
         }
       }}
     >
       {children}
     </div>
-  )
+  );
 }
 
 // Componente para animações de escala
 export function ScaleTransition({ children, className = '' }: PageTransitionProps) {
-  const location = useLocation()
-  const [displayLocation, setDisplayLocation] = useState(location)
-  const [transitionStage, setTransitionStage] = useState('scaleIn')
+  const location = useLocation();
+  const [displayLocation, setDisplayLocation] = useState(location);
+  const [transitionStage, setTransitionStage] = useState('scaleIn');
 
   useEffect(() => {
     if (location !== displayLocation) {
-      setTransitionStage('scaleOut')
+      setTransitionStage('scaleOut');
     }
-  }, [location, displayLocation])
+  }, [location, displayLocation]);
 
   return (
     <div
@@ -86,37 +86,37 @@ export function ScaleTransition({ children, className = '' }: PageTransitionProp
       } ${className}`}
       onTransitionEnd={() => {
         if (transitionStage === 'scaleOut') {
-          setDisplayLocation(location)
-          setTransitionStage('scaleIn')
+          setDisplayLocation(location);
+          setTransitionStage('scaleIn');
         }
       }}
     >
       {children}
     </div>
-  )
+  );
 }
 
 // Hook para detectar mudanças de rota
 export function useRouteTransition() {
-  const location = useLocation()
-  const [isTransitioning, setIsTransitioning] = useState(false)
-  const [previousLocation, setPreviousLocation] = useState(location)
+  const location = useLocation();
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [previousLocation, setPreviousLocation] = useState(location);
 
   useEffect(() => {
     if (location.pathname !== previousLocation.pathname) {
-      setIsTransitioning(true)
-      setPreviousLocation(location)
+      setIsTransitioning(true);
+      setPreviousLocation(location);
       
       // Reset transition state after animation
       const timer = setTimeout(() => {
-        setIsTransitioning(false)
-      }, 300)
+        setIsTransitioning(false);
+      }, 300);
       
-      return () => clearTimeout(timer)
+      return () => clearTimeout(timer);
     }
-  }, [location, previousLocation])
+  }, [location, previousLocation]);
 
-  return { isTransitioning, previousLocation }
+  return { isTransitioning, previousLocation };
 }
 
 // Componente de loading para transições
@@ -125,7 +125,7 @@ export function TransitionLoader() {
     <div className="fixed top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-primary/50 to-transparent z-50">
       <div className="h-full bg-primary animate-pulse" />
     </div>
-  )
+  );
 }
 
 // Componente wrapper para páginas com animação
@@ -137,18 +137,18 @@ export function AnimatedPage({ children, animation = 'fade' }: {
     fade: PageTransition,
     slide: SlideTransition,
     scale: ScaleTransition,
-  }[animation]
+  }[animation];
 
   return (
     <TransitionComponent className="min-h-screen">
       {children}
     </TransitionComponent>
-  )
+  );
 }
 
 // Componente para animações de navegação
 export function NavigationTransition({ children }: { children: ReactNode }) {
-  const { isTransitioning } = useRouteTransition()
+  const { isTransitioning } = useRouteTransition();
 
   return (
     <div className="relative">
@@ -159,5 +159,5 @@ export function NavigationTransition({ children }: { children: ReactNode }) {
         {children}
       </div>
     </div>
-  )
+  );
 }

@@ -48,7 +48,7 @@ const SecuritySetup: React.FC = () => {
   };
 
   const verifyCaptcha = async () => {
-    if (!captcha || !captchaAnswer) return;
+    if (!captcha || !captchaAnswer) {return;}
     
     setLoading(true);
     try {
@@ -59,8 +59,8 @@ const SecuritySetup: React.FC = () => {
         },
         body: JSON.stringify({
           captchaId: captcha.id,
-          answer: captchaAnswer
-        })
+          answer: captchaAnswer,
+        }),
       });
       
       const data = await response.json();
@@ -95,7 +95,7 @@ const SecuritySetup: React.FC = () => {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-        }
+        },
       });
       
       const data = await response.json();
@@ -130,7 +130,7 @@ const SecuritySetup: React.FC = () => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ token: twoFAToken })
+        body: JSON.stringify({ token: twoFAToken }),
       });
       
       const data = await response.json();
@@ -161,7 +161,7 @@ const SecuritySetup: React.FC = () => {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-        }
+        },
       });
       
       const data = await response.json();

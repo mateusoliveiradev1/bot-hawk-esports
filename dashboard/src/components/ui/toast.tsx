@@ -59,7 +59,7 @@ const ToastItem: React.FC<{ toast: Toast; onRemove: (id: string) => void }> = ({
       className={cn(
         'pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg border shadow-lg transition-all duration-300 ease-in-out',
         'animate-in slide-in-from-top-full',
-        toastStyles[toast.type]
+        toastStyles[toast.type],
       )}
     >
       <div className="p-4">

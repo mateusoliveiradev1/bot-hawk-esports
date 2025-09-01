@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Search,
   Filter,
@@ -9,9 +9,9 @@ import {
   AlertCircle,
   CheckCircle,
   BarChart3,
-} from 'lucide-react'
-import { formatNumber, formatRelativeTime } from '../lib/utils'
-import { apiService } from '../services/api'
+} from 'lucide-react';
+import { formatNumber, formatRelativeTime } from '../lib/utils';
+import { apiService } from '../services/api';
 
 const categoryColors = {
   Music: 'bg-purple-100 text-purple-800',
@@ -19,43 +19,43 @@ const categoryColors = {
   Leveling: 'bg-green-100 text-green-800',
   Utility: 'bg-blue-100 text-blue-800',
   Fun: 'bg-yellow-100 text-yellow-800',
-}
+};
 
 function getSuccessRateColor(rate: number) {
-  if (rate >= 98) return 'text-success-600'
-  if (rate >= 95) return 'text-warning-600'
-  return 'text-error-600'
+  if (rate >= 98) {return 'text-success-600';}
+  if (rate >= 95) {return 'text-warning-600';}
+  return 'text-error-600';
 }
 
 function getResponseTimeColor(time: number) {
-  if (time <= 150) return 'text-success-600'
-  if (time <= 300) return 'text-warning-600'
-  return 'text-error-600'
+  if (time <= 150) {return 'text-success-600';}
+  if (time <= 300) {return 'text-warning-600';}
+  return 'text-error-600';
 }
 
 export default function Commands() {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterCategory, setFilterCategory] = useState('all')
-  const [filterStatus, setFilterStatus] = useState('all')
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
 
   const { data: commands } = useQuery({
     queryKey: ['commands'],
     queryFn: () => apiService.getCommands(),
-  })
+  });
 
   const filteredCommands = commands?.filter(command => {
     const matchesSearch = command.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         command.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = filterCategory === 'all' || command.category === filterCategory
+                         command.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterCategory === 'all' || command.category === filterCategory;
     const matchesStatus = filterStatus === 'all' || 
                          (filterStatus === 'enabled' && command.enabled) ||
-                         (filterStatus === 'disabled' && !command.enabled)
-    return matchesSearch && matchesCategory && matchesStatus
-  }) || []
+                         (filterStatus === 'disabled' && !command.enabled);
+    return matchesSearch && matchesCategory && matchesStatus;
+  }) || [];
 
-  const totalUsage = commands?.reduce((sum, cmd) => sum + cmd.usageCount, 0) || 0
-  const avgSuccessRate = commands?.reduce((sum, cmd) => sum + cmd.successRate, 0) / (commands?.length || 1) || 0
-  const avgResponseTime = commands?.reduce((sum, cmd) => sum + cmd.avgResponseTime, 0) / (commands?.length || 1) || 0
+  const totalUsage = commands?.reduce((sum, cmd) => sum + cmd.usageCount, 0) || 0;
+  const avgSuccessRate = commands?.reduce((sum, cmd) => sum + cmd.successRate, 0) / (commands?.length || 1) || 0;
+  const avgResponseTime = commands?.reduce((sum, cmd) => sum + cmd.avgResponseTime, 0) / (commands?.length || 1) || 0;
 
   return (
     <div className="space-y-6">
@@ -269,5 +269,5 @@ export default function Commands() {
         </div>
       )}
     </div>
-  )
+  );
 }

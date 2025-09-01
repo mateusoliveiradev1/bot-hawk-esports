@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useState, useEffect } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import {
   Save,
   RefreshCw,
@@ -11,7 +11,7 @@ import {
   Globe,
   AlertTriangle,
   CheckCircle,
-} from 'lucide-react'
+} from 'lucide-react';
 
 // Real settings data will be fetched from API
 
@@ -24,14 +24,14 @@ interface BotSettings {
 }
 
 export default function Settings() {
-  const [activeSection, setActiveSection] = useState<SettingsSection>('bot')
+  const [activeSection, setActiveSection] = useState<SettingsSection>('bot');
   const [settings, setSettings] = useState<BotSettings>({
     features: {},
-    notifications: {}
-  })
-  const [hasChanges, setHasChanges] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+    notifications: {},
+  });
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Suppress unused variable warnings for now
   void isLoading;
@@ -39,27 +39,27 @@ export default function Settings() {
 
   const fetchSettings = async () => {
     try {
-      setIsLoading(true)
-      setError(null)
+      setIsLoading(true);
+      setError(null);
       
-      const response = await fetch('/api/settings')
+      const response = await fetch('/api/settings');
       if (response.ok) {
-        const data = await response.json()
-        setSettings(data)
+        const data = await response.json();
+        setSettings(data);
       } else {
-        throw new Error('Failed to fetch settings')
+        throw new Error('Failed to fetch settings');
       }
     } catch (err) {
-      console.error('Failed to fetch settings:', err)
-      setError('Failed to load settings')
+      console.error('Failed to fetch settings:', err);
+      setError('Failed to load settings');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchSettings()
-  }, [])
+    fetchSettings();
+  }, []);
 
   // Settings are managed locally with mockSettings
 
@@ -67,14 +67,14 @@ export default function Settings() {
     mutationFn: (newSettings: typeof settings) => {
       // Simular salvamento
       return new Promise((resolve) => {
-        setTimeout(() => resolve(newSettings), 1000)
-      })
+        setTimeout(() => resolve(newSettings), 1000);
+      });
     },
     onSuccess: () => {
-      setHasChanges(false)
+      setHasChanges(false);
       // Mostrar notificação de sucesso
     },
-  })
+  });
 
   const updateSetting = (section: keyof typeof settings, key: string, value: any) => {
     setSettings(prev => ({
@@ -83,13 +83,13 @@ export default function Settings() {
         ...prev[section],
         [key]: value,
       },
-    }))
-    setHasChanges(true)
-  }
+    }));
+    setHasChanges(true);
+  };
 
   const handleSave = () => {
-    saveSettingsMutation.mutate(settings)
-  }
+    saveSettingsMutation.mutate(settings);
+  };
 
   const sections = [
     { id: 'bot' as const, name: 'Bot', icon: Bot },
@@ -97,7 +97,7 @@ export default function Settings() {
     { id: 'features' as const, name: 'Recursos', icon: Shield },
     { id: 'notifications' as const, name: 'Notificações', icon: Bell },
     { id: 'api' as const, name: 'API', icon: Globe },
-  ]
+  ];
 
   return (
     <div className="space-y-6">
@@ -136,7 +136,7 @@ export default function Settings() {
         <div className="lg:col-span-1">
           <nav className="settings-sidebar space-y-1">
             {sections.map((section) => {
-              const isActive = activeSection === section.id
+              const isActive = activeSection === section.id;
               return (
                 <button
                   key={section.id}
@@ -152,7 +152,7 @@ export default function Settings() {
                   }`} />
                   {section.name}
                 </button>
-              )
+              );
             })}
           </nav>
         </div>
@@ -433,5 +433,5 @@ export default function Settings() {
         </div>
       </div>
     </div>
-  )
+  );
 }

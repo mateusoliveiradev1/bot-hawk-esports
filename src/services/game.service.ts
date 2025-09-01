@@ -60,7 +60,7 @@ export interface MiniGame {
   id: string;
   name: string;
   description: string;
-  type: 'reaction' | 'typing' | 'math' | 'memory' | 'trivia';
+  type: 'reaction' | 'typing' | 'math' | 'memory' | 'trivia' | 'lootbox' | 'airdrop';
   difficulty: 'easy' | 'medium' | 'hard';
   duration: number; // seconds
   rewards: {
@@ -138,6 +138,7 @@ export class GameService {
   private challengeProgress: Map<string, Map<string, ChallengeProgress>> = new Map(); // userId -> challengeId -> progress
 
   private readonly pubgQuestions: QuizQuestion[] = [
+    // Mapas - Questões Básicas
     {
       id: 'pubg_1',
       question: 'Qual é o nome do mapa original do PUBG?',
@@ -150,6 +151,100 @@ export class GameService {
     },
     {
       id: 'pubg_2',
+      question: 'Qual mapa do PUBG é conhecido por ser um deserto?',
+      options: ['Erangel', 'Miramar', 'Sanhok', 'Karakin'],
+      correctAnswer: 1,
+      difficulty: 'easy',
+      category: 'pubg',
+      points: 10,
+      timeLimit: 30,
+    },
+    {
+      id: 'pubg_3',
+      question: 'Qual é o menor mapa do PUBG?',
+      options: ['Sanhok', 'Karakin', 'Haven', 'Paramo'],
+      correctAnswer: 1,
+      difficulty: 'medium',
+      category: 'pubg',
+      points: 15,
+      timeLimit: 30,
+    },
+    {
+      id: 'pubg_4',
+      question: 'Em qual mapa você pode encontrar a cidade de Pochinki?',
+      options: ['Erangel', 'Miramar', 'Sanhok', 'Vikendi'],
+      correctAnswer: 0,
+      difficulty: 'medium',
+      category: 'pubg',
+      points: 15,
+      timeLimit: 30,
+    },
+    {
+      id: 'pubg_5',
+      question: 'Qual mapa introduziu o sistema de remaster com gráficos aprimorados?',
+      options: ['Erangel 2.0', 'Sanhok Remastered', 'Miramar 2.0', 'Vikendi Reborn'],
+      correctAnswer: 0,
+      difficulty: 'hard',
+      category: 'pubg',
+      points: 20,
+      timeLimit: 45,
+    },
+    
+    // Armas - Rifles de Assalto
+    {
+      id: 'pubg_6',
+      question: 'Qual rifle de assalto tem a maior taxa de tiro no PUBG?',
+      options: ['M416', 'AKM', 'SCAR-L', 'Groza'],
+      correctAnswer: 3,
+      difficulty: 'medium',
+      category: 'pubg',
+      points: 15,
+      timeLimit: 45,
+    },
+    {
+      id: 'pubg_7',
+      question: 'Qual arma é exclusiva de airdrops?',
+      options: ['M249', 'AWM', 'Groza', 'Todas as anteriores'],
+      correctAnswer: 3,
+      difficulty: 'easy',
+      category: 'pubg',
+      points: 10,
+      timeLimit: 30,
+    },
+    {
+      id: 'pubg_8',
+      question: 'Qual sniper rifle tem o maior dano por tiro no PUBG?',
+      options: ['AWM', 'Kar98k', 'M24', 'Lynx AMR'],
+      correctAnswer: 3,
+      difficulty: 'hard',
+      category: 'pubg',
+      points: 20,
+      timeLimit: 45,
+    },
+    {
+      id: 'pubg_9',
+      question: 'Qual é a munição usada pela AKM?',
+      options: ['5.56mm', '7.62mm', '.45 ACP', '9mm'],
+      correctAnswer: 1,
+      difficulty: 'medium',
+      category: 'pubg',
+      points: 15,
+      timeLimit: 30,
+    },
+    {
+      id: 'pubg_10',
+      question: 'Qual pistola tem o maior dano no PUBG?',
+      options: ['P1911', 'P92', 'R1895', 'Deagle'],
+      correctAnswer: 3,
+      difficulty: 'medium',
+      category: 'pubg',
+      points: 15,
+      timeLimit: 30,
+    },
+    
+    // Mecânicas do Jogo
+    {
+      id: 'pubg_11',
       question: 'Quantos jogadores podem participar de uma partida clássica do PUBG?',
       options: ['50', '80', '100', '120'],
       correctAnswer: 2,
@@ -159,17 +254,49 @@ export class GameService {
       timeLimit: 30,
     },
     {
-      id: 'pubg_3',
-      question: 'Qual arma tem o maior dano por tiro no PUBG?',
-      options: ['AWM', 'Kar98k', 'M24', 'Win94'],
+      id: 'pubg_12',
+      question: 'Qual é a velocidade máxima da zona azul no final do jogo?',
+      options: ['5 m/s', '7.5 m/s', '10 m/s', '12.5 m/s'],
+      correctAnswer: 1,
+      difficulty: 'hard',
+      category: 'pubg',
+      points: 20,
+      timeLimit: 60,
+    },
+    {
+      id: 'pubg_13',
+      question: 'Quantos níveis de colete existem no PUBG?',
+      options: ['2', '3', '4', '5'],
+      correctAnswer: 1,
+      difficulty: 'easy',
+      category: 'pubg',
+      points: 10,
+      timeLimit: 30,
+    },
+    {
+      id: 'pubg_14',
+      question: 'Qual é o tempo máximo que um jogador pode ficar derrubado antes de morrer?',
+      options: ['60 segundos', '90 segundos', '120 segundos', 'Varia com o círculo'],
+      correctAnswer: 3,
+      difficulty: 'hard',
+      category: 'pubg',
+      points: 20,
+      timeLimit: 45,
+    },
+    {
+      id: 'pubg_15',
+      question: 'Qual veículo é mais rápido no PUBG?',
+      options: ['Motocicleta', 'Buggy', 'UAZ', 'Dacia'],
       correctAnswer: 0,
       difficulty: 'medium',
       category: 'pubg',
       points: 15,
-      timeLimit: 45,
+      timeLimit: 30,
     },
+    
+    // História e Desenvolvimento
     {
-      id: 'pubg_4',
+      id: 'pubg_16',
       question: 'Em que ano o PUBG foi lançado oficialmente?',
       options: ['2016', '2017', '2018', '2019'],
       correctAnswer: 1,
@@ -179,22 +306,260 @@ export class GameService {
       timeLimit: 30,
     },
     {
-      id: 'pubg_5',
-      question: 'Qual é a velocidade máxima da zona azul no final do jogo?',
-      options: ['5 m/s', '7.5 m/s', '10 m/s', '12.5 m/s'],
+      id: 'pubg_17',
+      question: 'Quem é o criador original do conceito Battle Royale que inspirou o PUBG?',
+      options: ['Brendan Greene', 'Hideo Kojima', 'Notch', 'Gabe Newell'],
+      correctAnswer: 0,
+      difficulty: 'hard',
+      category: 'pubg',
+      points: 20,
+      timeLimit: 45,
+    },
+    {
+      id: 'pubg_18',
+      question: 'Qual empresa desenvolveu o PUBG?',
+      options: ['Epic Games', 'Bluehole', 'Valve', 'Riot Games'],
+      correctAnswer: 1,
+      difficulty: 'medium',
+      category: 'pubg',
+      points: 15,
+      timeLimit: 30,
+    },
+    {
+      id: 'pubg_19',
+      question: 'O PUBG foi inspirado em qual filme?',
+      options: ['Jogos Vorazes', 'Battle Royale', 'Mad Max', 'The Purge'],
       correctAnswer: 1,
       difficulty: 'hard',
       category: 'pubg',
       points: 20,
+      timeLimit: 45,
+    },
+    {
+      id: 'pubg_20',
+      question: 'Em qual plataforma o PUBG foi lançado primeiro?',
+      options: ['PlayStation', 'Xbox', 'PC', 'Mobile'],
+      correctAnswer: 2,
+      difficulty: 'medium',
+      category: 'pubg',
+      points: 15,
+      timeLimit: 30,
+    },
+    
+    // Estratégias e Táticas
+    {
+      id: 'pubg_21',
+      question: 'Qual é a melhor estratégia para o início da partida?',
+      options: ['Ir para locais populosos', 'Evitar outros jogadores', 'Seguir o avião', 'Pular no final da rota'],
+      correctAnswer: 1,
+      difficulty: 'medium',
+      category: 'pubg',
+      points: 15,
+      timeLimit: 45,
+    },
+    {
+      id: 'pubg_22',
+      question: 'Qual posição é mais vantajosa em combate?',
+      options: ['Terreno baixo', 'Terreno alto', 'Área aberta', 'Dentro de edifícios'],
+      correctAnswer: 1,
+      difficulty: 'easy',
+      category: 'pubg',
+      points: 10,
+      timeLimit: 30,
+    },
+    {
+      id: 'pubg_23',
+      question: 'Qual é a distância ideal para combate com shotgun?',
+      options: ['0-10 metros', '10-25 metros', '25-50 metros', '50+ metros'],
+      correctAnswer: 0,
+      difficulty: 'medium',
+      category: 'pubg',
+      points: 15,
+      timeLimit: 30,
+    },
+    {
+      id: 'pubg_24',
+      question: 'Quando é melhor usar granadas de fumaça?',
+      options: ['Para atacar', 'Para fugir', 'Para reviver aliados', 'Todas as anteriores'],
+      correctAnswer: 3,
+      difficulty: 'medium',
+      category: 'pubg',
+      points: 15,
+      timeLimit: 45,
+    },
+    {
+      id: 'pubg_25',
+      question: 'Qual é a melhor forma de se mover na zona final?',
+      options: ['Correndo', 'Agachado', 'Deitado', 'Depende da situação'],
+      correctAnswer: 3,
+      difficulty: 'hard',
+      category: 'pubg',
+      points: 20,
+      timeLimit: 45,
+    },
+    
+    // Eventos e Competições
+    {
+      id: 'pubg_26',
+      question: 'Qual foi o primeiro campeonato mundial oficial do PUBG?',
+      options: ['PGI 2018', 'PUBG Global Championship', 'PUBG Nations Cup', 'PUBG Continental Series'],
+      correctAnswer: 0,
+      difficulty: 'hard',
+      category: 'pubg',
+      points: 20,
+      timeLimit: 45,
+    },
+    {
+      id: 'pubg_27',
+      question: 'Qual região dominou as primeiras competições de PUBG?',
+      options: ['América do Norte', 'Europa', 'Ásia', 'América do Sul'],
+      correctAnswer: 2,
+      difficulty: 'medium',
+      category: 'pubg',
+      points: 15,
+      timeLimit: 30,
+    },
+    {
+      id: 'pubg_28',
+      question: 'Qual é o maior prêmio já distribuído em um torneio de PUBG?',
+      options: ['$1 milhão', '$2 milhões', '$3 milhões', '$4 milhões'],
+      correctAnswer: 2,
+      difficulty: 'hard',
+      category: 'pubg',
+      points: 20,
+      timeLimit: 45,
+    },
+    {
+      id: 'pubg_29',
+      question: 'Quantos jogadores compõem uma equipe no modo squad competitivo?',
+      options: ['2', '3', '4', '5'],
+      correctAnswer: 2,
+      difficulty: 'easy',
+      category: 'pubg',
+      points: 10,
+      timeLimit: 30,
+    },
+    {
+      id: 'pubg_30',
+      question: 'Qual formato é mais comum em torneios profissionais?',
+      options: ['Solo', 'Duo', 'Squad', 'Varia por torneio'],
+      correctAnswer: 2,
+      difficulty: 'medium',
+      category: 'pubg',
+      points: 15,
+      timeLimit: 30,
+    },
+    
+    // Itens e Equipamentos
+    {
+      id: 'pubg_31',
+      question: 'Qual acessório reduz o recuo das armas?',
+      options: ['Compensador', 'Silenciador', 'Flash Hider', 'Todas as anteriores'],
+      correctAnswer: 3,
+      difficulty: 'medium',
+      category: 'pubg',
+      points: 15,
+      timeLimit: 30,
+    },
+    {
+      id: 'pubg_32',
+      question: 'Qual é o item de cura mais eficiente?',
+      options: ['Bandagem', 'Kit Médico', 'Bebida Energética', 'Analgésico'],
+      correctAnswer: 1,
+      difficulty: 'easy',
+      category: 'pubg',
+      points: 10,
+      timeLimit: 30,
+    },
+    {
+      id: 'pubg_33',
+      question: 'Qual capacete oferece melhor proteção?',
+      options: ['Nível 1', 'Nível 2', 'Nível 3', 'Todos são iguais'],
+      correctAnswer: 2,
+      difficulty: 'easy',
+      category: 'pubg',
+      points: 10,
+      timeLimit: 30,
+    },
+    {
+      id: 'pubg_34',
+      question: 'Qual granada causa mais dano?',
+      options: ['Frag', 'Molotov', 'Stun', 'Fumaça'],
+      correctAnswer: 0,
+      difficulty: 'easy',
+      category: 'pubg',
+      points: 10,
+      timeLimit: 30,
+    },
+    {
+      id: 'pubg_35',
+      question: 'Quantos slots de utilidade você pode carregar?',
+      options: ['4', '5', '6', 'Ilimitado'],
+      correctAnswer: 1,
+      difficulty: 'medium',
+      category: 'pubg',
+      points: 15,
+      timeLimit: 30,
+    },
+    
+    // Questões Avançadas
+    {
+      id: 'pubg_36',
+      question: 'Qual é a velocidade de queda do paraquedas no PUBG?',
+      options: ['126 km/h', '200 km/h', '234 km/h', '300 km/h'],
+      correctAnswer: 2,
+      difficulty: 'hard',
+      category: 'pubg',
+      points: 20,
       timeLimit: 60,
+    },
+    {
+      id: 'pubg_37',
+      question: 'Qual é o dano base da zona azul no primeiro círculo?',
+      options: ['0.4% por segundo', '0.6% por segundo', '1% por segundo', '2% por segundo'],
+      correctAnswer: 0,
+      difficulty: 'hard',
+      category: 'pubg',
+      points: 20,
+      timeLimit: 60,
+    },
+    {
+      id: 'pubg_38',
+      question: 'Quantos pontos de vida um jogador tem no máximo?',
+      options: ['100', '150', '200', '250'],
+      correctAnswer: 0,
+      difficulty: 'easy',
+      category: 'pubg',
+      points: 10,
+      timeLimit: 30,
+    },
+    {
+      id: 'pubg_39',
+      question: 'Qual é o alcance máximo efetivo de um AWM?',
+      options: ['800m', '1000m', '1200m', '1500m'],
+      correctAnswer: 1,
+      difficulty: 'hard',
+      category: 'pubg',
+      points: 20,
+      timeLimit: 45,
+    },
+    {
+      id: 'pubg_40',
+      question: 'Qual modo de jogo foi adicionado mais recentemente ao PUBG?',
+      options: ['Ranked', 'Arena', 'Casual', 'Training'],
+      correctAnswer: 1,
+      difficulty: 'medium',
+      category: 'pubg',
+      points: 15,
+      timeLimit: 30,
     },
   ];
 
   private readonly miniGames: MiniGame[] = [
     {
       id: 'reaction_test',
-      name: 'Teste de Reação',
-      description: 'Seja o primeiro a reagir quando aparecer o emoji!',
+      name: 'Reflexos de Combate',
+      description: 'Teste seus reflexos como um verdadeiro guerreiro PUBG!',
       type: 'reaction',
       difficulty: 'easy',
       duration: 30,
@@ -202,8 +567,8 @@ export class GameService {
     },
     {
       id: 'typing_race',
-      name: 'Corrida de Digitação',
-      description: 'Digite a frase o mais rápido possível!',
+      name: 'Comunicação Rápida',
+      description: 'Digite comandos táticos o mais rápido possível!',
       type: 'typing',
       difficulty: 'medium',
       duration: 60,
@@ -211,8 +576,8 @@ export class GameService {
     },
     {
       id: 'math_challenge',
-      name: 'Desafio Matemático',
-      description: 'Resolva problemas matemáticos rapidamente!',
+      name: 'Cálculo de Dano',
+      description: 'Calcule danos e distâncias como um pro player!',
       type: 'math',
       difficulty: 'medium',
       duration: 45,
@@ -220,12 +585,30 @@ export class GameService {
     },
     {
       id: 'memory_game',
-      name: 'Jogo da Memória',
-      description: 'Memorize a sequência de emojis!',
+      name: 'Memorização de Mapas',
+      description: 'Memorize localizações e rotas estratégicas!',
       type: 'memory',
       difficulty: 'hard',
       duration: 90,
       rewards: { xp: 75, coins: 40 },
+    },
+    {
+      id: 'lootbox',
+      name: 'Lootbox Virtual',
+      description: 'Abra caixas virtuais e colete itens raros do PUBG!',
+      type: 'lootbox',
+      difficulty: 'easy',
+      duration: 45,
+      rewards: { xp: 30, coins: 15, badges: ['loot_hunter'] },
+    },
+    {
+      id: 'airdrop',
+      name: 'Drop Aéreo Clicável',
+      description: 'Seja o primeiro a clicar no drop aéreo quando ele aparecer!',
+      type: 'airdrop',
+      difficulty: 'medium',
+      duration: 60,
+      rewards: { xp: 60, coins: 35, badges: ['airdrop_master'] },
     },
   ];
 
@@ -1079,29 +1462,200 @@ export class GameService {
     // Get final results sorted by score
     const results = Array.from(session.participants.values()).sort((a, b) => b.score - a.score);
 
-    // Save results to database
+    // Award rewards to participants
     for (const participant of results) {
-      await this.database.client.gameResult.create({
-        data: {
-          challengeId: sessionId,
-          userId: participant.userId,
-          score: participant.score,
-          data: JSON.stringify({}), // Store participant data if available
-        },
-      });
+      try {
+        // Calculate XP based on performance
+        const xpService = (this.client as any).xpService;
+        
+        // Base XP for participation
+        let xpToAward = 20; // Base participation XP
+        let coinsToAward = 10; // Base coins
+        
+        if (xpService) {
+          // Bonus XP based on score and accuracy
+          const accuracyBonus = Math.floor((participant.correctAnswers / Math.max(participant.totalAnswers, 1)) * 30);
+          const scoreBonus = Math.floor(participant.score / 10); // 1 XP per 10 points
+          
+          // Ranking bonus (top performers get more XP)
+          const participantRank = results.findIndex(p => p.userId === participant.userId) + 1;
+          let rankingBonus = 0;
+          if (results.length > 1) {
+            if (participantRank === 1) {rankingBonus = 50;} // Winner bonus
+            else if (participantRank <= Math.ceil(results.length * 0.3)) {rankingBonus = 25;} // Top 30%
+            else if (participantRank <= Math.ceil(results.length * 0.5)) {rankingBonus = 10;} // Top 50%
+          }
+          
+          xpToAward += accuracyBonus + scoreBonus + rankingBonus;
+          coinsToAward += Math.floor(xpToAward / 4); // Coins based on XP
+          
+          // Award XP using QUIZ activity type
+          await xpService.addXP(participant.userId, 'QUIZ', 0, 1);
+          
+          this.logger.info(`Awarded ${xpToAward} XP to ${participant.userId} for quiz (accuracy: ${accuracyBonus}, score: ${scoreBonus}, rank: ${rankingBonus})`);
+        }
+
+        // Award coins based on performance
+        // Bonus coins based on score
+        const scoreCoins = Math.floor(participant.score / 20); // 1 coin per 20 points
+        
+        // Ranking bonus coins
+        const participantRank = results.findIndex(p => p.userId === participant.userId) + 1;
+        let rankingCoins = 0;
+        if (results.length > 1) {
+          if (participantRank === 1) {rankingCoins = 25;} // Winner bonus
+          else if (participantRank <= Math.ceil(results.length * 0.3)) {rankingCoins = 15;} // Top 30%
+          else if (participantRank <= Math.ceil(results.length * 0.5)) {rankingCoins = 8;} // Top 50%
+        }
+        
+        coinsToAward += scoreCoins + rankingCoins;
+        
+        // Update user coins in database
+        try {
+          await this.database.client.user.upsert({
+            where: { id: participant.userId },
+            update: {
+              coins: {
+                increment: coinsToAward,
+              },
+            },
+            create: {
+              id: participant.userId,
+              username: participant.username,
+              discriminator: '0000',
+              coins: coinsToAward,
+              xp: 0,
+              level: 1,
+              pubgUsername: '',
+              pubgPlatform: 'steam',
+            },
+          });
+          
+          this.logger.info(`Awarded ${coinsToAward} coins to ${participant.userId} for quiz performance`);
+        } catch (coinError) {
+          this.logger.error(`Failed to award coins to ${participant.userId}:`, coinError);
+        }
+
+        // Award badges for exceptional performance
+        const badgeService = this.client?.services?.badge;
+        if (badgeService) {
+          try {
+            // Perfect score badge
+            if (participant.correctAnswers === participant.totalAnswers && participant.totalAnswers > 0) {
+              await badgeService.awardBadge(participant.userId, 'quiz_perfectionist', true);
+              this.logger.info(`Awarded quiz_perfectionist badge to ${participant.userId}`);
+            }
+            
+            // Winner badge
+            if (participantRank === 1 && results.length > 1) {
+              await badgeService.awardBadge(participant.userId, 'quiz_champion', true);
+              this.logger.info(`Awarded quiz_champion badge to ${participant.userId}`);
+            }
+            
+            // High score badge
+            if (participant.score >= 100) {
+              await badgeService.awardBadge(participant.userId, 'quiz_master', true);
+              this.logger.info(`Awarded quiz_master badge to ${participant.userId}`);
+            }
+          } catch (badgeError) {
+            this.logger.error(`Failed to award badges to ${participant.userId}:`, badgeError);
+          }
+        }
+
+        // Update challenge progress
+        await this.updateChallengeProgress(participant.userId, 'quiz_score', participant.score);
+        
+        // Save results to database
+        await this.database.client.gameResult.create({
+          data: {
+            challengeId: sessionId,
+            userId: participant.userId,
+            score: participant.score,
+            timeSpent: Math.floor((new Date().getTime() - session.startedAt.getTime()) / 1000),
+            data: JSON.stringify({
+              correctAnswers: participant.correctAnswers,
+              totalAnswers: participant.totalAnswers,
+              accuracy: participant.correctAnswers / Math.max(participant.totalAnswers, 1),
+              streak: participant.streak,
+              rank: participantRank,
+              rewards: {
+                xp: xpToAward,
+                coins: coinsToAward,
+              },
+            }),
+          },
+        });
+      } catch (rewardError) {
+        this.logger.error(`Failed to award rewards to participant ${participant.userId}:`, rewardError);
+      }
     }
 
-    // Update challenge as completed
-    await this.database.client.challenge.update({
-      where: { id: sessionId },
-      data: {
-        isActive: false,
-      },
-    });
+    // Log detailed quiz completion event
+    const duration = Math.floor((new Date().getTime() - session.startedAt.getTime()) / 1000);
+    const totalXP = results.reduce((sum, p) => {
+      const participantRank = results.findIndex(r => r.userId === p.userId) + 1;
+      const xp = 20; // Base XP
+      const accuracyBonus = Math.floor((p.correctAnswers / Math.max(p.totalAnswers, 1)) * 30);
+      const scoreBonus = Math.floor(p.score / 10);
+      let rankingBonus = 0;
+      if (results.length > 1) {
+        if (participantRank === 1) {rankingBonus = 50;}
+        else if (participantRank <= Math.ceil(results.length * 0.3)) {rankingBonus = 25;}
+        else if (participantRank <= Math.ceil(results.length * 0.5)) {rankingBonus = 10;}
+      }
+      return sum + xp + accuracyBonus + scoreBonus + rankingBonus;
+    }, 0);
+    
+    const totalCoins = results.reduce((sum, p) => {
+      const participantRank = results.findIndex(r => r.userId === p.userId) + 1;
+      const coins = 10; // Base coins
+      const scoreCoins = Math.floor(p.score / 20);
+      let rankingCoins = 0;
+      if (results.length > 1) {
+        if (participantRank === 1) {rankingCoins = 25;}
+        else if (participantRank <= Math.ceil(results.length * 0.3)) {rankingCoins = 15;}
+        else if (participantRank <= Math.ceil(results.length * 0.5)) {rankingCoins = 8;}
+      }
+      return sum + coins + scoreCoins + rankingCoins;
+    }, 0);
+
+    // Use enhanced logging service
+    const loggingService = this.client?.services?.logging;
+    if (loggingService) {
+      await loggingService.logQuizEvent(
+        session.guildId,
+        'end',
+        session.hostId,
+        {
+          quizId: sessionId,
+          score: results[0]?.score || 0,
+          totalQuestions: session.questions.length,
+          participants: results.length,
+          duration,
+          xpAwarded: totalXP,
+          coinsAwarded: totalCoins,
+        },
+      );
+    }
+
+    // Update ranking statistics for each participant
+    const rankingService = this.client?.services?.ranking;
+    if (rankingService) {
+      for (const participant of results) {
+        await rankingService.updateQuizStats(
+          session.guildId,
+          participant.userId,
+          participant.score,
+          participant.correctAnswers,
+          session.questions.length,
+        );
+      }
+    }
 
     this.quizSessions.delete(sessionId);
 
     this.logger.game('QUIZ_ENDED', sessionId, results[0]?.userId || 'none', session.guildId);
+    this.logger.info(`Quiz ended with ${results.length} participants. Top score: ${results[0]?.score || 0}, Average: ${Math.round(results.reduce((sum, p) => sum + p.score, 0) / results.length)}, Duration: ${duration}s`);
 
     return results;
   }
@@ -1276,31 +1830,164 @@ export class GameService {
 
     const results = Array.from(session.participants.values()).sort((a, b) => b.score - a.score);
 
-    // Award rewards to winner
-    if (results.length > 0) {
-      const winner = results[0];
-      const game = this.miniGames.find(g => g.id === session.gameId);
+    // Get the mini game definition for rewards
+    const miniGame = this.miniGames.find(game => game.id === session.gameId);
+    if (!miniGame) {
+      this.logger.warn(`Mini game definition not found: ${session.gameId}`);
+      this.gameSessions.delete(sessionId);
+      return results;
+    }
 
-      if (game && winner) {
-        // Update challenge progress for winner
-        await this.updateChallengeProgress(winner.userId, 'mini_game_wins', 1);
+    // Award rewards to participants
+    for (const participant of results) {
+      try {
+        // Award XP based on participation and performance
+        const xpService = (this.client as any).xpService;
+        if (xpService && miniGame.rewards.xp > 0) {
+          // Base XP for participation
+          let xpToAward = miniGame.rewards.xp;
+          
+          // Bonus XP for good performance (top 50% of participants)
+          const participantRank = results.findIndex(p => p.userId === participant.userId) + 1;
+          const isTopPerformer = participantRank <= Math.ceil(results.length / 2);
+          
+          if (isTopPerformer && results.length > 1) {
+            xpToAward = Math.floor(xpToAward * 1.25); // 25% bonus for top performers
+          }
+          
+          // Award XP using the appropriate activity type
+          await xpService.addXP(participant.userId, 'ACHIEVEMENT', 0, 1);
+          
+          this.logger.info(`Awarded ${xpToAward} XP to ${participant.userId} for minigame ${miniGame.name}`);
+        }
+
+        // Award coins
+        if (miniGame.rewards.coins > 0) {
+          try {
+            let coinsToAward = miniGame.rewards.coins;
+            
+            // Bonus coins for top performers
+            const participantRank = results.findIndex(p => p.userId === participant.userId) + 1;
+            const isTopPerformer = participantRank <= Math.ceil(results.length / 2);
+            
+            if (isTopPerformer && results.length > 1) {
+              coinsToAward = Math.floor(coinsToAward * 1.25); // 25% bonus for top performers
+            }
+            
+            // Update user coins in database
+            await this.database.client.user.upsert({
+              where: { id: participant.userId },
+              update: {
+                coins: {
+                  increment: coinsToAward,
+                },
+              },
+              create: {
+                id: participant.userId,
+                username: participant.username,
+                discriminator: '0000',
+                coins: coinsToAward,
+                xp: 0,
+                level: 1,
+                pubgUsername: '',
+                pubgPlatform: 'steam',
+              },
+            });
+            
+            this.logger.info(`Awarded ${coinsToAward} coins to ${participant.userId} for minigame ${miniGame.name}`);
+          } catch (coinError) {
+            this.logger.error(`Failed to award coins to ${participant.userId}:`, coinError);
+          }
+        }
+
+        // Award badges if specified
+        if (miniGame.rewards.badges && miniGame.rewards.badges.length > 0) {
+          const badgeService = this.client?.services?.badge;
+          if (badgeService) {
+            for (const badgeId of miniGame.rewards.badges) {
+              try {
+                await badgeService.awardBadge(participant.userId, badgeId, true);
+                this.logger.info(`Awarded badge ${badgeId} to ${participant.userId} for minigame ${miniGame.name}`);
+              } catch (badgeError) {
+                this.logger.error(`Failed to award badge ${badgeId} to ${participant.userId}:`, badgeError);
+              }
+            }
+          }
+        }
+
+        // Update challenge progress for mini game wins
+        if (participant.score > 0) {
+          // Consider it a "win" if they scored points
+          await this.updateChallengeProgress(participant.userId, 'mini_game_wins', 1);
+        }
 
         // Save game result
         await this.database.client.gameResult.create({
           data: {
-            userId: winner.userId,
+            userId: participant.userId,
             challengeId: session.gameId, // Using gameId as challengeId
-            score: winner.score,
+            score: participant.score,
             timeSpent: Math.floor((new Date().getTime() - session.startedAt.getTime()) / 1000),
-            data: JSON.stringify({ gameType: game.type, rewards: game.rewards }),
+            data: JSON.stringify({ gameType: miniGame.type, rewards: miniGame.rewards }),
           },
         });
+      } catch (rewardError) {
+        this.logger.error(`Failed to award rewards to participant ${participant.userId}:`, rewardError);
       }
     }
 
-    this.gameSessions.delete(sessionId);
+    // Calculate total rewards awarded
+    const totalXpAwarded = results.reduce((sum, participant) => {
+      const miniGame = this.miniGames.find(g => g.id === session.gameId);
+      return sum + (miniGame?.rewards.xp || 0);
+    }, 0);
 
-    this.logger.game('MINI_GAME_ENDED', sessionId, results[0]?.userId || 'none', session.guildId);
+    const totalCoinsAwarded = results.reduce((sum, participant) => {
+      const miniGame = this.miniGames.find(g => g.id === session.gameId);
+      return sum + (miniGame?.rewards.coins || 0);
+    }, 0);
+
+    // Log detailed minigame event
+     const loggingService = this.client?.services?.logging;
+     if (loggingService) {
+       const miniGame = this.miniGames.find(g => g.id === session.gameId);
+       const duration = Math.floor((new Date().getTime() - session.startedAt.getTime()) / 1000);
+       
+       await loggingService.logMinigameEvent(
+          session.guildId,
+          'end',
+          session.hostId,
+          {
+            gameType: miniGame?.type || 'unknown',
+            gameId: session.gameId,
+            score: results[0]?.score || 0,
+            duration,
+            participants: results.length,
+            winner: results[0]?.userId,
+            xpAwarded: totalXpAwarded,
+            coinsAwarded: totalCoinsAwarded,
+            difficulty: miniGame?.difficulty || 'unknown',
+          },
+        );
+     }
+
+     // Update ranking statistics for each participant
+     const rankingService = this.client?.services?.ranking;
+     if (rankingService) {
+       const miniGame = this.miniGames.find(g => g.id === session.gameId);
+       for (const participant of results) {
+         const won = participant.score > 0; // Consider it a win if they scored points
+         await rankingService.updateMiniGameStats(
+           session.guildId,
+           participant.userId,
+           miniGame?.type || 'unknown',
+           participant.score,
+           won,
+         );
+       }
+     }
+
+    this.gameSessions.delete(sessionId);
 
     return results;
   }

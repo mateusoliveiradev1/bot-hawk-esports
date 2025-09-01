@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
 import {
   BarChart,
   Bar,
@@ -12,7 +12,7 @@ import {
   PieChart,
   Pie,
   Cell,
-} from 'recharts'
+} from 'recharts';
 import {
   Activity,
   Bot,
@@ -20,18 +20,18 @@ import {
   Server,
   TrendingUp,
   Users,
-} from 'lucide-react'
-import { RefreshCw } from 'lucide-react'
-import { formatNumber } from '../lib/utils'
-import { apiService, type GuildStats } from '../services/api'
-import { useWebSocket } from '../hooks/useWebSocket'
+} from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
+import { formatNumber } from '../lib/utils';
+import { apiService, type GuildStats } from '../services/api';
+import { useWebSocket } from '../hooks/useWebSocket';
 import { 
   StatCardSkeleton, 
   ChartSkeleton, 
 
   useToast,
-  toast
-} from '../components/ui'
+  toast,
+} from '../components/ui';
 
 // Real-time data will be fetched from API - no more mock data
 
@@ -44,7 +44,7 @@ function StatCard({ title, value, icon: Icon, trend, trendValue, isLoading }: {
   isLoading?: boolean
 }) {
   if (isLoading) {
-    return <StatCardSkeleton />
+    return <StatCardSkeleton />;
   }
 
   return (
@@ -71,31 +71,31 @@ function StatCard({ title, value, icon: Icon, trend, trendValue, isLoading }: {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 const mockGuildTypes = [
   { name: 'Gaming', value: 45, color: '#3B82F6' },
   { name: 'Community', value: 30, color: '#10B981' },
   { name: 'Music', value: 15, color: '#8B5CF6' },
-  { name: 'Other', value: 10, color: '#F59E0B' }
+  { name: 'Other', value: 10, color: '#F59E0B' },
 ];
 
 export default function Dashboard() {
-  const [stats, setStats] = useState<GuildStats | null>(null)
-  const [commandUsage, setCommandUsage] = useState<any[]>([])
-  const [activityData, setActivityData] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-  const [, setError] = useState<string | null>(null)
-  const { addToast } = useToast()
+  const [stats, setStats] = useState<GuildStats | null>(null);
+  const [commandUsage, setCommandUsage] = useState<any[]>([]);
+  const [activityData, setActivityData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [, setError] = useState<string | null>(null);
+  const { addToast } = useToast();
   
   
   // Use the guild ID from environment
-  const guildId = import.meta.env.VITE_GUILD_ID || '1409723307489755270'
+  const guildId = import.meta.env.VITE_GUILD_ID || '1409723307489755270';
   
   // WebSocket connection for real-time updates
-  const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3002'
+  const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3002';
   const { lastMessage, sendMessage } = useWebSocket(wsUrl, {
     onOpen: () => {
       console.log('WebSocket connected');
@@ -109,18 +109,18 @@ export default function Dashboard() {
   const fetchStats = async (isManualRefresh = false) => {
     try {
       if (isManualRefresh) {
-        setRefreshing(true)
+        setRefreshing(true);
       } else {
-        setLoading(true)
+        setLoading(true);
       }
       
       // Fetch real data from API
       const [guildStats, commands] = await Promise.all([
         apiService.getGuildStats(guildId),
-        apiService.getCommands()
-      ])
+        apiService.getCommands(),
+      ]);
       
-      setStats(guildStats)
+      setStats(guildStats);
       
       // Process command usage data (top 8 commands)
       if (commands && commands.length > 0) {
@@ -129,55 +129,55 @@ export default function Dashboard() {
           .slice(0, 8)
           .map(cmd => ({
             name: cmd.name,
-            count: cmd.usageCount || 0
-          }))
-        setCommandUsage(sortedCommands)
+            count: cmd.usageCount || 0,
+          }));
+        setCommandUsage(sortedCommands);
       }
       
       // Generate activity data for last 24h (mock for now, can be replaced with real data)
-      const now = new Date()
-      const activityPoints = []
+      const now = new Date();
+      const activityPoints = [];
       for (let i = 23; i >= 0; i--) {
-        const time = new Date(now.getTime() - i * 60 * 60 * 1000)
-        const hour = time.getHours().toString().padStart(2, '0') + ':00'
+        const time = new Date(now.getTime() - i * 60 * 60 * 1000);
+        const hour = time.getHours().toString().padStart(2, '0') + ':00';
         // This would ideally come from real analytics data
-        const commands = Math.floor(Math.random() * 200) + 50
-        activityPoints.push({ time: hour, commands })
+        const commands = Math.floor(Math.random() * 200) + 50;
+        activityPoints.push({ time: hour, commands });
       }
-      setActivityData(activityPoints)
+      setActivityData(activityPoints);
       
-      setError(null)
+      setError(null);
       
       if (isManualRefresh) {
-        addToast(toast.success('Dados atualizados com sucesso!'))
+        addToast(toast.success('Dados atualizados com sucesso!'));
       }
     } catch (err) {
-      console.error('Failed to fetch stats:', err)
-      setError('Falha ao carregar estatísticas')
+      console.error('Failed to fetch stats:', err);
+      setError('Falha ao carregar estatísticas');
       
       if (isManualRefresh) {
-        addToast(toast.error('Erro ao atualizar dados', 'Tente novamente em alguns instantes'))
+        addToast(toast.error('Erro ao atualizar dados', 'Tente novamente em alguns instantes'));
       }
     } finally {
-      setLoading(false)
-      setRefreshing(false)
+      setLoading(false);
+      setRefreshing(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchStats()
+    fetchStats();
     
     // Refresh stats every 30 seconds
-    const interval = setInterval(() => fetchStats(), 30000)
-    return () => clearInterval(interval)
-  }, [guildId])
+    const interval = setInterval(() => fetchStats(), 30000);
+    return () => clearInterval(interval);
+  }, [guildId]);
   
   // Handle WebSocket messages for real-time updates
    useEffect(() => {
      if (lastMessage && lastMessage.type === 'stats') {
        setStats(lastMessage.data);
      }
-   }, [lastMessage])
+   }, [lastMessage]);
 
   return (
     <div className="space-y-6">
@@ -395,5 +395,5 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
-  )
+  );
 }

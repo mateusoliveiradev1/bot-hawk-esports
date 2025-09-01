@@ -10,7 +10,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({ className }) => {
     <div
       className={cn(
         'animate-pulse rounded-md bg-muted',
-        className
+        className,
       )}
     />
   );

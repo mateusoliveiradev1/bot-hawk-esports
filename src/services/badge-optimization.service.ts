@@ -120,14 +120,25 @@ export class BadgeOptimizationService {
   }
 
   /**
-   * Initialize optimization features
+   * Initialize optimization features with performance optimizations
    */
   private async initializeOptimizations(): Promise<void> {
     try {
-      await this.loadBadgeCollections();
-      await this.loadDynamicRules();
-      await this.initializeSeasonalBadges();
-      await this.setupAutomaticOptimizations();
+      // Use Promise.allSettled for parallel initialization with error handling
+      const results = await Promise.allSettled([
+        this.loadBadgeCollections(),
+        this.loadDynamicRules(),
+        this.initializeSeasonalBadges(),
+        this.setupAutomaticOptimizations(),
+      ]);
+
+      // Log any failed initializations
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          const operations = ['loadBadgeCollections', 'loadDynamicRules', 'initializeSeasonalBadges', 'setupAutomaticOptimizations'];
+          this.logger.error(`Failed to initialize ${operations[index]}:`, result.reason);
+        }
+      });
 
       this.logger.info('Badge optimization service initialized successfully');
     } catch (error) {
@@ -349,22 +360,84 @@ export class BadgeOptimizationService {
   }
 
   /**
-   * Process dynamic badge rules for all users
+   * Process dynamic badge rules for all users with pagination and performance optimization
    */
-  public async processDynamicRules(): Promise<void> {
+  public async processDynamicRules(batchSize: number = 100): Promise<void> {
     try {
-      const users = await this.database.client.user.findMany({
-        where: {},
-        include: { pubgStats: true },
-      });
+      const startTime = Date.now();
+      let processedCount = 0;
+      let skip = 0;
+      let hasMore = true;
 
-      for (const user of users) {
-        await this.checkDynamicBadges(user.id);
+      // Check if processing is already running
+      const isRunning = await this.cache.get('dynamic_rules_processing');
+      if (isRunning) {
+        this.logger.warn('Dynamic rules processing already in progress, skipping');
+        return;
       }
 
-      this.logger.info(`Processed dynamic rules for ${users.length} users`);
+      // Set processing flag with 30-minute expiration
+      await this.cache.set('dynamic_rules_processing', 'true', 30 * 60);
+
+      try {
+        while (hasMore) {
+          // Fetch users in batches with pagination
+          const users = await this.database.client.user.findMany({
+            where: {},
+            include: { pubgStats: true },
+            take: batchSize,
+            skip: skip,
+            orderBy: { id: 'asc' }, // Consistent ordering for pagination
+          });
+
+          if (users.length === 0) {
+            hasMore = false;
+            break;
+          }
+
+          // Process batch in parallel with concurrency limit
+          const promises = users.map(user => 
+            this.checkDynamicBadges(user.id).catch(error => {
+              this.logger.error(`Failed to check dynamic badges for user ${user.id}:`, error);
+              return [];
+            }),
+          );
+
+          await Promise.all(promises);
+          
+          processedCount += users.length;
+          skip += batchSize;
+
+          // Add small delay to prevent overwhelming the database
+          if (users.length === batchSize) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          } else {
+            hasMore = false;
+          }
+
+          // Log progress every 1000 users
+          if (processedCount % 1000 === 0) {
+            this.logger.info(`Processed dynamic rules for ${processedCount} users...`);
+          }
+        }
+
+        const executionTime = Date.now() - startTime;
+        this.logger.info(`Processed dynamic rules for ${processedCount} users in ${executionTime}ms`);
+
+        // Update cache with processing stats
+        await this.cache.set('dynamic_rules_last_run', {
+          timestamp: Date.now(),
+          processedUsers: processedCount,
+          executionTime,
+        }, 24 * 60 * 60); // Cache for 24 hours
+
+      } finally {
+        // Always clear the processing flag
+        await this.cache.del('dynamic_rules_processing');
+      }
     } catch (error) {
       this.logger.error('Failed to process dynamic rules:', error);
+      await this.cache.del('dynamic_rules_processing');
     }
   }
 

@@ -32,13 +32,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           baseClasses,
           variants[variant],
           sizes[size],
-          className
+          className,
         )}
         ref={ref}
         {...props}
       />
     );
-  }
+  },
 );
 
 Button.displayName = 'Button';

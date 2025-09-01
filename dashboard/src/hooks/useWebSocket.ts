@@ -20,7 +20,7 @@ interface UseWebSocketOptions {
  */
 export function useWebSocket(
   url: string,
-  options: UseWebSocketOptions = {}
+  options: UseWebSocketOptions = {},
 ) {
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
@@ -163,7 +163,7 @@ export function useDashboardWebSocket(guildId: string) {
       },
       reconnectAttempts: 3,
       reconnectInterval: 5000,
-    }
+    },
   );
 
   // Handle incoming messages
@@ -204,6 +204,6 @@ export function useDashboardWebSocket(guildId: string) {
     stats,
     users,
     activities,
-    sendMessage
+    sendMessage,
   };
 }

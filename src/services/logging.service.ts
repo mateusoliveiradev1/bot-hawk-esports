@@ -106,6 +106,25 @@ export enum LogType {
   API_REQUEST = 'api_request',
   API_ERROR = 'api_error',
   API_SUCCESS = 'api_success',
+  // Game-related logs
+  QUIZ_START = 'quiz_start',
+  QUIZ_END = 'quiz_end',
+  QUIZ_ANSWER = 'quiz_answer',
+  MINIGAME_START = 'minigame_start',
+  MINIGAME_END = 'minigame_end',
+  MINIGAME_WIN = 'minigame_win',
+  // Rewards and progression
+  XP_AWARDED = 'xp_awarded',
+  COINS_AWARDED = 'coins_awarded',
+  BADGE_EARNED = 'badge_earned',
+  LEVEL_UP = 'level_up',
+  // Rankings and statistics
+  RANKING_UPDATE = 'ranking_update',
+  STATS_SNAPSHOT = 'stats_snapshot',
+  LEADERBOARD_CHANGE = 'leaderboard_change',
+  // Performance and system
+  PERFORMANCE_METRIC = 'performance_metric',
+  SYSTEM_HEALTH = 'system_health',
 }
 
 export interface ModerationLogData {
@@ -1625,6 +1644,271 @@ export class LoggingService {
         error,
         timestamp: new Date().toISOString(),
         ...additionalData,
+      },
+    });
+  }
+
+  /**
+   * Log quiz events
+   */
+  public async logQuizEvent(
+    guildId: string,
+    type: 'start' | 'end' | 'answer',
+    userId: string,
+    quizData: {
+      quizId?: string;
+      question?: string;
+      answer?: string;
+      correct?: boolean;
+      score?: number;
+      totalQuestions?: number;
+      participants?: number;
+      duration?: number;
+      xpAwarded?: number;
+      coinsAwarded?: number;
+    },
+  ): Promise<void> {
+    const logTypes = {
+      start: LogType.QUIZ_START,
+      end: LogType.QUIZ_END,
+      answer: LogType.QUIZ_ANSWER,
+    };
+
+    const content = {
+      start: `Quiz iniciado por <@${userId}>`,
+      end: `Quiz finalizado - ${quizData.participants || 0} participantes`,
+      answer: `Resposta ${quizData.correct ? 'correta' : 'incorreta'} de <@${userId}>`,
+    };
+
+    await this.queueLog({
+      guildId,
+      type: logTypes[type],
+      userId,
+      content: content[type],
+      metadata: {
+        ...quizData,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }
+
+  /**
+   * Log minigame events
+   */
+  public async logMinigameEvent(
+    guildId: string,
+    type: 'start' | 'end' | 'win',
+    userId: string,
+    gameData: {
+      gameType?: string;
+      gameId?: string;
+      score?: number;
+      duration?: number;
+      participants?: number;
+      winner?: string;
+      xpAwarded?: number;
+      coinsAwarded?: number;
+      difficulty?: string;
+    },
+  ): Promise<void> {
+    const logTypes = {
+      start: LogType.MINIGAME_START,
+      end: LogType.MINIGAME_END,
+      win: LogType.MINIGAME_WIN,
+    };
+
+    const content = {
+      start: `Minigame ${gameData.gameType || 'desconhecido'} iniciado por <@${userId}>`,
+      end: `Minigame finalizado - ${gameData.participants || 0} participantes`,
+      win: `<@${userId}> venceu o minigame ${gameData.gameType || 'desconhecido'}`,
+    };
+
+    await this.queueLog({
+      guildId,
+      type: logTypes[type],
+      userId,
+      content: content[type],
+      metadata: {
+        ...gameData,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }
+
+  /**
+   * Log reward events
+   */
+  public async logRewardEvent(
+    guildId: string,
+    type: 'xp' | 'coins' | 'badge' | 'level_up',
+    userId: string,
+    rewardData: {
+      amount?: number;
+      badgeType?: string;
+      badgeName?: string;
+      newLevel?: number;
+      oldLevel?: number;
+      source?: string;
+      reason?: string;
+      multiplier?: number;
+    },
+  ): Promise<void> {
+    const logTypes = {
+      xp: LogType.XP_AWARDED,
+      coins: LogType.COINS_AWARDED,
+      badge: LogType.BADGE_EARNED,
+      level_up: LogType.LEVEL_UP,
+    };
+
+    const content = {
+      xp: `<@${userId}> ganhou ${rewardData.amount || 0} XP`,
+      coins: `<@${userId}> ganhou ${rewardData.amount || 0} moedas`,
+      badge: `<@${userId}> conquistou o badge "${rewardData.badgeName || 'Desconhecido'}"`,
+      level_up: `<@${userId}> subiu para o nível ${rewardData.newLevel || 0}`,
+    };
+
+    await this.queueLog({
+      guildId,
+      type: logTypes[type],
+      userId,
+      content: content[type],
+      metadata: {
+        ...rewardData,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }
+
+  /**
+   * Log ranking and statistics events
+   */
+  public async logRankingEvent(
+    guildId: string,
+    type: 'update' | 'snapshot' | 'leaderboard_change',
+    data: {
+      userId?: string;
+      rankingType?: 'pubg' | 'internal' | 'hybrid';
+      oldRank?: number;
+      newRank?: number;
+      period?: string;
+      totalUsers?: number;
+      topUsers?: string[];
+      snapshotId?: string;
+    },
+  ): Promise<void> {
+    const logTypes = {
+      update: LogType.RANKING_UPDATE,
+      snapshot: LogType.STATS_SNAPSHOT,
+      leaderboard_change: LogType.LEADERBOARD_CHANGE,
+    };
+
+    const content = {
+      update: data.userId 
+        ? `Ranking atualizado para <@${data.userId}> (${data.oldRank || 0} → ${data.newRank || 0})`
+        : `Rankings atualizados para ${data.totalUsers || 0} usuários`,
+      snapshot: `Snapshot de estatísticas criado (${data.period || 'período desconhecido'})`,
+      leaderboard_change: `Mudança no leaderboard ${data.rankingType || 'geral'}`,
+    };
+
+    await this.queueLog({
+      guildId,
+      type: logTypes[type],
+      userId: data.userId,
+      content: content[type],
+      metadata: {
+        ...data,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }
+
+  /**
+   * Log statistics updates
+   */
+  public async logStatisticsUpdate(
+    guildId: string,
+    data: {
+      userId: string;
+      statType: string;
+      oldValue?: number;
+      newValue: number;
+      change?: number;
+      source?: string;
+    },
+  ): Promise<void> {
+    await this.queueLog({
+      guildId,
+      type: LogType.RANKING_UPDATE,
+      userId: data.userId,
+      content: `Statistics update: ${data.statType} changed from ${data.oldValue} to ${data.newValue}`,
+      metadata: {
+        statType: data.statType,
+        oldValue: data.oldValue,
+        newValue: data.newValue,
+        change: data.change,
+        source: data.source,
+      },
+    });
+  }
+
+  /**
+   * Log performance metrics
+   */
+  public async logPerformanceMetric(
+    guildId: string,
+    metric: {
+      name: string;
+      value: number;
+      unit?: string;
+      category?: 'response_time' | 'memory_usage' | 'cpu_usage' | 'database' | 'api' | 'custom';
+      threshold?: number;
+      status?: 'normal' | 'warning' | 'critical';
+      details?: any;
+    },
+  ): Promise<void> {
+    const status = metric.status || 'normal';
+    const content = `Métrica ${metric.name}: ${metric.value}${metric.unit || ''} (${status})`;
+
+    await this.queueLog({
+      guildId,
+      type: LogType.PERFORMANCE_METRIC,
+      content,
+      metadata: {
+        ...metric,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }
+
+  /**
+   * Log system health status
+   */
+  public async logSystemHealth(
+    guildId: string,
+    healthData: {
+      status: 'healthy' | 'degraded' | 'unhealthy';
+      services: {
+        name: string;
+        status: 'up' | 'down' | 'degraded';
+        responseTime?: number;
+        lastCheck?: Date;
+      }[];
+      uptime?: number;
+      memoryUsage?: number;
+      cpuUsage?: number;
+      activeConnections?: number;
+      queueSizes?: { [key: string]: number };
+    },
+  ): Promise<void> {
+    const content = `Status do sistema: ${healthData.status.toUpperCase()}`;
+
+    await this.queueLog({
+      guildId,
+      type: LogType.SYSTEM_HEALTH,
+      content,
+      metadata: {
+        ...healthData,
+        timestamp: new Date().toISOString(),
       },
     });
   }

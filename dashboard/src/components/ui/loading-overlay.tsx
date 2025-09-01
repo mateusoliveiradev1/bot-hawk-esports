@@ -19,7 +19,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   spinnerSize = 'lg',
   variant = 'spinner',
   message,
-  blur = true
+  blur = true,
 }) => {
   const renderLoader = () => {
     switch (variant) {
@@ -39,7 +39,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className={cn(
             'flex flex-col items-center space-y-4 p-6 rounded-lg bg-card border shadow-lg',
-            blur && 'backdrop-blur-md'
+            blur && 'backdrop-blur-md',
           )}>
             {renderLoader()}
             {message && (
@@ -121,7 +121,7 @@ export const ButtonLoader: React.FC<{
     <button
       className={cn(
         'relative inline-flex items-center justify-center',
-        className
+        className,
       )}
       disabled={disabled || isLoading}
     >

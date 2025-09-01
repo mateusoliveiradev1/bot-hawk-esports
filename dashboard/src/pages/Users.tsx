@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
 import {
   Search,
   Filter,
@@ -7,9 +7,9 @@ import {
   User,
   Calendar,
   Activity,
-} from 'lucide-react'
-import { formatDate, formatRelativeTime } from '../lib/utils'
-import { apiService, type Guild } from '../services/api'
+} from 'lucide-react';
+import { formatDate, formatRelativeTime } from '../lib/utils';
+import { apiService, type Guild } from '../services/api';
 
 // Mock data removed - using guild.users instead
 
@@ -17,30 +17,30 @@ const statusColors = {
   online: 'bg-success-500',
   away: 'bg-warning-500',
   offline: 'bg-secondary-400',
-}
+};
 
 // Badge colors removed - not currently used
 
 export default function Users() {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterStatus, setFilterStatus] = useState('all')
-  const [guild, setGuild] = useState<Guild | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [guild, setGuild] = useState<Guild | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Use the guild ID from environment
-  const guildId = '1409723307489755270' // Guild ID from .env
+  const guildId = '1409723307489755270'; // Guild ID from .env
   
   useEffect(() => {
     const fetchGuildData = async () => {
       try {
-        setLoading(true)
-        const guildData = await apiService.getGuild(guildId)
-        setGuild(guildData)
-        setError(null)
+        setLoading(true);
+        const guildData = await apiService.getGuild(guildId);
+        setGuild(guildData);
+        setError(null);
       } catch (err) {
-        console.error('Failed to fetch guild data:', err)
-        setError('Falha ao carregar dados dos usuários')
+        console.error('Failed to fetch guild data:', err);
+        setError('Falha ao carregar dados dos usuários');
         // Fallback to mock data
         setGuild({
           id: guildId,
@@ -57,10 +57,10 @@ export default function Users() {
                 totalXp: 125430,
                 coins: 2450,
                 lastSeen: '2024-01-20T14:22:00Z',
-                joinedAt: '2024-01-15T10:30:00Z'
+                joinedAt: '2024-01-15T10:30:00Z',
               },
               isActive: true,
-              joinedAt: '2024-01-15T10:30:00Z'
+              joinedAt: '2024-01-15T10:30:00Z',
             },
             {
               user: {
@@ -71,26 +71,26 @@ export default function Users() {
                 totalXp: 89230,
                 coins: 1890,
                 lastSeen: '2024-01-20T12:45:00Z',
-                joinedAt: '2024-01-10T08:15:00Z'
+                joinedAt: '2024-01-10T08:15:00Z',
               },
               isActive: true,
-              joinedAt: '2024-01-10T08:15:00Z'
-            }
-          ]
-        })
+              joinedAt: '2024-01-10T08:15:00Z',
+            },
+          ],
+        });
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
     
-    fetchGuildData()
+    fetchGuildData();
     
     // Refresh data every 60 seconds
-    const interval = setInterval(fetchGuildData, 60000)
-    return () => clearInterval(interval)
-  }, [guildId])
+    const interval = setInterval(fetchGuildData, 60000);
+    return () => clearInterval(interval);
+  }, [guildId]);
 
-  const users = guild?.users || []
+  const users = guild?.users || [];
 
   // Remove the problematic useQuery since we're using guild.users directly
    // const { data: mockUsers } = useQuery({
@@ -99,13 +99,13 @@ export default function Users() {
    // });
 
   const filteredUsers = users.filter(userGuild => {
-    const user = userGuild.user
-    const matchesSearch = user.username.toLowerCase().includes(searchTerm.toLowerCase())
-    const isOnline = user.lastSeen && new Date(user.lastSeen) > new Date(Date.now() - 5 * 60 * 1000)
-    const status = userGuild.isActive ? (isOnline ? 'online' : 'offline') : 'offline'
-    const matchesStatus = filterStatus === 'all' || status === filterStatus
-    return matchesSearch && matchesStatus
-  })
+    const user = userGuild.user;
+    const matchesSearch = user.username.toLowerCase().includes(searchTerm.toLowerCase());
+    const isOnline = user.lastSeen && new Date(user.lastSeen) > new Date(Date.now() - 5 * 60 * 1000);
+    const status = userGuild.isActive ? (isOnline ? 'online' : 'offline') : 'offline';
+    const matchesStatus = filterStatus === 'all' || status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="space-y-6">
@@ -241,9 +241,9 @@ export default function Users() {
               </thead>
               <tbody className="bg-white divide-y divide-secondary-200">
                 {filteredUsers.map((userGuild) => {
-                  const user = userGuild.user
-                  const isOnline = user.lastSeen && new Date(user.lastSeen) > new Date(Date.now() - 5 * 60 * 1000)
-                  const status = userGuild.isActive ? (isOnline ? 'online' : 'offline') : 'offline'
+                  const user = userGuild.user;
+                  const isOnline = user.lastSeen && new Date(user.lastSeen) > new Date(Date.now() - 5 * 60 * 1000);
+                  const status = userGuild.isActive ? (isOnline ? 'online' : 'offline') : 'offline';
                   
                   return (
                     <tr key={user.id} className="hover:bg-secondary-50">
@@ -294,7 +294,7 @@ export default function Users() {
                         </button>
                       </td>
                     </tr>
-                  )
+                  );
                 })}
               </tbody>
             </table>
@@ -302,5 +302,5 @@ export default function Users() {
         </div>
       </div>
     </div>
-  )
+  );
 }

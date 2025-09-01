@@ -69,7 +69,7 @@ const Login: React.FC = () => {
         >
           <motion.div 
             animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
             className="w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"
           >
             <Bot className="w-8 h-8 text-white" />
@@ -95,7 +95,7 @@ const Login: React.FC = () => {
           transition={{
             duration: 20,
             repeat: Infinity,
-            ease: "linear"
+            ease: 'linear',
           }}
           className="absolute top-1/4 left-1/4 w-64 h-64 bg-purple-200/30 rounded-full blur-3xl"
         />
@@ -107,7 +107,7 @@ const Login: React.FC = () => {
           transition={{
             duration: 25,
             repeat: Infinity,
-            ease: "linear"
+            ease: 'linear',
           }}
           className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl"
         />
@@ -164,7 +164,7 @@ const Login: React.FC = () => {
                 { icon: Users, title: 'Gestão de Usuários', desc: 'Controle completo sobre membros' },
                 { icon: Activity, title: 'Analytics', desc: 'Estatísticas detalhadas em tempo real' },
                 { icon: Shield, title: 'Sistema de Badges', desc: 'Rankings e conquistas' },
-                { icon: Zap, title: 'Automação', desc: 'Comandos e respostas automáticas' }
+                { icon: Zap, title: 'Automação', desc: 'Comandos e respostas automáticas' },
               ].map((feature, index) => (
                 <motion.div
                   key={feature.title}
@@ -247,7 +247,7 @@ const Login: React.FC = () => {
                   {isProcessing ? (
                     <motion.div 
                       animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                       className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
                     />
                   ) : (

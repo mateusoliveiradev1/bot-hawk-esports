@@ -78,6 +78,10 @@ export class MusicService {
   private players: Map<string, AudioPlayer> = new Map();
   private queues: Map<string, Queue> = new Map();
   private spotify: SpotifyApi | null = null;
+  
+  // Debouncing for database saves to prevent excessive writes
+  private saveQueueTimeouts: Map<string, NodeJS.Timeout> = new Map();
+  private readonly SAVE_DEBOUNCE_MS = 2000; // 2 seconds debounce
 
   private readonly filters: MusicFilters = {
     bassboost: 'bass=g=20,dynaudnorm=f=200',
@@ -126,17 +130,140 @@ export class MusicService {
   }
 
   /**
-   * Initialize all music services
+   * Initialize all music services with improved error handling and performance
    */
   private async initializeServices(): Promise<void> {
     try {
-      await Promise.allSettled([
+      const initPromises = [
         this.initializePlayDl(),
         this.initializeSpotify(),
         this.loadQueuesFromDatabase(),
-      ]);
+      ];
+
+      const results = await Promise.allSettled(initPromises);
+      
+      // Log initialization results
+      const services = ['PlayDl', 'Spotify', 'Database Queues'];
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          this.logger.error(`Failed to initialize ${services[index]}:`, result.reason);
+        } else {
+          this.logger.debug(`✅ ${services[index]} initialized successfully`);
+        }
+      });
+
+      // Set up cleanup intervals to prevent memory leaks
+      this.setupCleanupIntervals();
+      
     } catch (error) {
       this.logger.error('Error during service initialization:', error);
+    }
+  }
+
+  /**
+   * Setup cleanup intervals to prevent memory leaks
+   */
+  private setupCleanupIntervals(): void {
+    // Clean up inactive connections every 5 minutes
+    setInterval(() => {
+      this.cleanupInactiveConnections();
+    }, 5 * 60 * 1000);
+
+    // Clean up old queue data every 30 minutes
+    setInterval(() => {
+      this.cleanupOldQueues();
+    }, 30 * 60 * 1000);
+
+    // Clean up cache every hour
+    setInterval(() => {
+      this.cleanupCache();
+    }, 60 * 60 * 1000);
+  }
+
+  /**
+   * Clean up inactive voice connections
+   */
+  private cleanupInactiveConnections(): void {
+    try {
+      const now = Date.now();
+      const inactiveThreshold = 10 * 60 * 1000; // 10 minutes
+
+      for (const [guildId, connection] of this.connections.entries()) {
+        if (connection.state.status === VoiceConnectionStatus.Destroyed ||
+            connection.state.status === VoiceConnectionStatus.Disconnected) {
+          this.logger.debug(`Cleaning up inactive connection for guild ${guildId}`);
+          this.cleanup(guildId);
+        }
+      }
+    } catch (error) {
+      this.logger.error('Error during connection cleanup:', error);
+    }
+  }
+
+  /**
+   * Clean up old queue data
+   */
+  private cleanupOldQueues(): void {
+    try {
+      const now = Date.now();
+      const oldThreshold = 24 * 60 * 60 * 1000; // 24 hours
+
+      for (const [guildId, queue] of this.queues.entries()) {
+        if (!queue.isPlaying && queue.tracks.length === 0) {
+          const lastActivity = queue.tracks[queue.tracks.length - 1]?.addedAt?.getTime() || 0;
+          if (now - lastActivity > oldThreshold) {
+            this.logger.debug(`Cleaning up old queue for guild ${guildId}`);
+            this.queues.delete(guildId);
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.error('Error during queue cleanup:', error);
+    }
+  }
+
+  /**
+   * Clean up cache entries
+   */
+  private cleanupCache(): void {
+    try {
+      const now = Date.now();
+      let cleanedStreams = 0;
+      let cleanedActive = 0;
+
+      // Clean expired stream cache entries
+      for (const [key, value] of this.streamCache.entries()) {
+        if (value.expires < now) {
+          this.streamCache.delete(key);
+          cleanedStreams++;
+        }
+      }
+
+      // Check for potentially stale active streams (older than 5 minutes)
+      const staleThreshold = now - (5 * 60 * 1000);
+      for (const [key, promise] of this.activeStreams.entries()) {
+        // If promise is resolved or rejected, we can remove it
+        Promise.resolve(promise).then(() => {
+          if (this.activeStreams.get(key) === promise) {
+            this.activeStreams.delete(key);
+            cleanedActive++;
+          }
+        }).catch(() => {
+          if (this.activeStreams.get(key) === promise) {
+            this.activeStreams.delete(key);
+            cleanedActive++;
+          }
+        });
+      }
+
+      // Clean general cache if available
+      if (this.cache && typeof this.cache.cleanup === 'function') {
+        this.cache.cleanup();
+      }
+
+      this.logger.debug(`Cache cleanup completed - Streams: ${cleanedStreams}, Active: ${cleanedActive}`);
+    } catch (error) {
+      this.logger.error('Error during cache cleanup:', error);
     }
   }
 
@@ -410,6 +537,27 @@ export class MusicService {
       return 'spotify';
     }
     return 'youtube'; // Default to YouTube
+  }
+
+  /**
+   * Debounced save queue to database to prevent excessive writes
+   */
+  private debouncedSaveQueue(guildId: string): void {
+    // Clear existing timeout for this guild
+    const existingTimeout = this.saveQueueTimeouts.get(guildId);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+    }
+
+    // Set new timeout
+    const timeout = setTimeout(() => {
+      this.saveQueueToDatabase(guildId).catch(error => {
+        this.logger.error(`Error in debounced save for guild ${guildId}:`, error);
+      });
+      this.saveQueueTimeouts.delete(guildId);
+    }, this.SAVE_DEBOUNCE_MS);
+
+    this.saveQueueTimeouts.set(guildId, timeout);
   }
 
   /**
@@ -897,20 +1045,20 @@ export class MusicService {
             this.logger.warn(`Failed to play next track in guild ${guildId}`);
             queue.currentTrack = null;
             queue.isPlaying = false;
-            await this.saveQueueToDatabase(guildId);
+            await this.debouncedSaveQueue(guildId);
           }
         } else {
           this.logger.warn(`Next track is null for guild ${guildId}`);
           queue.currentTrack = null;
           queue.isPlaying = false;
-          await this.saveQueueToDatabase(guildId);
+          await this.debouncedSaveQueue(guildId);
         }
       } else {
         this.logger.debug(`No more tracks in queue for guild ${guildId}, ending playback`);
         queue.currentTrack = null;
         queue.isPlaying = false;
         queue.isPaused = false;
-        await this.saveQueueToDatabase(guildId);
+        await this.debouncedSaveQueue(guildId);
       }
     } catch (error) {
       this.logger.error(`Error handling track end for guild ${guildId}:`, error);
@@ -1398,7 +1546,7 @@ export class MusicService {
 
       // Save to database with error handling
       try {
-        await this.saveQueueToDatabase(guildId);
+        await this.debouncedSaveQueue(guildId);
       } catch (dbError) {
         this.logger.error(`Failed to save queue to database for guild ${guildId}:`, dbError);
         // Don't throw here, track is already added to memory
@@ -1544,6 +1692,10 @@ export class MusicService {
   /**
    * Create YouTube stream using yt-dlp + play-dl hybrid approach
    */
+  // Stream URL cache to prevent repeated API calls
+  private streamCache = new Map<string, { url: string; expires: number }>();
+  private activeStreams = new Map<string, Promise<AudioResource | null>>();
+
   private async createYouTubeStream(url: string): Promise<AudioResource | null> {
     try {
       // Input validation
@@ -1564,20 +1716,14 @@ export class MusicService {
         return null;
       }
 
-      this.logger.info(`🎵 Creating YouTube stream for: \`${trimmedUrl}\``);
-
-      // More robust URL cleaning
-      let cleanUrl = trimmedUrl;
-
-      // Extract video ID from various YouTube URL formats
+      // Extract video ID for caching
       let videoId = '';
-
-      if (cleanUrl.includes('youtube.com/watch?v=')) {
-        videoId = cleanUrl.split('v=')[1]?.split('&')[0]?.split('#')[0] || '';
-      } else if (cleanUrl.includes('youtu.be/')) {
-        videoId = cleanUrl.split('youtu.be/')[1]?.split('?')[0]?.split('&')[0]?.split('#')[0] || '';
-      } else if (cleanUrl.includes('youtube.com/embed/')) {
-        videoId = cleanUrl.split('embed/')[1]?.split('?')[0]?.split('&')[0]?.split('#')[0] || '';
+      if (trimmedUrl.includes('youtube.com/watch?v=')) {
+        videoId = trimmedUrl.split('v=')[1]?.split('&')[0]?.split('#')[0] || '';
+      } else if (trimmedUrl.includes('youtu.be/')) {
+        videoId = trimmedUrl.split('youtu.be/')[1]?.split('?')[0]?.split('&')[0]?.split('#')[0] || '';
+      } else if (trimmedUrl.includes('youtube.com/embed/')) {
+        videoId = trimmedUrl.split('embed/')[1]?.split('?')[0]?.split('&')[0]?.split('#')[0] || '';
       }
 
       // Validate video ID format
@@ -1586,257 +1732,205 @@ export class MusicService {
         return null;
       }
 
-      // Reconstruct clean URL
-      cleanUrl = `https://www.youtube.com/watch?v=${videoId}`;
-
-      this.logger.info(`🧹 Cleaned URL: \`${cleanUrl}\` (Video ID: ${videoId})`);
-
-      // Method 1: Try yt-dlp to get direct audio URL
-      try {
-        this.logger.info('🔄 STARTING yt-dlp method to extract audio URL...');
-
-        const { exec } = require('child_process');
-        const { promisify } = require('util');
-        const execAsync = promisify(exec);
-
-        // Use yt-dlp to get the best audio URL with timeout
-        const ytDlpCommand = `python -m yt_dlp -f "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio" --get-url "${cleanUrl}"`;
-        this.logger.info(`🔧 Running: ${ytDlpCommand}`);
-
-        const { stdout, stderr } = (await Promise.race([
-          execAsync(ytDlpCommand, { timeout: 30000 }),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('yt-dlp timeout after 30s')), 30000),
-          ),
-        ])) as any;
-
-        if (stderr && !stderr.includes('WARNING')) {
-          throw new Error(`yt-dlp stderr: ${stderr}`);
-        }
-
-        const audioUrl = stdout?.trim();
-        if (!audioUrl || typeof audioUrl !== 'string' || !audioUrl.startsWith('http')) {
-          throw new Error(`Invalid audio URL from yt-dlp: ${audioUrl}`);
-        }
-
-        // Validate URL length (reasonable limit)
-        if (audioUrl.length > 2000) {
-          throw new Error(`Audio URL too long: ${audioUrl.length} characters`);
-        }
-
-        this.logger.info(`✅ yt-dlp extracted audio URL: ${audioUrl.substring(0, 100)}...`);
-
-        // Create audio resource directly from the extracted URL
-        const https = require('https');
-        const http = require('http');
-
-        const protocol = audioUrl.startsWith('https:') ? https : http;
-
-        return new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            reject(new Error('yt-dlp stream request timeout after 15s'));
-          }, 15000);
-
-          const request = protocol.get(
-            audioUrl,
-            {
-              headers: {
-                'User-Agent':
-                  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-              },
-            },
-            (response: any) => {
-              clearTimeout(timeout);
-
-              if (response.statusCode !== 200) {
-                reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
-                return;
-              }
-
-              this.logger.info('✅ yt-dlp method succeeded - creating audio resource');
-              const resource = createAudioResource(response, {
-                inputType: StreamType.Arbitrary,
-                inlineVolume: true,
-                metadata: {
-                  title: 'Audio Stream',
-                },
-              });
-              resolve(resource);
-            },
-          );
-
-          request.on('error', (error: any) => {
-            clearTimeout(timeout);
-            reject(error);
-          });
-
-          request.setTimeout(10000, () => {
-            clearTimeout(timeout);
-            request.destroy();
-            reject(new Error('yt-dlp stream request timeout'));
-          });
-        });
-      } catch (ytDlpError: any) {
-        this.logger.warn(`⚠️ yt-dlp method failed: ${ytDlpError.message}`);
+      // Check if stream creation is already in progress for this video
+      if (this.activeStreams.has(videoId)) {
+        this.logger.debug(`⏳ Stream creation already in progress for video ${videoId}, waiting...`);
+        return await this.activeStreams.get(videoId)!;
       }
 
-      // Method 2: Try play-dl with high quality
+      // Create promise for this stream creation
+      const streamPromise = this.createStreamInternal(videoId, trimmedUrl);
+      this.activeStreams.set(videoId, streamPromise);
+
       try {
-        this.logger.info('🔄 STARTING play-dl method (high quality)...');
-        this.logger.info(`🔍 Attempting to get video info for: \`${cleanUrl}\``);
+        const result = await streamPromise;
+        return result;
+      } finally {
+        // Clean up active stream tracking
+        this.activeStreams.delete(videoId);
+      }
+    } catch (error) {
+      this.logger.error(`❌ Failed to create YouTube stream for "${url}":`, error);
+      return null;
+    }
+  }
 
-        // Add timeout for video info request
-        const info = (await Promise.race([
-          video_basic_info(cleanUrl),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('play-dl video_basic_info timeout after 20s')), 20000),
-          ),
-        ])) as any;
+  private async createStreamInternal(videoId: string, originalUrl: string): Promise<AudioResource | null> {
+    const cleanUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    this.logger.info(`🎵 Creating YouTube stream for: \`${cleanUrl}\``);
 
-        this.logger.info(`📋 Play-dl info received: ${info ? 'SUCCESS' : 'FAILED'}`);
+    // Check cache for existing stream URL
+    const cached = this.streamCache.get(videoId);
+    if (cached && cached.expires > Date.now()) {
+      this.logger.debug(`📦 Using cached stream URL for video ${videoId}`);
+      try {
+        return await this.createAudioResourceFromUrl(cached.url);
+      } catch (cacheError) {
+        this.logger.warn('⚠️ Cached stream URL failed, proceeding with fresh extraction:', cacheError);
+        this.streamCache.delete(videoId);
+      }
+    }
 
-        if (!info || !info.video_details) {
-          throw new Error('Could not get video info from play-dl');
-        }
+    // Method 1: Try play-dl (more reliable than yt-dlp)
+    try {
+      this.logger.info('🔄 STARTING play-dl method...');
+      
+      // Add timeout for video info request
+      const info = (await Promise.race([
+        video_basic_info(cleanUrl),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('play-dl video_basic_info timeout after 15s')), 15000),
+        ),
+      ])) as any;
 
-        // Validate video details
-        if (!info.video_details.title || !info.video_details.id) {
-          throw new Error('Invalid video details from play-dl');
-        }
+      if (!info || !info.video_details) {
+        throw new Error('Could not get video info from play-dl');
+      }
 
-        // Check video duration (max 2 hours)
-        const duration = info.video_details.durationInSec || 0;
-        if (duration > 7200) {
-          throw new Error(`Video too long: ${duration}s (max 2 hours)`);
-        }
+      // Validate video details
+      if (!info.video_details.title || !info.video_details.id) {
+        throw new Error('Invalid video details from play-dl');
+      }
 
-        this.logger.info(`📋 Play-dl video info: ${info.video_details.title}`);
-        this.logger.info(`📋 Video duration: ${duration}s`);
+      // Check video duration (max 2 hours)
+      const duration = info.video_details.durationInSec || 0;
+      if (duration > 7200) {
+        throw new Error(`Video too long: ${duration}s (max 7200s)`);
+      }
 
-        // Try to get high quality audio stream from play-dl with timeout
-        this.logger.info('🎧 Getting high quality audio stream from play-dl...');
-        const stream = (await Promise.race([
-          stream_from_info(info, { quality: 2 }),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('play-dl stream_from_info timeout after 15s')), 15000),
-          ),
-        ])) as any;
+      this.logger.debug(`📋 Video info: ${info.video_details.title} (${duration}s)`);
 
-        this.logger.info(`🎧 Stream received: ${stream ? 'SUCCESS' : 'FAILED'}`);
+      // Get stream with timeout
+      const stream = (await Promise.race([
+        stream_from_info(info, { quality: 2, discordPlayerCompatibility: true }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('play-dl stream timeout after 15s')), 15000),
+        ),
+      ])) as any;
 
-        if (!stream || !stream.stream) {
-          throw new Error('Could not get high quality audio stream from play-dl');
-        }
+      if (!stream || !stream.stream) {
+        throw new Error('Failed to get stream from play-dl');
+      }
 
-        // Validate stream properties
-        if (typeof stream.stream.readable !== 'boolean') {
-          throw new Error('Invalid stream object from play-dl');
-        }
-
-        this.logger.info('✅ play-dl high quality stream created successfully');
-        return createAudioResource(stream.stream, {
-          inputType: StreamType.Arbitrary,
-          inlineVolume: true,
-          metadata: {
-            title: 'Audio Stream',
-          },
+      this.logger.info('✅ play-dl method succeeded - creating audio resource');
+      
+      // Cache the stream URL if available
+      if (stream.url) {
+        this.streamCache.set(videoId, {
+          url: stream.url,
+          expires: Date.now() + (30 * 60 * 1000), // Cache for 30 minutes
         });
-      } catch (playDlHighError: any) {
-        this.logger.warn(`⚠️ play-dl high quality failed: ${playDlHighError.message}`);
+      }
 
-        // Method 3: Try play-dl with medium quality as fallback
-        try {
-          this.logger.info('🔄 Trying play-dl medium quality method...');
+      const resource = createAudioResource(stream.stream, {
+        inputType: stream.type || StreamType.Arbitrary,
+        inlineVolume: true,
+        metadata: {
+          title: info.video_details.title,
+        },
+      });
 
-          const info = (await Promise.race([
-            video_basic_info(cleanUrl),
-            new Promise((_, reject) =>
-              setTimeout(
-                () => reject(new Error('play-dl video_basic_info timeout after 15s')),
-                15000,
-              ),
-            ),
-          ])) as any;
+      return resource;
+    } catch (playDlError: any) {
+      this.logger.warn(`⚠️ play-dl method failed: ${playDlError.message}`);
+    }
 
-          if (!info || !info.video_details) {
-            throw new Error('Could not get video info from play-dl');
+    // Method 2: Fallback to yt-dlp (if available)
+    try {
+      this.logger.info('🔄 STARTING yt-dlp fallback method...');
+
+      const { exec } = require('child_process');
+      const { promisify } = require('util');
+      const execAsync = promisify(exec);
+
+      // Use yt-dlp to get the best audio URL with shorter timeout
+      const ytDlpCommand = `python -m yt_dlp -f "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio" --get-url "${cleanUrl}"`;
+      
+      const { stdout, stderr } = (await Promise.race([
+        execAsync(ytDlpCommand, { timeout: 20000 }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('yt-dlp timeout after 20s')), 20000),
+        ),
+      ])) as any;
+
+      if (stderr && !stderr.includes('WARNING')) {
+        throw new Error(`yt-dlp stderr: ${stderr}`);
+      }
+
+      const audioUrl = stdout?.trim();
+      if (!audioUrl || typeof audioUrl !== 'string' || !audioUrl.startsWith('http')) {
+        throw new Error(`Invalid audio URL from yt-dlp: ${audioUrl}`);
+      }
+
+      this.logger.info('✅ yt-dlp extracted audio URL');
+      
+      // Cache the extracted URL
+      this.streamCache.set(videoId, {
+        url: audioUrl,
+        expires: Date.now() + (15 * 60 * 1000), // Cache for 15 minutes (shorter for yt-dlp)
+      });
+
+      return await this.createAudioResourceFromUrl(audioUrl);
+    } catch (ytDlpError: any) {
+      this.logger.warn(`⚠️ yt-dlp method failed: ${ytDlpError.message}`);
+    }
+
+    this.logger.error(`❌ All stream creation methods failed for video ${videoId}`);
+    return null;
+  }
+
+  private async createAudioResourceFromUrl(audioUrl: string): Promise<AudioResource> {
+    const https = require('https');
+    const http = require('http');
+    const protocol = audioUrl.startsWith('https:') ? https : http;
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Stream request timeout after 10s'));
+      }, 10000);
+
+      const request = protocol.get(
+        audioUrl,
+        {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'audio/*,*/*;q=0.9',
+            'Accept-Encoding': 'identity',
+            'Range': 'bytes=0-',
+          },
+          timeout: 8000,
+        },
+        (response: any) => {
+          clearTimeout(timeout);
+
+          if (response.statusCode !== 200 && response.statusCode !== 206) {
+            reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
+            return;
           }
 
-          const stream = (await Promise.race([
-            stream_from_info(info, { quality: 1 }),
-            new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('play-dl medium quality timeout after 15s')), 15000),
-            ),
-          ])) as any;
-
-          if (!stream || !stream.stream) {
-            throw new Error('Could not get medium quality audio stream from play-dl');
-          }
-
-          this.logger.info('✅ play-dl medium quality stream created successfully');
-          return createAudioResource(stream.stream, {
+          const resource = createAudioResource(response, {
             inputType: StreamType.Arbitrary,
             inlineVolume: true,
             metadata: {
               title: 'Audio Stream',
             },
           });
-        } catch (playDlMediumError: any) {
-          this.logger.warn(`⚠️ play-dl medium quality failed: ${playDlMediumError.message}`);
+          
+          resolve(resource);
+        },
+      );
 
-          // Method 4: Try play-dl with lowest quality as last resort
-          try {
-            this.logger.info('🔄 Trying play-dl low quality method (last resort)...');
+      request.on('error', (error: any) => {
+        clearTimeout(timeout);
+        reject(error);
+      });
 
-            const info = (await Promise.race([
-              video_basic_info(cleanUrl),
-              new Promise((_, reject) =>
-                setTimeout(
-                  () => reject(new Error('play-dl video_basic_info timeout after 10s')),
-                  10000,
-                ),
-              ),
-            ])) as any;
-
-            if (!info || !info.video_details) {
-              throw new Error('Could not get video info from play-dl');
-            }
-
-            const stream = (await Promise.race([
-              stream_from_info(info, { quality: 0 }),
-              new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('play-dl low quality timeout after 10s')), 10000),
-              ),
-            ])) as any;
-
-            if (!stream || !stream.stream) {
-              throw new Error('Could not get low quality audio stream from play-dl');
-            }
-
-            this.logger.info('✅ play-dl low quality stream created successfully');
-            return createAudioResource(stream.stream, {
-              inputType: StreamType.Arbitrary,
-              inlineVolume: true,
-              metadata: {
-                title: 'Audio Stream',
-              },
-            });
-          } catch (playDlLowError: any) {
-            this.logger.error(`❌ play-dl low quality method failed: ${playDlLowError.message}`);
-          }
-        }
-      }
-
-      // All methods failed - log comprehensive error
-      this.logger.error(`❌ All streaming methods failed for: ${cleanUrl}`);
-      this.logger.error('💡 Attempted methods: yt-dlp, play-dl (high/medium/low quality)');
-      this.logger.error(`💡 Video ID: ${videoId}`);
-      return null;
-    } catch (overallError: any) {
-      this.logger.error(`❌ Critical error in createYouTubeStream: ${overallError.message}`);
-      this.logger.error(`❌ Stack trace: ${overallError.stack}`);
-      return null;
-    }
+      request.on('timeout', () => {
+        clearTimeout(timeout);
+        request.destroy();
+        reject(new Error('Stream request timeout'));
+      });
+    });
   }
 
   /**
@@ -1962,7 +2056,7 @@ export class MusicService {
         if (queue) {
           queue.isPlaying = true;
           queue.isPaused = false;
-          await this.saveQueueToDatabase(guildId);
+          await this.debouncedSaveQueue(guildId);
         }
 
         return true;
@@ -1982,7 +2076,7 @@ export class MusicService {
           if (queue) {
             queue.isPlaying = true;
             queue.isPaused = false;
-            await this.saveQueueToDatabase(guildId);
+            await this.debouncedSaveQueue(guildId);
           }
 
           return true;
@@ -2015,7 +2109,7 @@ export class MusicService {
         this.logger.warn('⚠️ Audio resource is not readable');
       }
 
-      await this.saveQueueToDatabase(guildId);
+      await this.debouncedSaveQueue(guildId);
 
       return true;
     } catch (error) {
@@ -2080,7 +2174,7 @@ export class MusicService {
       queue.currentTrack = null;
       queue.isPlaying = false;
       queue.isPaused = false;
-      await this.saveQueueToDatabase(guildId);
+      await this.debouncedSaveQueue(guildId);
     }
   }
 
@@ -2116,7 +2210,7 @@ export class MusicService {
       }
     }
 
-    await this.saveQueueToDatabase(guildId);
+    await this.debouncedSaveQueue(guildId);
     return true;
   }
 
@@ -2127,7 +2221,7 @@ export class MusicService {
     const queue = this.queues.get(guildId);
     if (queue) {
       queue.loop = mode;
-      await this.saveQueueToDatabase(guildId);
+      await this.debouncedSaveQueue(guildId);
     }
   }
 
@@ -2138,7 +2232,7 @@ export class MusicService {
     const queue = this.queues.get(guildId);
     if (queue) {
       queue.shuffle = !queue.shuffle;
-      await this.saveQueueToDatabase(guildId);
+      await this.debouncedSaveQueue(guildId);
       return queue.shuffle;
     }
     return false;
@@ -2158,7 +2252,7 @@ export class MusicService {
     const queue = this.queues.get(guildId);
     if (queue) {
       queue.tracks = [];
-      await this.saveQueueToDatabase(guildId);
+      await this.debouncedSaveQueue(guildId);
     }
   }
 
@@ -2169,7 +2263,7 @@ export class MusicService {
     const queue = this.queues.get(guildId);
     if (queue && index >= 0 && index < queue.tracks.length) {
       const removed = queue.tracks.splice(index, 1)[0];
-      await this.saveQueueToDatabase(guildId);
+      await this.debouncedSaveQueue(guildId);
       return removed || null;
     }
     return null;
@@ -2264,7 +2358,7 @@ export class MusicService {
     }
 
     queue.tracks.splice(toIndex, 0, movedTrack);
-    await this.saveQueueToDatabase(guildId);
+    await this.debouncedSaveQueue(guildId);
 
     return movedTrack;
   }

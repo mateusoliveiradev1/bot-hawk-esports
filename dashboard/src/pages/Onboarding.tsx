@@ -21,7 +21,7 @@ import {
   Play,
   Pause,
   Volume2,
-  LogIn
+  LogIn,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -42,45 +42,45 @@ const features = [
     icon: Music,
     title: 'Sistema de Música',
     description: 'Reproduza música de alta qualidade com controles avançados',
-    color: 'from-purple-500 to-pink-500'
+    color: 'from-purple-500 to-pink-500',
   },
   {
     icon: Trophy,
     title: 'Rankings & Badges',
     description: 'Sistema completo de conquistas e classificações',
-    color: 'from-yellow-500 to-orange-500'
+    color: 'from-yellow-500 to-orange-500',
   },
   {
     icon: Gamepad2,
     title: 'Integração PUBG',
     description: 'Estatísticas em tempo real e análise de performance',
-    color: 'from-blue-500 to-cyan-500'
+    color: 'from-blue-500 to-cyan-500',
   },
   {
     icon: Shield,
     title: 'Segurança Avançada',
     description: 'Proteção anti-bot e autenticação 2FA',
-    color: 'from-green-500 to-emerald-500'
+    color: 'from-green-500 to-emerald-500',
   },
   {
     icon: BarChart3,
     title: 'Analytics Detalhados',
     description: 'Insights profundos sobre atividade do servidor',
-    color: 'from-indigo-500 to-purple-500'
+    color: 'from-indigo-500 to-purple-500',
   },
   {
     icon: Users,
     title: 'Gestão de Membros',
     description: 'Ferramentas completas de moderação e engajamento',
-    color: 'from-red-500 to-pink-500'
-  }
+    color: 'from-red-500 to-pink-500',
+  },
 ];
 
 const stats = [
   { label: 'Servidores Ativos', value: '2,500+', icon: Server },
   { label: 'Usuários Registrados', value: '150K+', icon: Users },
   { label: 'Comandos Executados', value: '5M+', icon: Zap },
-  { label: 'Uptime', value: '99.9%', icon: CheckCircle }
+  { label: 'Uptime', value: '99.9%', icon: CheckCircle },
 ];
 
 const testimonials = [
@@ -88,20 +88,20 @@ const testimonials = [
     name: 'João Silva',
     role: 'Admin - Gaming Community BR',
     avatar: '🎮',
-    text: 'O Hawk Esports transformou completamente nosso servidor. A integração com PUBG é perfeita!'
+    text: 'O Hawk Esports transformou completamente nosso servidor. A integração com PUBG é perfeita!',
   },
   {
     name: 'Maria Santos',
     role: 'Owner - Music Lovers',
     avatar: '🎵',
-    text: 'Sistema de música incrível e analytics detalhados. Nossos membros adoram!'
+    text: 'Sistema de música incrível e analytics detalhados. Nossos membros adoram!',
   },
   {
     name: 'Pedro Costa',
     role: 'Moderador - Competitive Gaming',
     avatar: '🏆',
-    text: 'As ferramentas de moderação e o sistema de badges aumentaram muito o engajamento.'
-  }
+    text: 'As ferramentas de moderação e o sistema de badges aumentaram muito o engajamento.',
+  },
 ];
 
 const OnboardingPage: React.FC = () => {
@@ -166,7 +166,7 @@ const OnboardingPage: React.FC = () => {
             ))}
           </div>
         </div>
-      )
+      ),
     },
     {
       id: 1,
@@ -201,7 +201,7 @@ const OnboardingPage: React.FC = () => {
             </motion.div>
           ))}
         </div>
-      )
+      ),
     },
     {
       id: 2,
@@ -282,7 +282,7 @@ const OnboardingPage: React.FC = () => {
             </Button>
           </div>
         </div>
-      )
+      ),
     },
     {
       id: 3,
@@ -342,7 +342,7 @@ const OnboardingPage: React.FC = () => {
             </div>
           </div>
         </div>
-      )
+      ),
     },
     {
       id: 4,
@@ -425,8 +425,8 @@ const OnboardingPage: React.FC = () => {
             </div>
           </div>
         </div>
-      )
-    }
+      ),
+    },
   ];
 
   const nextStep = () => {
@@ -483,7 +483,7 @@ const OnboardingPage: React.FC = () => {
             {/* Step Header */}
             <div className="text-center space-y-4">
               <div className="flex items-center justify-center space-x-2">
-                {React.createElement(steps[currentStep].icon, { className: "w-8 h-8 text-purple-600" })}
+                {React.createElement(steps[currentStep].icon, { className: 'w-8 h-8 text-purple-600' })}
                 <h2 className="text-3xl font-bold text-gray-900">
                   {steps[currentStep].title}
                 </h2>

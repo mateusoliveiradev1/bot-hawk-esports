@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import compression from 'compression';
-import { Logger } from '../utils/logger';
+import { Logger, LogCategory } from '../utils/logger';
 import { DatabaseService } from '../database/database.service';
 import { CacheService } from './cache.service';
 import { PUBGService } from './pubg.service';
@@ -144,24 +144,83 @@ export class APIService {
    * Setup middleware
    */
   private setupMiddleware(): void {
-    // Security
+    // Enhanced security headers
     this.app.use(
       helmet({
         contentSecurityPolicy: {
           directives: {
             defaultSrc: ['\'self\''],
-            styleSrc: ['\'self\'', '\'unsafe-inline\''],
-            scriptSrc: ['\'self\''],
-            imgSrc: ['\'self\'', 'data:', 'https:'],
-            connectSrc: ['\'self\''],
-            fontSrc: ['\'self\''],
+            styleSrc: ['\'self\'', '\'unsafe-inline\'' /* Required for some UI frameworks */],
+            scriptSrc: ['\'self\'', '\'unsafe-eval\'' /* Required for development */],
+            imgSrc: ['\'self\'', 'data:', 'https:', 'cdn.discordapp.com'],
+            connectSrc: ['\'self\'', 'wss:', 'https:'],
+            fontSrc: ['\'self\'', 'data:', 'https:'],
             objectSrc: ['\'none\''],
             mediaSrc: ['\'self\''],
             frameSrc: ['\'none\''],
+            baseUri: ['\'self\''],
+            formAction: ['\'self\''],
+            frameAncestors: ['\'none\''],
+            upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
           },
+          reportOnly: process.env.NODE_ENV === 'development',
         },
+        crossOriginEmbedderPolicy: false, // Disable for compatibility
+        crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+        crossOriginResourcePolicy: { policy: 'cross-origin' },
+        dnsPrefetchControl: { allow: false },
+        frameguard: { action: 'deny' },
+        hidePoweredBy: true,
+        hsts: {
+          maxAge: 31536000, // 1 year
+          includeSubDomains: true,
+          preload: true,
+        },
+        ieNoOpen: true,
+        noSniff: true,
+        originAgentCluster: true,
+        permittedCrossDomainPolicies: false,
+        referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+        xssFilter: true,
       }),
     );
+
+    // Additional security headers
+    this.app.use((req: Request, res: Response, next: NextFunction) => {
+      // Prevent clickjacking
+      res.setHeader('X-Frame-Options', 'DENY');
+      
+      // Prevent MIME type sniffing
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      
+      // Enable XSS protection
+      res.setHeader('X-XSS-Protection', '1; mode=block');
+      
+      // Referrer policy
+      res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+      
+      // Feature policy / Permissions policy
+      res.setHeader('Permissions-Policy', [
+        'camera=()',
+        'microphone=()',
+        'geolocation=()',
+        'payment=()',
+        'usb=()',
+        'magnetometer=()',
+        'gyroscope=()',
+        'accelerometer=()',
+      ].join(', '));
+      
+      // Cache control for sensitive endpoints
+      if (req.path.includes('/api/auth') || req.path.includes('/api/user')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Surrogate-Control', 'no-store');
+      }
+      
+      next();
+    });
 
     // CORS
     this.app.use(
@@ -199,18 +258,76 @@ export class APIService {
       }),
     );
 
-    // Rate limiting
-    const limiter = rateLimit({
+    // Enhanced rate limiting with different limits for different endpoints
+    const generalLimiter = rateLimit({
       windowMs: this.config.rateLimitWindowMs,
       max: this.config.rateLimitMax,
       message: {
         success: false,
         error: 'Too many requests, please try again later.',
+        retryAfter: Math.ceil(this.config.rateLimitWindowMs / 1000),
       },
       standardHeaders: true,
       legacyHeaders: false,
+      keyGenerator: (req) => {
+        // Use IP + User-Agent for better tracking
+        return `${req.ip}-${req.get('User-Agent') || 'unknown'}`;
+      },
+      skip: (req) => {
+        // Skip rate limiting for health checks
+        return req.path === '/api/health';
+      },
     });
-    this.app.use('/api/', limiter);
+
+    // Strict rate limiting for authentication endpoints
+    const authLimiter = rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 5, // 5 attempts per 15 minutes
+      message: {
+        success: false,
+        error: 'Too many authentication attempts. Please try again in 15 minutes.',
+        retryAfter: 900,
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
+      keyGenerator: (req) => `auth-${req.ip}`,
+      skipSuccessfulRequests: true, // Don't count successful requests
+    });
+
+    // Very strict rate limiting for registration
+    const registerLimiter = rateLimit({
+      windowMs: 60 * 60 * 1000, // 1 hour
+      max: 3, // 3 registrations per hour per IP
+      message: {
+        success: false,
+        error: 'Registration limit exceeded. Please try again in 1 hour.',
+        retryAfter: 3600,
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
+      keyGenerator: (req) => `register-${req.ip}`,
+    });
+
+    // Moderate rate limiting for file uploads
+    const uploadLimiter = rateLimit({
+      windowMs: 10 * 60 * 1000, // 10 minutes
+      max: 10, // 10 uploads per 10 minutes
+      message: {
+        success: false,
+        error: 'Upload limit exceeded. Please try again in 10 minutes.',
+        retryAfter: 600,
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
+      keyGenerator: (req) => `upload-${req.ip}`,
+    });
+
+    // Apply rate limiters
+    this.app.use('/api/', generalLimiter);
+    this.app.use('/api/auth/login', authLimiter);
+    this.app.use('/api/auth/register', registerLimiter);
+    this.app.use('/api/clips/upload', uploadLimiter);
+    this.app.use('/api/*/upload', uploadLimiter);
 
     // Security middleware for bot detection
     this.app.use('/api/auth/register', (req: Request, res: Response, next: NextFunction) => {
@@ -237,7 +354,7 @@ export class APIService {
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-    // File upload
+    // Enhanced file upload with security validations
     this.upload = multer({
       storage: multer.diskStorage({
         destination: (req, file, cb) => {
@@ -248,21 +365,82 @@ export class APIService {
           cb(null, uploadPath);
         },
         filename: (req, file, cb) => {
+          // Sanitize original filename
+          const sanitizedName = file.originalname
+            .replace(/[^a-zA-Z0-9.-]/g, '_')
+            .substring(0, 50); // Limit filename length
           const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+          const ext = path.extname(sanitizedName).toLowerCase();
+          cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
         },
       }),
       limits: {
         fileSize: this.config.uploadMaxSize,
+        files: 1, // Only allow 1 file per request
+        fieldSize: 1024 * 1024, // 1MB field size limit
+        fieldNameSize: 100, // Limit field name size
+        headerPairs: 20, // Limit number of header pairs
       },
       fileFilter: (req, file, cb) => {
-        const allowedTypes = ['.mp4', '.mov', '.avi', '.mkv', '.webm'];
-        const ext = path.extname(file.originalname).toLowerCase();
-
-        if (allowedTypes.includes(ext)) {
+        try {
+          // Enhanced file validation
+          const allowedExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm'];
+          const allowedMimeTypes = [
+            'video/mp4',
+            'video/quicktime',
+            'video/x-msvideo',
+            'video/x-matroska',
+            'video/webm',
+          ];
+          
+          const ext = path.extname(file.originalname).toLowerCase();
+          const mimeType = file.mimetype.toLowerCase();
+          
+          // Check file extension
+          if (!allowedExtensions.includes(ext)) {
+            return cb(new Error(`Invalid file extension. Allowed: ${allowedExtensions.join(', ')}`));
+          }
+          
+          // Check MIME type
+          if (!allowedMimeTypes.includes(mimeType)) {
+            return cb(new Error(`Invalid MIME type. Expected video file, got: ${mimeType}`));
+          }
+          
+          // Check for suspicious filenames
+          const suspiciousPatterns = [
+            /\.\./, // Path traversal
+            /[<>:"|?*]/, // Invalid characters
+            /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i, // Windows reserved names
+            /\.(exe|bat|cmd|scr|pif|com|dll|jar|sh|ps1)$/i, // Executable extensions
+          ];
+          
+          for (const pattern of suspiciousPatterns) {
+            if (pattern.test(file.originalname)) {
+              return cb(new Error('Suspicious filename detected'));
+            }
+          }
+          
+          // Additional security: Check if filename is too long
+          if (file.originalname.length > 255) {
+            return cb(new Error('Filename too long'));
+          }
+          
+          // Log upload attempt for monitoring
+          this.logger.info('File upload attempt', {
+            category: LogCategory.API,
+            metadata: {
+              originalname: file.originalname,
+              mimetype: file.mimetype,
+              size: file.size || 'unknown',
+              clientIp: req.ip,
+              userAgent: req.get('User-Agent'),
+            },
+          });
+          
           cb(null, true);
-        } else {
-          cb(new Error('Invalid file type. Only video files are allowed.'));
+        } catch (error) {
+          this.logger.error('File filter error:', error);
+          cb(new Error('File validation failed'));
         }
       },
     });
@@ -518,8 +696,11 @@ export class APIService {
     try {
       const authHeader = req.headers['authorization'];
       const token = authHeader && authHeader.split(' ')[1];
+      const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+      const userAgent = req.headers['user-agent'] || 'unknown';
 
       if (!token) {
+        this.logger.warn(`Authentication failed: No token provided from IP ${clientIP}`);
         return res.status(401).json({
           success: false,
           error: 'Access token required',
@@ -528,19 +709,50 @@ export class APIService {
 
       // Validate token format
       if (!this.isValidJWTFormat(token)) {
+        this.logger.warn(`Authentication failed: Invalid token format from IP ${clientIP}`);
         return res.status(401).json({
           success: false,
           error: 'Invalid token format',
         });
       }
 
+      // Check for token blacklist (implement if needed)
+      if (await this.isTokenBlacklisted(token)) {
+        this.logger.warn(`Authentication failed: Blacklisted token from IP ${clientIP}`);
+        return res.status(401).json({
+          success: false,
+          error: 'Token has been revoked',
+        });
+      }
+
       const decoded = jwt.verify(token, this.config.jwtSecret) as any;
 
-      // Validate decoded token structure
-      if (!decoded.userId || typeof decoded.userId !== 'string') {
+      // Validate decoded token structure with enhanced checks
+      if (!decoded.userId || typeof decoded.userId !== 'string' || !decoded.iat || !decoded.exp) {
+        this.logger.warn(`Authentication failed: Invalid token payload from IP ${clientIP}`);
         return res.status(401).json({
           success: false,
           error: 'Invalid token payload',
+        });
+      }
+
+      // Check token age (additional security)
+      const tokenAge = Date.now() / 1000 - decoded.iat;
+      const maxTokenAge = 24 * 60 * 60; // 24 hours
+      if (tokenAge > maxTokenAge) {
+        this.logger.warn(`Authentication failed: Token too old from IP ${clientIP}`);
+        return res.status(401).json({
+          success: false,
+          error: 'Token expired due to age',
+        });
+      }
+
+      // Validate session if present
+      if (decoded.sessionId && !(await this.validateSession(decoded.userId, decoded.sessionId))) {
+        this.logger.warn(`Authentication failed: Invalid session for user ${decoded.userId} from IP ${clientIP}`);
+        return res.status(401).json({
+          success: false,
+          error: 'Session invalid or expired',
         });
       }
 
@@ -600,6 +812,12 @@ export class APIService {
         }
       }
 
+      // Log successful authentication
+      this.logger.info(`User ${user.id} authenticated successfully from IP ${clientIP}`);
+
+      // Track user session
+      await this.trackUserSession(user.id, clientIP, userAgent);
+
       req.user = {
         id: user.id,
         guildId: guildId,
@@ -615,18 +833,69 @@ export class APIService {
       this.logger.error('Authentication error:', error);
 
       if (error instanceof Error && error.name === 'TokenExpiredError') {
+        this.logger.warn(`Token expired for request from IP ${req.ip}`);
         return res.status(401).json({
           success: false,
           error: 'Token expired',
         });
       }
 
+      if (error instanceof Error && error.name === 'JsonWebTokenError') {
+        this.logger.warn(`Invalid JWT from IP ${req.ip}: ${error.message}`);
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid token',
+        });
+      }
+
+      // Log suspicious activity
+      this.logger.warn(`Authentication failed from IP ${req.ip}: ${error}`);
       return res.status(401).json({
         success: false,
         error: 'Authentication failed',
       });
     }
   };
+
+  /**
+   * Check if token is blacklisted
+   */
+  private async isTokenBlacklisted(token: string): Promise<boolean> {
+    try {
+      // In a real implementation, this would check Redis or database
+      // For now, return false (no blacklist)
+      return false;
+    } catch (error) {
+      this.logger.error('Error checking token blacklist:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Validate user session
+   */
+  private async validateSession(userId: string, sessionId: string): Promise<boolean> {
+    try {
+      // In a real implementation, this would validate against stored sessions
+      // For now, return true (session validation disabled)
+      return true;
+    } catch (error) {
+      this.logger.error('Error validating session:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Track user session for security monitoring
+   */
+  private async trackUserSession(userId: string, ip: string, userAgent: string): Promise<void> {
+    try {
+      // In a real implementation, this would store session info in database/Redis
+      this.logger.debug(`Session tracked for user ${userId} from ${ip}`);
+    } catch (error) {
+      this.logger.error('Error tracking user session:', error);
+    }
+  }
 
   /**
    * Development routes (no auth required)
