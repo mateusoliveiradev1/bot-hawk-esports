@@ -600,6 +600,22 @@ export class HealthService {
   }
 
   /**
+   * Register a custom service health checker
+   */
+  public registerService(name: string, healthChecker: () => Promise<ServiceHealth>): void {
+    this.services.set(name, healthChecker);
+    this.logger.info(`Registered health checker for service: ${name}`);
+  }
+
+  /**
+   * Unregister a service health checker
+   */
+  public unregisterService(name: string): void {
+    this.services.delete(name);
+    this.logger.info(`Unregistered health checker for service: ${name}`);
+  }
+
+  /**
    * Check if system is healthy
    */
   public isSystemHealthy(): boolean {

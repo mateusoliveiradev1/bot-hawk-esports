@@ -44,12 +44,12 @@ describe('MetricsService', () => {
           count: jest.fn().mockResolvedValue(500),
         },
       },
-      healthCheck: jest.fn().mockResolvedValue({ healthy: true, details: {} }),
+      healthCheck: jest.fn().mockResolvedValue({} as any),
     } as unknown as jest.Mocked<DatabaseService>;
 
     mockCacheService = {
-      keys: jest.fn().mockResolvedValue(['key1', 'key2', 'key3']),
-      healthCheck: jest.fn().mockResolvedValue({ healthy: true, details: {} }),
+      keys: jest.fn().mockResolvedValue([] as any),
+      healthCheck: jest.fn().mockResolvedValue({} as any),
     } as unknown as jest.Mocked<CacheService>;
 
     mockClient = {

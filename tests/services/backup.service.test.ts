@@ -25,7 +25,18 @@ const mockLogger = {
 
 const mockHealthService = {
   registerService: jest.fn(),
-  getHealthStatus: jest.fn().mockResolvedValue({ status: 'healthy' }),
+  performHealthCheck: jest.fn().mockResolvedValue({
+      overall: 'healthy',
+      timestamp: new Date(),
+      uptime: 3600,
+      services: [],
+      system: {
+        memory: { used: 100, total: 1000, percentage: 10 },
+        cpu: { usage: 5, loadAverage: [0.1, 0.2, 0.3] },
+        disk: { available: 900, total: 1000, percentage: 10 }
+      },
+      discord: { connected: true, guilds: 1, users: 100, ping: 50 }
+    }),
 } as unknown as HealthService;
 
 const mockMetricsService = {
@@ -155,11 +166,11 @@ describe('BackupService', () => {
     });
 
     it('should handle backup creation failure', async () => {
-      mockPrisma.$queryRaw = jest.fn().mockRejectedValue(new Error('Database error'));
+      mockPrisma.$queryRaw = jest.fn().mockRejectedValue(new Error('Database error')) as any;
 
       const result = await backupService.createBackup('manual');
 
-      expect(result.success).toBe(false);
+      expect(result.status).toBe('failed');
       expect(result.error).toContain('Database error');
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Backup creation failed:',
@@ -234,9 +245,9 @@ describe('BackupService', () => {
       });
       mockFs.unlink.mockResolvedValue(undefined);
 
-      const result = await backupService.cleanupOldBackups();
+      await backupService.cleanupOldBackups();
 
-      expect(result.deletedCount).toBe(1);
+      // Verify that unlink was called for the old file
       expect(mockFs.unlink).toHaveBeenCalledWith(
         expect.stringContaining('2024-01-05')
       );

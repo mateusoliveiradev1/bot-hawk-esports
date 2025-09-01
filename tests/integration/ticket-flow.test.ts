@@ -319,16 +319,34 @@ describe('Ticket Flow Integration', () => {
 
   describe('Integração com sistema de notificações', () => {
     it('deve enviar notificações durante o ciclo de vida do ticket', async () => {
-      const mockNotificationService = {
-        sendTicketCreated: jest.fn(),
-        sendTicketAssigned: jest.fn(),
-        sendTicketClosed: jest.fn()
+      // Mock do canal de log para notificações
+      const mockLogChannel = {
+        send: jest.fn().mockResolvedValue({} as any)
       };
-
-      // Simular integração com serviço de notificações
-      const ticketWithNotifications = new TicketService(mockClient);
-      (ticketWithNotifications as any).notificationService = mockNotificationService;
-
+      
+      mockClient.channels.cache.set('log123', mockLogChannel as any);
+      
+      // Mock das configurações do ticket com canal de log
+      const mockSettings = {
+        guildId: 'guild123',
+        enabled: true,
+        logChannelId: 'log123',
+        maxTicketsPerUser: 5,
+        autoAssign: false,
+        requireReason: false,
+        allowAnonymous: false,
+        closeAfterInactivity: 72,
+        notificationSettings: {
+          onCreate: true,
+          onAssign: true,
+          onClose: true,
+          onReopen: true
+        }
+      };
+      
+      // Mock do método getTicketSettings
+      jest.spyOn(ticketService, 'getTicketSettings').mockReturnValue(mockSettings);
+      
       const ticketData = {
         userId: 'user123',
         channelId: 'channel123',
@@ -337,17 +355,24 @@ describe('Ticket Flow Integration', () => {
 
       const mockTicket = {
         id: 'ticket123',
+        guildId: 'guild123',
+        title: 'Test Ticket',
+        description: 'Test Description',
+        priority: 'medium',
         ...ticketData,
         status: 'open',
-        createdAt: new Date()
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        metadata: '{}'
       };
 
       mockTicketMethods.create.mockResolvedValue(mockTicket);
+      mockTicketMethods.update.mockResolvedValue({ ...mockTicket, channelId: 'channel123' });
 
-      await ticketWithNotifications.createTicket('guild123', 'user123', 'Test Ticket', 'Test Description', 'medium');
+      await ticketService.createTicket('guild123', 'user123', 'Test Ticket', 'Test Description', 'medium');
 
-      // Verificar se notificação foi enviada
-      expect(mockNotificationService.sendTicketCreated).toHaveBeenCalledWith(mockTicket);
+      // Verificar se a notificação foi enviada para o canal de log
+      expect(mockLogChannel.send).toHaveBeenCalled();
     });
   });
 });

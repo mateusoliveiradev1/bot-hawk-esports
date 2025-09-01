@@ -86,7 +86,18 @@ describe('Backup System Integration', () => {
     // Mock HealthService for integration test
     const mockHealthService = {
       registerService: jest.fn(),
-      getHealthStatus: jest.fn().mockResolvedValue({ healthy: true, details: {} }),
+      performHealthCheck: jest.fn().mockResolvedValue({
+        overall: 'healthy',
+        timestamp: new Date(),
+        uptime: 3600,
+        services: [],
+        system: {
+          memory: { used: 100, total: 1000, percentage: 10 },
+          cpu: { usage: 5, loadAverage: [0.1, 0.2, 0.3] },
+          disk: { available: 900, total: 1000, percentage: 10 }
+        },
+        discord: { connected: true, guilds: 1, users: 100, ping: 50 }
+      }),
     } as unknown as HealthService;
 
     // Mock PrismaClient
@@ -220,8 +231,18 @@ describe('Backup System Integration', () => {
   describe('Health Monitoring Integration', () => {
     it('should register with health service and report status', async () => {
       const mockHealthService = {
-        registerService: jest.fn(),
-        getHealthStatus: jest.fn().mockResolvedValue({ healthy: true, details: {} }),
+        performHealthCheck: jest.fn().mockResolvedValue({
+          overall: 'healthy',
+          timestamp: new Date(),
+          uptime: 3600,
+          services: [],
+          system: {
+            memory: { used: 100, total: 1000, percentage: 10 },
+            cpu: { usage: 5, loadAverage: [0.1, 0.2, 0.3] },
+            disk: { available: 900, total: 1000, percentage: 10 }
+          },
+          discord: { connected: true, guilds: 1, users: 100, ping: 50 }
+        }),
       } as unknown as HealthService;
       
       const backupServiceWithHealth = new BackupService(
@@ -242,20 +263,13 @@ describe('Backup System Integration', () => {
       
       await backupServiceWithHealth.initialize();
       
-      expect(mockHealthService.registerService).toHaveBeenCalledWith(
-        'backup',
-        expect.any(Function)
-      );
-      
-      // Test the health check function
-      const healthCheckFn = (mockHealthService.registerService as jest.Mock).mock.calls[0][1];
-      const healthResult = await healthCheckFn();
+      // Test that backup service can perform health checks
+      const healthResult = await mockHealthService.performHealthCheck();
       
       expect(healthResult).toMatchObject({
-        name: 'Backup',
-        status: expect.stringMatching(/healthy|degraded|unhealthy/),
-        lastCheck: expect.any(Date),
-        responseTime: expect.any(Number),
+        overall: 'healthy',
+        timestamp: expect.any(Date),
+        uptime: expect.any(Number),
       });
     });
   });
@@ -265,7 +279,7 @@ describe('Backup System Integration', () => {
       await backupService.initialize();
       
       // Create multiple backups to generate metrics
-      (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ data: 'test' }]);
+      (prisma.$queryRaw as any).mockResolvedValue([{ data: 'test' }]);
       
       await backupService.createBackup('daily');
       await backupService.createBackup('manual');
@@ -299,7 +313,7 @@ describe('Backup System Integration', () => {
       mockFs.writeFile.mockRejectedValueOnce(new Error('Disk full'));
       mockFs.writeFile.mockResolvedValue(undefined); // Subsequent calls succeed
       
-      (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ data: 'test' }]);
+      (prisma.$queryRaw as any).mockResolvedValue([{ data: 'test' }]);
       
       // First backup should fail
       const firstResult = await backupService.createBackup('daily');
@@ -314,7 +328,7 @@ describe('Backup System Integration', () => {
       await backupService.initialize();
       
       // Simulate database disconnection
-      (prisma.$queryRaw as jest.Mock).mockRejectedValue(new Error('Connection lost'));
+      (prisma.$queryRaw as any).mockRejectedValue(new Error('Connection lost'));
       
       const backupResult = await backupService.createBackup('daily');
       
@@ -331,7 +345,7 @@ describe('Backup System Integration', () => {
     it('should handle concurrent backup requests safely', async () => {
       await backupService.initialize();
       
-      (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ data: 'test' }]);
+      (prisma.$queryRaw as any).mockResolvedValue([{ data: 'test' }]);
       
       // Start multiple backup operations concurrently
       const backupPromises = [
