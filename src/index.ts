@@ -43,7 +43,10 @@ import { MessageEvents } from './events/messageEvents';
 import { handleTicketButtonInteraction, handleTicketModalSubmission } from './events/ticketEvents';
 import { HealthService } from './services/health.service';
 import { AlertService } from './services/alert.service';
+import { MetricsService } from './services/metrics.service';
 import { StructuredLogger } from './services/structured-logger.service';
+import { BackupService } from './services/backup.service';
+import { BackupScheduler, createBackupScheduler } from './utils/backup-scheduler';
 import { getMonitoringConfig, validateMonitoringConfig } from './config/monitoring.config';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
@@ -82,7 +85,10 @@ class HawkEsportsBot {
     clip: ClipService;
     health: HealthService;
     alert: AlertService;
+    metrics: MetricsService;
+    backup: BackupService;
   };
+  private backupScheduler: BackupScheduler;
   private structuredLogger: StructuredLogger;
   private monitoringConfig = getMonitoringConfig();
   private commands: CommandManager;
@@ -171,6 +177,32 @@ class HawkEsportsBot {
       weaponMastery: new WeaponMasteryService(this.client),
       clip: new ClipService(this.client),
       ticket: ticketService,
+      health: HealthService.getInstance(
+        this.client,
+        this.db,
+        this.cache,
+        this.services.scheduler,
+        this.services.logging,
+        this.services.pubg,
+        this.monitoringConfig.alerts,
+        this.monitoringConfig.logging
+      ),
+      metrics: new MetricsService(),
+      alert: new AlertService(this.monitoringConfig.alerts),
+      backup: null as any, // Will be initialized after metrics
+    } as any;
+
+    // Initialize backup service after metrics is available
+    this.services.backup = new BackupService(
+      this.db.client,
+      this.structuredLogger,
+      this.services.health,
+      this.services.metrics,
+      this.monitoringConfig.backup
+    );
+
+    this.services = {
+      ...this.services,
     } as any;
 
     // Attach individual services to client for direct access
@@ -381,6 +413,20 @@ class HawkEsportsBot {
 
       // Start API service
       await this.services.api.start();
+
+      // Initialize and start backup scheduler
+      this.backupScheduler = createBackupScheduler(
+        this.services.backup,
+        this.structuredLogger,
+        this.services.alert
+      );
+      
+      if (this.monitoringConfig.backup.enabled) {
+        await this.backupScheduler.start();
+        this.structuredLogger.info('Backup scheduler started');
+      } else {
+        this.structuredLogger.info('Backup scheduler disabled in configuration');
+      }
 
       this.logger.info('✅ All services initialized');
       this.structuredLogger.info('All services initialized successfully');
@@ -740,6 +786,12 @@ class HawkEsportsBot {
       // Stop API service
       if (this.services.api) {
         await this.services.api.stop();
+      }
+
+      // Stop backup scheduler
+      if (this.backupScheduler) {
+        this.backupScheduler.stop();
+        this.structuredLogger.info('Backup scheduler stopped');
       }
 
       // Stop music service

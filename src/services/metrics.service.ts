@@ -162,6 +162,19 @@ export class MetricsService {
   }
 
   /**
+   * Record backup metrics
+   */
+  recordBackup(data: { type: string; duration: number; size: number; success: boolean; error?: string }): void {
+    this.recordMetric('backup_total', 1, 'counter', { type: data.type, success: data.success.toString() });
+    this.recordMetric('backup_duration_last', data.duration, 'gauge', { type: data.type });
+    this.recordMetric('backup_size_last', data.size, 'gauge', { type: data.type });
+    
+    if (!data.success && data.error) {
+      this.recordMetric('backup_errors_total', 1, 'counter', { type: data.type, error: data.error });
+    }
+  }
+
+  /**
    * Get current system metrics
    */
   getSystemMetrics(): SystemMetrics {

@@ -522,7 +522,7 @@ export class ServiceHealthChecker {
         if (cacheMetrics.hitRate < 50) {
           issues.push('Low cache hit rate detected');
         }
-        this.logger.debug('Advanced cache is active', { hitRate: cacheMetrics.hitRate } as any);
+        this.logger.debug('Advanced cache is active', { metadata: { hitRate: cacheMetrics.hitRate } });
       }
 
       if (issues.length > 0) {
@@ -536,7 +536,7 @@ export class ServiceHealthChecker {
       };
 
     } catch (error) {
-      this.logger.error('Health check failed', { error });
+      this.logger.error('Health check failed', { metadata: { error } });
       return {
         healthy: false,
         metrics: {},

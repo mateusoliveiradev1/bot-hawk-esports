@@ -395,7 +395,7 @@ export class AdvancedCache {
         await this.set(entry.key, entry.value, { ttl: entry.ttl });
         warmed++;
       } catch (error) {
-        this.logger.warn(`Failed to warm up cache key: ${entry.key}`, { error });
+        this.logger.warn(`Failed to warm up cache key: ${entry.key}`, { metadata: { error } });
       }
     }
 
@@ -477,7 +477,7 @@ export class AdvancedCache {
       try {
         await this.refreshAndCache(key, fallbackFn, options);
       } catch (error) {
-        this.logger.warn(`Background refresh failed for key: ${key}`, { error });
+        this.logger.warn(`Background refresh failed for key: ${key}`, { metadata: { error } });
       } finally {
         this.refreshQueue.delete(key);
       }
@@ -501,7 +501,7 @@ export class AdvancedCache {
       try {
         await this.cacheService.set(key, value, ttl);
       } catch (error) {
-        this.logger.warn(`Write-behind failed for key: ${key}`, { error });
+        this.logger.warn(`Write-behind failed for key: ${key}`, { metadata: { error } });
       }
     });
   }
@@ -622,7 +622,7 @@ export class AdvancedCache {
         },
       });
     } catch (error) {
-      this.logger.warn('Background cache maintenance failed', { error });
+      this.logger.warn('Background cache maintenance failed', { metadata: { error } });
     }
   }
 }

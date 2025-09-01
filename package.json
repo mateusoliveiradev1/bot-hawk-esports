@@ -28,7 +28,9 @@
     "deploy:commands": "tsx src/deploy-commands.ts",
     "deploy:commands:global": "tsx src/deploy-commands.ts global",
     "deploy:commands:guild": "tsx src/deploy-commands.ts guild",
-    "deploy:commands:clear": "tsx src/deploy-commands.ts clear-guild"
+    "deploy:commands:clear": "tsx src/deploy-commands.ts clear-guild",
+    "backup:test": "tsx scripts/test-backup.ts",
+    "backup:create": "tsx -e \"import('./src/services/backup.service').then(m => new m.BackupService().createBackup())\""
   },
   "keywords": [
     "discord",

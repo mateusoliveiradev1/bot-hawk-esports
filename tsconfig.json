@@ -5,7 +5,6 @@
     "lib": ["ES2022"],
     "types": ["node", "jest"],
     "outDir": "./dist",
-    "rootDir": "./src",
     "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -42,7 +41,8 @@
   },
   "include": [
     "src/**/*",
-    "prisma/**/*"
+    "prisma/**/*",
+    "scripts/**/*"
   ],
   "exclude": [
     "node_modules",

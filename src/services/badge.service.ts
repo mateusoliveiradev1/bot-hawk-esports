@@ -906,7 +906,7 @@ export class BadgeService {
           }));
         }
       } catch (error) {
-        this.logger.warn('Erro ao buscar badges do cache', { userId, error });
+        this.logger.warn('Erro ao buscar badges do cache', { metadata: { userId, error } });
       }
     }
 
@@ -930,7 +930,7 @@ export class BadgeService {
       try {
         await this.cache.set(cacheKey, JSON.stringify(sortedBadges), 300);
       } catch (error) {
-        this.logger.warn('Erro ao salvar badges no cache', { userId, error });
+        this.logger.warn('Erro ao salvar badges no cache', { metadata: { userId, error } });
       }
     }
 
@@ -971,7 +971,7 @@ export class BadgeService {
           return cached === 'true';
         }
       } catch (error) {
-        this.logger.warn('Erro ao buscar badge do cache', { userId, error, metadata: { badgeId } });
+        this.logger.warn('Erro ao buscar badge do cache', { metadata: { userId, error, badgeId } });
       }
     }
 
@@ -983,7 +983,7 @@ export class BadgeService {
       try {
         await this.cache.set(cacheKey, hasBadgeResult.toString(), 600);
       } catch (error) {
-        this.logger.warn('Erro ao salvar badge no cache', { userId, error, metadata: { badgeId } });
+        this.logger.warn('Erro ao salvar badge no cache', { metadata: { userId, error, badgeId } });
       }
     }
 

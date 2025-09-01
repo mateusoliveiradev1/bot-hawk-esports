@@ -1,7 +1,9 @@
 import { StructuredLoggerConfig } from '../services/structured-logger.service';
+import { BackupConfig } from '../services/backup.service';
 
 export interface AlertConfig {
   enabled: boolean;
+  enabledChannels: ('discord' | 'email' | 'webhook')[];
   channels: {
     discord: {
       enabled: boolean;
@@ -87,6 +89,7 @@ export interface MonitoringConfig {
   alerts: AlertConfig;
   healthCheck: HealthCheckConfig;
   metrics: MetricsConfig;
+  backup: BackupConfig;
 }
 
 /**
@@ -116,6 +119,11 @@ export const defaultMonitoringConfig: MonitoringConfig = {
   },
   alerts: {
     enabled: process.env.ALERTS_ENABLED !== 'false',
+    enabledChannels: [
+      ...(process.env.DISCORD_ALERT_WEBHOOK ? ['discord' as const] : []),
+      ...(process.env.SMTP_HOST ? ['email' as const] : []),
+      ...(process.env.ALERT_WEBHOOK_URL ? ['webhook' as const] : []),
+    ],
     channels: {
       discord: {
         enabled: process.env.DISCORD_ALERT_WEBHOOK ? true : false,
@@ -189,6 +197,40 @@ export const defaultMonitoringConfig: MonitoringConfig = {
     enabled: process.env.METRICS_ENABLED !== 'false',
     collectInterval: parseInt(process.env.METRICS_COLLECT_INTERVAL || '60000'), // 1 minute
     retentionDays: parseInt(process.env.METRICS_RETENTION_DAYS || '30')
+  },
+  backup: {
+    enabled: process.env.BACKUP_ENABLED !== 'false',
+    schedule: {
+      daily: process.env.BACKUP_DAILY !== 'false',
+      weekly: process.env.BACKUP_WEEKLY === 'true',
+      monthly: process.env.BACKUP_MONTHLY === 'true',
+      customCron: process.env.BACKUP_CUSTOM_CRON
+    },
+    retention: {
+      daily: parseInt(process.env.BACKUP_RETENTION_DAILY || '7'),
+      weekly: parseInt(process.env.BACKUP_RETENTION_WEEKLY || '4'),
+      monthly: parseInt(process.env.BACKUP_RETENTION_MONTHLY || '12')
+    },
+    compression: {
+      enabled: process.env.BACKUP_COMPRESSION !== 'false',
+      level: parseInt(process.env.BACKUP_COMPRESSION_LEVEL || '6')
+    },
+    storage: {
+      local: {
+        enabled: true,
+        path: process.env.BACKUP_DIR || './backups'
+      }
+    },
+    verification: {
+      enabled: process.env.BACKUP_VERIFICATION !== 'false',
+      checksumAlgorithm: (process.env.BACKUP_CHECKSUM_ALGORITHM as 'md5' | 'sha256') || 'sha256'
+    },
+    notifications: {
+      enabled: process.env.BACKUP_NOTIFICATIONS_ENABLED === 'true',
+      onSuccess: process.env.BACKUP_NOTIFY_SUCCESS === 'true',
+      onFailure: process.env.BACKUP_NOTIFY_FAILURE !== 'false',
+      channels: process.env.BACKUP_NOTIFICATION_CHANNELS ? process.env.BACKUP_NOTIFICATION_CHANNELS.split(',') : [],
+    }
   }
 };
 
@@ -228,6 +270,10 @@ export function getMonitoringConfig(overrides?: Partial<MonitoringConfig>): Moni
     metrics: {
       ...defaultMonitoringConfig.metrics,
       ...overrides.metrics,
+    },
+    backup: {
+      ...defaultMonitoringConfig.backup,
+      ...overrides.backup,
     },
   };
 }
