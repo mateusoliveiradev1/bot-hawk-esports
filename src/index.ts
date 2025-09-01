@@ -41,6 +41,10 @@ import { CommandManager } from './commands/index';
 import { MemberEvents } from './events/memberEvents';
 import { MessageEvents } from './events/messageEvents';
 import { handleTicketButtonInteraction, handleTicketModalSubmission } from './events/ticketEvents';
+import { HealthService } from './services/health.service';
+import { AlertService } from './services/alert.service';
+import { StructuredLogger } from './services/structured-logger.service';
+import { getMonitoringConfig, validateMonitoringConfig } from './config/monitoring.config';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
@@ -76,15 +80,29 @@ class HawkEsportsBot {
     scheduler: SchedulerService;
     weaponMastery: WeaponMasteryService;
     clip: ClipService;
+    health: HealthService;
+    alert: AlertService;
   };
+  private structuredLogger: StructuredLogger;
+  private monitoringConfig = getMonitoringConfig();
   private commands: CommandManager;
   private isShuttingDown = false;
 
   constructor() {
     this.logger = new Logger();
 
+    // Validate monitoring configuration
+    const configValidation = validateMonitoringConfig(this.monitoringConfig);
+    if (!configValidation.isValid) {
+      this.logger.error('Invalid monitoring configuration:', { metadata: { errors: configValidation.errors } });
+      throw new Error(`Invalid monitoring configuration: ${configValidation.errors.join(', ')}`);
+    }
+
+    // Initialize structured logger
+    this.structuredLogger = new StructuredLogger(this.monitoringConfig.logging, 'bot-hawk-esports');
+
     // Initialize database and cache first
-    this.db = new DatabaseService();
+    this.db = new DatabaseService(this.monitoringConfig.logging);
     this.cache = new CacheService();
 
     // Create Discord client with required intents
@@ -315,14 +333,59 @@ class HawkEsportsBot {
    */
   private async initializeServices(): Promise<void> {
     try {
+      // Initialize monitoring services (other services already initialized in constructor)
+      // Convert monitoring config to alert service config
+      const alertServiceConfig = {
+        discordChannelId: this.monitoringConfig.alerts.channels.discord.enabled ? this.monitoringConfig.alerts.channels.discord.webhook : undefined,
+        emailConfig: this.monitoringConfig.alerts.channels.email.enabled ? {
+          host: this.monitoringConfig.alerts.channels.email.smtp.host,
+          port: this.monitoringConfig.alerts.channels.email.smtp.port,
+          secure: this.monitoringConfig.alerts.channels.email.smtp.secure,
+          auth: this.monitoringConfig.alerts.channels.email.smtp.auth,
+          from: this.monitoringConfig.alerts.channels.email.from,
+          to: this.monitoringConfig.alerts.channels.email.to,
+        } : undefined,
+        webhookUrl: this.monitoringConfig.alerts.channels.webhook.enabled ? this.monitoringConfig.alerts.channels.webhook.url : undefined,
+        enabledChannels: [
+          ...(this.monitoringConfig.alerts.channels.discord.enabled ? ['discord' as const] : []),
+          ...(this.monitoringConfig.alerts.channels.email.enabled ? ['email' as const] : []),
+          ...(this.monitoringConfig.alerts.channels.webhook.enabled ? ['webhook' as const] : []),
+        ],
+      };
+      this.services.alert = new AlertService(alertServiceConfig);
+      this.services.health = HealthService.getInstance(
+        this.client,
+        this.db,
+        this.cache,
+        this.services.scheduler,
+        this.services.logging,
+        this.services.pubg,
+        alertServiceConfig,
+        this.monitoringConfig.logging,
+      );
+
+      // Log service initialization
+      this.structuredLogger.info('Initializing bot services', {
+        metadata: {
+          environment: this.monitoringConfig.logging.environment,
+          version: this.monitoringConfig.logging.version,
+        },
+      });
+
       // Services are initialized in their constructors
       this.logger.info('All services initialized');
+
+      // Start monitoring
+      this.services.health.startPeriodicHealthChecks();
+      this.structuredLogger.info('Health monitoring started');
 
       // Start API service
       await this.services.api.start();
 
       this.logger.info('✅ All services initialized');
+      this.structuredLogger.info('All services initialized successfully');
     } catch (error) {
+      this.structuredLogger.error('Service initialization failed', error instanceof Error ? error : new Error(String(error)));
       this.logger.error('Service initialization failed:', error);
       throw error;
     }
@@ -658,8 +721,17 @@ class HawkEsportsBot {
     this.isShuttingDown = true;
 
     this.logger.info(`🛑 Received ${signal}, shutting down gracefully...`);
+    this.structuredLogger.info('Bot shutdown initiated', {
+      metadata: { signal },
+    });
 
     try {
+      // Stop health monitoring
+      if (this.services.health) {
+        this.services.health.stopPeriodicHealthChecks();
+        this.structuredLogger.info('Health monitoring stopped');
+      }
+
       // Stop scheduler
       if (this.services.scheduler) {
         this.services.scheduler.shutdown();

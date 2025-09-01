@@ -24,6 +24,9 @@ import * as fs from 'fs';
 import session from 'express-session';
 import MongoStore from 'connect-mongo';
 import { SecurityService } from './security.service';
+import { HealthService } from './health.service';
+import { AlertService, AlertConfig } from './alert.service';
+import { StructuredLogger, LoggerConfig, createDefaultLoggerConfig } from './structured-logger.service';
 
 export interface APIConfig {
   port: number;
@@ -82,6 +85,9 @@ export class APIService {
   private client: ExtendedClient;
   private config: APIConfig;
   private securityService: SecurityService;
+  private healthService: HealthService | null = null;
+  private alertService: AlertService | null = null;
+  private structuredLogger: StructuredLogger;
 
   private upload!: multer.Multer;
 
@@ -92,6 +98,11 @@ export class APIService {
 
     this.client = client;
     this.logger = new Logger();
+    
+    // Setup structured logging
+    const defaultLoggerConfig = createDefaultLoggerConfig(process.env.NODE_ENV || 'development');
+    this.structuredLogger = new StructuredLogger(defaultLoggerConfig, 'APIService');
+    
     this.database = client.database;
     this.cache = client.cache;
     this.pubgService = client.pubgService;
@@ -102,6 +113,16 @@ export class APIService {
     this.gameService = client.gameService;
     this.clipService = client.clipService;
     this.securityService = new SecurityService(this.database);
+    
+    // Setup alert service if Discord webhook is configured
+    if (process.env.DISCORD_ALERT_WEBHOOK) {
+      const alertConfig: AlertConfig = {
+        discordChannelId: process.env.DISCORD_ALERT_CHANNEL_ID,
+        enabledChannels: ['discord'],
+        webhookUrl: process.env.DISCORD_ALERT_WEBHOOK,
+      };
+      this.alertService = new AlertService(alertConfig, this.database, this.client);
+    }
 
     // Validate required environment variables
     const requiredEnvVars = ['JWT_SECRET'];
@@ -184,6 +205,35 @@ export class APIService {
         xssFilter: true,
       }),
     );
+
+    // HTTP Request Logging Middleware
+    this.app.use((req: Request, res: Response, next: NextFunction) => {
+      const startTime = Date.now();
+      const originalSend = res.send;
+      
+      res.send = function(body) {
+        const responseTime = Date.now() - startTime;
+        const statusCode = res.statusCode;
+        
+        // Log HTTP request with structured logger
+        if (this.structuredLogger) {
+          this.structuredLogger.logHttpRequest({
+            method: req.method,
+            url: req.url,
+            statusCode,
+            responseTime,
+            userAgent: req.get('User-Agent') || 'unknown',
+            ip: req.ip || req.connection.remoteAddress || 'unknown',
+            userId: (req as AuthenticatedRequest).user?.id,
+            guildId: (req as AuthenticatedRequest).user?.guildId,
+          });
+        }
+        
+        return originalSend.call(this, body);
+      }.bind(this);
+      
+      next();
+    });
 
     // Additional security headers
     this.app.use((req: Request, res: Response, next: NextFunction) => {
@@ -500,17 +550,174 @@ export class APIService {
       });
     });
 
-    // Health check
-    this.app.get('/health', (req: Request, res: Response) => {
-      res.json({
-        success: true,
-        data: {
-          status: 'healthy',
-          timestamp: new Date().toISOString(),
-          uptime: process.uptime(),
-          version: process.env.npm_package_version || '1.0.0',
-        },
-      });
+    // Health check endpoints
+    this.app.get('/health', async (req: Request, res: Response) => {
+      try {
+        if (!this.healthService) {
+          // Fallback to basic health check
+          res.json({
+            success: true,
+            data: {
+              status: 'healthy',
+              timestamp: new Date().toISOString(),
+              uptime: process.uptime(),
+              version: process.env.npm_package_version || '1.0.0',
+            },
+          });
+          return;
+        }
+
+        const health = await this.healthService.performHealthCheck();
+        const statusCode = health.overall === 'healthy' ? 200 : health.overall === 'degraded' ? 200 : 503;
+        
+        res.status(statusCode).json({
+          success: health.overall !== 'unhealthy',
+          data: {
+            status: health.overall,
+            timestamp: health.timestamp.toISOString(),
+            uptime: health.uptime,
+            version: process.env.npm_package_version || '1.0.0',
+            services: health.services.map(service => ({
+              name: service.name,
+              status: service.status,
+              responseTime: Math.round(service.responseTime),
+              details: service.details,
+            })),
+            system: {
+              memory: {
+                used: Math.round(health.system.memory.used / 1024 / 1024), // MB
+                total: Math.round(health.system.memory.total / 1024 / 1024), // MB
+                percentage: health.system.memory.percentage,
+              },
+              discord: health.discord,
+            },
+          },
+        });
+      } catch (error) {
+        this.logger.error('Health check endpoint failed:', error);
+        res.status(503).json({
+          success: false,
+          error: 'Health check failed',
+          data: {
+            status: 'unhealthy',
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime(),
+            version: process.env.npm_package_version || '1.0.0',
+          },
+        });
+      }
+    });
+
+    // Detailed health check (admin only)
+    this.app.get('/health/detailed', this.authenticateToken, this.requireRole(['Administrador', 'Admin']), async (req: Request, res: Response) => {
+      try {
+        if (!this.healthService) {
+          res.status(503).json({
+            success: false,
+            error: 'Health service not available',
+          });
+          return;
+        }
+
+        const health = await this.healthService.performHealthCheck();
+        res.json({
+          success: true,
+          data: health,
+        });
+      } catch (error) {
+        this.logger.error('Detailed health check failed:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Detailed health check failed',
+        });
+      }
+    });
+
+    // Service-specific health check
+    this.app.get('/health/service/:serviceName', this.authenticateToken, this.requireRole(['Administrador', 'Admin']), async (req: Request, res: Response) => {
+      try {
+        if (!this.healthService) {
+          res.status(503).json({
+            success: false,
+            error: 'Health service not available',
+          });
+          return;
+        }
+
+        const { serviceName } = req.params;
+        const serviceHealth = await this.healthService.getServiceHealth(serviceName);
+        
+        if (!serviceHealth) {
+          res.status(404).json({
+            success: false,
+            error: 'Service not found',
+            data: {
+              availableServices: this.healthService.getAvailableServices(),
+            },
+          });
+          return;
+        }
+
+        res.json({
+          success: true,
+          data: serviceHealth,
+        });
+      } catch (error) {
+        this.logger.error(`Service health check failed for ${req.params.serviceName}:`, error);
+        res.status(500).json({
+          success: false,
+          error: 'Service health check failed',
+        });
+      }
+    });
+
+    // Metrics endpoint for Prometheus
+    this.app.get('/metrics', (req: Request, res: Response) => {
+      try {
+        if (!this.healthService) {
+          return res.status(503).send('Health service not available');
+        }
+        
+        const metrics = this.healthService.getPrometheusMetrics();
+        res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+        res.send(metrics);
+      } catch (error) {
+        this.logger.error('Failed to get metrics:', error);
+        res.status(500).send('Failed to get metrics');
+      }
+    });
+    
+    // JSON metrics endpoint (admin only)
+    this.app.get('/metrics/json', this.authenticateToken, this.requireRole(['Administrador', 'Admin']), async (req: Request, res: Response) => {
+      try {
+        if (!this.healthService) {
+          return res.status(503).json({ 
+            success: false,
+            error: 'Health service not available', 
+          });
+        }
+        
+        const metricsService = this.healthService.getMetricsService();
+        const systemMetrics = metricsService.getSystemMetrics();
+        const appMetrics = await metricsService.getApplicationMetrics();
+        const allMetrics = metricsService.getAllMetrics();
+        
+        res.json({
+          success: true,
+          data: {
+            system: systemMetrics,
+            application: appMetrics,
+            raw: allMetrics,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      } catch (error) {
+        this.logger.error('Failed to get JSON metrics:', error);
+        res.status(500).json({ 
+          success: false, 
+          error: 'Failed to get metrics', 
+        });
+      }
     });
 
     // API routes
@@ -3437,6 +3644,22 @@ export class APIService {
             this.logger.error('Failed to setup WebSocket:', wsError);
           }
 
+          // Initialize health service
+          try {
+            this.healthService = HealthService.getInstance(
+              this.client,
+              this.database,
+              this.cache,
+              this.client.schedulerService,
+              this.client.loggingService,
+              this.pubgService,
+            );
+            this.healthService.startPeriodicHealthChecks();
+            this.logger.info('Health service initialized and started');
+          } catch (healthError) {
+            this.logger.error('Failed to initialize health service:', healthError);
+          }
+
           // Start simulated updates in development
           if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
             try {
@@ -3572,6 +3795,13 @@ export class APIService {
       this.logger.info('🛑 Stopping API server...');
 
       const cleanup = () => {
+        // Cleanup health service
+        if (this.healthService) {
+          this.healthService.cleanup();
+          this.healthService = null;
+          this.logger.info('🏥 Health service stopped');
+        }
+        
         this.logger.info('✅ API server stopped gracefully');
         resolve();
       };

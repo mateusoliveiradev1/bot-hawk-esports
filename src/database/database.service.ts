@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { Logger } from '../utils/logger';
 import { EmbedBuilder, TextChannel } from 'discord.js';
+import { StructuredLogger, StructuredLoggerConfig } from '../services/structured-logger.service';
 
 /**
  * Database service class for managing Prisma client and database operations
@@ -8,6 +9,7 @@ import { EmbedBuilder, TextChannel } from 'discord.js';
 export class DatabaseService {
   private prisma: PrismaClient;
   private logger: Logger;
+  private structuredLogger: StructuredLogger;
   private isConnected: boolean = false;
 
   /**
@@ -17,8 +19,18 @@ export class DatabaseService {
     return this.prisma;
   }
 
-  constructor() {
+  constructor(structuredLoggerConfig?: StructuredLoggerConfig) {
     this.logger = new Logger();
+    this.structuredLogger = new StructuredLogger(structuredLoggerConfig || {
+      level: 'info',
+      environment: process.env.NODE_ENV || 'development',
+      version: process.env.npm_package_version || '1.0.0',
+      logDir: './logs',
+      maxFiles: 14,
+      maxSize: '20m',
+      enableConsole: true,
+      enableFile: true,
+    });
     this.prisma = new PrismaClient({
       log: [
         {
@@ -54,6 +66,14 @@ export class DatabaseService {
       try {
         // @ts-ignore - Prisma event types may vary by version
         this.prisma.$on('query', (e: any) => {
+          // Log database operation with structured logger
+          this.structuredLogger.logDatabase(
+            'query',
+            'unknown',
+            e.duration,
+            true,
+          );
+          
           if (e.duration > 1000) {
             // Log slow queries (>1s)
             this.logger.warn(`Slow query detected (${e.duration}ms):`, {
@@ -73,6 +93,13 @@ export class DatabaseService {
       try {
         // @ts-ignore - Prisma event types may vary by version
         this.prisma.$on('error', (e: any) => {
+          this.structuredLogger.logDatabase(
+            'error',
+            'unknown',
+            0,
+            false,
+            new Error(e.message || e),
+          );
           this.logger.error('Database error event:', e);
         });
       } catch (errorEventError) {
@@ -106,11 +133,21 @@ export class DatabaseService {
    */
   public async connect(maxRetries: number = 3): Promise<void> {
     let lastError: any;
+    const startTime = Date.now();
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         await this.prisma.$connect();
         this.isConnected = true;
+        
+        const duration = Date.now() - startTime;
+        this.structuredLogger.logDatabase(
+          'connect',
+          'database',
+          duration,
+          true,
+        );
+        
         this.logger.info('✅ Connected to database successfully');
 
         // Test the connection
@@ -122,6 +159,15 @@ export class DatabaseService {
         return; // Success, exit retry loop
       } catch (error) {
         lastError = error;
+        
+        this.structuredLogger.logDatabase(
+          'connect',
+          'database',
+          0,
+          false,
+          error,
+        );
+        
         this.logger.warn(`❌ Database connection attempt ${attempt}/${maxRetries} failed:`, error);
 
         if (attempt < maxRetries) {
@@ -140,11 +186,30 @@ export class DatabaseService {
    * Disconnect from the database
    */
   public async disconnect(): Promise<void> {
+    const startTime = Date.now();
+    
     try {
       await this.prisma.$disconnect();
       this.isConnected = false;
+      
+      const duration = Date.now() - startTime;
+      this.structuredLogger.logDatabase(
+        'disconnect',
+        'database',
+        duration,
+        true,
+      );
+      
       this.logger.info('✅ Disconnected from database successfully');
     } catch (error) {
+      this.structuredLogger.logDatabase(
+        'disconnect',
+        'database',
+        0,
+        false,
+        error,
+      );
+      
       this.logger.error('❌ Failed to disconnect from database:', error);
       throw error;
     }
@@ -154,10 +219,29 @@ export class DatabaseService {
    * Health check for database connection
    */
   public async healthCheck(): Promise<boolean> {
+    const startTime = Date.now();
+    
     try {
       await this.prisma.$queryRaw`SELECT 1`;
+      
+      const duration = Date.now() - startTime;
+      this.structuredLogger.logDatabase(
+        'healthCheck',
+        'database',
+        duration,
+        true,
+      );
+      
       return true;
     } catch (error) {
+      this.structuredLogger.logDatabase(
+        'healthCheck',
+        'database',
+        0,
+        false,
+        error,
+      );
+      
       this.logger.error('Database health check failed:', error);
       return false;
     }

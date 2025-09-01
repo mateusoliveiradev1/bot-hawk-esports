@@ -9,7 +9,10 @@ RUN apk add --no-cache \
     python3 \
     make \
     g++ \
-    ffmpeg
+    ffmpeg \
+    curl \
+    jq \
+    bash
 
 # Copy package files
 COPY package*.json ./
@@ -23,6 +26,10 @@ RUN npx prisma generate
 
 # Copy source code
 COPY . .
+
+# Copy and make healthcheck script executable
+COPY scripts/setup/docker-healthcheck.sh /usr/local/bin/healthcheck.sh
+RUN chmod +x /usr/local/bin/healthcheck.sh
 
 # Build the application
 RUN npm run build
@@ -41,9 +48,9 @@ USER botuser
 # Expose port
 EXPOSE 3001
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD node healthcheck.js
+# Health check - more robust with longer intervals for production
+HEALTHCHECK --interval=60s --timeout=15s --start-period=30s --retries=3 \
+    CMD /usr/local/bin/healthcheck.sh
 
 # Start the application
 CMD ["npm", "start"]
