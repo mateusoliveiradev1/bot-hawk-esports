@@ -63,7 +63,7 @@ export class AdvancedRateLimitService {
 
   constructor(
     private readonly cacheService: CacheService,
-    structuredLogger?: StructuredLogger
+    structuredLogger?: StructuredLogger,
   ) {
     this.structuredLogger = structuredLogger || new StructuredLogger({
       level: 'info',
@@ -87,7 +87,7 @@ export class AdvancedRateLimitService {
   private initializeRateLimiters(): void {
     const endpointTypes = [
       'general', 'auth-login', 'auth-register', 'upload-general',
-      'api-pubg', 'api-stats', 'admin-general', 'security-captcha'
+      'api-pubg', 'api-stats', 'admin-general', 'security-captcha',
     ];
 
     endpointTypes.forEach(type => {
@@ -106,7 +106,7 @@ export class AdvancedRateLimitService {
 
     this.logger.info('Advanced rate limiters initialized', {
       category: LogCategory.SECURITY,
-      metadata: { endpointTypes: endpointTypes.length }
+      metadata: { endpointTypes: endpointTypes.length },
     });
   }
 
@@ -121,7 +121,7 @@ export class AdvancedRateLimitService {
       userAgent?: string;
       userId?: string;
       endpoint?: string;
-    } = {}
+    } = {},
   ): Promise<AdvancedRateLimitResult> {
     // Check if IP is blacklisted
     if (metadata.ip && this.blacklistedIPs.has(metadata.ip)) {
@@ -159,7 +159,7 @@ export class AdvancedRateLimitService {
       basicResult,
       violationLevel,
       trustScore,
-      behaviorAnalysis
+      behaviorAnalysis,
     );
 
     const result: AdvancedRateLimitResult = {
@@ -192,7 +192,7 @@ export class AdvancedRateLimitService {
    */
   private async calculateTrustScore(
     identifier: string,
-    metadata: { userId?: string; ip?: string }
+    metadata: { userId?: string; ip?: string },
   ): Promise<number> {
     const cacheKey = `trust_score:${identifier}`;
     const cached = await this.cacheService.get(cacheKey);
@@ -254,9 +254,9 @@ export class AdvancedRateLimitService {
     let score = 0.5; // Base score
 
     // Account age factor (newer accounts are less trusted)
-    if (factors.accountAge > 365) score += 0.2;
-    else if (factors.accountAge > 90) score += 0.1;
-    else if (factors.accountAge < 7) score -= 0.2;
+    if (factors.accountAge > 365) {score += 0.2;}
+    else if (factors.accountAge > 90) {score += 0.1;}
+    else if (factors.accountAge < 7) {score -= 0.2;}
 
     // Success rate factor
     const totalRequests = factors.successfulRequests + factors.failedRequests;
@@ -269,9 +269,9 @@ export class AdvancedRateLimitService {
     score -= factors.violationHistory * 0.1;
 
     // Security features bonus
-    if (factors.verifiedEmail) score += 0.1;
-    if (factors.twoFactorEnabled) score += 0.15;
-    if (factors.premiumUser) score += 0.1;
+    if (factors.verifiedEmail) {score += 0.1;}
+    if (factors.twoFactorEnabled) {score += 0.15;}
+    if (factors.premiumUser) {score += 0.1;}
 
     return Math.max(0, Math.min(1, score));
   }
@@ -281,7 +281,7 @@ export class AdvancedRateLimitService {
    */
   private async analyzeUserBehavior(
     identifier: string,
-    metadata: { userAgent?: string; ip?: string }
+    metadata: { userAgent?: string; ip?: string },
   ): Promise<{ suspicious: boolean; patterns: string[] }> {
     const patterns: string[] = [];
     let suspicious = false;
@@ -326,7 +326,7 @@ export class AdvancedRateLimitService {
   private determineViolationLevel(
     basicResult: RateLimitResult,
     trustScore: number,
-    behaviorAnalysis: { suspicious: boolean; patterns: string[] }
+    behaviorAnalysis: { suspicious: boolean; patterns: string[] },
   ): 'none' | 'warning' | 'critical' {
     if (!basicResult.allowed) {
       return trustScore < 0.3 || behaviorAnalysis.suspicious ? 'critical' : 'warning';
@@ -346,7 +346,7 @@ export class AdvancedRateLimitService {
     basicResult: RateLimitResult,
     violationLevel: 'none' | 'warning' | 'critical',
     trustScore: number,
-    behaviorAnalysis: { suspicious: boolean; patterns: string[] }
+    behaviorAnalysis: { suspicious: boolean; patterns: string[] },
   ): 'allow' | 'throttle' | 'block' | 'captcha' {
     if (violationLevel === 'critical') {
       return trustScore < 0.2 ? 'block' : 'captcha';
@@ -375,7 +375,7 @@ export class AdvancedRateLimitService {
       userAgent?: string;
       userId?: string;
       endpoint?: string;
-    } = {}
+    } = {},
   ): Promise<void> {
     const violation: RateLimitViolation = {
       identifier,
@@ -404,8 +404,8 @@ export class AdvancedRateLimitService {
         endpointType,
         violationType,
         violationCount: violations.length,
-        ...metadata
-      }
+        ...metadata,
+      },
     });
 
     // Auto-blacklist for severe violations
@@ -473,7 +473,7 @@ export class AdvancedRateLimitService {
     identifier: string,
     endpointType: string,
     result: AdvancedRateLimitResult,
-    metadata: any
+    metadata: any,
   ): Promise<void> {
     if (result.violationLevel !== 'none' || result.suspiciousActivity) {
       await this.structuredLogger.info('Rate limit check completed', {
@@ -486,8 +486,8 @@ export class AdvancedRateLimitService {
           suspiciousActivity: result.suspiciousActivity,
           recommendedAction: result.recommendedAction,
           trustScore: result.metadata.trustScore,
-          ...metadata
-        }
+          ...metadata,
+        },
       });
     }
   }

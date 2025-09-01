@@ -109,7 +109,7 @@ export class APIService {
     // Initialize advanced rate limiting service
     this.advancedRateLimitService = new AdvancedRateLimitService(
       this.cache,
-      this.structuredLogger
+      this.structuredLogger,
     );
     
     this.database = client.database;
@@ -318,60 +318,49 @@ export class APIService {
     );
 
     // Advanced rate limiting with intelligent behavior analysis
-    const rateLimitMiddleware = new RateLimitMiddleware();
     
     // Apply intelligent rate limiting for different endpoint types
-    this.app.use('/api/', rateLimitMiddleware.createMiddleware(
-      RateLimitConfiguration.getConfigByType('general'),
-      this.advancedRateLimitService
-    ));
+    this.app.use('/api/', rateLimit(RateLimitMiddleware.create(
+      RateLimitConfiguration.GENERAL,
+    )));
     
-    this.app.use('/api/auth/login', rateLimitMiddleware.createMiddleware(
-      RateLimitConfiguration.getConfigByType('auth'),
-      this.advancedRateLimitService
-    ));
+    this.app.use('/api/auth/login', rateLimit(RateLimitMiddleware.create(
+      RateLimitConfiguration.AUTH_LOGIN,
+    )));
     
-    this.app.use('/api/auth/register', rateLimitMiddleware.createMiddleware(
-      RateLimitConfiguration.getConfigByType('auth'),
-      this.advancedRateLimitService
-    ));
+    this.app.use('/api/auth/register', rateLimit(RateLimitMiddleware.create(
+      RateLimitConfiguration.AUTH_REGISTER,
+    )));
     
-    this.app.use('/api/clips/upload', rateLimitMiddleware.createMiddleware(
-      RateLimitConfiguration.getConfigByType('upload'),
-      this.advancedRateLimitService
-    ));
+    this.app.use('/api/clips/upload', rateLimit(RateLimitMiddleware.create(
+      RateLimitConfiguration.UPLOAD_CLIPS,
+    )));
     
-    this.app.use('/api/*/upload', rateLimitMiddleware.createMiddleware(
-      RateLimitConfiguration.getConfigByType('upload'),
-      this.advancedRateLimitService
-    ));
+    this.app.use('/api/*/upload', rateLimit(RateLimitMiddleware.create(
+      RateLimitConfiguration.UPLOAD_GENERAL,
+    )));
     
     // Apply progressive rate limiting for repeated violations
-    this.app.use('/api/auth/', rateLimitMiddleware.createProgressiveRateLimit(
-      RateLimitConfiguration.getConfigByType('auth'),
-      this.advancedRateLimitService
-    ));
+    this.app.use('/api/auth/', rateLimit(RateLimitMiddleware.createProgressive(
+      RateLimitConfiguration.AUTH_LOGIN,
+    )));
     
     // Apply API-specific rate limiting
-    this.app.use('/api/pubg/', rateLimitMiddleware.createMiddleware(
-      RateLimitConfiguration.getConfigByType('pubg_api'),
-      this.advancedRateLimitService
-    ));
+    this.app.use('/api/pubg/', rateLimit(RateLimitMiddleware.create(
+      RateLimitConfiguration.API_PUBG,
+    )));
     
-    this.app.use('/api/stats/', rateLimitMiddleware.createMiddleware(
-      RateLimitConfiguration.getConfigByType('stats'),
-      this.advancedRateLimitService
-    ));
+    this.app.use('/api/stats/', rateLimit(RateLimitMiddleware.create(
+      RateLimitConfiguration.API_STATS,
+    )));
     
-    this.app.use('/api/ranking/', rateLimitMiddleware.createMiddleware(
-      RateLimitConfiguration.getConfigByType('ranking'),
-      this.advancedRateLimitService
-    ));
+    this.app.use('/api/ranking/', rateLimit(RateLimitMiddleware.create(
+      RateLimitConfiguration.API_RANKING,
+    )));
     
-    this.app.use('/api/admin/', rateLimitMiddleware.createMiddleware(
-      RateLimitConfiguration.getConfigByType('admin'),
-      this.advancedRateLimitService
-    ));
+    this.app.use('/api/admin/', rateLimit(RateLimitMiddleware.create(
+      RateLimitConfiguration.ADMIN_GENERAL,
+    )));
 
     // Security middleware for bot detection
     this.app.use('/api/auth/register', (req: Request, res: Response, next: NextFunction) => {
