@@ -20,7 +20,7 @@ export default {
           option
             .setName('user')
             .setDescription('Usuário para testar')
-            .setRequired(true)
+            .setRequired(true),
         )
         .addIntegerOption(option =>
           option
@@ -28,8 +28,8 @@ export default {
             .setDescription('Número de dias de streak')
             .setRequired(true)
             .setMinValue(1)
-            .setMaxValue(365)
-        )
+            .setMaxValue(365),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -39,7 +39,7 @@ export default {
           option
             .setName('user')
             .setDescription('Usuário para testar')
-            .setRequired(true)
+            .setRequired(true),
         )
         .addStringOption(option =>
           option
@@ -50,9 +50,9 @@ export default {
               { name: 'Evento Geral', value: 'general' },
               { name: 'Torneio', value: 'tournament' },
               { name: 'Evento Sazonal', value: 'seasonal' },
-              { name: 'Competição', value: 'competition' }
-            )
-        )
+              { name: 'Competição', value: 'competition' },
+            ),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -62,7 +62,7 @@ export default {
           option
             .setName('user')
             .setDescription('Usuário para testar')
-            .setRequired(true)
+            .setRequired(true),
         )
         .addStringOption(option =>
           option
@@ -72,8 +72,8 @@ export default {
             .addChoices(
               { name: 'Vitória em Equipe', value: 'win' },
               { name: 'Assistência', value: 'assist' },
-              { name: 'Reviver Aliado', value: 'revive' }
-            )
+              { name: 'Reviver Aliado', value: 'revive' },
+            ),
         )
         .addIntegerOption(option =>
           option
@@ -81,8 +81,8 @@ export default {
             .setDescription('Quantidade')
             .setRequired(false)
             .setMinValue(1)
-            .setMaxValue(100)
-        )
+            .setMaxValue(100),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -92,7 +92,7 @@ export default {
           option
             .setName('user')
             .setDescription('Usuário para testar')
-            .setRequired(true)
+            .setRequired(true),
         )
         .addStringOption(option =>
           option
@@ -101,8 +101,8 @@ export default {
             .setRequired(true)
             .addChoices(
               { name: 'Compartilhar Clip', value: 'shared_clip' },
-              { name: 'Votar na Comunidade', value: 'community_vote' }
-            )
+              { name: 'Votar na Comunidade', value: 'community_vote' },
+            ),
         )
         .addIntegerOption(option =>
           option
@@ -110,8 +110,8 @@ export default {
             .setDescription('Quantidade')
             .setRequired(false)
             .setMinValue(1)
-            .setMaxValue(50)
-        )
+            .setMaxValue(50),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -126,9 +126,9 @@ export default {
               { name: 'Streak', value: 'streak' },
               { name: 'Comunidade', value: 'community' },
               { name: 'Colaboração', value: 'collaboration' },
-              { name: 'Sazonal', value: 'seasonal' }
-            )
-        )
+              { name: 'Sazonal', value: 'seasonal' },
+            ),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -138,8 +138,8 @@ export default {
           option
             .setName('user')
             .setDescription('Usuário para verificar')
-            .setRequired(true)
-        )
+            .setRequired(true),
+        ),
     )
     .setDefaultMemberPermissions('0'),
 
@@ -203,7 +203,7 @@ async function handleTestStreak(
       .addFields(
         { name: '👤 Usuário', value: user.displayName, inline: true },
         { name: '📅 Dias', value: days.toString(), inline: true },
-        { name: '🎯 Ação', value: 'Daily Streak Atualizado', inline: true }
+        { name: '🎯 Ação', value: 'Daily Streak Atualizado', inline: true },
       )
       .setColor('#00FF00')
       .setTimestamp();
@@ -235,7 +235,7 @@ async function handleTestEvent(
       .addFields(
         { name: '👤 Usuário', value: user.displayName, inline: true },
         { name: '🎉 Tipo de Evento', value: eventType, inline: true },
-        { name: '🎯 Ação', value: 'Participação Registrada', inline: true }
+        { name: '🎯 Ação', value: 'Participação Registrada', inline: true },
       )
       .setColor('#00FF00')
       .setTimestamp();
@@ -274,7 +274,7 @@ async function handleTestTeam(
       .addFields(
         { name: '👤 Usuário', value: user.displayName, inline: true },
         { name: '🤝 Atividade', value: activityNames[activity], inline: true },
-        { name: '🔢 Quantidade', value: count.toString(), inline: true }
+        { name: '🔢 Quantidade', value: count.toString(), inline: true },
       )
       .setColor('#00FF00')
       .setTimestamp();
@@ -312,7 +312,7 @@ async function handleTestCommunity(
       .addFields(
         { name: '👤 Usuário', value: user.displayName, inline: true },
         { name: '👥 Interação', value: interactionNames[interactionType], inline: true },
-        { name: '🔢 Quantidade', value: count.toString(), inline: true }
+        { name: '🔢 Quantidade', value: count.toString(), inline: true },
       )
       .setColor('#00FF00')
       .setTimestamp();
@@ -406,7 +406,7 @@ async function handleUserProgress(
       .addFields(
         { name: '🏆 Total de Badges', value: badgeStats.total.toString(), inline: true },
         { name: '🆕 Novas Badges', value: newBadges.length.toString(), inline: true },
-        { name: '💎 Badge Mais Rara', value: badgeStats.rarest?.name || 'Nenhuma', inline: true }
+        { name: '💎 Badge Mais Rara', value: badgeStats.rarest?.name || 'Nenhuma', inline: true },
       )
       .setColor('#9B59B6')
       .setTimestamp();
