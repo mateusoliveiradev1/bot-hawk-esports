@@ -11,7 +11,7 @@ export interface BadgeDefinition {
   name: string;
   description: string;
   icon: string;
-  category: 'pubg' | 'social' | 'gaming' | 'participation' | 'special' | 'achievement';
+  category: 'pubg' | 'social' | 'gaming' | 'participation' | 'special' | 'achievement' | 'streak' | 'community' | 'collaboration' | 'seasonal';
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
   requirements: BadgeRequirement[];
   rewards?: {
@@ -45,7 +45,18 @@ export interface BadgeRequirement {
     | 'consecutive_days'
     | 'level'
     | 'coins_earned'
-    | 'badges_earned';
+    | 'badges_earned'
+    | 'daily_streak'
+    | 'weekly_streak'
+    | 'monthly_streak'
+    | 'event_participation'
+    | 'team_wins'
+    | 'assists'
+    | 'revives'
+    | 'shared_clips'
+    | 'community_votes'
+    | 'tournament_participation'
+    | 'seasonal_activity';
   operator: 'gte' | 'lte' | 'eq' | 'between';
   value: number | [number, number];
   timeframe?: 'daily' | 'weekly' | 'monthly' | 'all_time';
@@ -457,6 +468,307 @@ export class BadgeService {
           rewards: {
             xp: 0,
             coins: 0,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        // Streak Badges
+        {
+          id: 'daily_streak_7',
+          name: 'Dedicado',
+          description: 'Mantenha uma sequência de 7 dias consecutivos de atividade',
+          icon: '🔥',
+          category: 'streak',
+          rarity: 'common',
+          requirements: [
+            {
+              type: 'daily_streak',
+              operator: 'gte',
+              value: 7,
+              timeframe: 'all_time',
+            },
+          ],
+          rewards: {
+            xp: 200,
+            coins: 100,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'daily_streak_30',
+          name: 'Persistente',
+          description: 'Mantenha uma sequência de 30 dias consecutivos de atividade',
+          icon: '🔥',
+          category: 'streak',
+          rarity: 'rare',
+          requirements: [
+            {
+              type: 'daily_streak',
+              operator: 'gte',
+              value: 30,
+              timeframe: 'all_time',
+            },
+          ],
+          rewards: {
+            xp: 750,
+            coins: 300,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'daily_streak_100',
+          name: 'Incansável',
+          description: 'Mantenha uma sequência de 100 dias consecutivos de atividade',
+          icon: '🔥',
+          category: 'streak',
+          rarity: 'legendary',
+          requirements: [
+            {
+              type: 'daily_streak',
+              operator: 'gte',
+              value: 100,
+              timeframe: 'all_time',
+            },
+          ],
+          rewards: {
+            xp: 2000,
+            coins: 1000,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        // Community Badges
+        {
+          id: 'community_helper',
+          name: 'Ajudante da Comunidade',
+          description: 'Participe de 10 eventos da comunidade',
+          icon: '🤝',
+          category: 'community',
+          rarity: 'uncommon',
+          requirements: [
+            {
+              type: 'event_participation',
+              operator: 'gte',
+              value: 10,
+              timeframe: 'all_time',
+            },
+          ],
+          rewards: {
+            xp: 400,
+            coins: 150,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'tournament_champion',
+          name: 'Campeão de Torneio',
+          description: 'Vença um torneio oficial da comunidade',
+          icon: '🏆',
+          category: 'community',
+          rarity: 'epic',
+          requirements: [
+            {
+              type: 'tournament_participation',
+              operator: 'gte',
+              value: 1,
+              timeframe: 'all_time',
+              additional: { mustWin: true },
+            },
+          ],
+          rewards: {
+            xp: 1500,
+            coins: 750,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'content_creator',
+          name: 'Criador de Conteúdo',
+          description: 'Compartilhe 50 clips e receba 100 votos positivos',
+          icon: '🎬',
+          category: 'community',
+          rarity: 'rare',
+          requirements: [
+            {
+              type: 'shared_clips',
+              operator: 'gte',
+              value: 50,
+              timeframe: 'all_time',
+            },
+            {
+              type: 'community_votes',
+              operator: 'gte',
+              value: 100,
+              timeframe: 'all_time',
+            },
+          ],
+          rewards: {
+            xp: 800,
+            coins: 400,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        // Collaboration Badges
+        {
+          id: 'team_player',
+          name: 'Jogador de Equipe',
+          description: 'Conquiste 25 vitórias em equipe no PUBG',
+          icon: '👥',
+          category: 'collaboration',
+          rarity: 'uncommon',
+          requirements: [
+            {
+              type: 'team_wins',
+              operator: 'gte',
+              value: 25,
+              timeframe: 'all_time',
+            },
+          ],
+          rewards: {
+            xp: 500,
+            coins: 200,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'lifesaver',
+          name: 'Salvador',
+          description: 'Reviva 100 companheiros de equipe',
+          icon: '⛑️',
+          category: 'collaboration',
+          rarity: 'rare',
+          requirements: [
+            {
+              type: 'revives',
+              operator: 'gte',
+              value: 100,
+              timeframe: 'all_time',
+            },
+          ],
+          rewards: {
+            xp: 600,
+            coins: 250,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'support_master',
+          name: 'Mestre do Suporte',
+          description: 'Faça 500 assistências em combate',
+          icon: '🎯',
+          category: 'collaboration',
+          rarity: 'epic',
+          requirements: [
+            {
+              type: 'assists',
+              operator: 'gte',
+              value: 500,
+              timeframe: 'all_time',
+            },
+          ],
+          rewards: {
+            xp: 1000,
+            coins: 500,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        // Seasonal Badges
+        {
+          id: 'winter_warrior',
+          name: 'Guerreiro do Inverno',
+          description: 'Participe de eventos especiais durante o inverno',
+          icon: '❄️',
+          category: 'seasonal',
+          rarity: 'rare',
+          requirements: [
+            {
+              type: 'seasonal_activity',
+              operator: 'gte',
+              value: 5,
+              timeframe: 'monthly',
+              additional: { season: 'winter' },
+            },
+          ],
+          rewards: {
+            xp: 500,
+            coins: 200,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'summer_champion',
+          name: 'Campeão do Verão',
+          description: 'Domine os torneios de verão',
+          icon: '☀️',
+          category: 'seasonal',
+          rarity: 'epic',
+          requirements: [
+            {
+              type: 'seasonal_activity',
+              operator: 'gte',
+              value: 10,
+              timeframe: 'monthly',
+              additional: { season: 'summer' },
+            },
+          ],
+          rewards: {
+            xp: 750,
+            coins: 350,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'halloween_hunter',
+          name: 'Caçador do Halloween',
+          description: 'Participe dos eventos especiais de Halloween',
+          icon: '🎃',
+          category: 'seasonal',
+          rarity: 'legendary',
+          requirements: [
+            {
+              type: 'event_participation',
+              operator: 'gte',
+              value: 3,
+              timeframe: 'monthly',
+              additional: { eventType: 'halloween' },
+            },
+          ],
+          rewards: {
+            xp: 1000,
+            coins: 500,
+          },
+          isSecret: false,
+          isActive: true,
+        },
+        {
+          id: 'new_year_legend',
+          name: 'Lenda do Ano Novo',
+          description: 'Celebre o Ano Novo com a comunidade',
+          icon: '🎆',
+          category: 'seasonal',
+          rarity: 'mythic',
+          requirements: [
+            {
+              type: 'event_participation',
+              operator: 'gte',
+              value: 1,
+              timeframe: 'all_time',
+              additional: { eventType: 'new_year' },
+            },
+          ],
+          rewards: {
+            xp: 2000,
+            coins: 1000,
           },
           isSecret: false,
           isActive: true,
@@ -1229,6 +1541,18 @@ export class BadgeService {
         'clip_voted': 'clips_votes',
         'check_in': 'check_ins',
         'consecutive_day': 'consecutive_days',
+        // New activity types for enhanced badges
+        'daily_streak': 'daily_streak',
+        'weekly_streak': 'weekly_streak',
+        'monthly_streak': 'monthly_streak',
+        'event_participation': 'event_participation',
+        'team_win': 'team_wins',
+        'assist': 'assists',
+        'revive': 'revives',
+        'shared_clip': 'shared_clips',
+        'community_vote': 'community_votes',
+        'tournament_participation': 'tournament_participation',
+        'seasonal_activity': 'seasonal_activity',
       };
       
       const mappedType = activityMappings[activityType];
@@ -1264,6 +1588,76 @@ export class BadgeService {
       await this.checkPUBGBadges(userId, pubgStats);
     } catch (error) {
       this.logger.error(`❌ Error handling PUBG stats update for user ${userId}:`, error);
+    }
+  }
+
+  /**
+   * Update daily streak progress
+   */
+  public async onDailyStreak(userId: string, streakCount: number): Promise<void> {
+    try {
+      await this.updateProgress(userId, 'daily_streak', streakCount, 'set');
+      this.logger.info(`📅 Daily streak updated for user ${userId}: ${streakCount} days`);
+    } catch (error) {
+      this.logger.error(`❌ Error updating daily streak for user ${userId}:`, error);
+    }
+  }
+
+  /**
+   * Handle event participation
+   */
+  public async onEventParticipation(userId: string, eventType: string = 'general'): Promise<void> {
+    try {
+      await this.updateProgress(userId, 'event_participation', 1, 'increment');
+      
+      // Handle seasonal events
+      if (eventType.includes('seasonal') || eventType.includes('holiday')) {
+        await this.updateProgress(userId, 'seasonal_activity', 1, 'increment');
+      }
+      
+      // Handle tournament events
+      if (eventType.includes('tournament') || eventType.includes('competition')) {
+        await this.updateProgress(userId, 'tournament_participation', 1, 'increment');
+      }
+      
+      this.logger.info(`🎉 Event participation recorded for user ${userId}: ${eventType}`);
+    } catch (error) {
+      this.logger.error(`❌ Error recording event participation for user ${userId}:`, error);
+    }
+  }
+
+  /**
+   * Handle team-based activities
+   */
+  public async onTeamActivity(userId: string, activityType: 'win' | 'assist' | 'revive', value: number = 1): Promise<void> {
+    try {
+      switch (activityType) {
+        case 'win':
+          await this.updateProgress(userId, 'team_wins', value, 'increment');
+          break;
+        case 'assist':
+          await this.updateProgress(userId, 'assists', value, 'increment');
+          break;
+        case 'revive':
+          await this.updateProgress(userId, 'revives', value, 'increment');
+          break;
+      }
+      
+      this.logger.info(`🤝 Team activity recorded for user ${userId}: ${activityType} +${value}`);
+    } catch (error) {
+      this.logger.error(`❌ Error recording team activity for user ${userId}:`, error);
+    }
+  }
+
+  /**
+   * Handle community interactions
+   */
+  public async onCommunityInteraction(userId: string, interactionType: 'shared_clip' | 'community_vote', value: number = 1): Promise<void> {
+    try {
+      await this.updateProgress(userId, interactionType, value, 'increment');
+      this.logger.info(`👥 Community interaction recorded for user ${userId}: ${interactionType} +${value}`);
+    } catch (error) {
+      this.logger.error(`❌ Error recording community interaction for user ${userId}:`, error);
     }
   }
 
