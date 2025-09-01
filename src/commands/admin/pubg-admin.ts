@@ -17,12 +17,12 @@ export default {
     .addSubcommand(subcommand =>
       subcommand
         .setName('status')
-        .setDescription('Verificar status detalhado da API PUBG')
+        .setDescription('Verificar status detalhado da API PUBG'),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('health')
-        .setDescription('Executar verificação de saúde da API PUBG')
+        .setDescription('Executar verificação de saúde da API PUBG'),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -38,8 +38,8 @@ export default {
               { name: 'Xbox', value: 'xbox' },
               { name: 'PlayStation', value: 'psn' },
               { name: 'Stadia', value: 'stadia' },
-            )
-        )
+            ),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -53,8 +53,8 @@ export default {
             .addChoices(
               { name: 'Limpar Cache', value: 'clear' },
               { name: 'Estatísticas', value: 'stats' },
-            )
-        )
+            ),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -70,8 +70,8 @@ export default {
               { name: 'Parar', value: 'stop' },
               { name: 'Status', value: 'status' },
               { name: 'Forçar Recuperação', value: 'recover' },
-            )
-        )
+            ),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -83,8 +83,8 @@ export default {
             .setDescription('Máximo de usuários para sincronizar')
             .setRequired(false)
             .setMinValue(1)
-            .setMaxValue(100)
-        )
+            .setMaxValue(100),
+        ),
     ),
 
   async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
@@ -179,7 +179,7 @@ async function handleStatusCommand(
         name: '💾 Cache',
         value: `**Total de Chaves:** ${cacheStats.totalKeys}\n**Padrões:** ${Object.keys(cacheStats.patterns).length}`,
         inline: true,
-      }
+      },
     )
     .setTimestamp();
 
@@ -194,7 +194,7 @@ async function handleStatusCommand(
         name: '📈 Estatísticas',
         value: `**Total de Verificações:** ${monitorStats.totalChecks}\n**Falhas Consecutivas:** ${monitorStatus.consecutiveFailures}\n**Tempo de Resposta:** ${monitorStats.averageResponseTime}ms`,
         inline: true,
-      }
+      },
     );
   }
 
@@ -224,7 +224,7 @@ async function handleHealthCommand(
         name: '🔍 Detalhes',
         value: `**API Disponível:** ${health.api ? '✅ Sim' : '❌ Não'}\n**Cache Funcionando:** ${health.cache ? '✅ Sim' : '❌ Não'}\n**Circuit Breaker:** ${getCircuitBreakerEmoji(health.circuitBreaker)} ${health.circuitBreaker}`,
         inline: false,
-      }
+      },
     )
     .setTimestamp();
 
@@ -273,7 +273,7 @@ async function handleTestCommand(
         name: '📅 Teste de Season',
         value: `**Season Atual:** ${currentSeason || 'N/A'}\n**Tempo:** ${seasonTestDuration}ms\n**Status:** ${currentSeason ? '✅ Sucesso' : '❌ Falha'}`,
         inline: true,
-      }
+      },
     );
 
     if (isAvailable && currentSeason) {
@@ -321,7 +321,7 @@ async function handleCacheCommand(
           name: '📈 Resumo',
           value: `**Total de Chaves:** ${stats.totalKeys}\n**Padrões Diferentes:** ${Object.keys(stats.patterns).length}`,
           inline: false,
-        }
+        },
       )
       .setTimestamp();
 
@@ -390,7 +390,7 @@ async function handleMonitorCommand(
             name: '📈 Estatísticas',
             value: `**Total de Verificações:** ${stats.totalChecks}\n**Falhas Consecutivas:** ${status.consecutiveFailures}\n**Tempo de Resposta:** ${stats.averageResponseTime}ms`,
             inline: true,
-          }
+          },
         )
         .setTimestamp();
 

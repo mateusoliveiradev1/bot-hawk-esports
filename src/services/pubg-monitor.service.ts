@@ -54,7 +54,7 @@ export class PUBGMonitorService {
     pubgService: PUBGService,
     cache: CacheService,
     loggingService?: LoggingService,
-    config?: Partial<PUBGMonitorConfig>
+    config?: Partial<PUBGMonitorConfig>,
   ) {
     this.logger = new Logger();
     this.pubgService = pubgService;
@@ -110,12 +110,12 @@ export class PUBGMonitorService {
     // Schedule periodic checks
     this.healthCheckTimer = setInterval(
       () => this.performHealthCheck(),
-      this.config.healthCheckInterval
+      this.config.healthCheckInterval,
     );
 
     this.apiTestTimer = setInterval(
       () => this.performApiTest(),
-      this.config.apiTestInterval
+      this.config.apiTestInterval,
     );
 
     // Log monitoring start
@@ -130,8 +130,8 @@ export class PUBGMonitorService {
         {
           healthCheckInterval: this.config.healthCheckInterval,
           apiTestInterval: this.config.apiTestInterval,
-          maxConsecutiveFailures: this.config.maxConsecutiveFailures
-        }
+          maxConsecutiveFailures: this.config.maxConsecutiveFailures,
+        },
       );
     }
   }
@@ -176,8 +176,8 @@ export class PUBGMonitorService {
         {
           totalFailures: this.status.totalFailures,
           totalSuccesses: this.status.totalSuccesses,
-          uptime: Date.now() - this.startTime.getTime()
-        }
+          uptime: Date.now() - this.startTime.getTime(),
+        },
       );
     }
   }
@@ -274,8 +274,8 @@ export class PUBGMonitorService {
           {
             responseTime: this.status.apiResponseTime,
             totalFailures: this.status.totalFailures,
-            totalSuccesses: this.status.totalSuccesses
-          }
+            totalSuccesses: this.status.totalSuccesses,
+          },
         );
     }
   }
@@ -306,8 +306,8 @@ export class PUBGMonitorService {
           {
             status,
             consecutiveFailures: this.status.consecutiveFailures,
-            lastHealthCheck: this.status.lastHealthCheck
-          }
+            lastHealthCheck: this.status.lastHealthCheck,
+          },
         );
       }
       
@@ -326,8 +326,8 @@ export class PUBGMonitorService {
         error,
         {
           status,
-          consecutiveFailures: this.status.consecutiveFailures
-        }
+          consecutiveFailures: this.status.consecutiveFailures,
+        },
       );
     }
   }

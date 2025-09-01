@@ -184,7 +184,7 @@ async function handleLinkCommand(interaction: ChatInputCommandInteraction, clien
       });
     if (existingUser && existingUser.id !== userId) {
       await interaction.editReply({
-        content: `❌ Esta conta PUBG já está vinculada a outro usuário do Discord.`,
+        content: '❌ Esta conta PUBG já está vinculada a outro usuário do Discord.',
       });
       return;
     }
@@ -227,14 +227,14 @@ async function handleLinkCommand(interaction: ChatInputCommandInteraction, clien
       .addFields(
         { name: '👤 Jogador', value: player.name, inline: true },
         { name: '🎮 Plataforma', value: platform.toUpperCase(), inline: true },
-        { name: '🆔 ID PUBG', value: player.id, inline: true }
+        { name: '🆔 ID PUBG', value: player.id, inline: true },
       )
       .setColor(0x00ff00)
       .setTimestamp();
 
     if (stats) {
       embed.addFields(
-        { name: '🏆 Estatísticas Sincronizadas', value: 'Suas estatísticas foram atualizadas automaticamente!', inline: false }
+        { name: '🏆 Estatísticas Sincronizadas', value: 'Suas estatísticas foram atualizadas automaticamente!', inline: false },
       );
     }
 
@@ -325,17 +325,17 @@ async function handleStatsCommand(interaction: ChatInputCommandInteraction, clie
         { name: '🎯 Headshots', value: modeStats.headshotKills.toString(), inline: true },
         { name: '🚗 Distância Percorrida', value: `${(modeStats.rideDistance / 1000).toFixed(1)} km`, inline: true },
         { name: '🏃 Distância Caminhada', value: `${(modeStats.walkDistance / 1000).toFixed(1)} km`, inline: true },
-        { name: '⏱️ Tempo Sobrevivido', value: `${Math.round(modeStats.timeSurvived / 60)} min`, inline: true }
+        { name: '⏱️ Tempo Sobrevivido', value: `${Math.round(modeStats.timeSurvived / 60)} min`, inline: true },
       )
       .setColor(0x0099ff)
       .setThumbnail(targetUser.displayAvatarURL())
       .setTimestamp()
-      .setFooter({ text: `Última atualização` });
+      .setFooter({ text: 'Última atualização' });
 
     // Adicionar informações de rank se disponível
     if (stats.bestRankPoint > 0) {
       embed.addFields(
-        { name: '🏅 Melhor Rank', value: `${stats.bestRankPoint} RP`, inline: true }
+        { name: '🏅 Melhor Rank', value: `${stats.bestRankPoint} RP`, inline: true },
       );
     }
 
@@ -348,7 +348,7 @@ async function handleStatsCommand(interaction: ChatInputCommandInteraction, clie
         new ButtonBuilder()
           .setCustomId(`pubg_modes_${targetUser.id}`)
           .setLabel('🎮 Outros Modos')
-          .setStyle(ButtonStyle.Primary)
+          .setStyle(ButtonStyle.Primary),
       );
 
     await interaction.editReply({ embeds: [embed], components: [row] });
@@ -409,12 +409,12 @@ async function handleCompareCommand(interaction: ChatInputCommandInteraction, cl
     // Buscar estatísticas de ambos os usuários
     const [stats1, stats2] = await Promise.all([
        pubgService.getPlayerStats(userData1.pubgUsername, userData1.pubgPlatform as PUBGPlatform),
-       pubgService.getPlayerStats(userData2.pubgUsername, userData2.pubgPlatform as PUBGPlatform)
+       pubgService.getPlayerStats(userData2.pubgUsername, userData2.pubgPlatform as PUBGPlatform),
      ]);
 
     if (!stats1 || !stats2) {
       await interaction.editReply({
-        content: `❌ Não foi possível obter as estatísticas de um ou ambos os jogadores.`,
+        content: '❌ Não foi possível obter as estatísticas de um ou ambos os jogadores.',
       });
       return;
     }
@@ -449,7 +449,7 @@ async function handleCompareCommand(interaction: ChatInputCommandInteraction, cl
         { name: '📊 K/D', value: `${kda1.toFixed(2)}\n${kda2.toFixed(2)}`, inline: true },
         { name: '💥 Dano Médio', value: `${Math.round(avgDamage1).toLocaleString()}\n${Math.round(avgDamage2).toLocaleString()}`, inline: true },
         { name: '🎯 Headshots', value: `${modeStats1.headshotKills}\n${modeStats2.headshotKills}`, inline: true },
-        { name: '⏱️ Tempo Médio', value: `${Math.round(modeStats1.timeSurvived / 60)} min\n${Math.round(modeStats2.timeSurvived / 60)} min`, inline: true }
+        { name: '⏱️ Tempo Médio', value: `${Math.round(modeStats1.timeSurvived / 60)} min\n${Math.round(modeStats2.timeSurvived / 60)} min`, inline: true },
       )
       .setColor(0xff6600)
       .setTimestamp();
@@ -459,7 +459,7 @@ async function handleCompareCommand(interaction: ChatInputCommandInteraction, cl
       { name: '🏆 Melhor Taxa de Vitória', winner: winRate1 > winRate2 ? userData1.pubgUsername : userData2.pubgUsername },
       { name: '💀 Mais Kills', winner: modeStats1.kills > modeStats2.kills ? userData1.pubgUsername : userData2.pubgUsername },
       { name: '📊 Melhor K/D', winner: kda1 > kda2 ? userData1.pubgUsername : userData2.pubgUsername },
-      { name: '💥 Maior Dano Médio', winner: avgDamage1 > avgDamage2 ? userData1.pubgUsername : userData2.pubgUsername }
+      { name: '💥 Maior Dano Médio', winner: avgDamage1 > avgDamage2 ? userData1.pubgUsername : userData2.pubgUsername },
     ];
 
     const winnersText = comparisons.map(comp => `${comp.name}: **${comp.winner}**`).join('\n');
@@ -468,7 +468,7 @@ async function handleCompareCommand(interaction: ChatInputCommandInteraction, cl
     await interaction.editReply({ embeds: [embed] });
 
   } catch (error) {
-    logger.error(`Error comparing PUBG stats:`, error);
+    logger.error('Error comparing PUBG stats:', error);
     await interaction.editReply({
       content: `❌ Erro ao comparar estatísticas: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
     });
