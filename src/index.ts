@@ -37,6 +37,7 @@ import { PresenceEnhancementsService } from './services/presence-enhancements.se
 import { BadgeOptimizationService } from './services/badge-optimization.service';
 import { ExclusiveBadgeService } from './services/exclusive-badge.service';
 import { DynamicBadgeService } from './services/dynamic-badge.service';
+import { PUBGMonitorService } from './services/pubg-monitor.service';
 import { CommandManager } from './commands/index';
 import { MemberEvents } from './events/memberEvents';
 import { MessageEvents } from './events/messageEvents';
@@ -87,6 +88,7 @@ class HawkEsportsBot {
     alert: AlertService;
     metrics: MetricsService;
     backup: BackupService;
+    pubgMonitor: PUBGMonitorService;
   };
   private backupScheduler: BackupScheduler;
   private structuredLogger: StructuredLogger;
@@ -191,6 +193,9 @@ class HawkEsportsBot {
       alert: new AlertService(this.monitoringConfig.alerts),
       backup: null as any, // Will be initialized after metrics
     } as any;
+
+    // Initialize PUBG Monitor service
+    this.services.pubgMonitor = new PUBGMonitorService(pubgService, this.cache, loggingService);
 
     // Initialize backup service after metrics is available
     this.services.backup = new BackupService(
@@ -509,6 +514,14 @@ class HawkEsportsBot {
 
       // Services are initialized automatically in their constructors
       this.logger.info('✅ Badge and Challenge services ready');
+
+      // Start PUBG monitoring
+      try {
+        await this.services.pubgMonitor.start();
+        this.logger.info('✅ PUBG Monitor service started');
+      } catch (error) {
+        this.logger.error('Failed to start PUBG Monitor service:', error);
+      }
 
       this.logger.info('🎉 Hawk Esports Bot is ready!');
     });

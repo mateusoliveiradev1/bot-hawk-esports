@@ -82,6 +82,7 @@ export interface ExtendedClient extends Client {
     badgeOptimization: BadgeOptimizationService;
     exclusiveBadge: ExclusiveBadgeService;
     dynamicBadge: DynamicBadgeService;
+    pubgMonitor: any;
   };
 }
 

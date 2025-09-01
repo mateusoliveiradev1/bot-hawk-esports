@@ -254,21 +254,25 @@ export class RankingService {
     nextSunday.setDate(now.getDate() + (7 - now.getDay()));
     nextSunday.setHours(0, 0, 0, 0);
     
+    // Limita o timeout para evitar overflow (máximo 24 horas)
+    const weeklyDelay = Math.min(nextSunday.getTime() - now.getTime(), 24 * 60 * 60 * 1000);
     setTimeout(() => {
       this.createWeeklySnapshots();
       setInterval(() => {
         this.createWeeklySnapshots();
       }, this.updateIntervals.weekly);
-    }, nextSunday.getTime() - now.getTime());
+    }, weeklyDelay);
 
     // Snapshots mensais (primeiro dia do mês)
     const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    // Limita o timeout para evitar overflow (máximo 24 horas)
+    const monthlyDelay = Math.min(nextMonth.getTime() - now.getTime(), 24 * 60 * 60 * 1000);
     setTimeout(() => {
       this.createMonthlySnapshots();
       setInterval(() => {
         this.createMonthlySnapshots();
       }, this.updateIntervals.monthly);
-    }, nextMonth.getTime() - now.getTime());
+    }, monthlyDelay);
   }
 
   /**

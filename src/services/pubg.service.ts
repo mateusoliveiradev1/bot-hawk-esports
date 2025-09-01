@@ -1187,19 +1187,29 @@ export class PUBGService {
         return false;
       }
 
-      // Use a lightweight endpoint to check API availability
+      // Use the status endpoint to check API availability - it's lightweight and always available
       const response = await Promise.race([
         this.api.get('/status'),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('API check timeout')), 5000)),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('API check timeout')), 10000)),
       ]);
 
-      this.logger.info('✅ PUBG API is available');
-      return true;
+      if (response && (response as any).status === 200 && (response as any).data?.data?.type === 'status') {
+        this.logger.info('✅ PUBG API is available and responding');
+        await this.resetCircuitBreaker(); // Reset circuit breaker on successful API check
+        return true;
+      }
+      
+      throw new Error('Invalid API response');
     } catch (error) {
       this.logger.error('❌ PUBG API is not available:', {
         error: error instanceof Error ? error : new Error(String(error)),
-        metadata: { hasApiKey: !!this.apiKey },
+        metadata: { 
+          hasApiKey: !!this.apiKey,
+          circuitBreakerState: this.circuitBreakerState,
+          failures: this.circuitBreakerFailures,
+        },
       });
+      await this.recordCircuitBreakerFailure();
       return false;
     }
   }
@@ -1658,6 +1668,114 @@ export class PUBGService {
    * Health check for PUBG API service
    * @returns Promise<{ status: string; api: boolean; cache: boolean; circuitBreaker: string; metrics: object }>
    */
+  /**
+   * Updates user statistics by fetching latest data from PUBG API
+   * @param userId - Discord user ID
+   * @param pubgPlayerId - PUBG player ID
+   * @param platform - PUBG platform
+   * @returns Updated player statistics
+   */
+  public async updateUserStats(
+    userId: string,
+    pubgPlayerId: string,
+    platform: PUBGPlatform,
+  ): Promise<PUBGPlayerStats | null> {
+    try {
+      this.logger.info(`Updating PUBG stats for user ${userId}`, {
+        metadata: { userId, pubgPlayerId, platform },
+      });
+
+      // Get latest player statistics
+      const stats = await this.getPlayerStats(pubgPlayerId, platform);
+      
+      if (!stats) {
+        this.logger.warn(`No stats found for player ${pubgPlayerId}`);
+        return null;
+      }
+
+      // Clear cache to force fresh data on next request
+      const cacheKey = this.cache.keyGenerators.pubgStats(`${platform}:${pubgPlayerId}`, 'current', 'all');
+      await this.cache.del(cacheKey);
+
+      // Log successful update
+      await this.logApiOperation(
+        'PUBG Stats Update',
+        'success',
+        `Successfully updated stats for user ${userId}`,
+        {
+          service: 'PUBG',
+          operation: 'Update User Stats',
+          userId,
+          pubgPlayerId,
+          platform,
+          gamesPlayed: (stats.gameModeStats?.solo?.roundsPlayed || 0) + (stats.gameModeStats?.duo?.roundsPlayed || 0) + (stats.gameModeStats?.squad?.roundsPlayed || 0),
+        },
+      );
+
+      return stats;
+    } catch (error: any) {
+      this.logger.error(`Failed to update PUBG stats for user ${userId}:`, error);
+      
+      await this.logApiOperation(
+        'PUBG Stats Update',
+        'error',
+        `Failed to update stats for user ${userId}: ${error.message}`,
+        {
+          service: 'PUBG',
+          operation: 'Update User Stats',
+          userId,
+          pubgPlayerId,
+          platform,
+          error: error.message,
+        },
+      );
+      
+      return null;
+    }
+  }
+
+  /**
+   * Synchronizes all linked users' PUBG statistics
+   * @param maxUsers - Maximum number of users to sync (default: 50)
+   * @returns Number of users successfully synced
+   */
+  public async syncAllUserStats(maxUsers: number = 50): Promise<number> {
+    try {
+      this.logger.info(`Starting PUBG stats sync for up to ${maxUsers} users`);
+      
+      // This would typically get users from database
+      // For now, we'll just log the operation
+      await this.logApiOperation(
+        'PUBG Bulk Stats Sync',
+        'success',
+        `Started bulk stats synchronization for up to ${maxUsers} users`,
+        {
+          service: 'PUBG',
+          operation: 'Bulk Stats Sync',
+          maxUsers,
+        },
+      );
+
+      // TODO: Implement actual bulk sync logic when database service is available
+      return 0;
+    } catch (error: any) {
+      this.logger.error('Failed to sync PUBG stats:', error);
+      
+      await this.logApiOperation(
+        'PUBG Bulk Stats Sync',
+        'error',
+        `Failed to sync PUBG stats: ${error.message}`,
+        {
+          service: 'PUBG',
+          operation: 'Bulk Stats Sync',
+          error: error.message,
+        },
+      );
+      
+      return 0;
+    }
+  }
+
   public async healthCheck(): Promise<{
     status: string;
     api: boolean;
@@ -1710,9 +1828,9 @@ export class PUBGService {
       // Test API (only if we have an API key and circuit breaker is not open)
       if (this.apiKey && !this.isCircuitBreakerOpen()) {
         try {
-          // Simple API test - get platform info
-          const response = await this.api.get('/shards/steam', { timeout: 5000 });
-          health.api = response.status === 200;
+          // Simple API test - get API status
+          const response = await this.api.get('/status', { timeout: 5000 });
+          health.api = response.status === 200 && response.data?.data?.type === 'status';
 
           if (health.api) {
             // Reset circuit breaker on successful health check
