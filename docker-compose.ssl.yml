@@ -1,0 +1,123 @@
+# SSL/TLS Configuration for Hawk Esports Bot
+# This compose file extends the production setup with SSL/TLS support
+
+version: '3.8'
+
+services:
+  # Certbot for SSL certificate management
+  certbot:
+    image: certbot/certbot:latest
+    container_name: hawk-certbot-prod
+    restart: "no"
+    volumes:
+      - ./config/certbot/conf:/etc/letsencrypt:rw
+      - ./config/certbot/www:/var/www/certbot:rw
+      - ./config/certbot/logs:/var/log/letsencrypt:rw
+      - ./config/ssl:/etc/nginx/ssl:rw
+      - ./scripts/certbot-entrypoint.sh:/entrypoint.sh:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+      - EMAIL=${SSL_EMAIL:-admin@example.com}
+      - STAGING=${SSL_STAGING:-false}
+    networks:
+      - hawk-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.1'
+        reservations:
+          memory: 32M
+          cpus: '0.05'
+    profiles:
+      - ssl
+    entrypoint: ["/entrypoint.sh"]
+
+  # SSL Certificate Renewal Service
+  ssl-renewer:
+    image: certbot/certbot:latest
+    container_name: hawk-ssl-renewer-prod
+    restart: unless-stopped
+    volumes:
+      - ./config/certbot/conf:/etc/letsencrypt:rw
+      - ./config/certbot/www:/var/www/certbot:rw
+      - ./config/certbot/logs:/var/log/letsencrypt:rw
+      - ./config/ssl:/etc/nginx/ssl:rw
+      - ./scripts/ssl-renewal.sh:/renewal.sh:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+      - RENEWAL_INTERVAL=${SSL_RENEWAL_INTERVAL:-43200} # 12 hours
+    networks:
+      - hawk-network
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.05'
+        reservations:
+          memory: 16M
+          cpus: '0.01'
+    profiles:
+      - ssl
+    depends_on:
+      - nginx
+    entrypoint: ["/renewal.sh"]
+
+  # SSL Health Check Service
+  ssl-monitor:
+    image: alpine:latest
+    container_name: hawk-ssl-monitor-prod
+    restart: unless-stopped
+    volumes:
+      - ./config/ssl:/ssl:ro
+      - ./scripts/ssl-monitor.sh:/monitor.sh:ro
+      - ./logs:/logs:rw
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+      - CHECK_INTERVAL=${SSL_CHECK_INTERVAL:-3600} # 1 hour
+      - ALERT_DAYS=${SSL_ALERT_DAYS:-30} # Alert 30 days before expiry
+    networks:
+      - hawk-network
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+          cpus: '0.02'
+        reservations:
+          memory: 8M
+          cpus: '0.01'
+    profiles:
+      - ssl
+    depends_on:
+      - nginx
+    entrypoint: ["/monitor.sh"]
+
+networks:
+  hawk-network:
+    external: true
+
+# Additional volumes for SSL
+volumes:
+  ssl_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./config/ssl
+  
+  certbot_conf:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./config/certbot/conf
+  
+  certbot_www:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./config/certbot/www

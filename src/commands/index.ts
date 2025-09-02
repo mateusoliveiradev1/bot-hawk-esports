@@ -8,6 +8,9 @@ import {
 import { Command, ContextMenuCommand } from '../types/command';
 import { ExtendedClient } from '../types/client';
 import { Logger } from '../utils/logger';
+import { DiscordRateLimiterService } from '../services/discord-rate-limiter.service';
+import { CacheService } from '../services/cache.service';
+import { AdvancedRateLimitService } from '../services/advanced-rate-limit.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -23,6 +26,7 @@ export class CommandManager {
   public cooldowns: Collection<string, Collection<string, number>>;
   private commandPaths: Map<string, string>; // Map command names to file paths
   private lazyLoadingEnabled: boolean;
+  private discordRateLimiter: DiscordRateLimiterService;
 
   constructor(client?: ExtendedClient, lazyLoading: boolean = true) {
     this.client = client!;
@@ -33,6 +37,11 @@ export class CommandManager {
     this.cooldowns = new Collection();
     this.commandPaths = new Map();
     this.lazyLoadingEnabled = lazyLoading;
+    
+    // Initialize Discord rate limiter
+    const cacheService = new CacheService();
+    const advancedRateLimit = new AdvancedRateLimitService(cacheService);
+    this.discordRateLimiter = new DiscordRateLimiterService(cacheService, advancedRateLimit);
   }
 
   /**
@@ -363,6 +372,46 @@ export class CommandManager {
     }
 
     try {
+      // Check advanced rate limiting first
+      const rateLimitResult = await this.discordRateLimiter.checkRateLimit(
+        interaction.user.id,
+        interaction.guildId,
+        command.data.name,
+        command.category || 'general',
+      );
+
+      if (!rateLimitResult.allowed) {
+        let message = '🚫 **Rate limit atingido!**\n';
+        
+        switch (rateLimitResult.action) {
+          case 'timeout':
+            message += `⏱️ Você está em timeout por ${rateLimitResult.timeLeft} segundos devido a violações de rate limit.`;
+            break;
+          case 'cooldown':
+            message += `⏰ Aguarde ${rateLimitResult.timeLeft} segundos antes de usar comandos novamente.`;
+            break;
+          case 'warn':
+            message += '⚠️ Você está sendo monitorado por uso excessivo de comandos. Use com moderação.';
+            break;
+          case 'ban':
+            message += '🔨 Você foi banido temporariamente de usar comandos devido a violações graves.';
+            break;
+          default:
+            message += `⏰ Aguarde ${rateLimitResult.timeLeft || 0} segundos antes de tentar novamente.`;
+        }
+        
+        if (rateLimitResult.reason) {
+          message += `\n\n**Motivo:** ${rateLimitResult.reason}`;
+        }
+
+        await interaction.reply({
+          content: message,
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+
+      // Check basic cooldown (legacy system)
       const cooldownCheck = this.isOnCooldown(command.data.name, interaction.user.id);
       if (cooldownCheck.onCooldown) {
         await interaction.reply({
@@ -428,5 +477,45 @@ export class CommandManager {
     } catch (error) {
       this.logger.error(`Error handling autocomplete for ${command.data.name}:`, error);
     }
+  }
+
+  /**
+   * Get user rate limit status
+   */
+  public getUserRateLimitStatus(userId: string): {
+    commandCount: number;
+    violations: number;
+    penaltyMultiplier: number;
+    timeoutUntil?: number;
+    warningCount: number;
+  } {
+    return this.discordRateLimiter.getUserStatus(userId);
+  }
+
+  /**
+   * Reset user rate limit data
+   */
+  public resetUserRateLimit(userId: string): void {
+    this.discordRateLimiter.resetUser(userId);
+  }
+
+  /**
+   * Get rate limit statistics
+   */
+  public getRateLimitStats(): {
+    totalUsers: number;
+    usersInTimeout: number;
+    totalViolations: number;
+    averagePenaltyMultiplier: number;
+  } {
+    return this.discordRateLimiter.getStats();
+  }
+
+  /**
+   * Shutdown the command manager and cleanup resources
+   */
+  public shutdown(): void {
+    this.discordRateLimiter.shutdown();
+    this.logger.info('Command manager shut down');
   }
 }

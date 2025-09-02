@@ -4,6 +4,8 @@ import * as process from 'process';
 import { productionConfig } from '../config/production.config';
 import { productionLogger, createLogContext } from '../utils/production-logger';
 import { LogCategory } from '../utils/logger';
+import { MetricsService } from './metrics.service';
+import { ExtendedClient } from '../types/client';
 
 export interface HealthCheckResult {
   service: string;
@@ -68,6 +70,8 @@ class ProductionMonitoringService extends EventEmitter {
   private monitoringInterval: NodeJS.Timeout | null = null;
   private metricsInterval: NodeJS.Timeout | null = null;
   private isRunning = false;
+  private discordClient: ExtendedClient | null = null;
+  private metricsService: MetricsService | null = null;
 
   // Counters for metrics
   private counters = {
@@ -82,10 +86,20 @@ class ProductionMonitoringService extends EventEmitter {
     rateLimitBlocked: 0,
   };
 
-  constructor() {
+  constructor(discordClient?: ExtendedClient, metricsService?: MetricsService) {
     super();
+    this.discordClient = discordClient || null;
+    this.metricsService = metricsService || null;
     this.setupDefaultHealthChecks();
     this.setupProcessHandlers();
+  }
+
+  setDiscordClient(client: ExtendedClient): void {
+    this.discordClient = client;
+  }
+
+  setMetricsService(service: MetricsService): void {
+    this.metricsService = service;
   }
 
   private setupDefaultHealthChecks(): void {
@@ -166,6 +180,9 @@ class ProductionMonitoringService extends EventEmitter {
         };
       }
     });
+
+    // Discord health check
+    this.registerHealthCheck('discord', this.checkDiscordHealth.bind(this));
   }
 
   private setupProcessHandlers(): void {
@@ -278,12 +295,7 @@ class ProductionMonitoringService extends EventEmitter {
         memoryUsage: memUsage,
         cpuUsage,
       },
-      discord: {
-        guilds: 0, // Would be populated by Discord client
-        users: 0,
-        channels: 0,
-        ping: 0,
-      },
+      discord: this.getDiscordMetrics(),
       database: {
         connections: 0, // Would be populated by database service
         queries: this.counters.dbQueries,
@@ -431,6 +443,133 @@ class ProductionMonitoringService extends EventEmitter {
       
       next();
     };
+  }
+
+  private getDiscordMetrics() {
+    if (!this.discordClient || !this.discordClient.isReady()) {
+      return {
+        guilds: 0,
+        users: 0,
+        channels: 0,
+        ping: 0,
+      };
+    }
+
+    try {
+      const guilds = this.discordClient.guilds.cache.size;
+      const users = this.discordClient.guilds.cache.reduce(
+        (acc, guild) => acc + (guild.memberCount || 0), 
+        0,
+      );
+      const channels = this.discordClient.channels.cache.size;
+      const ping = this.discordClient.ws.ping;
+
+      // Log Discord metrics
+      productionLogger.performance('discord_guilds', guilds, 
+        createLogContext(LogCategory.PERFORMANCE, {
+          metadata: { service: 'discord' },
+        }));
+
+      productionLogger.performance('discord_users', users, 
+        createLogContext(LogCategory.PERFORMANCE, {
+          metadata: { service: 'discord' },
+        }));
+
+      productionLogger.performance('discord_ping', ping, 
+        createLogContext(LogCategory.PERFORMANCE, {
+          metadata: { service: 'discord' },
+        }));
+
+      // Create alerts for Discord connectivity issues
+      if (ping > 1000) {
+        this.createAlert('warning', 'discord', `High Discord latency: ${ping}ms`);
+      } else if (ping > 2000) {
+        this.createAlert('critical', 'discord', `Very high Discord latency: ${ping}ms`);
+      }
+
+      return {
+        guilds,
+        users,
+        channels,
+        ping,
+      };
+    } catch (error) {
+      productionLogger.error('Failed to collect Discord metrics', 
+        createLogContext(LogCategory.SYSTEM, {
+          error: error instanceof Error ? error : new Error(String(error)),
+        }));
+      
+      return {
+        guilds: 0,
+        users: 0,
+        channels: 0,
+        ping: -1,
+      };
+    }
+  }
+
+  // Enhanced health check for Discord
+  private async checkDiscordHealth(): Promise<HealthCheckResult> {
+    const startTime = Date.now();
+    
+    try {
+      if (!this.discordClient) {
+        return {
+          service: 'discord',
+          status: 'unhealthy',
+          message: 'Discord client not initialized',
+          responseTime: Date.now() - startTime,
+          timestamp: new Date(),
+        };
+      }
+
+      if (!this.discordClient.isReady()) {
+        return {
+          service: 'discord',
+          status: 'unhealthy',
+          message: 'Discord client not ready',
+          responseTime: Date.now() - startTime,
+          timestamp: new Date(),
+        };
+      }
+
+      const ping = this.discordClient.ws.ping;
+      const guilds = this.discordClient.guilds.cache.size;
+      const responseTime = Date.now() - startTime;
+      
+      let status: 'healthy' | 'unhealthy' | 'degraded' = 'healthy';
+      let message = 'Discord connection is healthy';
+      
+      if (ping > 2000) {
+        status = 'unhealthy';
+        message = `Very high latency: ${ping}ms`;
+      } else if (ping > 1000) {
+        status = 'degraded';
+        message = `High latency: ${ping}ms`;
+      }
+
+      return {
+        service: 'discord',
+        status,
+        message,
+        responseTime,
+        timestamp: new Date(),
+        metadata: {
+          ping,
+          guilds,
+          users: this.discordClient.users.cache.size,
+          channels: this.discordClient.channels.cache.size,
+        },
+      };
+    } catch (error) {
+      return {
+        service: 'discord',
+        status: 'unhealthy',
+        message: error instanceof Error ? error.message : 'Unknown Discord error',
+        responseTime: Date.now() - startTime,
+        timestamp: new Date(),
+      };
+    }
   }
 }
 

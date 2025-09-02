@@ -1,0 +1,92 @@
+# Development Dockerfile for Hawk Esports Bot
+# Optimized for development workflow with hot reload and debugging
+
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install development system dependencies
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    ffmpeg \
+    curl \
+    jq \
+    bash \
+    git \
+    vim \
+    nano \
+    htop \
+    && rm -rf /var/cache/apk/*
+
+# Install global development tools
+RUN npm install -g \
+    nodemon \
+    ts-node \
+    typescript \
+    @types/node \
+    prisma
+
+# Copy package files
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Install all dependencies (including dev dependencies)
+RUN npm install
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Copy source code
+COPY . .
+
+# Copy and make scripts executable
+COPY scripts/setup/docker-healthcheck.sh /usr/local/bin/healthcheck.sh
+COPY scripts/setup/docker-entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/healthcheck.sh /usr/local/bin/entrypoint.sh
+
+# Create necessary directories
+RUN mkdir -p \
+    uploads/clips \
+    uploads/thumbnails \
+    logs \
+    data \
+    tmp \
+    coverage \
+    .nyc_output
+
+# Create non-root user for development
+RUN addgroup -g 1001 -S nodejs \
+    && adduser -S botuser -u 1001 -G nodejs
+
+# Change ownership of app directory
+RUN chown -R botuser:nodejs /app
+
+# Switch to non-root user
+USER botuser
+
+# Set development environment variables
+ENV NODE_ENV=development
+ENV DEBUG=*
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false
+
+# Expose ports for application and debugging
+EXPOSE 3001 9229
+
+# Add labels
+LABEL maintainer="Hawk Esports Team" \
+      description="Hawk Esports Discord Bot - Development" \
+      version="1.0.0-dev" \
+      environment="development"
+
+# Health check for development
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD /usr/local/bin/healthcheck.sh
+
+# Use entrypoint for development
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+# Default command for development (with hot reload)
+CMD ["npm", "run", "dev"]

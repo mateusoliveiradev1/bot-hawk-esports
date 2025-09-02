@@ -1,0 +1,283 @@
+# =============================================================================
+# Docker Ignore File for Hawk Esports Bot
+# Optimized to reduce build context and image size
+# =============================================================================
+
+# Node.js
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.npm
+.yarn-integrity
+.yarn
+.pnp
+.pnp.js
+
+# Build outputs
+dist
+build
+out
+.next
+.nuxt
+.cache
+.parcel-cache
+.nyc_output
+coverage
+*.tgz
+*.tar.gz
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*
+!.env.example
+!.env.*.example
+
+# IDE and Editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+.gitattributes
+.gitmodules
+
+# Documentation
+README.md
+CHANGELOG.md
+LICENSE
+*.md
+docs/
+!docs/production/
+
+# Testing
+__tests__
+test
+tests
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+jest.config.*
+.jest
+
+# Linting and formatting
+.eslintrc*
+.prettierrc*
+.stylelintrc*
+.editorconfig
+
+# TypeScript
+*.tsbuildinfo
+tsconfig.json
+tsconfig.*.json
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage
+*.lcov
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+.env.test
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# next.js build output
+.next
+
+# nuxt.js build output
+.nuxt
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless/
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+Jenkinsfile
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Application specific
+uploads/
+data/
+backups/
+*.sqlite
+*.db
+
+# Scripts (keep only essential ones)
+scripts/
+!scripts/setup/docker-healthcheck.sh
+!scripts/setup/docker-entrypoint.sh
+
+# Configuration files (keep only essential ones)
+!config/
+
+# Prisma (keep schema and migrations)
+!prisma/schema.prisma
+!prisma/migrations/
+
+# Keep package files
+!package.json
+!package-lock.json
+
+# Keep source code
+!src/
+
+# Monitoring and observability
+prometheus/
+grafana/
+loki/
+
+# SSL certificates (security)
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+certs/
+ssl/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Archive files
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+*.bz2
+*.xz
+
+# Large media files
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.mkv
+*.m4v
+*.3gp
+*.mp3
+*.wav
+*.flac
+*.aac
+*.ogg
+*.wma
+*.m4a
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.tiff
+*.svg
+*.ico
+*.webp
+
+# Development tools
+.husky/
+.commitlintrc*
+.lintstagedrc*
+
+# Miscellaneous
+*.orig
+*.rej
+*~
+.#*
+#*#
+.*.swp
+.*.swo
+
+# Keep essential files for production
+!src/
+!config/
+!prisma/schema.prisma
+!prisma/migrations/
+!package.json
+!package-lock.json

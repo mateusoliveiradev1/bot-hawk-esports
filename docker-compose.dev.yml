@@ -1,0 +1,282 @@
+# Docker Compose for Hawk Esports Bot - Development Environment
+# Optimized for development workflow with hot reload, debugging, and monitoring
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # Main Application - Development Mode
+  # =============================================================================
+  hawk-bot-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      target: development
+    container_name: hawk-bot-dev
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - DEBUG=*
+      - DATABASE_URL=postgresql://hawk_user:hawk_password@postgres-dev:5432/hawk_esports_dev
+      - REDIS_URL=redis://redis-dev:6379
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
+      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - API_PORT=3001
+      - LOG_LEVEL=debug
+      - ENABLE_METRICS=true
+      - METRICS_PORT=9090
+    ports:
+      - "3001:3001"  # Application port
+      - "9229:9229"  # Node.js debugging port
+      - "9090:9090"  # Metrics port
+    volumes:
+      - .:/app                              # Source code hot reload
+      - /app/node_modules                   # Prevent overwriting node_modules
+      - ./uploads:/app/uploads              # File uploads
+      - ./logs:/app/logs                    # Application logs
+      - ./data:/app/data                    # Application data
+      - dev-cache:/app/.cache               # Build cache
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+      redis-dev:
+        condition: service_healthy
+    networks:
+      - hawk-dev-network
+    command: [
+      "npm", "run", "dev:debug"  # Start with debugging enabled
+    ]
+    healthcheck:
+      test: [
+        "CMD",
+        "/usr/local/bin/healthcheck.sh"
+      ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+  # =============================================================================
+  # PostgreSQL Database - Development
+  # =============================================================================
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: postgres-dev
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=hawk_esports_dev
+      - POSTGRES_USER=hawk_user
+      - POSTGRES_PASSWORD=hawk_password
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    ports:
+      - "5432:5432"  # Expose for external tools
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+      - ./scripts/database/init-dev.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - hawk-dev-network
+    healthcheck:
+      test: [
+        "CMD-SHELL",
+        "pg_isready -U hawk_user -d hawk_esports_dev"
+      ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # =============================================================================
+  # Redis Cache - Development
+  # =============================================================================
+  redis-dev:
+    image: redis:7-alpine
+    container_name: redis-dev
+    restart: unless-stopped
+    command: [
+      "redis-server",
+      "--appendonly", "yes",
+      "--maxmemory", "256mb",
+      "--maxmemory-policy", "allkeys-lru",
+      "--save", "60", "1000"
+    ]
+    ports:
+      - "6379:6379"  # Expose for external tools
+    volumes:
+      - redis-dev-data:/data
+    networks:
+      - hawk-dev-network
+    healthcheck:
+      test: [
+        "CMD",
+        "redis-cli",
+        "ping"
+      ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+
+  # =============================================================================
+  # Development Tools
+  # =============================================================================
+  
+  # Adminer - Database Management
+  adminer:
+    image: adminer:4-standalone
+    container_name: adminer-dev
+    restart: unless-stopped
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres-dev
+      - ADMINER_DESIGN=pepa-linha
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres-dev
+    networks:
+      - hawk-dev-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.1'
+
+  # Redis Commander - Redis Management
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander-dev
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=local:redis-dev:6379
+      - HTTP_USER=admin
+      - HTTP_PASSWORD=admin
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis-dev
+    networks:
+      - hawk-dev-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.1'
+
+  # Mailhog - Email Testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog-dev
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP port
+      - "8025:8025"  # Web UI port
+    networks:
+      - hawk-dev-network
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.1'
+
+  # =============================================================================
+  # Monitoring Stack (Lightweight for Development)
+  # =============================================================================
+  
+  # Prometheus - Metrics Collection
+  prometheus-dev:
+    image: prom/prometheus:latest
+    container_name: prometheus-dev
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./config/prometheus/prometheus.dev.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-dev-data:/prometheus
+    networks:
+      - hawk-dev-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+
+  # Grafana - Metrics Visualization
+  grafana-dev:
+    image: grafana/grafana:latest
+    container_name: grafana-dev
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-dev-data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus-dev
+    networks:
+      - hawk-dev-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  hawk-dev-network:
+    driver: bridge
+    name: hawk-dev-network
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres-dev-data:
+    name: hawk-postgres-dev-data
+  redis-dev-data:
+    name: hawk-redis-dev-data
+  prometheus-dev-data:
+    name: hawk-prometheus-dev-data
+  grafana-dev-data:
+    name: hawk-grafana-dev-data
+  dev-cache:
+    name: hawk-dev-cache

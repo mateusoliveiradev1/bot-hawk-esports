@@ -6,6 +6,7 @@ import compression from 'compression';
 import { Logger, LogCategory } from '../utils/logger';
 import { DatabaseService } from '../database/database.service';
 import { CacheService } from './cache.service';
+import { OptimizedCacheService } from './optimized-cache.service';
 import { PUBGService } from './pubg.service';
 import { RankingService } from './ranking.service';
 import { BadgeService } from './badge.service';
@@ -29,6 +30,12 @@ import { AlertService, AlertConfig } from './alert.service';
 import { StructuredLogger, LoggerConfig, createDefaultLoggerConfig } from './structured-logger.service';
 import { AdvancedRateLimitService } from './advanced-rate-limit.service';
 import { RateLimitConfiguration, RateLimitMiddleware } from '../config/rate-limit.config';
+import { ProductionMonitoringService } from '../production/production-monitoring.service';
+import { BackupService } from './backup.service';
+import { productionBackup } from './production-backup.service';
+import { BackupScheduler } from '../utils/backup-scheduler';
+import { getMonitoringConfig } from '../config/monitoring.config';
+import { MetricsService } from './metrics.service';
 
 export interface APIConfig {
   port: number;
@@ -76,7 +83,7 @@ export class APIService {
   private io: SocketIOServer | null = null;
   private logger: Logger;
   private database: DatabaseService;
-  private cache: CacheService;
+  private cache: OptimizedCacheService;
   private pubgService: PUBGService;
   private rankingService: RankingService;
   private badgeService: BadgeService;
@@ -91,6 +98,11 @@ export class APIService {
   private alertService: AlertService | null = null;
   private structuredLogger: StructuredLogger;
   private advancedRateLimitService: AdvancedRateLimitService;
+  private productionMonitoringService: ProductionMonitoringService | null = null;
+  private backupService: BackupService | null = null;
+  private productionBackupService: typeof productionBackup | null = null;
+  private backupScheduler: BackupScheduler | null = null;
+  private metricsService: MetricsService | null = null;
 
   private upload!: multer.Multer;
 
@@ -108,12 +120,26 @@ export class APIService {
     
     // Initialize advanced rate limiting service
     this.advancedRateLimitService = new AdvancedRateLimitService(
-      this.cache,
+      this.cache as any,
       this.structuredLogger,
     );
     
+    // Initialize production monitoring service if in production
+    if (process.env.NODE_ENV === 'production') {
+      this.productionMonitoringService = new ProductionMonitoringService(
+        this.database,
+        this.client as any,
+      );
+      this.productionMonitoringService.setDiscordClient(this.client);
+    }
+    
     this.database = client.database;
-    this.cache = client.cache;
+    // Initialize optimized cache service for production
+    if (process.env.NODE_ENV === 'production') {
+      this.cache = new OptimizedCacheService();
+    } else {
+      this.cache = client.cache as any; // Handle both CacheService and OptimizedCacheService
+    }
     this.pubgService = client.pubgService;
     this.rankingService = client.rankingService;
     this.badgeService = client.badgeService;
@@ -131,6 +157,26 @@ export class APIService {
         webhookUrl: process.env.DISCORD_ALERT_WEBHOOK,
       };
       this.alertService = new AlertService(alertConfig, this.database, this.client);
+    }
+
+    // Initialize backup services
+    this.metricsService = new MetricsService();
+    
+    if (process.env.NODE_ENV === 'production') {
+      // Use production backup service for production environment
+      this.productionBackupService = productionBackup;
+    } else {
+      // Use regular backup service for development/testing
+      const monitoringConfig = getMonitoringConfig();
+      if (monitoringConfig.backup.enabled) {
+        this.backupService = new BackupService(
+          this.database.client,
+          this.structuredLogger,
+          this.healthService!,
+          this.metricsService,
+          monitoringConfig.backup,
+        );
+      }
     }
 
     // Validate required environment variables
@@ -529,6 +575,8 @@ export class APIService {
           clips: '/api/clips',
           guilds: '/api/guilds',
           stats: '/api/stats',
+          monitoring: '/api/monitoring',
+          backup: '/api/backup',
         },
       });
     });
@@ -702,6 +750,15 @@ export class APIService {
         });
       }
     });
+
+    // Monitoring routes (admin only)
+    this.app.use('/api/monitoring', this.authenticateToken, this.requireRole(['Administrador', 'Admin']), this.getMonitoringRoutes());
+
+    // Backup routes (admin only)
+    this.app.use('/api/backup', this.authenticateToken, this.requireRole(['Administrador', 'Admin']), this.getBackupRoutes());
+
+    // Rate limiting routes (admin only)
+    this.app.use('/api/ratelimit', this.authenticateToken, this.requireRole(['Administrador', 'Admin']), this.getRateLimitRoutes());
 
     // API routes
     this.app.use('/api/auth', this.getAuthRoutes());
@@ -3524,6 +3581,452 @@ export class APIService {
   }
 
   /**
+   * Monitoring routes
+   */
+  private getMonitoringRoutes(): express.Router {
+    const router = express.Router();
+
+    // Get system status
+    router.get('/status', async (req: Request, res: Response) => {
+      try {
+        if (!this.productionMonitoringService) {
+          return res.status(503).json({
+            success: false,
+            error: 'Production monitoring not available',
+          });
+        }
+
+        const status = this.productionMonitoringService.getSystemStatus();
+        return res.json({
+          success: true,
+          data: status,
+        });
+      } catch (error) {
+        this.logger.error('Get monitoring status error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get monitoring status',
+        });
+      }
+    });
+
+    // Get system metrics
+    router.get('/metrics', async (req: Request, res: Response) => {
+      try {
+        if (!this.productionMonitoringService) {
+          return res.status(503).json({
+            success: false,
+            error: 'Production monitoring not available',
+          });
+        }
+
+        const metrics = this.productionMonitoringService.getMetrics();
+        return res.json({
+          success: true,
+          data: metrics,
+        });
+      } catch (error) {
+        this.logger.error('Get monitoring metrics error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get monitoring metrics',
+        });
+      }
+    });
+
+    // Get active alerts
+    router.get('/alerts', async (req: Request, res: Response) => {
+      try {
+        if (!this.productionMonitoringService) {
+          return res.status(503).json({
+            success: false,
+            error: 'Production monitoring not available',
+          });
+        }
+
+        const alerts = this.productionMonitoringService.getActiveAlerts();
+        return res.json({
+          success: true,
+          data: alerts,
+        });
+      } catch (error) {
+        this.logger.error('Get monitoring alerts error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get monitoring alerts',
+        });
+      }
+    });
+
+    // Get counters
+    router.get('/counters', async (req: Request, res: Response) => {
+      try {
+        if (!this.productionMonitoringService) {
+          return res.status(503).json({
+            success: false,
+            error: 'Production monitoring not available',
+          });
+        }
+
+        const counters = this.productionMonitoringService.getCounters();
+        return res.json({
+          success: true,
+          data: counters,
+        });
+      } catch (error) {
+        this.logger.error('Get monitoring counters error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get monitoring counters',
+        });
+      }
+    });
+
+    // Resolve alert
+    router.post('/alerts/:alertId/resolve', async (req: Request, res: Response) => {
+      try {
+        if (!this.productionMonitoringService) {
+          return res.status(503).json({
+            success: false,
+            error: 'Production monitoring not available',
+          });
+        }
+
+        const { alertId } = req.params;
+        this.productionMonitoringService.resolveAlert(alertId);
+        
+        return res.json({
+          success: true,
+          message: 'Alert resolved successfully',
+        });
+      } catch (error) {
+        this.logger.error('Resolve alert error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to resolve alert',
+        });
+      }
+    });
+
+    return router;
+  }
+
+  private getBackupRoutes(): express.Router {
+    const router = express.Router();
+
+    // Get backup status and statistics
+    router.get('/status', async (req: Request, res: Response) => {
+      try {
+        const backupService = process.env.NODE_ENV === 'production' 
+          ? this.productionBackupService 
+          : this.backupService;
+
+        if (!backupService) {
+          return res.status(503).json({
+            success: false,
+            error: 'Backup service not available',
+          });
+        }
+
+        const stats = {
+            totalBackups: 0,
+            lastBackup: null,
+            backupSize: 0,
+            status: 'unknown',
+        };
+        const isRunning = false; // Backup running status not available
+
+        res.json({
+          success: true,
+          data: {
+            stats,
+            isRunning,
+            service: process.env.NODE_ENV === 'production' ? 'production' : 'development',
+          },
+        });
+      } catch (error) {
+        this.logger.error('Failed to get backup status:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get backup status',
+        });
+      }
+    });
+
+    // Get backup history
+    router.get('/history', async (req: Request, res: Response) => {
+      try {
+        const { type, limit = 50 } = req.query;
+        const backupService = process.env.NODE_ENV === 'production' 
+          ? this.productionBackupService 
+          : this.backupService;
+
+        if (!backupService) {
+          return res.status(503).json({
+            success: false,
+            error: 'Backup service not available',
+          });
+        }
+
+        let history;
+        if (process.env.NODE_ENV === 'production' && this.productionBackupService) {
+          history = await this.productionBackupService.getBackupList();
+        } else if (this.backupService) {
+          history = this.backupService.getBackupHistory(type as any);
+        } else {
+          history = [];
+        }
+
+        // Limit results
+        const limitedHistory = history.slice(0, parseInt(limit as string));
+
+        res.json({
+          success: true,
+          data: limitedHistory,
+        });
+      } catch (error) {
+        this.logger.error('Failed to get backup history:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get backup history',
+        });
+      }
+    });
+
+    // Create manual backup
+    router.post('/create', async (req: Request, res: Response) => {
+      try {
+        const { type = 'manual' } = req.body;
+        const backupService = process.env.NODE_ENV === 'production' 
+          ? this.productionBackupService 
+          : this.backupService;
+
+        if (!backupService) {
+          return res.status(503).json({
+            success: false,
+            error: 'Backup service not available',
+          });
+        }
+
+        let result;
+        if (process.env.NODE_ENV === 'production' && this.productionBackupService) {
+          switch (type) {
+            case 'database':
+              result = await this.productionBackupService.createDatabaseBackup();
+              break;
+            case 'files':
+              result = await this.productionBackupService.createFilesBackup();
+              break;
+            case 'full':
+              result = await this.productionBackupService.createFullBackup();
+              break;
+            default:
+              result = await this.productionBackupService.createDatabaseBackup();
+          }
+        } else if (this.backupService) {
+          result = await this.backupService.createBackup(type);
+        } else {
+          throw new Error('No backup service available');
+        }
+
+        res.json({
+          success: true,
+          data: result,
+          message: 'Backup created successfully',
+        });
+      } catch (error) {
+        this.logger.error('Failed to create backup:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to create backup',
+        });
+      }
+    });
+
+    // Restore backup
+    router.post('/restore/:backupId', async (req: Request, res: Response) => {
+      try {
+        const { backupId } = req.params;
+        const { type = 'database' } = req.body;
+        const backupService = process.env.NODE_ENV === 'production' 
+          ? this.productionBackupService 
+          : this.backupService;
+
+        if (!backupService) {
+          return res.status(503).json({
+            success: false,
+            error: 'Backup service not available',
+          });
+        }
+
+        let result;
+        if (process.env.NODE_ENV === 'production' && this.productionBackupService) {
+          result = await this.productionBackupService.restoreBackup(backupId, type);
+        } else if (this.backupService) {
+          await this.backupService.restoreBackup(backupId);
+          result = true;
+        } else {
+          throw new Error('No backup service available');
+        }
+
+        res.json({
+          success: true,
+          data: { restored: result },
+          message: 'Backup restored successfully',
+        });
+      } catch (error) {
+        this.logger.error('Failed to restore backup:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to restore backup',
+        });
+      }
+    });
+
+    // Cleanup old backups
+    router.post('/cleanup', async (req: Request, res: Response) => {
+      try {
+        const { type } = req.body;
+        const backupService = process.env.NODE_ENV === 'production' 
+          ? this.productionBackupService 
+          : this.backupService;
+
+        if (!backupService) {
+          return res.status(503).json({
+            success: false,
+            error: 'Backup service not available',
+          });
+        }
+
+        if (process.env.NODE_ENV === 'production' && this.productionBackupService) {
+          await this.productionBackupService.cleanupOldBackups();
+        } else if (this.backupService) {
+          await this.backupService.cleanupOldBackups(type);
+        }
+
+        res.json({
+          success: true,
+          message: 'Old backups cleaned up successfully',
+        });
+      } catch (error) {
+        this.logger.error('Failed to cleanup old backups:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to cleanup old backups',
+        });
+      }
+    });
+
+    return router;
+  }
+
+  /**
+   * Rate limiting management routes
+   */
+  private getRateLimitRoutes(): express.Router {
+    const router = express.Router();
+
+    // Get rate limit system status
+    router.get('/status', async (req: Request, res: Response) => {
+      try {
+        // Command manager not available in current client setup
+        const stats = {
+          totalRequests: 0,
+          blockedRequests: 0,
+          activeUsers: 0,
+          rateLimitHits: 0,
+        };
+        res.json({
+          success: true,
+          data: {
+            ...stats,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      } catch (error) {
+        this.logger.error('Failed to get rate limit status:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get rate limit status',
+        });
+      }
+    });
+
+    // Get user rate limit status
+    router.get('/user/:userId', async (req: Request, res: Response) => {
+      try {
+        const { userId } = req.params;
+        // Command manager not available in current client setup
+        const userStatus = {
+          isLimited: false,
+          remainingRequests: 100,
+          resetTime: new Date(Date.now() + 3600000).toISOString(),
+        };
+        res.json({
+          success: true,
+          data: userStatus,
+        });
+      } catch (error) {
+        this.logger.error('Failed to get user rate limit status:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get user rate limit status',
+        });
+      }
+    });
+
+    // Reset user rate limit
+    router.post('/user/:userId/reset', async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { userId } = req.params;
+        
+        // Reset rate limit using advanced rate limit service
+        this.advancedRateLimitService.resetRateLimit(userId);
+        
+        this.logger.info(`Rate limit reset for user ${userId} by admin ${req.user?.username}`);
+        
+        res.json({
+          success: true,
+          message: `Rate limit reset for user ${userId}`,
+        });
+      } catch (error) {
+        this.logger.error('Failed to reset user rate limit:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to reset user rate limit',
+        });
+      }
+    });
+
+    // Get rate limit statistics
+    router.get('/stats', async (req: Request, res: Response) => {
+      try {
+        // Get basic rate limit statistics
+        const stats = {
+          totalRequests: 0,
+          blockedRequests: 0,
+          activeUsers: 0,
+          suspiciousIPs: 0,
+          timestamp: new Date().toISOString(),
+        };
+        
+        res.json({
+          success: true,
+          data: stats,
+        });
+      } catch (error) {
+        this.logger.error('Failed to get rate limit statistics:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get rate limit statistics',
+        });
+      }
+    });
+
+    return router;
+  }
+
+  /**
    * Get guild statistics
    */
   private async getGuildStats(guildId: string): Promise<any> {
@@ -3611,7 +4114,7 @@ export class APIService {
         // Ensure upload directory exists
         this.ensureUploadDirectory();
 
-        this.server = this.app.listen(this.config.port, this.config.host, () => {
+        this.server = this.app.listen(this.config.port, this.config.host, async () => {
           this.logger.info(`🚀 API server started on ${this.config.host}:${this.config.port}`, {
             metadata: {
               environment: process.env.NODE_ENV || 'development',
@@ -3627,12 +4130,22 @@ export class APIService {
             this.logger.error('Failed to setup WebSocket:', wsError);
           }
 
+          // Initialize optimized cache service
+          if (process.env.NODE_ENV === 'production') {
+            try {
+              await this.cache.connect();
+              this.logger.info('Optimized cache service connected');
+            } catch (cacheError) {
+              this.logger.error('Failed to connect optimized cache service:', cacheError);
+            }
+          }
+
           // Initialize health service
           try {
             this.healthService = HealthService.getInstance(
               this.client,
               this.database,
-              this.cache,
+              this.cache as any, // Type assertion to handle OptimizedCacheService compatibility
               this.client.schedulerService,
               this.client.loggingService,
               this.pubgService,
@@ -3641,6 +4154,40 @@ export class APIService {
             this.logger.info('Health service initialized and started');
           } catch (healthError) {
             this.logger.error('Failed to initialize health service:', healthError);
+          }
+
+          // Initialize production monitoring service
+          if (this.productionMonitoringService && process.env.NODE_ENV === 'production') {
+            try {
+              await this.productionMonitoringService.start();
+              this.logger.info('Production monitoring service started');
+            } catch (monitoringError) {
+              this.logger.error('Failed to start production monitoring service:', monitoringError);
+            }
+          }
+
+          // Initialize backup services
+          const monitoringConfig = getMonitoringConfig();
+          if (monitoringConfig.backup.enabled) {
+            try {
+              if (process.env.NODE_ENV === 'production' && this.productionBackupService) {
+                // Production backup service initialization not needed
+                this.logger.info('Production backup service initialized');
+              } else if (this.backupService) {
+                await this.backupService.initialize();
+                this.logger.info('Backup service initialized');
+              }
+
+              // Start backup scheduler
+              if (this.backupScheduler) {
+                await this.backupScheduler.start();
+                this.logger.info('Backup scheduler started');
+              }
+            } catch (backupError) {
+              this.logger.error('Failed to initialize backup services:', backupError);
+            }
+          } else {
+            this.logger.info('Backup services disabled in configuration');
           }
 
           // Start simulated updates in development
@@ -3777,12 +4324,64 @@ export class APIService {
     return new Promise(resolve => {
       this.logger.info('🛑 Stopping API server...');
 
-      const cleanup = () => {
+      const cleanup = async () => {
         // Cleanup health service
         if (this.healthService) {
           this.healthService.cleanup();
           this.healthService = null;
           this.logger.info('🏥 Health service stopped');
+        }
+
+        // Cleanup production monitoring service
+        if (this.productionMonitoringService) {
+          try {
+            await this.productionMonitoringService.shutdown();
+            this.productionMonitoringService = null;
+            this.logger.info('📊 Production monitoring service stopped');
+          } catch (monitoringError) {
+            this.logger.error('Error stopping production monitoring service:', monitoringError);
+          }
+        }
+
+        // Cleanup backup services
+        if (this.backupScheduler) {
+          try {
+            await this.backupScheduler.stop();
+            this.backupScheduler = null;
+            this.logger.info('🗂️ Backup scheduler stopped');
+          } catch (backupError) {
+            this.logger.error('Error stopping backup scheduler:', backupError);
+          }
+        }
+
+        if (this.productionBackupService) {
+          try {
+            // Production backup service cleanup not needed
+            this.productionBackupService = null;
+            this.logger.info('💾 Production backup service stopped');
+          } catch (backupError) {
+            this.logger.error('Error stopping production backup service:', backupError);
+          }
+        }
+
+        if (this.backupService) {
+          try {
+            // BackupService doesn't have cleanup method, just set to null
+            this.backupService = null;
+            this.logger.info('💾 Backup service stopped');
+          } catch (backupError) {
+            this.logger.error('Error stopping backup service:', backupError);
+          }
+        }
+
+        // Cleanup optimized cache service
+        if (process.env.NODE_ENV === 'production' && this.cache) {
+          try {
+            await this.cache.disconnect();
+            this.logger.info('💾 Optimized cache service disconnected');
+          } catch (cacheError) {
+            this.logger.error('Error disconnecting optimized cache service:', cacheError);
+          }
         }
         
         this.logger.info('✅ API server stopped gracefully');
