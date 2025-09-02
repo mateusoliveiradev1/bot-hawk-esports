@@ -1,0 +1,90 @@
+# Multi-stage build for production optimization
+# Stage 1: Build dependencies and compile TypeScript
+FROM node:18-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    git \
+    curl
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# Install all dependencies (including devDependencies for build)
+RUN npm ci --only=production=false
+
+# Copy source code
+COPY src/ ./src/
+COPY public/ ./public/
+
+# Build TypeScript to JavaScript
+RUN npm run build
+
+# Remove devDependencies to reduce size
+RUN npm prune --production
+
+# Stage 2: Runtime image
+FROM node:18-alpine AS runtime
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S hawkbot -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    dumb-init \
+    curl \
+    ca-certificates \
+    tzdata
+
+# Copy built application from builder stage
+COPY --from=builder --chown=hawkbot:nodejs /app/dist ./dist
+COPY --from=builder --chown=hawkbot:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=hawkbot:nodejs /app/package*.json ./
+
+# Copy production configuration
+COPY --chown=hawkbot:nodejs .env.production ./.env
+COPY --chown=hawkbot:nodejs public/ ./public/
+
+# Create necessary directories
+RUN mkdir -p /app/logs /app/uploads /app/backups /app/temp && \
+    chown -R hawkbot:nodejs /app/logs /app/uploads /app/backups /app/temp
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=2048"
+ENV TZ=UTC
+
+# Expose port
+EXPOSE 3000
+
+# Switch to non-root user
+USER hawkbot
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:3000/health || exit 1
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start the application
+CMD ["node", "dist/index.js"]
+
+# Metadata
+LABEL maintainer="Hawk Esports Bot Team"
+LABEL version="1.0.0"
+LABEL description="Hawk Esports Discord Bot - Production Image"
+LABEL org.opencontainers.image.source="https://github.com/hawk-esports/bot"
+LABEL org.opencontainers.image.documentation="https://github.com/hawk-esports/bot/README.md"
+LABEL org.opencontainers.image.licenses="MIT"
