@@ -10,7 +10,7 @@
     },
     {
       "source": "/((?!api).*)",
-      "destination": "/dashboard/index.html"
+      "destination": "/index.html"
     }
   ],
   "headers": [
