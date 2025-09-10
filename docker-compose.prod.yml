@@ -1,0 +1,210 @@
+# 🐳 Docker Compose - Bot Hawk Esports (Produção)
+# Configuração completa para ambiente de produção
+
+version: '3.8'
+
+services:
+  # ==========================================
+  # BOT PRINCIPAL
+  # ==========================================
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: hawk-bot
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - PUBG_API_KEY=${PUBG_API_KEY}
+      - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
+    depends_on:
+      - redis
+      - prometheus
+    networks:
+      - hawk-network
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Bot health check')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ==========================================
+  # REDIS (Cache e Sessões)
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: hawk-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-hawkredis2024}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - hawk-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================
+  # PROMETHEUS (Métricas)
+  # ==========================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: hawk-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - hawk-network
+
+  # ==========================================
+  # GRAFANA (Dashboard)
+  # ==========================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: hawk-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-hawkgrafana2024}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+    networks:
+      - hawk-network
+
+  # ==========================================
+  # NODE EXPORTER (Métricas do Sistema)
+  # ==========================================
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: hawk-node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - hawk-network
+
+  # ==========================================
+  # BACKUP AUTOMATIZADO
+  # ==========================================
+  backup:
+    image: alpine:latest
+    container_name: hawk-backup
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data:ro
+      - ./logs:/app/logs:ro
+      - ./backups:/backups
+      - ./scripts/backup.sh:/backup.sh
+    command: |
+      sh -c '
+        apk add --no-cache dcron rsync
+        echo "0 2 * * * /backup.sh" | crontab -
+        crond -f
+      '
+    networks:
+      - hawk-network
+
+  # ==========================================
+  # NGINX (Reverse Proxy + SSL)
+  # ==========================================
+  nginx:
+    image: nginx:alpine
+    container_name: hawk-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - grafana
+    networks:
+      - hawk-network
+
+  # ==========================================
+  # WATCHTOWER (Auto-update)
+  # ==========================================
+  watchtower:
+    image: containrrr/watchtower
+    container_name: hawk-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_SCHEDULE=0 0 4 * * *  # 4 AM daily
+      - WATCHTOWER_NOTIFICATIONS=slack
+      - WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL=${SLACK_WEBHOOK_URL}
+    networks:
+      - hawk-network
+
+# ==========================================
+# VOLUMES PERSISTENTES
+# ==========================================
+volumes:
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+# ==========================================
+# REDE INTERNA
+# ==========================================
+networks:
+  hawk-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# ==========================================
+# CONFIGURAÇÕES ADICIONAIS
+# ==========================================
+# Para iniciar: docker-compose -f docker-compose.prod.yml up -d
+# Para parar: docker-compose -f docker-compose.prod.yml down
+# Para logs: docker-compose -f docker-compose.prod.yml logs -f
+# Para backup: docker-compose -f docker-compose.prod.yml exec backup /backup.sh

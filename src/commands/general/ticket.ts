@@ -12,18 +12,22 @@ import {
   ButtonBuilder,
   ButtonStyle,
 } from 'discord.js';
-import { Command } from '../../types/command';
+import { CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
 import { Logger } from '../../utils/logger';
 import { HawkEmbedBuilder } from '../../utils/hawk-embed-builder';
 import { HawkComponentFactory } from '../../utils/hawk-component-factory';
 import { HAWK_EMOJIS } from '../../constants/hawk-emojis';
+import { BaseCommand } from '../../utils/base-command.util';
 
 const logger = new Logger();
 
-export default {
-  category: 'general',
-  data: new SlashCommandBuilder()
+class TicketCommand extends BaseCommand {
+  constructor() {
+    super({
+      category: CommandCategory.GENERAL,
+      cooldown: 5,
+      data: new SlashCommandBuilder()
     .setName('ticket')
     .setDescription(`${HAWK_EMOJIS.SYSTEM.TICKET} Sistema de tickets para suporte`)
     .addSubcommand(subcommand =>
@@ -93,7 +97,9 @@ export default {
     )
     .addSubcommand(subcommand =>
       subcommand.setName('stats').setDescription('Estatísticas de tickets (Admin apenas)'),
-    ),
+    ) as SlashCommandBuilder,
+    });
+  }
 
   async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
     try {
@@ -146,8 +152,8 @@ export default {
         await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
       }
     }
-  },
-} as Command;
+  }
+}
 
 /**
  * Handle create ticket subcommand
@@ -529,3 +535,5 @@ async function handleTicketStats(interaction: ChatInputCommandInteraction, ticke
 
   await interaction.editReply({ embeds: [statsEmbed] });
 }
+
+export default new TicketCommand();

@@ -7,9 +7,13 @@ import {
 } from 'discord.js';
 import { ExtendedClient } from '../../types/client';
 import { BadgeService } from '../../services/badge.service';
+import { BaseCommand } from '../../utils/base-command.util';
+import { CommandCategory } from '../../types/command';
 
-export default {
-  data: new SlashCommandBuilder()
+class EnhancedBadgesCommand extends BaseCommand {
+  constructor() {
+    super({
+      data: new SlashCommandBuilder()
     .setName('enhanced-badges')
     .setDescription('Gerenciar badges aprimoradas do sistema')
     .addSubcommand(subcommand =>
@@ -164,7 +168,11 @@ export default {
             .setMinValue(1),
         ),
     )
-    .setDefaultMemberPermissions('0'),
+        .setDefaultMemberPermissions('0') as SlashCommandBuilder,
+      category: CommandCategory.ADMIN,
+      cooldown: 5,
+    });
+  }
 
   async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
     const badgeService = client.services?.badge as BadgeService;
@@ -208,7 +216,7 @@ export default {
         });
         break;
     }
-  },
+  }
 };
 
 async function handleTestStreak(
@@ -528,3 +536,5 @@ async function handleTestPubg(
     });
   }
 }
+
+export default new EnhancedBadgesCommand();

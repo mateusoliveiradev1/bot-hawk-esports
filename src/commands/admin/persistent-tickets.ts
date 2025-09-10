@@ -7,15 +7,23 @@ import {
   TextChannel,
   CategoryChannel,
 } from 'discord.js';
-import { Command } from '../../types/command';
+import { BaseCommand } from '../../utils/base-command.util';
+import { CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
 import { PersistentTicketService } from '../../services/persistent-ticket.service';
 import { Logger } from '../../utils/logger';
 
 const logger = new Logger();
 
-export default {
-  data: new SlashCommandBuilder()
+class PersistentTicketsCommand extends BaseCommand {
+  constructor() {
+    super({
+      category: CommandCategory.ADMIN,
+      cooldown: 5,
+    });
+  }
+
+  data = new SlashCommandBuilder()
     .setName('persistent-tickets')
     .setDescription('Configurar sistema de tickets persistente')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
@@ -87,7 +95,7 @@ export default {
       subcommand
         .setName('remove')
         .setDescription('Remover configuração do sistema de tickets persistente'),
-    ),
+    );
 
   async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
     try {
@@ -131,11 +139,8 @@ export default {
         await interaction.editReply({ content: errorMessage });
       }
     }
-  },
-
-  category: 'admin',
-  cooldown: 5,
-} as Command;
+  }
+}
 
 /**
  * Handle setup subcommand
@@ -235,6 +240,8 @@ async function handleSetup(
 
   await interaction.editReply({ embeds: [embed] });
 }
+
+export default new PersistentTicketsCommand();
 
 /**
  * Handle refresh subcommand

@@ -146,7 +146,11 @@ export class CommandDeployer {
         `Successfully reloaded ${data.length} application (/) commands for guild ${guildId}.`,
       );
     } catch (error) {
-      logger.error(`Failed to deploy guild commands for ${guildId}:`, error);
+      logger.error(`Failed to deploy guild commands for ${guildId}:`, { error });
+      if (error instanceof Error) {
+        logger.error(`Error message: ${error.message}`);
+        logger.error(`Error stack: ${error.stack}`);
+      }
       throw error;
     }
   }

@@ -1,300 +1,450 @@
 #!/bin/bash
+# 🔒 Script de Configuração SSL/TLS - Bot Hawk Esports
+# Configuração automática de certificados SSL com Let's Encrypt
 
-# SSL/TLS Setup Script for Hawk Esports Bot
-# This script sets up SSL certificates using Let's Encrypt with Certbot
+set -euo pipefail
 
-set -e
+# Configurações
+DOMAIN=""
+EMAIL=""
+WEBROOT_PATH="/var/www/certbot"
+CERTBOT_PATH="/etc/letsencrypt"
+NGINX_CONF_PATH="./nginx/nginx.conf"
+DOCKER_COMPOSE_FILE="docker-compose.prod.yml"
 
-# Colors for output
+# Cores para output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
 NC='\033[0m' # No Color
 
-# Configuration
-SSL_DIR="./config/ssl"
-CERTBOT_DIR="./config/certbot"
-NGINX_CONF="./config/nginx.conf"
-DOMAIN="${DOMAIN:-localhost}"
-EMAIL="${SSL_EMAIL:-admin@example.com}"
-STAGING="${SSL_STAGING:-false}"
-
-# Functions
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-log_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+# Função de log
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
 }
 
 log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-check_requirements() {
-    log_info "Checking requirements..."
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+log_step() {
+    echo -e "${PURPLE}[STEP]${NC} $1"
+}
+
+# Função para mostrar ajuda
+show_help() {
+    echo "🔒 Configuração SSL/TLS para Bot Hawk Esports"
+    echo ""
+    echo "Uso: $0 -d DOMAIN -e EMAIL [opções]"
+    echo ""
+    echo "Opções obrigatórias:"
+    echo "  -d, --domain DOMAIN    Domínio para o certificado SSL"
+    echo "  -e, --email EMAIL      Email para registro no Let's Encrypt"
+    echo ""
+    echo "Opções:"
+    echo "  -s, --staging          Usar ambiente de teste do Let's Encrypt"
+    echo "  -f, --force            Forçar renovação do certificado"
+    echo "  -h, --help             Mostrar esta ajuda"
+    echo ""
+    echo "Exemplos:"
+    echo "  $0 -d bot.exemplo.com -e admin@exemplo.com"
+    echo "  $0 -d bot.exemplo.com -e admin@exemplo.com --staging"
+}
+
+# Função para validar parâmetros
+validate_params() {
+    if [ -z "$DOMAIN" ]; then
+        log_error "Domínio é obrigatório. Use -d ou --domain"
+        show_help
+        exit 1
+    fi
     
-    # Check if Docker is installed
+    if [ -z "$EMAIL" ]; then
+        log_error "Email é obrigatório. Use -e ou --email"
+        show_help
+        exit 1
+    fi
+    
+    # Validar formato do email
+    if ! [[ "$EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+        log_error "Formato de email inválido: $EMAIL"
+        exit 1
+    fi
+    
+    # Validar formato do domínio
+    if ! [[ "$DOMAIN" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$ ]]; then
+        log_error "Formato de domínio inválido: $DOMAIN"
+        exit 1
+    fi
+}
+
+# Função para verificar pré-requisitos
+check_prerequisites() {
+    log_step "Verificando pré-requisitos..."
+    
+    # Verificar se está rodando como root
+    if [ "$EUID" -ne 0 ]; then
+        log_error "Este script deve ser executado como root"
+        exit 1
+    fi
+    
+    # Verificar Docker
     if ! command -v docker &> /dev/null; then
-        log_error "Docker is not installed. Please install Docker first."
+        log_error "Docker não está instalado"
         exit 1
     fi
     
-    # Check if Docker Compose is installed
+    # Verificar Docker Compose
     if ! command -v docker-compose &> /dev/null; then
-        log_error "Docker Compose is not installed. Please install Docker Compose first."
+        log_error "Docker Compose não está instalado"
         exit 1
     fi
     
-    # Check if domain is set
-    if [ "$DOMAIN" = "localhost" ]; then
-        log_warning "Using localhost as domain. SSL certificates will be self-signed."
-        log_warning "For production, set DOMAIN environment variable to your actual domain."
+    # Verificar conectividade com Let's Encrypt
+    if ! curl -s --connect-timeout 10 https://acme-v02.api.letsencrypt.org/directory > /dev/null; then
+        log_error "Não foi possível conectar ao Let's Encrypt"
+        exit 1
     fi
     
-    log_success "Requirements check passed"
+    log_success "Pré-requisitos verificados"
 }
 
+# Função para criar diretórios necessários
 create_directories() {
-    log_info "Creating SSL directories..."
+    log_step "Criando diretórios necessários..."
     
-    mkdir -p "$SSL_DIR"
-    mkdir -p "$CERTBOT_DIR/conf"
-    mkdir -p "$CERTBOT_DIR/www"
-    mkdir -p "$CERTBOT_DIR/logs"
+    mkdir -p "$WEBROOT_PATH"
+    mkdir -p "$CERTBOT_PATH/live/$DOMAIN"
+    mkdir -p "$CERTBOT_PATH/archive/$DOMAIN"
+    mkdir -p "./nginx/ssl"
     
-    log_success "SSL directories created"
+    log_success "Diretórios criados"
 }
 
-generate_self_signed_cert() {
-    log_info "Generating self-signed certificate for $DOMAIN..."
+# Função para gerar certificado temporário
+generate_temp_certificate() {
+    log_step "Gerando certificado temporário..."
     
-    # Generate private key
-    openssl genrsa -out "$SSL_DIR/key.pem" 2048
+    openssl req -x509 -nodes -newkey rsa:4096 \
+        -days 1 \
+        -keyout "./nginx/ssl/privkey.pem" \
+        -out "./nginx/ssl/fullchain.pem" \
+        -subj "/CN=$DOMAIN" 2>/dev/null
     
-    # Generate certificate
-    openssl req -new -x509 -key "$SSL_DIR/key.pem" -out "$SSL_DIR/cert.pem" -days 365 -subj "/C=BR/ST=SP/L=SaoPaulo/O=HawkEsports/OU=IT/CN=$DOMAIN"
-    
-    # Set proper permissions
-    chmod 600 "$SSL_DIR/key.pem"
-    chmod 644 "$SSL_DIR/cert.pem"
-    
-    log_success "Self-signed certificate generated"
+    log_success "Certificado temporário gerado"
 }
 
-setup_letsencrypt() {
-    log_info "Setting up Let's Encrypt certificate for $DOMAIN..."
+# Função para iniciar Nginx temporário
+start_temp_nginx() {
+    log_step "Iniciando Nginx temporário..."
     
-    # Staging flag for testing
-    STAGING_FLAG=""
-    if [ "$STAGING" = "true" ]; then
-        STAGING_FLAG="--staging"
-        log_warning "Using Let's Encrypt staging environment"
+    # Criar configuração temporária do Nginx
+    cat > ./nginx/temp-nginx.conf << EOF
+events {
+    worker_connections 1024;
+}
+
+http {
+    server {
+        listen 80;
+        server_name $DOMAIN;
+        
+        location /.well-known/acme-challenge/ {
+            root $WEBROOT_PATH;
+        }
+        
+        location / {
+            return 301 https://\$server_name\$request_uri;
+        }
+    }
+    
+    server {
+        listen 443 ssl;
+        server_name $DOMAIN;
+        
+        ssl_certificate /etc/nginx/ssl/fullchain.pem;
+        ssl_certificate_key /etc/nginx/ssl/privkey.pem;
+        
+        location / {
+            return 200 'SSL Setup in Progress';
+            add_header Content-Type text/plain;
+        }
+    }
+}
+EOF
+    
+    # Iniciar container Nginx temporário
+    docker run -d --name temp-nginx \
+        -p 80:80 -p 443:443 \
+        -v "$(pwd)/nginx/temp-nginx.conf:/etc/nginx/nginx.conf:ro" \
+        -v "$(pwd)/nginx/ssl:/etc/nginx/ssl:ro" \
+        -v "$WEBROOT_PATH:$WEBROOT_PATH" \
+        nginx:alpine
+    
+    # Aguardar Nginx iniciar
+    sleep 5
+    
+    log_success "Nginx temporário iniciado"
+}
+
+# Função para obter certificado SSL
+obtain_ssl_certificate() {
+    log_step "Obtendo certificado SSL do Let's Encrypt..."
+    
+    local staging_flag=""
+    if [ "${STAGING:-false}" = "true" ]; then
+        staging_flag="--staging"
+        log_info "Usando ambiente de teste do Let's Encrypt"
     fi
     
-    # Stop nginx if running
-    docker-compose -f docker-compose.production.yml stop nginx 2>/dev/null || true
+    local force_flag=""
+    if [ "${FORCE:-false}" = "true" ]; then
+        force_flag="--force-renewal"
+        log_info "Forçando renovação do certificado"
+    fi
     
-    # Run certbot
+    # Executar certbot
     docker run --rm \
-        -v "$(pwd)/$CERTBOT_DIR/conf:/etc/letsencrypt" \
-        -v "$(pwd)/$CERTBOT_DIR/www:/var/www/certbot" \
-        -v "$(pwd)/$CERTBOT_DIR/logs:/var/log/letsencrypt" \
+        -v "$CERTBOT_PATH:/etc/letsencrypt" \
+        -v "$WEBROOT_PATH:$WEBROOT_PATH" \
         certbot/certbot certonly \
         --webroot \
-        --webroot-path=/var/www/certbot \
+        --webroot-path="$WEBROOT_PATH" \
         --email "$EMAIL" \
         --agree-tos \
         --no-eff-email \
-        $STAGING_FLAG \
-        -d "$DOMAIN"
+        --domains "$DOMAIN" \
+        $staging_flag \
+        $force_flag
     
-    # Copy certificates to nginx directory
-    cp "$CERTBOT_DIR/conf/live/$DOMAIN/fullchain.pem" "$SSL_DIR/cert.pem"
-    cp "$CERTBOT_DIR/conf/live/$DOMAIN/privkey.pem" "$SSL_DIR/key.pem"
-    
-    # Set proper permissions
-    chmod 600 "$SSL_DIR/key.pem"
-    chmod 644 "$SSL_DIR/cert.pem"
-    
-    log_success "Let's Encrypt certificate obtained"
+    if [ $? -eq 0 ]; then
+        log_success "Certificado SSL obtido com sucesso"
+    else
+        log_error "Falha ao obter certificado SSL"
+        return 1
+    fi
 }
 
-create_renewal_script() {
-    log_info "Creating certificate renewal script..."
+# Função para copiar certificados
+copy_certificates() {
+    log_step "Copiando certificados..."
     
-    cat > "./scripts/renew-ssl.sh" << 'EOF'
+    # Copiar certificados para o diretório do Nginx
+    cp "$CERTBOT_PATH/live/$DOMAIN/fullchain.pem" "./nginx/ssl/"
+    cp "$CERTBOT_PATH/live/$DOMAIN/privkey.pem" "./nginx/ssl/"
+    
+    # Definir permissões corretas
+    chmod 644 "./nginx/ssl/fullchain.pem"
+    chmod 600 "./nginx/ssl/privkey.pem"
+    
+    log_success "Certificados copiados"
+}
+
+# Função para atualizar configuração do Nginx
+update_nginx_config() {
+    log_step "Atualizando configuração do Nginx..."
+    
+    # Backup da configuração atual
+    cp "$NGINX_CONF_PATH" "${NGINX_CONF_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
+    
+    # Atualizar configuração para usar SSL real
+    sed -i "s|ssl_certificate /etc/nginx/ssl/.*|ssl_certificate /etc/nginx/ssl/fullchain.pem;|g" "$NGINX_CONF_PATH"
+    sed -i "s|ssl_certificate_key /etc/nginx/ssl/.*|ssl_certificate_key /etc/nginx/ssl/privkey.pem;|g" "$NGINX_CONF_PATH"
+    
+    # Adicionar configurações SSL seguras se não existirem
+    if ! grep -q "ssl_protocols" "$NGINX_CONF_PATH"; then
+        sed -i '/ssl_certificate_key/a\    ssl_protocols TLSv1.2 TLSv1.3;\n    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384;\n    ssl_prefer_server_ciphers off;\n    ssl_session_cache shared:SSL:10m;\n    ssl_session_timeout 10m;' "$NGINX_CONF_PATH"
+    fi
+    
+    log_success "Configuração do Nginx atualizada"
+}
+
+# Função para parar Nginx temporário
+stop_temp_nginx() {
+    log_step "Parando Nginx temporário..."
+    
+    docker stop temp-nginx > /dev/null 2>&1 || true
+    docker rm temp-nginx > /dev/null 2>&1 || true
+    rm -f ./nginx/temp-nginx.conf
+    
+    log_success "Nginx temporário removido"
+}
+
+# Função para reiniciar serviços
+restart_services() {
+    log_step "Reiniciando serviços..."
+    
+    # Reiniciar apenas o Nginx
+    docker-compose -f "$DOCKER_COMPOSE_FILE" restart nginx
+    
+    # Aguardar Nginx iniciar
+    sleep 10
+    
+    log_success "Serviços reiniciados"
+}
+
+# Função para verificar certificado
+verify_certificate() {
+    log_step "Verificando certificado SSL..."
+    
+    # Verificar se o certificado é válido
+    if openssl x509 -in "./nginx/ssl/fullchain.pem" -text -noout | grep -q "$DOMAIN"; then
+        log_success "Certificado SSL válido para $DOMAIN"
+    else
+        log_error "Certificado SSL inválido"
+        return 1
+    fi
+    
+    # Verificar conectividade HTTPS
+    if curl -s --connect-timeout 10 "https://$DOMAIN" > /dev/null; then
+        log_success "Conexão HTTPS funcionando"
+    else
+        log_warning "Conexão HTTPS pode não estar funcionando corretamente"
+    fi
+    
+    # Mostrar informações do certificado
+    local expiry_date=$(openssl x509 -in "./nginx/ssl/fullchain.pem" -noout -enddate | cut -d= -f2)
+    log_info "Certificado expira em: $expiry_date"
+}
+
+# Função para configurar renovação automática
+setup_auto_renewal() {
+    log_step "Configurando renovação automática..."
+    
+    # Criar script de renovação
+    cat > ./scripts/renew-ssl.sh << 'EOF'
 #!/bin/bash
+# Script de renovação automática SSL
 
-# SSL Certificate Renewal Script
-# Run this script periodically to renew SSL certificates
+set -euo pipefail
 
-set -e
+DOMAIN="DOMAIN_PLACEHOLDER"
+CERTBOT_PATH="/etc/letsencrypt"
+DOCKER_COMPOSE_FILE="docker-compose.prod.yml"
 
-SSL_DIR="./config/ssl"
-CERTBOT_DIR="./config/certbot"
-DOMAIN="${DOMAIN:-localhost}"
-
-log_info() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] $1"
-}
-
-log_error() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] $1"
-}
-
-if [ "$DOMAIN" = "localhost" ]; then
-    log_info "Skipping renewal for localhost (self-signed certificate)"
-    exit 0
-fi
-
-log_info "Attempting to renew SSL certificate for $DOMAIN..."
-
-# Renew certificate
+# Renovar certificado
 docker run --rm \
-    -v "$(pwd)/$CERTBOT_DIR/conf:/etc/letsencrypt" \
-    -v "$(pwd)/$CERTBOT_DIR/www:/var/www/certbot" \
-    -v "$(pwd)/$CERTBOT_DIR/logs:/var/log/letsencrypt" \
+    -v "$CERTBOT_PATH:/etc/letsencrypt" \
+    -v "/var/www/certbot:/var/www/certbot" \
     certbot/certbot renew --quiet
 
-# Check if certificate was renewed
-if [ -f "$CERTBOT_DIR/conf/live/$DOMAIN/fullchain.pem" ]; then
-    # Copy new certificates
-    cp "$CERTBOT_DIR/conf/live/$DOMAIN/fullchain.pem" "$SSL_DIR/cert.pem"
-    cp "$CERTBOT_DIR/conf/live/$DOMAIN/privkey.pem" "$SSL_DIR/key.pem"
+# Verificar se houve renovação
+if [ $? -eq 0 ]; then
+    # Copiar novos certificados
+    cp "$CERTBOT_PATH/live/$DOMAIN/fullchain.pem" "./nginx/ssl/"
+    cp "$CERTBOT_PATH/live/$DOMAIN/privkey.pem" "./nginx/ssl/"
     
-    # Set proper permissions
-    chmod 600 "$SSL_DIR/key.pem"
-    chmod 644 "$SSL_DIR/cert.pem"
+    # Reiniciar Nginx
+    docker-compose -f "$DOCKER_COMPOSE_FILE" restart nginx
     
-    # Reload nginx
-    docker-compose -f docker-compose.production.yml exec nginx nginx -s reload
-    
-    log_info "SSL certificate renewed successfully"
+    echo "[$(date)] Certificado SSL renovado com sucesso"
 else
-    log_error "Failed to renew SSL certificate"
-    exit 1
+    echo "[$(date)] Erro na renovação do certificado SSL"
 fi
 EOF
     
-    chmod +x "./scripts/renew-ssl.sh"
+    # Substituir placeholder pelo domínio real
+    sed -i "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" ./scripts/renew-ssl.sh
+    chmod +x ./scripts/renew-ssl.sh
     
-    log_success "Renewal script created"
+    # Adicionar ao crontab (executar diariamente às 2:00)
+    (crontab -l 2>/dev/null; echo "0 2 * * * $(pwd)/scripts/renew-ssl.sh >> $(pwd)/logs/ssl-renewal.log 2>&1") | crontab -
+    
+    log_success "Renovação automática configurada (diariamente às 2:00)"
 }
 
-create_cron_job() {
-    log_info "Setting up automatic certificate renewal..."
-    
-    # Create cron job for certificate renewal (runs twice daily)
-    CRON_JOB="0 */12 * * * cd $(pwd) && ./scripts/renew-ssl.sh >> ./logs/ssl-renewal.log 2>&1"
-    
-    # Add to crontab if not already present
-    (crontab -l 2>/dev/null | grep -v "renew-ssl.sh"; echo "$CRON_JOB") | crontab -
-    
-    log_success "Automatic renewal configured (runs every 12 hours)"
-}
-
-update_nginx_config() {
-    log_info "Updating Nginx configuration for SSL..."
-    
-    # Backup original config
-    cp "$NGINX_CONF" "$NGINX_CONF.backup.$(date +%Y%m%d_%H%M%S)"
-    
-    # The nginx.conf already has SSL configuration, just verify paths
-    if grep -q "/etc/nginx/ssl/cert.pem" "$NGINX_CONF" && grep -q "/etc/nginx/ssl/key.pem" "$NGINX_CONF"; then
-        log_success "Nginx SSL configuration is already correct"
-    else
-        log_warning "Nginx SSL configuration may need manual adjustment"
-        log_warning "Please ensure SSL certificate paths point to:"
-        log_warning "  - Certificate: /etc/nginx/ssl/cert.pem"
-        log_warning "  - Private Key: /etc/nginx/ssl/key.pem"
-    fi
-}
-
-test_ssl_config() {
-    log_info "Testing SSL configuration..."
-    
-    # Test nginx configuration
-    docker run --rm \
-        -v "$(pwd)/config/nginx.conf:/etc/nginx/nginx.conf:ro" \
-        -v "$(pwd)/$SSL_DIR:/etc/nginx/ssl:ro" \
-        nginx:alpine nginx -t
-    
-    if [ $? -eq 0 ]; then
-        log_success "Nginx SSL configuration is valid"
-    else
-        log_error "Nginx SSL configuration has errors"
-        exit 1
-    fi
-}
-
-start_services() {
-    log_info "Starting services with SSL..."
-    
-    # Start services
-    docker-compose -f docker-compose.production.yml up -d
-    
-    # Wait for services to start
-    sleep 10
-    
-    # Test HTTPS endpoint
-    if curl -k -f "https://localhost/health" > /dev/null 2>&1; then
-        log_success "HTTPS endpoint is responding"
-    else
-        log_warning "HTTPS endpoint may not be ready yet. Please check manually."
-    fi
-}
-
-show_summary() {
-    echo
-    log_success "SSL/TLS setup completed!"
-    echo
-    echo "Summary:"
-    echo "  - Domain: $DOMAIN"
-    echo "  - Certificate Type: $([ "$DOMAIN" = "localhost" ] && echo "Self-signed" || echo "Let's Encrypt")"
-    echo "  - Certificate Location: $SSL_DIR/"
-    echo "  - Renewal Script: ./scripts/renew-ssl.sh"
-    echo "  - Automatic Renewal: $([ "$DOMAIN" != "localhost" ] && echo "Enabled (every 12 hours)" || echo "Not applicable")"
-    echo
-    echo "Next steps:"
-    echo "  1. Verify HTTPS is working: https://$DOMAIN/health"
-    echo "  2. Update your DNS records to point to this server"
-    echo "  3. Test certificate renewal: ./scripts/renew-ssl.sh"
-    echo "  4. Monitor logs in ./logs/ssl-renewal.log"
-    echo
-}
-
-# Main execution
+# Função principal
 main() {
-    echo "=== SSL/TLS Setup for Hawk Esports Bot ==="
-    echo
+    log_info "🔒 Iniciando configuração SSL/TLS para $DOMAIN"
     
-    check_requirements
+    # Verificar pré-requisitos
+    check_prerequisites
+    
+    # Criar diretórios
     create_directories
     
-    if [ "$DOMAIN" = "localhost" ]; then
-        generate_self_signed_cert
+    # Gerar certificado temporário
+    generate_temp_certificate
+    
+    # Iniciar Nginx temporário
+    start_temp_nginx
+    
+    # Obter certificado real
+    if obtain_ssl_certificate; then
+        copy_certificates
+        update_nginx_config
     else
-        setup_letsencrypt
+        log_error "Falha ao obter certificado SSL"
+        stop_temp_nginx
+        exit 1
     fi
     
-    create_renewal_script
+    # Parar Nginx temporário
+    stop_temp_nginx
     
-    if [ "$DOMAIN" != "localhost" ]; then
-        create_cron_job
-    fi
+    # Reiniciar serviços
+    restart_services
     
-    update_nginx_config
-    test_ssl_config
-    start_services
-    show_summary
+    # Verificar certificado
+    verify_certificate
+    
+    # Configurar renovação automática
+    setup_auto_renewal
+    
+    log_success "🎉 Configuração SSL/TLS concluída com sucesso!"
+    log_info "Seu bot agora está acessível via HTTPS em: https://$DOMAIN"
 }
 
-# Run main function
+# Processar argumentos da linha de comando
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -d|--domain)
+            DOMAIN="$2"
+            shift 2
+            ;;
+        -e|--email)
+            EMAIL="$2"
+            shift 2
+            ;;
+        -s|--staging)
+            STAGING="true"
+            shift
+            ;;
+        -f|--force)
+            FORCE="true"
+            shift
+            ;;
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        *)
+            log_error "Opção desconhecida: $1"
+            show_help
+            exit 1
+            ;;
+    esac
+done
+
+# Validar parâmetros
+validate_params
+
+# Tratamento de erros
+trap 'log_error "Configuração SSL falhou na linha $LINENO"; stop_temp_nginx; exit 1' ERR
+
+# Executar configuração
 main "$@"

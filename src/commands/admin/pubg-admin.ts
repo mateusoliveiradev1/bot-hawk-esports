@@ -4,13 +4,22 @@ import {
   EmbedBuilder,
   PermissionFlagsBits,
 } from 'discord.js';
+import { BaseCommand } from '../../utils/base-command.util';
+import { CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
 import { PUBGService } from '../../services/pubg.service';
 import { PUBGMonitorService } from '../../services/pubg-monitor.service';
 import { PUBGPlatform } from '../../types/pubg';
 
-export default {
-  data: new SlashCommandBuilder()
+class PubgAdminCommand extends BaseCommand {
+  constructor() {
+    super({
+      category: CommandCategory.ADMIN,
+      cooldown: 5,
+    });
+  }
+
+  data = new SlashCommandBuilder()
     .setName('pubg-admin')
     .setDescription('Comandos administrativos para gerenciar a API PUBG')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
@@ -81,7 +90,7 @@ export default {
             .setMinValue(1)
             .setMaxValue(100),
         ),
-    ),
+    );
 
   async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
     const subcommand = interaction.options.getSubcommand();
@@ -136,8 +145,8 @@ export default {
         });
       }
     }
-  },
-};
+  }
+}
 
 async function handleStatusCommand(
   interaction: ChatInputCommandInteraction,
@@ -482,3 +491,5 @@ function formatUptime(uptime: number): string {
     return `${seconds}s`;
   }
 }
+
+export default new PubgAdminCommand();

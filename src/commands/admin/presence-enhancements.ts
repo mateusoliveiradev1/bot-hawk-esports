@@ -4,14 +4,23 @@ import {
   PermissionFlagsBits,
   ChatInputCommandInteraction,
 } from 'discord.js';
+import { BaseCommand } from '../../utils/base-command.util';
+import { CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
 import { PresenceEnhancementsService } from '../../services/presence-enhancements.service';
 import { Logger } from '../../utils/logger';
 
 const logger = new Logger();
 
-export default {
-  data: new SlashCommandBuilder()
+class PresenceEnhancementsCommand extends BaseCommand {
+  constructor() {
+    super({
+      category: CommandCategory.ADMIN,
+      cooldown: 5,
+    });
+  }
+
+  data = new SlashCommandBuilder()
     .setName('presence-enhancements')
     .setDescription('Gerenciar melhorias do sistema de presença')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
@@ -76,7 +85,7 @@ export default {
             .setMaxValue(90)
             .setRequired(false),
         ),
-    ),
+    );
 
   async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
     try {
@@ -141,8 +150,8 @@ export default {
       }
     }
     return;
-  },
-};
+  }
+}
 
 /**
  * Handle status subcommand
@@ -214,6 +223,8 @@ async function handleStatus(
 
   await interaction.followUp({ embeds: [embed] });
 }
+
+export default new PresenceEnhancementsCommand();
 
 /**
  * Handle validate-pubg subcommand

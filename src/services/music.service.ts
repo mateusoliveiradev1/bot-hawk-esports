@@ -347,8 +347,9 @@ export class MusicService {
       const clientId = process.env.SPOTIFY_CLIENT_ID;
       const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 
-      if (!clientId || !clientSecret) {
+      if (!clientId || !clientSecret || clientId.includes('your_spotify') || clientSecret.includes('your_spotify')) {
         this.logger.warn('🎵 Spotify credentials not found - running in YouTube-only mode');
+        this.spotify = null;
         return;
       }
 

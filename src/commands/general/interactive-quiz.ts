@@ -18,8 +18,14 @@ import {
   QuizCategory,
   QuizQuestion,
 } from '../../services/interactive-quiz.service';
+import { BaseCommand } from '../../utils/base-command.util';
+import { CommandCategory } from '../../types/command';
 
-module.exports = {
+class InteractiveQuizCommand extends BaseCommand {
+  constructor() {
+    super({
+      category: CommandCategory.GENERAL,
+      cooldown: 3,
   data: new SlashCommandBuilder()
     .setName('quiz-interativo')
     .setDescription('Sistema de quizzes interativos aprimorado')
@@ -220,7 +226,9 @@ module.exports = {
             .setMinValue(10)
             .setMaxValue(120),
         ),
-    ),
+    ) as SlashCommandBuilder,
+    });
+  }
 
   async execute(interaction: ChatInputCommandInteraction) {
     const client = interaction.client as ExtendedClient;
@@ -284,7 +292,7 @@ module.exports = {
         });
       }
     }
-  },
+  }
 
   async handleCreateQuiz(
     interaction: ChatInputCommandInteraction,
@@ -417,7 +425,7 @@ module.exports = {
         await this.handleStatusButton(buttonInteraction, quizService, session.id);
       }
     });
-  },
+  }
 
   async handleJoinQuiz(
     interaction: ChatInputCommandInteraction,
@@ -438,7 +446,7 @@ module.exports = {
         ephemeral: true,
       });
     }
-  },
+  }
 
   async handleStartQuiz(
     interaction: ChatInputCommandInteraction,
@@ -470,7 +478,7 @@ module.exports = {
 
     // Start the quiz loop
     await this.runQuizLoop(interaction.channel as TextChannel, quizService, sessionId);
-  },
+  }
 
   async handleQuizStatus(
     interaction: ChatInputCommandInteraction,
@@ -533,7 +541,7 @@ module.exports = {
       embeds: [embed],
       ephemeral: true,
     });
-  },
+  }
 
   async handleUserStats(
     interaction: ChatInputCommandInteraction,
@@ -597,7 +605,7 @@ module.exports = {
       embeds: [embed],
       ephemeral: true,
     });
-  },
+  }
 
   async handleLeaderboard(
     interaction: ChatInputCommandInteraction,
@@ -639,7 +647,7 @@ module.exports = {
       embeds: [embed],
       ephemeral: true,
     });
-  },
+  }
 
   async handleCategories(
     interaction: ChatInputCommandInteraction,
@@ -677,7 +685,7 @@ module.exports = {
       embeds: [embed],
       ephemeral: true,
     });
-  },
+  }
 
   async handleAddQuestion(
     interaction: ChatInputCommandInteraction,
@@ -780,7 +788,7 @@ module.exports = {
         ephemeral: true,
       });
     }
-  },
+  }
 
   async handleJoinButton(
     buttonInteraction: any,
@@ -807,7 +815,7 @@ module.exports = {
         ephemeral: true,
       });
     }
-  },
+  }
 
   async handleStartButton(
     buttonInteraction: any,
@@ -846,7 +854,7 @@ module.exports = {
         ephemeral: true,
       });
     }
-  },
+  }
 
   async handleStatusButton(
     buttonInteraction: any,
@@ -909,7 +917,7 @@ module.exports = {
       embeds: [embed],
       ephemeral: true,
     });
-  },
+  }
 
   async runQuizLoop(channel: TextChannel, quizService: InteractiveQuizService, sessionId: string) {
     const session = quizService.getQuizSession(sessionId);
@@ -1064,7 +1072,7 @@ module.exports = {
 
     // Show final results
     await this.showFinalResults(channel, quizService, sessionId);
-  },
+  }
 
   async showFinalResults(
     channel: TextChannel,
@@ -1129,5 +1137,7 @@ module.exports = {
     });
 
     await channel.send({ embeds: [finalEmbed] });
-  },
-};
+  }
+}
+
+export default new InteractiveQuizCommand();

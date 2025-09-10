@@ -1,0 +1,141 @@
+# 🚨 Regras de Alerta - Bot Hawk Esports
+# Alertas críticos para monitoramento
+
+groups:
+  - name: hawk-bot-alerts
+    rules:
+      # Bot offline
+      - alert: BotOffline
+        expr: up{job="hawk-bot"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: discord-bot
+        annotations:
+          summary: "Bot Hawk Esports está offline"
+          description: "O bot Discord não está respondendo há mais de 1 minuto."
+
+      # Alto uso de CPU
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Alto uso de CPU detectado"
+          description: "CPU usage está acima de 80% por mais de 5 minutos."
+
+      # Alto uso de memória
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Alto uso de memória detectado"
+          description: "Uso de memória está acima de 85% por mais de 5 minutos."
+
+      # Disco cheio
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 10
+        for: 2m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "Espaço em disco baixo"
+          description: "Menos de 10% de espaço livre no disco."
+
+      # Redis offline
+      - alert: RedisOffline
+        expr: up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis está offline"
+          description: "Serviço Redis não está respondendo há mais de 2 minutos."
+
+      # Muitos erros no bot
+      - alert: HighErrorRate
+        expr: rate(bot_errors_total[5m]) > 0.1
+        for: 3m
+        labels:
+          severity: warning
+          service: discord-bot
+        annotations:
+          summary: "Alta taxa de erros no bot"
+          description: "Bot está gerando mais de 0.1 erros por segundo."
+
+      # Latência alta do bot
+      - alert: HighBotLatency
+        expr: bot_command_duration_seconds > 5
+        for: 2m
+        labels:
+          severity: warning
+          service: discord-bot
+        annotations:
+          summary: "Alta latência nos comandos"
+          description: "Comandos do bot estão demorando mais de 5 segundos para responder."
+
+      # Prometheus não consegue fazer scrape
+      - alert: PrometheusTargetDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: warning
+          service: monitoring
+        annotations:
+          summary: "Target do Prometheus está down"
+          description: "Target {{ $labels.instance }} não está respondendo ao scraping."
+
+  - name: discord-api-alerts
+    rules:
+      # Rate limit do Discord
+      - alert: DiscordRateLimit
+        expr: discord_rate_limit_hits_total > 10
+        for: 1m
+        labels:
+          severity: warning
+          service: discord-api
+        annotations:
+          summary: "Rate limit do Discord atingido"
+          description: "Bot está sendo limitado pela API do Discord."
+
+      # Falha na conexão com Discord
+      - alert: DiscordConnectionFailed
+        expr: discord_connection_status == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: discord-api
+        annotations:
+          summary: "Conexão com Discord falhou"
+          description: "Bot perdeu conexão com a API do Discord."
+
+  - name: system-health-alerts
+    rules:
+      # Container reiniciando muito
+      - alert: ContainerRestarting
+        expr: rate(container_start_time_seconds[10m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: docker
+        annotations:
+          summary: "Container reiniciando frequentemente"
+          description: "Container {{ $labels.name }} está reiniciando muito frequentemente."
+
+      # Load average alto
+      - alert: HighLoadAverage
+        expr: node_load1 > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Load average alto"
+          description: "Load average de 1 minuto está acima de 2.0."

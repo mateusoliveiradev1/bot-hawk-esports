@@ -1,0 +1,827 @@
+{
+  "timestamp": "2025-09-10T19:07:01.405Z",
+  "totalCommands": 41,
+  "passCount": 41,
+  "failCount": 0,
+  "successRate": "100.0%",
+  "byCategory": {
+    "admin": [
+      {
+        "command": "audit-badges",
+        "category": "admin",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\audit-badges.ts",
+        "valid": true,
+        "score": "5/6",
+        "issues": [
+          "hasConstructor"
+        ],
+        "status": "PASS"
+      },
+      {
+        "command": "backup",
+        "category": "admin",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\backup.ts",
+        "valid": true,
+        "score": "5/6",
+        "issues": [
+          "hasConstructor"
+        ],
+        "status": "PASS"
+      },
+      {
+        "command": "badge-optimization",
+        "category": "admin",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\badge-optimization.ts",
+        "valid": true,
+        "score": "4/6",
+        "issues": [
+          "extendsBaseCommand",
+          "hasConstructor"
+        ],
+        "status": "PASS"
+      },
+      {
+        "command": "bootstrap",
+        "category": "admin",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\bootstrap.ts",
+        "valid": true,
+        "score": "4/6",
+        "issues": [
+          "extendsBaseCommand",
+          "hasConstructor"
+        ],
+        "status": "PASS"
+      },
+      {
+        "command": "dynamic-badges",
+        "category": "admin",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\dynamic-badges.ts",
+        "valid": true,
+        "score": "4/6",
+        "issues": [
+          "extendsBaseCommand",
+          "hasConstructor"
+        ],
+        "status": "PASS"
+      },
+      {
+        "command": "enhanced-badges",
+        "category": "admin",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\enhanced-badges.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "exclusive-badges",
+        "category": "admin",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\exclusive-badges.ts",
+        "valid": true,
+        "score": "4/6",
+        "issues": [
+          "extendsBaseCommand",
+          "hasConstructor"
+        ],
+        "status": "PASS"
+      },
+      {
+        "command": "fix-presence",
+        "category": "admin",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\fix-presence.ts",
+        "valid": true,
+        "score": "4/6",
+        "issues": [
+          "extendsBaseCommand",
+          "hasConstructor"
+        ],
+        "status": "PASS"
+      },
+      {
+        "command": "logs",
+        "category": "admin",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\logs.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "moderation",
+        "category": "admin",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\moderation.ts",
+        "valid": true,
+        "score": "4/6",
+        "issues": [
+          "hasExecuteMethod",
+          "hasConstructor"
+        ],
+        "status": "PASS"
+      },
+      {
+        "command": "onboarding",
+        "category": "admin",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\onboarding.ts",
+        "valid": true,
+        "score": "4/6",
+        "issues": [
+          "hasExecuteMethod",
+          "hasConstructor"
+        ],
+        "status": "PASS"
+      },
+      {
+        "command": "persistent-tickets",
+        "category": "admin",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\persistent-tickets.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "presence-enhancements",
+        "category": "admin",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\presence-enhancements.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "pubg-admin",
+        "category": "admin",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\pubg-admin.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "punishment",
+        "category": "admin",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\punishment.ts",
+        "valid": true,
+        "score": "5/6",
+        "issues": [
+          "hasConstructor"
+        ],
+        "status": "PASS"
+      },
+      {
+        "command": "ratelimit",
+        "category": "admin",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\ratelimit.ts",
+        "valid": true,
+        "score": "4/6",
+        "issues": [
+          "extendsBaseCommand",
+          "hasConstructor"
+        ],
+        "status": "PASS"
+      },
+      {
+        "command": "ticket-config",
+        "category": "admin",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\ticket-config.ts",
+        "valid": true,
+        "score": "5/6",
+        "issues": [
+          "hasConstructor"
+        ],
+        "status": "PASS"
+      }
+    ],
+    "general": [
+      {
+        "command": "adaptive-challenge",
+        "category": "general",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\adaptive-challenge.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "advanced-pubg-badges",
+        "category": "general",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\advanced-pubg-badges.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "badges",
+        "category": "general",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\badges.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "challenge",
+        "category": "general",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\challenge.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "checkin",
+        "category": "general",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\checkin.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "checkout",
+        "category": "general",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\checkout.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "clips",
+        "category": "general",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\clips.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "daily",
+        "category": "general",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\daily.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "economy",
+        "category": "general",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\economy.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "help",
+        "category": "general",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\help.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "integrated-minigames",
+        "category": "general",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\integrated-minigames.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "interactive-quiz",
+        "category": "general",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\interactive-quiz.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "minigame",
+        "category": "general",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\minigame.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "profile",
+        "category": "general",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\profile.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "quiz",
+        "category": "general",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\quiz.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "register-server",
+        "category": "general",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\register-server.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "session-ranking",
+        "category": "general",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\session-ranking.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "ticket",
+        "category": "general",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\ticket.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      }
+    ],
+    "music": [
+      {
+        "command": "play",
+        "category": "music",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\music\\play.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "queue",
+        "category": "music",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\music\\queue.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      }
+    ],
+    "pubg": [
+      {
+        "command": "pubg",
+        "category": "pubg",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\pubg\\pubg.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "ranking",
+        "category": "pubg",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\pubg\\ranking.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      },
+      {
+        "command": "register",
+        "category": "pubg",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\pubg\\register.ts",
+        "valid": true,
+        "score": "4/6",
+        "issues": [
+          "extendsBaseCommand",
+          "hasConstructor"
+        ],
+        "status": "PASS"
+      },
+      {
+        "command": "weapon-mastery",
+        "category": "pubg",
+        "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\pubg\\weapon-mastery.ts",
+        "valid": true,
+        "score": "6/6",
+        "issues": [],
+        "status": "PASS"
+      }
+    ]
+  },
+  "results": [
+    {
+      "command": "audit-badges",
+      "category": "admin",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\audit-badges.ts",
+      "valid": true,
+      "score": "5/6",
+      "issues": [
+        "hasConstructor"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": "backup",
+      "category": "admin",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\backup.ts",
+      "valid": true,
+      "score": "5/6",
+      "issues": [
+        "hasConstructor"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": "badge-optimization",
+      "category": "admin",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\badge-optimization.ts",
+      "valid": true,
+      "score": "4/6",
+      "issues": [
+        "extendsBaseCommand",
+        "hasConstructor"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": "bootstrap",
+      "category": "admin",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\bootstrap.ts",
+      "valid": true,
+      "score": "4/6",
+      "issues": [
+        "extendsBaseCommand",
+        "hasConstructor"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": "dynamic-badges",
+      "category": "admin",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\dynamic-badges.ts",
+      "valid": true,
+      "score": "4/6",
+      "issues": [
+        "extendsBaseCommand",
+        "hasConstructor"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": "enhanced-badges",
+      "category": "admin",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\enhanced-badges.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "exclusive-badges",
+      "category": "admin",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\exclusive-badges.ts",
+      "valid": true,
+      "score": "4/6",
+      "issues": [
+        "extendsBaseCommand",
+        "hasConstructor"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": "fix-presence",
+      "category": "admin",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\fix-presence.ts",
+      "valid": true,
+      "score": "4/6",
+      "issues": [
+        "extendsBaseCommand",
+        "hasConstructor"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": "logs",
+      "category": "admin",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\logs.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "moderation",
+      "category": "admin",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\moderation.ts",
+      "valid": true,
+      "score": "4/6",
+      "issues": [
+        "hasExecuteMethod",
+        "hasConstructor"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": "onboarding",
+      "category": "admin",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\onboarding.ts",
+      "valid": true,
+      "score": "4/6",
+      "issues": [
+        "hasExecuteMethod",
+        "hasConstructor"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": "persistent-tickets",
+      "category": "admin",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\persistent-tickets.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "presence-enhancements",
+      "category": "admin",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\presence-enhancements.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "pubg-admin",
+      "category": "admin",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\pubg-admin.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "punishment",
+      "category": "admin",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\punishment.ts",
+      "valid": true,
+      "score": "5/6",
+      "issues": [
+        "hasConstructor"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": "ratelimit",
+      "category": "admin",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\ratelimit.ts",
+      "valid": true,
+      "score": "4/6",
+      "issues": [
+        "extendsBaseCommand",
+        "hasConstructor"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": "ticket-config",
+      "category": "admin",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\admin\\ticket-config.ts",
+      "valid": true,
+      "score": "5/6",
+      "issues": [
+        "hasConstructor"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": "adaptive-challenge",
+      "category": "general",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\adaptive-challenge.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "advanced-pubg-badges",
+      "category": "general",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\advanced-pubg-badges.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "badges",
+      "category": "general",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\badges.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "challenge",
+      "category": "general",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\challenge.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "checkin",
+      "category": "general",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\checkin.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "checkout",
+      "category": "general",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\checkout.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "clips",
+      "category": "general",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\clips.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "daily",
+      "category": "general",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\daily.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "economy",
+      "category": "general",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\economy.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "help",
+      "category": "general",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\help.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "integrated-minigames",
+      "category": "general",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\integrated-minigames.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "interactive-quiz",
+      "category": "general",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\interactive-quiz.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "minigame",
+      "category": "general",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\minigame.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "profile",
+      "category": "general",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\profile.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "quiz",
+      "category": "general",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\quiz.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "register-server",
+      "category": "general",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\register-server.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "session-ranking",
+      "category": "general",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\session-ranking.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "ticket",
+      "category": "general",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\general\\ticket.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "play",
+      "category": "music",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\music\\play.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "queue",
+      "category": "music",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\music\\queue.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "pubg",
+      "category": "pubg",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\pubg\\pubg.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "ranking",
+      "category": "pubg",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\pubg\\ranking.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    },
+    {
+      "command": "register",
+      "category": "pubg",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\pubg\\register.ts",
+      "valid": true,
+      "score": "4/6",
+      "issues": [
+        "extendsBaseCommand",
+        "hasConstructor"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": "weapon-mastery",
+      "category": "pubg",
+      "path": "C:\\Users\\Liiiraa\\Documents\\estudos\\bot-hawk-esports\\src\\commands\\pubg\\weapon-mastery.ts",
+      "valid": true,
+      "score": "6/6",
+      "issues": [],
+      "status": "PASS"
+    }
+  ]
+}
