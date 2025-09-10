@@ -72,7 +72,6 @@ COPY --from=build --chown=botuser:nodejs /app/scripts ./scripts
 
 # Copy configuration files
 COPY --chown=botuser:nodejs render.yaml ./
-COPY --chown=botuser:nodejs docker-compose.yml ./
 
 # Create necessary directories
 RUN mkdir -p /app/logs /app/backups /app/temp && \
