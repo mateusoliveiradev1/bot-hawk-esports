@@ -1,0 +1,150 @@
+services:
+  - type: web
+    name: bot-hawk-esports
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: DISCORD_CLIENT_ID
+        sync: false
+      - key: DISCORD_CLIENT_SECRET
+        sync: false
+      - key: PUBG_API_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: SPOTIFY_CLIENT_ID
+        sync: false
+      - key: SPOTIFY_CLIENT_SECRET
+        sync: false
+      - key: YOUTUBE_API_KEY
+        sync: false
+      - key: WEBHOOK_URL
+        sync: false
+      - key: LOG_LEVEL
+        value: info
+      - key: PORT
+        value: 10000
+    autoDeploy: true
+    branch: main
+    rootDir: .
+    dockerfilePath: ./Dockerfile
+    region: oregon
+    scaling:
+      minInstances: 1
+      maxInstances: 1
+    disk:
+      name: bot-data
+      mountPath: /app/data
+      sizeGB: 1
+    healthCheck:
+      path: /health
+      intervalSeconds: 30
+      timeoutSeconds: 10
+      unhealthyThresholdCount: 3
+      healthyThresholdCount: 2
+    headers:
+      - name: X-Frame-Options
+        value: DENY
+      - name: X-Content-Type-Options
+        value: nosniff
+      - name: X-XSS-Protection
+        value: "1; mode=block"
+    routes:
+      - type: rewrite
+        source: /health
+        destination: /health
+      - type: rewrite
+        source: /metrics
+        destination: /metrics
+      - type: rewrite
+        source: /status
+        destination: /status
+
+databases:
+  - name: bot-redis
+    plan: free
+    region: oregon
+    version: "7"
+    maxmemoryPolicy: allkeys-lru
+    
+# Configurações adicionais
+previewsEnabled: true
+previewsExpireAfterDays: 7
+
+# Build settings
+build:
+  commands:
+    - npm ci --only=production
+    - npm run build:prod
+  publishDir: dist
+  
+# Environment específico do Render
+render:
+  runtime: node18
+  buildCommand: |
+    npm ci
+    npm run build:prod
+  startCommand: npm start
+  
+# Configurações de rede
+network:
+  allowedOrigins:
+    - "https://*.render.com"
+    - "https://discord.com"
+    - "https://api.pubg.com"
+    - "https://api.spotify.com"
+    - "https://www.googleapis.com"
+  
+# Logs e monitoramento
+logging:
+  level: info
+  format: json
+  
+# Configurações de segurança
+security:
+  headers:
+    contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
+    strictTransportSecurity: "max-age=31536000; includeSubDomains"
+    
+# Backup e persistência
+persistence:
+  - path: /app/logs
+    size: 100MB
+  - path: /app/data
+    size: 500MB
+    
+# Configurações de performance
+performance:
+  memoryLimit: 512MB
+  cpuLimit: 0.5
+  timeout: 300
+  
+# Configurações de deploy
+deploy:
+  strategy: rolling
+  maxUnavailable: 0
+  maxSurge: 1
+  
+# Notificações
+notifications:
+  slack:
+    enabled: false
+  email:
+    enabled: true
+    events:
+      - deploy.succeeded
+      - deploy.failed
+      - service.crashed

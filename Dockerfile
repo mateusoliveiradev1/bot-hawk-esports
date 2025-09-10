@@ -1,96 +1,103 @@
-# 🐳 Dockerfile - Bot Hawk Esports (Produção)
-# Multi-stage build para otimização de tamanho e segurança
+# Multi-stage build for production optimization
+FROM node:18-alpine AS base
 
-# ==========================================
-# STAGE 1: Build Dependencies
-# ==========================================
-FROM node:18-alpine AS builder
-
-# Instalar dependências do sistema
+# Install system dependencies
 RUN apk add --no-cache \
     python3 \
     make \
     g++ \
-    git
+    cairo-dev \
+    jpeg-dev \
+    pango-dev \
+    musl-dev \
+    giflib-dev \
+    pixman-dev \
+    pangomm-dev \
+    libjpeg-turbo-dev \
+    freetype-dev
 
-# Criar diretório de trabalho
+# Set working directory
 WORKDIR /app
 
-# Copiar arquivos de dependências
+# Copy package files
 COPY package*.json ./
-COPY tsconfig.json ./
 
-# Instalar dependências (incluindo devDependencies para build)
-RUN npm ci --only=production --silent
+# Install dependencies
+RUN npm ci --only=production && npm cache clean --force
 
-# Copiar código fonte
+# Development stage
+FROM base AS development
+RUN npm ci
 COPY . .
+EXPOSE 3000
+CMD ["npm", "run", "dev"]
 
-# Build do TypeScript (se necessário)
-RUN npm run build 2>/dev/null || echo "No build script found"
+# Build stage
+FROM base AS build
+COPY . .
+RUN npm ci
+RUN npm run build
 
-# ==========================================
-# STAGE 2: Production Runtime
-# ==========================================
+# Production stage
 FROM node:18-alpine AS production
 
-# Instalar dependências mínimas do sistema
+# Install only runtime dependencies
 RUN apk add --no-cache \
-    dumb-init \
-    curl \
-    ca-certificates
+    cairo \
+    jpeg \
+    pango \
+    musl \
+    giflib \
+    pixman \
+    pangomm \
+    libjpeg-turbo \
+    freetype \
+    dumb-init
 
-# Criar usuário não-root para segurança
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S botuser -u 1001 -G nodejs
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S botuser -u 1001
 
-# Criar diretórios necessários
+# Set working directory
 WORKDIR /app
-RUN mkdir -p /app/logs /app/data && \
+
+# Copy package files and install production dependencies
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built application
+COPY --from=build --chown=botuser:nodejs /app/dist ./dist
+COPY --from=build --chown=botuser:nodejs /app/src ./src
+COPY --from=build --chown=botuser:nodejs /app/scripts ./scripts
+
+# Copy configuration files
+COPY --chown=botuser:nodejs render.yaml ./
+COPY --chown=botuser:nodejs docker-compose.yml ./
+
+# Create necessary directories
+RUN mkdir -p /app/logs /app/backups /app/temp && \
     chown -R botuser:nodejs /app
 
-# Copiar dependências de produção do stage anterior
-COPY --from=builder --chown=botuser:nodejs /app/node_modules ./node_modules
-
-# Copiar código da aplicação
-COPY --chown=botuser:nodejs . .
-
-# Remover arquivos desnecessários para produção
-RUN rm -rf \
-    .git \
-    .github \
-    docs \
-    tests \
-    *.md \
-    .env.example \
-    .gitignore \
-    .eslintrc.js \
-    jest.config.js \
-    dump.rdb
-
-# Configurar variáveis de ambiente
-ENV NODE_ENV=production
-ENV NPM_CONFIG_LOGLEVEL=warn
-ENV NPM_CONFIG_PROGRESS=false
-
-# Expor porta (se necessário para webhooks)
-EXPOSE 3000
-
-# Configurar health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD node -e "console.log('Bot health check')" || exit 1
-
-# Mudar para usuário não-root
+# Switch to non-root user
 USER botuser
 
-# Comando de inicialização com dumb-init para proper signal handling
+# Health check optimized for Render
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:${PORT:-10000}/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
+
+# Expose port (Render uses PORT env variable)
+EXPOSE ${PORT:-10000}
+
+# Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
+
+# Start the application
 CMD ["npm", "start"]
 
-# ==========================================
-# Labels para metadados
-# ==========================================
-LABEL maintainer="Hawk Esports Team"
+# Labels for better container management
+LABEL maintainer="Bot Hawk Esports Team"
 LABEL version="1.0.0"
-LABEL description="Bot Discord Hawk Esports - Produção"
-LABEL org.opencontainers.image.source="https://github.com/hawk-esports/bot"
+LABEL description="Bot Hawk Esports Discord Bot"
+LABEL org.opencontainers.image.source="https://github.com/your-username/bot-hawk-esports"
+LABEL render.platform="render.com"
+LABEL render.service="bot-hawk-esports"
