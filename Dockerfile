@@ -1,9 +1,12 @@
 # Multi-stage build for production optimization
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 
-# Install system dependencies
+# Install system dependencies for building native modules
 RUN apk add --no-cache \
     python3 \
+    py3-pip \
+    python3-dev \
+    pkgconfig \
     make \
     g++ \
     cairo-dev \
@@ -14,7 +17,11 @@ RUN apk add --no-cache \
     pixman-dev \
     pangomm-dev \
     libjpeg-turbo-dev \
-    freetype-dev
+    freetype-dev && \
+    ln -sf /usr/bin/python3 /usr/bin/python && \
+    python3 --version && \
+    which python3 && \
+    which python
 
 # Set working directory
 WORKDIR /app
@@ -22,8 +29,13 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Set node-gyp environment variables
+ENV PYTHON=/usr/bin/python3
+ENV npm_config_build_from_source=true
+ENV npm_config_cache=/tmp/.npm
+
+# Install dependencies with proper node-gyp configuration
+    RUN npm install --verbose --ignore-scripts && npm cache clean --force
 
 # Development stage
 FROM base AS development
@@ -37,9 +49,10 @@ FROM base AS build
 COPY . .
 RUN npm ci
 RUN npm run build
+RUN ls -la dist/
 
 # Production stage
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 # Install only runtime dependencies
 RUN apk add --no-cache \
@@ -63,15 +76,22 @@ WORKDIR /app
 
 # Copy package files and install production dependencies
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+
+# Set node-gyp environment variables for production
+ENV PYTHON=/usr/bin/python3
+ENV npm_config_python=/usr/bin/python3
+ENV npm_config_build_from_source=false
+ENV npm_config_cache=/tmp/.npm
+
+# Install production dependencies only
+    RUN npm install --omit=dev --verbose --ignore-scripts && npm cache clean --force
 
 # Copy built application
 COPY --from=build --chown=botuser:nodejs /app/dist ./dist
 COPY --from=build --chown=botuser:nodejs /app/src ./src
 COPY --from=build --chown=botuser:nodejs /app/scripts ./scripts
 
-# Copy configuration files
-COPY --chown=botuser:nodejs render.yaml ./
+# Copy configuration files (render.yaml not needed in container)
 
 # Create necessary directories
 RUN mkdir -p /app/logs /app/backups /app/temp && \

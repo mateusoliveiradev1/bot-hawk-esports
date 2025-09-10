@@ -37,7 +37,12 @@
       "@types/*": ["types/*"],
       "@database/*": ["database/*"],
       "@middleware/*": ["middleware/*"]
-    }
+    },
+    "plugins": [
+      {
+        "transform": "typescript-transform-paths"
+      }
+    ]
   },
   "include": ["src/**/*", "prisma/**/*", "scripts/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"],

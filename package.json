@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc && tsc-alias",
-    "start": "tsx src/index.ts",
+    "build": "tsc --emitDeclarationOnly && babel src --out-dir dist/src --extensions \".ts,.tsx\" --source-maps",
+    "start": "node dist/src/index.js",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write src/**/*.ts",
@@ -47,7 +47,7 @@
     "@discordjs/builders": "^1.7.0",
     "@discordjs/opus": "^0.10.0",
     "@discordjs/rest": "^2.2.0",
-    "@discordjs/voice": "^0.17.0",
+    "@discordjs/voice": "^0.18.0",
     "@distube/ytdl-core": "^4.16.12",
     "@prisma/client": "^5.7.1",
     "@spotify/web-api-ts-sdk": "^1.2.0",
@@ -57,10 +57,8 @@
     "@types/speakeasy": "^2.0.10",
     "axios": "^1.6.2",
     "bcryptjs": "^2.4.3",
-    "canvas": "^3.2.0",
     "chalk": "^4.1.2",
     "chart.js": "^4.4.8",
-    "chartjs-node-canvas": "^5.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "compression": "^1.7.4",
@@ -81,7 +79,7 @@
     "lodash": "^4.17.21",
     "mime-types": "^2.1.35",
     "moment": "^2.29.4",
-    "multer": "^1.4.5-lts.1",
+    "multer": "^2.0.0",
     "node-cron": "^3.0.3",
     "nodemailer": "^7.0.6",
     "play-dl": "^1.9.7",
@@ -94,15 +92,19 @@
     "spotify-web-api-node": "^5.0.2",
     "svg-captcha": "^1.4.0",
     "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.6.2",
     "uuid": "^9.0.1",
     "winston": "^3.11.0",
     "winston-daily-rotate-file": "^4.7.1",
     "youtube-sr": "^4.3.11",
     "ytdl-core": "^4.11.5",
-    "ytsr": "^3.8.4",
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@babel/cli": "^7.28.3",
+    "@babel/core": "^7.28.4",
+    "@babel/preset-env": "^7.28.3",
+    "@babel/preset-typescript": "^7.27.1",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@playwright/test": "^1.55.0",
@@ -122,6 +124,7 @@
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "audit-ci": "^7.1.0",
+    "babel-plugin-module-resolver": "^5.0.2",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.0.1",
@@ -130,14 +133,15 @@
     "playwright": "^1.55.0",
     "prettier": "^3.1.1",
     "prisma": "^5.7.1",
-    "rimraf": "^5.0.5",
+    "rimraf": "^6.0.1",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.16",
-    "tsx": "^4.6.2",
-    "typescript": "^5.3.3"
+    "ttypescript": "^1.5.15",
+    "typescript": "^5.3.3",
+    "typescript-transform-paths": "^3.5.5"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.18.1"
   }
 }

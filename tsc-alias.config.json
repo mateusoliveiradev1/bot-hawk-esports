@@ -1,0 +1,15 @@
+{
+  "resolveFullPaths": true,
+  "verbose": false,
+  "outDir": "./dist",
+  "replacers": {
+    "@/*": "./dist/src/*",
+    "@commands/*": "./dist/src/commands/*",
+    "@events/*": "./dist/src/events/*",
+    "@services/*": "./dist/src/services/*",
+    "@utils/*": "./dist/src/utils/*",
+    "@types/*": "./dist/src/types/*",
+    "@database/*": "./dist/src/database/*",
+    "@middleware/*": "./dist/src/middleware/*"
+  }
+}
