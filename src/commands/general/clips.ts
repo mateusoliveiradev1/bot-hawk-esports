@@ -23,91 +23,95 @@ class ClipsCommand extends BaseCommand {
   constructor() {
     super({
       data: new SlashCommandBuilder()
-  .setName('clips')
-  .setDescription('Sistema de clips e highlights')
-  .addSubcommand(subcommand =>
-    subcommand
-      .setName('upload')
-      .setDescription('Fazer upload de um clip')
-      .addAttachmentOption(option =>
-        option.setName('video').setDescription('Arquivo de vídeo do clip').setRequired(true),
-      )
-      .addStringOption(option =>
-        option.setName('title').setDescription('Título do clip').setRequired(true).setMaxLength(100),
-      )
-      .addStringOption(option =>
-        option
-          .setName('description')
-          .setDescription('Descrição do clip')
-          .setRequired(false)
-          .setMaxLength(500),
-      )
-      .addStringOption(option =>
-        option
-          .setName('game')
-          .setDescription('Jogo do clip')
-          .setRequired(false)
-          .addChoices(
-            { name: 'PUBG', value: 'pubg' },
-            { name: 'Valorant', value: 'valorant' },
-            { name: 'CS2', value: 'cs2' },
-            { name: 'Apex Legends', value: 'apex' },
-            { name: 'Fortnite', value: 'fortnite' },
-            { name: 'Outros', value: 'outros' },
-          ),
-      ),
-  )
-  .addSubcommand(subcommand =>
-    subcommand
-      .setName('list')
-      .setDescription('Listar clips')
-      .addStringOption(option =>
-        option
-          .setName('filter')
-          .setDescription('Filtro para os clips')
-          .setRequired(false)
-          .addChoices(
-            { name: 'Meus clips', value: 'my' },
-            { name: 'Mais curtidos', value: 'top' },
-            { name: 'Em destaque', value: 'featured' },
-            { name: 'Por jogo', value: 'game' },
-            { name: 'Mais recentes', value: 'recent' },
-          ),
-      )
-      .addStringOption(option =>
-        option
-          .setName('game')
-          .setDescription('Filtrar por jogo específico')
-          .setRequired(false)
-          .addChoices(
-            { name: 'PUBG', value: 'pubg' },
-            { name: 'Valorant', value: 'valorant' },
-            { name: 'CS2', value: 'cs2' },
-            { name: 'Apex Legends', value: 'apex' },
-            { name: 'Fortnite', value: 'fortnite' },
-            { name: 'Outros', value: 'outros' },
-          ),
-      ),
-  )
-  .addSubcommand(subcommand =>
-    subcommand
-      .setName('info')
-      .setDescription('Ver informações detalhadas de um clip')
-      .addStringOption(option =>
-        option.setName('clip_id').setDescription('ID do clip').setRequired(true),
-      ),
-  )
-  .addSubcommand(subcommand =>
-    subcommand
-      .setName('delete')
-      .setDescription('Deletar um clip')
-      .addStringOption(option =>
-        option.setName('clip_id').setDescription('ID do clip para deletar').setRequired(true),
-      ),
-  ),
+        .setName('clips')
+        .setDescription('Sistema de clips e highlights')
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('upload')
+            .setDescription('Fazer upload de um clip')
+            .addAttachmentOption(option =>
+              option.setName('video').setDescription('Arquivo de vídeo do clip').setRequired(true)
+            )
+            .addStringOption(option =>
+              option
+                .setName('title')
+                .setDescription('Título do clip')
+                .setRequired(true)
+                .setMaxLength(100)
+            )
+            .addStringOption(option =>
+              option
+                .setName('description')
+                .setDescription('Descrição do clip')
+                .setRequired(false)
+                .setMaxLength(500)
+            )
+            .addStringOption(option =>
+              option
+                .setName('game')
+                .setDescription('Jogo do clip')
+                .setRequired(false)
+                .addChoices(
+                  { name: 'PUBG', value: 'pubg' },
+                  { name: 'Valorant', value: 'valorant' },
+                  { name: 'CS2', value: 'cs2' },
+                  { name: 'Apex Legends', value: 'apex' },
+                  { name: 'Fortnite', value: 'fortnite' },
+                  { name: 'Outros', value: 'outros' }
+                )
+            )
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('list')
+            .setDescription('Listar clips')
+            .addStringOption(option =>
+              option
+                .setName('filter')
+                .setDescription('Filtro para os clips')
+                .setRequired(false)
+                .addChoices(
+                  { name: 'Meus clips', value: 'my' },
+                  { name: 'Mais curtidos', value: 'top' },
+                  { name: 'Em destaque', value: 'featured' },
+                  { name: 'Por jogo', value: 'game' },
+                  { name: 'Mais recentes', value: 'recent' }
+                )
+            )
+            .addStringOption(option =>
+              option
+                .setName('game')
+                .setDescription('Filtrar por jogo específico')
+                .setRequired(false)
+                .addChoices(
+                  { name: 'PUBG', value: 'pubg' },
+                  { name: 'Valorant', value: 'valorant' },
+                  { name: 'CS2', value: 'cs2' },
+                  { name: 'Apex Legends', value: 'apex' },
+                  { name: 'Fortnite', value: 'fortnite' },
+                  { name: 'Outros', value: 'outros' }
+                )
+            )
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('info')
+            .setDescription('Ver informações detalhadas de um clip')
+            .addStringOption(option =>
+              option.setName('clip_id').setDescription('ID do clip').setRequired(true)
+            )
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('delete')
+            .setDescription('Deletar um clip')
+            .addStringOption(option =>
+              option.setName('clip_id').setDescription('ID do clip para deletar').setRequired(true)
+            )
+        ),
       category: 'general',
       cooldown: 5,
-     });
+    });
   }
 
   async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
@@ -137,7 +141,7 @@ class ClipsCommand extends BaseCommand {
     } catch (error) {
       console.error('Erro no comando clips:', error);
       const errorMessage = '❌ Ocorreu um erro ao executar o comando.';
-      
+
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp({
           content: errorMessage,
@@ -181,43 +185,43 @@ class ClipsCommand extends BaseCommand {
 
     try {
       // Verificar se o usuário existe no banco
-       let user = await database.client.user.findUnique({
-         where: { id: interaction.user.id },
-       });
+      let user = await database.client.user.findUnique({
+        where: { id: interaction.user.id },
+      });
 
-       if (!user) {
-         user = await database.client.user.create({
-           data: {
-             id: interaction.user.id,
-             username: interaction.user.username,
-             discriminator: interaction.user.discriminator || '0',
-           },
-         });
-       }
+      if (!user) {
+        user = await database.client.user.create({
+          data: {
+            id: interaction.user.id,
+            username: interaction.user.username,
+            discriminator: interaction.user.discriminator || '0',
+          },
+        });
+      }
 
-       // Criar registro do clip
-       const clip = await database.client.clip.create({
-         data: {
-           title,
-           description,
-           url: video.url,
-           gameType,
-           userId: user.id,
-           guildId: interaction.guildId!,
-           fileSize: video.size,
-           duration: null, // Pode ser implementado posteriormente
-         },
-       });
+      // Criar registro do clip
+      const clip = await database.client.clip.create({
+        data: {
+          title,
+          description,
+          url: video.url,
+          gameType,
+          userId: user.id,
+          guildId: interaction.guildId!,
+          fileSize: video.size,
+          duration: null, // Pode ser implementado posteriormente
+        },
+      });
 
       const embed = HawkEmbedBuilder.createSuccessEmbed('Clip Enviado com Sucesso!')
-         .setDescription(`**${title}**\n${description || 'Sem descrição'}`)
-         .addFields(
-           { name: '🎮 Jogo', value: gameType.toUpperCase(), inline: true },
-           { name: '📁 Tamanho', value: this.formatFileSize(video.size), inline: true },
-           { name: '🆔 ID do Clip', value: clip.id, inline: true },
-         )
-         .setThumbnail(interaction.user.displayAvatarURL())
-         .setFooter({ text: `Enviado por ${interaction.user.username}` });
+        .setDescription(`**${title}**\n${description || 'Sem descrição'}`)
+        .addFields(
+          { name: '🎮 Jogo', value: gameType.toUpperCase(), inline: true },
+          { name: '📁 Tamanho', value: this.formatFileSize(video.size), inline: true },
+          { name: '🆔 ID do Clip', value: clip.id, inline: true }
+        )
+        .setThumbnail(interaction.user.displayAvatarURL())
+        .setFooter({ text: `Enviado por ${interaction.user.username}` });
 
       await interaction.editReply({
         embeds: [embed],
@@ -241,11 +245,11 @@ class ClipsCommand extends BaseCommand {
       let orderBy: any = { createdAt: 'desc' };
 
       // Aplicar filtros
-       switch (filter) {
-         case 'my':
-           const user = await database.client.user.findUnique({
-             where: { id: interaction.user.id },
-           });
+      switch (filter) {
+        case 'my':
+          const user = await database.client.user.findUnique({
+            where: { id: interaction.user.id },
+          });
           if (!user) {
             await interaction.editReply({
               content: '❌ Você ainda não enviou nenhum clip.',
@@ -297,12 +301,12 @@ class ClipsCommand extends BaseCommand {
       }
 
       const embed = HawkEmbedBuilder.createInfoEmbed('🎬 Lista de Clips')
-         .setDescription(this.getFilterDescription(filter, gameType))
-         .setFooter({ text: `${clips.length} clips encontrados` });
+        .setDescription(this.getFilterDescription(filter, gameType))
+        .setFooter({ text: `${clips.length} clips encontrados` });
 
       clips.forEach((clip, index) => {
-         const gameEmoji = this.getGameEmoji(clip.gameType);
-         const timeAgo = new Date(clip.createdAt).toLocaleDateString('pt-BR');
+        const gameEmoji = this.getGameEmoji(clip.gameType);
+        const timeAgo = new Date(clip.createdAt).toLocaleDateString('pt-BR');
 
         embed.addFields({
           name: `${index + 1}. ${gameEmoji} ${clip.title}`,
@@ -358,21 +362,21 @@ class ClipsCommand extends BaseCommand {
       const totalVotes = upvotes - downvotes;
 
       const gameEmoji = this.getGameEmoji(clip.gameType);
-       const timeAgo = new Date(clip.createdAt).toLocaleDateString('pt-BR');
+      const timeAgo = new Date(clip.createdAt).toLocaleDateString('pt-BR');
 
       const embed = HawkEmbedBuilder.createInfoEmbed(`${gameEmoji} ${clip.title}`)
-         .setDescription(clip.description || 'Sem descrição')
-         .addFields(
-           { name: '👤 Autor', value: clip.user.username, inline: true },
-           { name: '🎮 Jogo', value: clip.gameType.toUpperCase(), inline: true },
-           { name: '📁 Tamanho', value: this.formatFileSize(clip.fileSize), inline: true },
-           { name: '👍 Curtidas', value: upvotes.toString(), inline: true },
-           { name: '👎 Descurtidas', value: downvotes.toString(), inline: true },
-           { name: '📊 Total', value: totalVotes.toString(), inline: true },
-           { name: '🕒 Enviado', value: timeAgo, inline: false },
-           { name: '🆔 ID', value: clipId, inline: false },
-         )
-         .setFooter({ text: 'Use os botões abaixo para votar no clip' });
+        .setDescription(clip.description || 'Sem descrição')
+        .addFields(
+          { name: '👤 Autor', value: clip.user.username, inline: true },
+          { name: '🎮 Jogo', value: clip.gameType.toUpperCase(), inline: true },
+          { name: '📁 Tamanho', value: this.formatFileSize(clip.fileSize), inline: true },
+          { name: '👍 Curtidas', value: upvotes.toString(), inline: true },
+          { name: '👎 Descurtidas', value: downvotes.toString(), inline: true },
+          { name: '📊 Total', value: totalVotes.toString(), inline: true },
+          { name: '🕒 Enviado', value: timeAgo, inline: false },
+          { name: '🆔 ID', value: clipId, inline: false }
+        )
+        .setFooter({ text: 'Use os botões abaixo para votar no clip' });
 
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
@@ -383,7 +387,7 @@ class ClipsCommand extends BaseCommand {
           .setCustomId(`clip_vote_down_${clipId}`)
           .setLabel('👎')
           .setStyle(ButtonStyle.Danger),
-        new ButtonBuilder().setLabel('🔗 Ver Clip').setStyle(ButtonStyle.Link).setURL(clip.url),
+        new ButtonBuilder().setLabel('🔗 Ver Clip').setStyle(ButtonStyle.Link).setURL(clip.url)
       );
 
       await interaction.editReply({
@@ -402,10 +406,10 @@ class ClipsCommand extends BaseCommand {
     const clipId = interaction.options.getString('clip_id', true);
 
     try {
-       // Verificar se o clip existe
-       const clip = await database.client.clip.findUnique({
-         where: { id: clipId },
-       });
+      // Verificar se o clip existe
+      const clip = await database.client.clip.findUnique({
+        where: { id: clipId },
+      });
 
       if (!clip) {
         await interaction.reply({
@@ -428,14 +432,14 @@ class ClipsCommand extends BaseCommand {
       }
 
       // Deletar votos relacionados
-       await database.client.clipVote.deleteMany({
-         where: { clipId: clipId },
-       });
+      await database.client.clipVote.deleteMany({
+        where: { clipId: clipId },
+      });
 
-       // Deletar o clip
-       await database.client.clip.delete({
-         where: { id: clipId },
-       });
+      // Deletar o clip
+      await database.client.clip.delete({
+        where: { id: clipId },
+      });
 
       await interaction.reply({
         content: `✅ Clip "**${clip.title}**" foi deletado com sucesso.`,
@@ -497,7 +501,7 @@ export const command = {
   data: commandInstance.data,
   category: CommandCategory.GENERAL,
   cooldown: 5,
-  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) => 
+  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) =>
     commandInstance.execute(interaction, client),
 };
 

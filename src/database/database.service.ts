@@ -21,16 +21,18 @@ export class DatabaseService {
 
   constructor(structuredLoggerConfig?: StructuredLoggerConfig) {
     this.logger = new Logger();
-    this.structuredLogger = new StructuredLogger(structuredLoggerConfig || {
-      level: 'info',
-      environment: process.env.NODE_ENV || 'development',
-      version: process.env.npm_package_version || '1.0.0',
-      logDir: './logs',
-      maxFiles: 14,
-      maxSize: '20m',
-      enableConsole: true,
-      enableFile: true,
-    });
+    this.structuredLogger = new StructuredLogger(
+      structuredLoggerConfig || {
+        level: 'info',
+        environment: process.env.NODE_ENV || 'development',
+        version: process.env.npm_package_version || '1.0.0',
+        logDir: './logs',
+        maxFiles: 14,
+        maxSize: '20m',
+        enableConsole: true,
+        enableFile: true,
+      }
+    );
     this.prisma = new PrismaClient({
       log: [
         {
@@ -67,13 +69,8 @@ export class DatabaseService {
         // @ts-ignore - Prisma event types may vary by version
         this.prisma.$on('query', (e: any) => {
           // Log database operation with structured logger
-          this.structuredLogger.logDatabase(
-            'query',
-            'unknown',
-            e.duration,
-            true,
-          );
-          
+          this.structuredLogger.logDatabase('query', 'unknown', e.duration, true);
+
           if (e.duration > 1000) {
             // Log slow queries (>1s)
             this.logger.warn(`Slow query detected (${e.duration}ms):`, {
@@ -98,7 +95,7 @@ export class DatabaseService {
             'unknown',
             0,
             false,
-            new Error(e.message || e),
+            new Error(e.message || e)
           );
           this.logger.error('Database error event:', e);
         });
@@ -141,15 +138,10 @@ export class DatabaseService {
       try {
         await this.prisma.$connect();
         this.isConnected = true;
-        
+
         const duration = Date.now() - startTime;
-        this.structuredLogger.logDatabase(
-          'connect',
-          'database',
-          duration,
-          true,
-        );
-        
+        this.structuredLogger.logDatabase('connect', 'database', duration, true);
+
         this.logger.info('✅ Connected to database successfully');
 
         // Test the connection
@@ -161,15 +153,9 @@ export class DatabaseService {
         return; // Success, exit retry loop
       } catch (error) {
         lastError = error;
-        
-        this.structuredLogger.logDatabase(
-          'connect',
-          'database',
-          0,
-          false,
-          error,
-        );
-        
+
+        this.structuredLogger.logDatabase('connect', 'database', 0, false, error);
+
         this.logger.warn(`❌ Database connection attempt ${attempt}/${maxRetries} failed:`, error);
 
         if (attempt < maxRetries) {
@@ -189,29 +175,18 @@ export class DatabaseService {
    */
   public async disconnect(): Promise<void> {
     const startTime = Date.now();
-    
+
     try {
       await this.prisma.$disconnect();
       this.isConnected = false;
-      
+
       const duration = Date.now() - startTime;
-      this.structuredLogger.logDatabase(
-        'disconnect',
-        'database',
-        duration,
-        true,
-      );
-      
+      this.structuredLogger.logDatabase('disconnect', 'database', duration, true);
+
       this.logger.info('✅ Disconnected from database successfully');
     } catch (error) {
-      this.structuredLogger.logDatabase(
-        'disconnect',
-        'database',
-        0,
-        false,
-        error,
-      );
-      
+      this.structuredLogger.logDatabase('disconnect', 'database', 0, false, error);
+
       this.logger.error('❌ Failed to disconnect from database:', error);
       throw error;
     }
@@ -222,28 +197,17 @@ export class DatabaseService {
    */
   public async healthCheck(): Promise<boolean> {
     const startTime = Date.now();
-    
+
     try {
       await this.prisma.$queryRaw`SELECT 1`;
-      
+
       const duration = Date.now() - startTime;
-      this.structuredLogger.logDatabase(
-        'healthCheck',
-        'database',
-        duration,
-        true,
-      );
-      
+      this.structuredLogger.logDatabase('healthCheck', 'database', duration, true);
+
       return true;
     } catch (error) {
-      this.structuredLogger.logDatabase(
-        'healthCheck',
-        'database',
-        0,
-        false,
-        error,
-      );
-      
+      this.structuredLogger.logDatabase('healthCheck', 'database', 0, false, error);
+
       this.logger.error('Database health check failed:', error);
       return false;
     }
@@ -273,7 +237,7 @@ export class DatabaseService {
     if (!this.isConnected) {
       throw new Error('Database is not connected. Call connect() first.');
     }
-    
+
     try {
       // For queries with parameters, use $queryRaw with template literal
       if (params && params.length > 0) {
@@ -282,7 +246,7 @@ export class DatabaseService {
         params.forEach((param, index) => {
           const placeholder = '$' + (index + 1);
           if (typeof param === 'string') {
-            processedSql = processedSql.replace('?', `'${param.replace(/'/g, '\'\'')}'`);
+            processedSql = processedSql.replace('?', `'${param.replace(/'/g, "''")}'`);
           } else if (param === null) {
             processedSql = processedSql.replace('?', 'NULL');
           } else {
@@ -411,7 +375,7 @@ export class DatabaseService {
       } catch (error) {
         this.logger.error(`Failed to upsert user ${data.id}:`, error);
         throw new Error(
-          `Database operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          `Database operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
       }
     },
@@ -463,7 +427,7 @@ export class DatabaseService {
       } catch (error) {
         this.logger.error(`Failed to update XP for user ${userId}:`, error);
         throw new Error(
-          `XP update failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          `XP update failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
       }
     },
@@ -859,7 +823,7 @@ export class DatabaseService {
     } catch (error) {
       this.logger.error('Database cleanup failed:', error);
       throw new Error(
-        `Cleanup operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Cleanup operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
   }
@@ -964,7 +928,7 @@ export class DatabaseService {
     platform?: string,
     message?: string,
     details?: string,
-    error?: any,
+    error?: any
   ): Promise<void> {
     if (!channel) {
       return;

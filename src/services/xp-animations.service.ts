@@ -41,7 +41,7 @@ export class XPAnimationsService {
   private logger: Logger;
   private client: ExtendedClient;
   private config: AnimationConfig;
-  
+
   // Emojis para animações
   private readonly PROGRESS_EMOJIS = {
     empty: '⬜',
@@ -49,13 +49,13 @@ export class XPAnimationsService {
     partial: '🟨',
     complete: '✅',
   };
-  
+
   private readonly LEVEL_UP_EMOJIS = {
     celebration: ['🎉', '🎊', '🥳', '🌟', '✨', '💫', '🎆', '🎇'],
     elegant: ['👑', '💎', '🏆', '🥇', '⭐', '🌟'],
     gaming: ['🎮', '🕹️', '🏅', '🎯', '🚀', '⚡'],
   };
-  
+
   private readonly RARITY_COLORS = {
     common: '#95A5A6',
     uncommon: '#2ECC71',
@@ -68,7 +68,7 @@ export class XPAnimationsService {
   constructor(client: ExtendedClient) {
     this.client = client;
     this.logger = new Logger();
-    
+
     // Configuração padrão
     this.config = {
       enableAnimations: true,
@@ -79,7 +79,7 @@ export class XPAnimationsService {
       progressBarStyle: 'modern',
       levelUpStyle: 'gaming',
     };
-    
+
     this.logger.info('✅ XPAnimationsService initialized');
   }
 
@@ -89,12 +89,12 @@ export class XPAnimationsService {
   public createProgressBar(
     currentXP: number,
     requiredXP: number,
-    style: 'classic' | 'modern' | 'minimal' = 'modern',
+    style: 'classic' | 'modern' | 'minimal' = 'modern'
   ): string {
     const percentage = Math.min((currentXP / requiredXP) * 100, 100);
     const filledBars = Math.floor(percentage / 5); // 20 barras no total
     const totalBars = 20;
-    
+
     switch (style) {
       case 'classic':
         return this.createClassicProgressBar(filledBars, totalBars, percentage);
@@ -117,9 +117,9 @@ export class XPAnimationsService {
     const filledEmoji = this.PROGRESS_EMOJIS.filled;
     const emptyEmoji = this.PROGRESS_EMOJIS.empty;
     const partialEmoji = this.PROGRESS_EMOJIS.partial;
-    
+
     let bar = filledEmoji.repeat(filled);
-    
+
     // Adicionar barra parcial se necessário
     if (filled < total && percentage % 5 > 2.5) {
       bar += partialEmoji;
@@ -127,7 +127,7 @@ export class XPAnimationsService {
     } else {
       bar += emptyEmoji.repeat(total - filled);
     }
-    
+
     return `${bar} **${percentage.toFixed(1)}%**`;
   }
 
@@ -143,13 +143,25 @@ export class XPAnimationsService {
   public async createXPGainEmbed(
     user: User,
     xpData: XPAnimationData,
-    activityType: string,
+    activityType: string
   ): Promise<EmbedBuilder> {
-    const { userId, oldXP, newXP, oldLevel, newLevel, xpGained, progressPercentage, nextLevelXP, currentLevelXP } = xpData;
-    
+    const {
+      userId,
+      oldXP,
+      newXP,
+      oldLevel,
+      newLevel,
+      xpGained,
+      progressPercentage,
+      nextLevelXP,
+      currentLevelXP,
+    } = xpData;
+
     const embed = new EmbedBuilder()
       .setTitle('💫 XP Ganho!')
-      .setDescription(`${user.displayName} ganhou **${xpGained} XP** por **${this.getActivityDisplayName(activityType)}**`)
+      .setDescription(
+        `${user.displayName} ganhou **${xpGained} XP** por **${this.getActivityDisplayName(activityType)}**`
+      )
       .setColor('#00FF00')
       .setThumbnail(user.displayAvatarURL())
       .setTimestamp();
@@ -158,7 +170,7 @@ export class XPAnimationsService {
     const progressBar = this.createProgressBar(
       newXP - currentLevelXP,
       nextLevelXP - currentLevelXP,
-      this.config.progressBarStyle,
+      this.config.progressBarStyle
     );
 
     embed.addFields(
@@ -171,7 +183,7 @@ export class XPAnimationsService {
         name: '📈 Estatísticas',
         value: `**XP Total:** ${newXP.toLocaleString()}\n**Nível:** ${newLevel}\n**XP Ganho:** +${xpGained}`,
         inline: true,
-      },
+      }
     );
 
     // Se subiu de nível, adicionar efeitos especiais
@@ -179,10 +191,10 @@ export class XPAnimationsService {
       embed.setTitle('🎉 LEVEL UP!');
       embed.setColor('#FFD700');
       embed.setDescription(`${user.displayName} subiu para o **Nível ${newLevel}**! 🎊`);
-      
+
       const levelUpEmojis = this.LEVEL_UP_EMOJIS[this.config.levelUpStyle];
       const randomEmojis = this.getRandomEmojis(levelUpEmojis, 3);
-      
+
       embed.addFields({
         name: `${randomEmojis.join(' ')} Parabéns!`,
         value: `Você alcançou o **Nível ${newLevel}**!\nContinue assim para desbloquear mais recompensas!`,
@@ -199,7 +211,7 @@ export class XPAnimationsService {
   public async createLevelUpAnimation(
     user: User,
     levelUpData: LevelUpAnimation,
-    channel?: TextChannel,
+    channel?: TextChannel
   ): Promise<EmbedBuilder[]> {
     const { userId, newLevel, rewards, achievements } = levelUpData;
     const embeds: EmbedBuilder[] = [];
@@ -215,7 +227,7 @@ export class XPAnimationsService {
     // Adicionar efeitos visuais baseados no nível
     const levelTier = this.getLevelTier(newLevel);
     const tierEmojis = this.getTierEmojis(levelTier);
-    
+
     mainEmbed.addFields({
       name: `${tierEmojis.join(' ')} Novo Nível Alcançado!`,
       value: `**Nível ${newLevel}** - ${this.getLevelTitle(newLevel)}\n${this.getLevelDescription(newLevel)}`,
@@ -225,12 +237,20 @@ export class XPAnimationsService {
     // Recompensas
     if (rewards.xp > 0 || rewards.coins || rewards.badges?.length || rewards.roles?.length) {
       let rewardsText = '';
-      
-      if (rewards.xp > 0) {rewardsText += `💫 **${rewards.xp} XP Bônus**\n`;}
-      if (rewards.coins) {rewardsText += `🪙 **${rewards.coins} Moedas**\n`;}
-      if (rewards.badges?.length) {rewardsText += `🏆 **${rewards.badges.length} Nova(s) Badge(s)**\n`;}
-      if (rewards.roles?.length) {rewardsText += `👑 **${rewards.roles.length} Novo(s) Cargo(s)**\n`;}
-      
+
+      if (rewards.xp > 0) {
+        rewardsText += `💫 **${rewards.xp} XP Bônus**\n`;
+      }
+      if (rewards.coins) {
+        rewardsText += `🪙 **${rewards.coins} Moedas**\n`;
+      }
+      if (rewards.badges?.length) {
+        rewardsText += `🏆 **${rewards.badges.length} Nova(s) Badge(s)**\n`;
+      }
+      if (rewards.roles?.length) {
+        rewardsText += `👑 **${rewards.roles.length} Novo(s) Cargo(s)**\n`;
+      }
+
       mainEmbed.addFields({
         name: '🎁 Recompensas Desbloqueadas',
         value: rewardsText,
@@ -272,15 +292,17 @@ export class XPAnimationsService {
     user: User,
     xpData: XPAnimationData,
     activityType: string,
-    channel?: TextChannel,
+    channel?: TextChannel
   ): Promise<void> {
-    if (!this.config.enableRealTimeNotifications || !channel) {return;}
+    if (!this.config.enableRealTimeNotifications || !channel) {
+      return;
+    }
 
     try {
       const embed = await this.createXPGainEmbed(user, xpData, activityType);
-      
+
       const message = await channel.send({ embeds: [embed] });
-      
+
       // Adicionar reações animadas
       if (this.config.enableAnimations) {
         const reactions = ['💫', '⭐', '🌟'];
@@ -289,7 +311,7 @@ export class XPAnimationsService {
           await this.delay(200); // Pequeno delay entre reações
         }
       }
-      
+
       // Auto-deletar após um tempo se não for level up
       if (xpData.newLevel === xpData.oldLevel) {
         setTimeout(() => {
@@ -307,26 +329,28 @@ export class XPAnimationsService {
   public async createCelebrationEffect(
     user: User,
     newLevel: number,
-    channel: TextChannel,
+    channel: TextChannel
   ): Promise<void> {
-    if (!this.config.enableLevelUpEffects) {return;}
+    if (!this.config.enableLevelUpEffects) {
+      return;
+    }
 
     try {
       // Mensagem de celebração temporária
       const celebrationEmojis = this.LEVEL_UP_EMOJIS[this.config.levelUpStyle];
       const randomEmojis = this.getRandomEmojis(celebrationEmojis, 5);
-      
+
       const celebrationMessage = await channel.send(
-        `${randomEmojis.join(' ')} **${user.displayName}** subiu para o **Nível ${newLevel}**! ${randomEmojis.join(' ')}`,
+        `${randomEmojis.join(' ')} **${user.displayName}** subiu para o **Nível ${newLevel}**! ${randomEmojis.join(' ')}`
       );
-      
+
       // Adicionar reações de celebração
       const reactions = ['🎉', '🎊', '🥳', '👏', '🔥'];
       for (const reaction of reactions) {
         await celebrationMessage.react(reaction);
         await this.delay(300);
       }
-      
+
       // Deletar após 10 segundos
       setTimeout(() => {
         celebrationMessage.delete().catch(() => {});
@@ -354,21 +378,21 @@ export class XPAnimationsService {
   // Métodos auxiliares privados
   private getActivityDisplayName(activityType: string): string {
     const displayNames: Record<string, string> = {
-      'MM': 'Matchmaking',
-      'SCRIM': 'Scrimmage',
-      'CAMPEONATO': 'Campeonato',
-      'RANKED': 'Ranked',
-      'DAILY_CHALLENGE': 'Desafio Diário',
-      'ACHIEVEMENT': 'Conquista',
-      'BADGE_EARNED': 'Badge Conquistada',
-      'QUIZ_COMPLETED': 'Quiz Completado',
-      'CLIP_APPROVED': 'Clip Aprovado',
-      'CHECK_IN': 'Check-in',
-      'WEAPON_MASTERY': 'Maestria de Arma',
-      'TOURNAMENT_WIN': 'Vitória em Torneio',
-      'STREAK_BONUS': 'Bônus de Sequência',
+      MM: 'Matchmaking',
+      SCRIM: 'Scrimmage',
+      CAMPEONATO: 'Campeonato',
+      RANKED: 'Ranked',
+      DAILY_CHALLENGE: 'Desafio Diário',
+      ACHIEVEMENT: 'Conquista',
+      BADGE_EARNED: 'Badge Conquistada',
+      QUIZ_COMPLETED: 'Quiz Completado',
+      CLIP_APPROVED: 'Clip Aprovado',
+      CHECK_IN: 'Check-in',
+      WEAPON_MASTERY: 'Maestria de Arma',
+      TOURNAMENT_WIN: 'Vitória em Torneio',
+      STREAK_BONUS: 'Bônus de Sequência',
     };
-    
+
     return displayNames[activityType] || activityType;
   }
 
@@ -377,12 +401,24 @@ export class XPAnimationsService {
     return shuffled.slice(0, count);
   }
 
-  private getLevelTier(level: number): 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond' | 'master' {
-    if (level < 10) {return 'bronze';}
-    if (level < 25) {return 'silver';}
-    if (level < 50) {return 'gold';}
-    if (level < 75) {return 'platinum';}
-    if (level < 100) {return 'diamond';}
+  private getLevelTier(
+    level: number
+  ): 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond' | 'master' {
+    if (level < 10) {
+      return 'bronze';
+    }
+    if (level < 25) {
+      return 'silver';
+    }
+    if (level < 50) {
+      return 'gold';
+    }
+    if (level < 75) {
+      return 'platinum';
+    }
+    if (level < 100) {
+      return 'diamond';
+    }
     return 'master';
   }
 
@@ -395,7 +431,7 @@ export class XPAnimationsService {
       diamond: ['💠', '🔹'],
       master: ['👑', '⭐'],
     };
-    
+
     return tierEmojis[tier as keyof typeof tierEmojis] || ['⭐'];
   }
 
@@ -410,11 +446,13 @@ export class XPAnimationsService {
       75: 'Campeão',
       100: 'Imortal',
     };
-    
+
     // Encontrar o título mais próximo
-    const availableLevels = Object.keys(titles).map(Number).sort((a, b) => b - a);
+    const availableLevels = Object.keys(titles)
+      .map(Number)
+      .sort((a, b) => b - a);
     const titleLevel = availableLevels.find(l => level >= l);
-    
+
     return titleLevel ? titles[titleLevel] : 'Jogador';
   }
 
@@ -428,19 +466,29 @@ export class XPAnimationsService {
       diamond: 'Elite absoluta do servidor!',
       master: 'Lenda viva do PUBG!',
     };
-    
+
     return descriptions[tier];
   }
 
   private getNextLevelRewards(nextLevel: number): string {
     const rewards = [];
-    
-    if (nextLevel % 5 === 0) {rewards.push('🏆 Nova Badge de Nível');}
-    if (nextLevel % 10 === 0) {rewards.push('🎁 Pacote de Recompensas');}
-    if (nextLevel % 25 === 0) {rewards.push('👑 Cargo Especial');}
-    if (nextLevel === 50) {rewards.push('💎 Título Exclusivo');}
-    if (nextLevel === 100) {rewards.push('🌟 Status de Lenda');}
-    
+
+    if (nextLevel % 5 === 0) {
+      rewards.push('🏆 Nova Badge de Nível');
+    }
+    if (nextLevel % 10 === 0) {
+      rewards.push('🎁 Pacote de Recompensas');
+    }
+    if (nextLevel % 25 === 0) {
+      rewards.push('👑 Cargo Especial');
+    }
+    if (nextLevel === 50) {
+      rewards.push('💎 Título Exclusivo');
+    }
+    if (nextLevel === 100) {
+      rewards.push('🌟 Status de Lenda');
+    }
+
     return rewards.length > 0 ? rewards.join('\n') : '🎯 Continue progredindo para descobrir!';
   }
 

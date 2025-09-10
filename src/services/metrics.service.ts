@@ -71,20 +71,143 @@ export class MetricsService {
   private cacheMisses = 0;
   private dbQueries = 0;
   private dbErrors = 0;
+  private metricsInterval?: NodeJS.Timeout;
+  private performanceHistory: Array<{ timestamp: number; metrics: SystemMetrics }> = [];
+  private readonly MAX_HISTORY_SIZE = 100; // Keep last 100 measurements
 
   constructor(
     private databaseService?: DatabaseService,
     private cacheService?: CacheService,
-    private discordClient?: ExtendedClient,
+    private discordClient?: ExtendedClient
   ) {
     this.logger = new Logger();
     this.startTime = Date.now();
+    this.startRealTimeMonitoring();
+  }
+
+  /**
+   * Start real-time metrics collection
+   */
+  private startRealTimeMonitoring(): void {
+    // Collect system metrics every 30 seconds
+    this.metricsInterval = setInterval(async () => {
+      try {
+        const systemMetrics = this.getSystemMetrics();
+        const appMetrics = await this.getApplicationMetrics();
+        
+        // Store in history for trend analysis
+        this.performanceHistory.push({
+          timestamp: Date.now(),
+          metrics: systemMetrics
+        });
+        
+        // Keep history size manageable
+        if (this.performanceHistory.length > this.MAX_HISTORY_SIZE) {
+          this.performanceHistory.shift();
+        }
+        
+        // Record key metrics
+        this.recordMetric('system_memory_usage', systemMetrics.memory.percentage, 'gauge');
+        this.recordMetric('system_cpu_usage', systemMetrics.cpu.usage, 'gauge');
+        this.recordMetric('discord_latency', appMetrics.discord.latency, 'gauge');
+        this.recordMetric('event_loop_delay', systemMetrics.eventLoop.delay, 'gauge');
+        
+        // Log performance summary every 5 minutes
+        if (Date.now() % (5 * 60 * 1000) < 30000) {
+          this.logPerformanceSummary(systemMetrics, appMetrics);
+        }
+      } catch (error) {
+        this.logger.error('Error collecting real-time metrics:', error);
+      }
+    }, 30000); // 30 seconds
+  }
+
+  /**
+   * Log performance summary
+   */
+  private logPerformanceSummary(systemMetrics: SystemMetrics, appMetrics: ApplicationMetrics): void {
+    this.logger.info('Performance Summary', {
+      metadata: {
+        memory: {
+          usage: `${systemMetrics.memory.percentage.toFixed(1)}%`,
+          heap: `${(systemMetrics.memory.heap.used / 1024 / 1024).toFixed(1)}MB`
+        },
+        cpu: `${systemMetrics.cpu.usage.toFixed(1)}%`,
+        discord: {
+          guilds: appMetrics.discord.guilds,
+          latency: `${appMetrics.discord.latency}ms`,
+          connected: appMetrics.discord.connected
+        },
+        cache: {
+          hitRate: `${((this.cacheHits / (this.cacheHits + this.cacheMisses)) * 100 || 0).toFixed(1)}%`,
+          size: appMetrics.cache.size
+        },
+        api: {
+          requests: this.requestCount,
+          avgResponseTime: `${(this.responseTimeSum / this.requestCount || 0).toFixed(1)}ms`,
+          errorRate: `${((this.errorCount / this.requestCount) * 100 || 0).toFixed(1)}%`
+        },
+        uptime: `${Math.floor(systemMetrics.uptime / 3600)}h ${Math.floor((systemMetrics.uptime % 3600) / 60)}m`
+      }
+    });
+  }
+
+  /**
+   * Get performance trends
+   */
+  getPerformanceTrends(): {
+    memoryTrend: 'increasing' | 'decreasing' | 'stable';
+    cpuTrend: 'increasing' | 'decreasing' | 'stable';
+    averageMemory: number;
+    averageCpu: number;
+  } {
+    if (this.performanceHistory.length < 10) {
+      return {
+        memoryTrend: 'stable',
+        cpuTrend: 'stable',
+        averageMemory: 0,
+        averageCpu: 0
+      };
+    }
+
+    const recent = this.performanceHistory.slice(-10);
+    const older = this.performanceHistory.slice(-20, -10);
+
+    const recentMemoryAvg = recent.reduce((sum, h) => sum + h.metrics.memory.percentage, 0) / recent.length;
+    const olderMemoryAvg = older.reduce((sum, h) => sum + h.metrics.memory.percentage, 0) / older.length;
+    const recentCpuAvg = recent.reduce((sum, h) => sum + h.metrics.cpu.usage, 0) / recent.length;
+    const olderCpuAvg = older.reduce((sum, h) => sum + h.metrics.cpu.usage, 0) / older.length;
+
+    const memoryDiff = recentMemoryAvg - olderMemoryAvg;
+    const cpuDiff = recentCpuAvg - olderCpuAvg;
+
+    return {
+      memoryTrend: Math.abs(memoryDiff) < 2 ? 'stable' : memoryDiff > 0 ? 'increasing' : 'decreasing',
+      cpuTrend: Math.abs(cpuDiff) < 5 ? 'stable' : cpuDiff > 0 ? 'increasing' : 'decreasing',
+      averageMemory: recentMemoryAvg,
+      averageCpu: recentCpuAvg
+    };
+  }
+
+  /**
+   * Stop real-time monitoring
+   */
+  stopRealTimeMonitoring(): void {
+    if (this.metricsInterval) {
+      clearInterval(this.metricsInterval);
+      this.metricsInterval = undefined;
+    }
   }
 
   /**
    * Record a metric value
    */
-  recordMetric(name: string, value: number, type: MetricData['type'] = 'gauge', labels?: Record<string, string>): void {
+  recordMetric(
+    name: string,
+    value: number,
+    type: MetricData['type'] = 'gauge',
+    labels?: Record<string, string>
+  ): void {
     const metric: MetricData = {
       name,
       value,
@@ -122,7 +245,10 @@ export class MetricsService {
     this.recordMetric('api_response_time_last', responseTime, 'gauge');
 
     if (endpoint) {
-      this.incrementCounter('api_requests_by_endpoint', 1, { endpoint, status: statusCode.toString() });
+      this.incrementCounter('api_requests_by_endpoint', 1, {
+        endpoint,
+        status: statusCode.toString(),
+      });
     }
   }
 
@@ -164,13 +290,25 @@ export class MetricsService {
   /**
    * Record backup metrics
    */
-  recordBackup(data: { type: string; duration: number; size: number; success: boolean; error?: string }): void {
-    this.recordMetric('backup_total', 1, 'counter', { type: data.type, success: data.success.toString() });
+  recordBackup(data: {
+    type: string;
+    duration: number;
+    size: number;
+    success: boolean;
+    error?: string;
+  }): void {
+    this.recordMetric('backup_total', 1, 'counter', {
+      type: data.type,
+      success: data.success.toString(),
+    });
     this.recordMetric('backup_duration_last', data.duration, 'gauge', { type: data.type });
     this.recordMetric('backup_size_last', data.size, 'gauge', { type: data.type });
-    
+
     if (!data.success && data.error) {
-      this.recordMetric('backup_errors_total', 1, 'counter', { type: data.type, error: data.error });
+      this.recordMetric('backup_errors_total', 1, 'counter', {
+        type: data.type,
+        error: data.error,
+      });
     }
   }
 
@@ -245,7 +383,10 @@ export class MetricsService {
     }
 
     const guilds = this.discordClient.guilds.cache.size;
-    const users = this.discordClient.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0);
+    const users = this.discordClient.guilds.cache.reduce(
+      (acc, guild) => acc + guild.memberCount,
+      0
+    );
     const channels = this.discordClient.channels.cache.size;
     const latency = this.discordClient.ws.ping;
 
@@ -266,7 +407,7 @@ export class MetricsService {
 
   private async getDatabaseMetrics() {
     let connections = 0;
-    
+
     if (this.databaseService) {
       try {
         // Check if database is connected
@@ -286,7 +427,7 @@ export class MetricsService {
 
   private getCacheMetrics() {
     let size = 0;
-    
+
     if (this.cacheService) {
       try {
         // Cache size tracking would need to be implemented in CacheService
@@ -317,10 +458,10 @@ export class MetricsService {
    */
   getPrometheusMetrics(): string {
     const lines: string[] = [];
-    
+
     for (const [name, metric] of this.metrics) {
       let line = `# TYPE ${name} ${metric.type}\n`;
-      
+
       if (metric.labels) {
         const labelStr = Object.entries(metric.labels)
           .map(([key, value]) => `${key}="${value}"`)
@@ -329,10 +470,10 @@ export class MetricsService {
       } else {
         line += `${name} ${metric.value} ${metric.timestamp}\n`;
       }
-      
+
       lines.push(line);
     }
-    
+
     return lines.join('');
   }
 
@@ -365,19 +506,19 @@ export class MetricsService {
       try {
         const systemMetrics = this.getSystemMetrics();
         const appMetrics = await this.getApplicationMetrics();
-        
+
         // Record system metrics
         this.recordMetric('system_memory_used', systemMetrics.memory.used, 'gauge');
         this.recordMetric('system_memory_percentage', systemMetrics.memory.percentage, 'gauge');
         this.recordMetric('system_cpu_usage', systemMetrics.cpu.usage, 'gauge');
         this.recordMetric('system_uptime', systemMetrics.uptime, 'gauge');
-        
+
         this.logger.debug('Metrics collected successfully');
       } catch (error) {
         this.logger.error('Failed to collect periodic metrics:', error);
       }
     }, intervalMs);
-    
+
     this.logger.info(`Started periodic metrics collection (interval: ${intervalMs}ms)`);
   }
 }

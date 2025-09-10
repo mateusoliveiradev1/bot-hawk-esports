@@ -1,9 +1,9 @@
 /**
  * 🦅 Hawk Esports - Builder de Embeds Padronizados
- * 
+ *
  * Este arquivo implementa o sistema de embeds seguindo o guia de identidade visual
  * do Hawk Esports, garantindo consistência e modernidade em todas as mensagens.
- * 
+ *
  * @version 2.0
  * @author Hawk Esports Development Team
  */
@@ -22,7 +22,7 @@ export class HawkEmbedBuilder {
   static createBaseEmbed(): EmbedBuilder {
     return new EmbedBuilder()
       .setColor(THEME_COLORS.HAWK_PRIMARY)
-      .setFooter({ 
+      .setFooter({
         text: '🦅 Hawk Esports • Dominando os Battlegrounds',
         iconURL: 'https://cdn.discordapp.com/icons/guild_id/guild_icon.png', // Substituir pela URL real
       })
@@ -266,7 +266,9 @@ export class HawkEmbedBuilder {
    * Adapta conteúdo para dispositivos móveis
    */
   static adaptForMobile(content: string, maxLength: number = 1000): string {
-    if (content.length <= maxLength) {return content;}
+    if (content.length <= maxLength) {
+      return content;
+    }
     return content.substring(0, maxLength - 3) + '...';
   }
 
@@ -283,10 +285,15 @@ export class HawkEmbedBuilder {
   /**
    * Cria embed com progresso visual
    */
-  static createProgressEmbed(title: string, current: number, max: number, description?: string): EmbedBuilder {
+  static createProgressEmbed(
+    title: string,
+    current: number,
+    max: number,
+    description?: string
+  ): EmbedBuilder {
     const percentage = Math.min((current / max) * 100, 100);
     const progressBar = EmojiUtils.createProgressBar(current, max, 10);
-    
+
     const progressText = `${description || 'Progresso'}: ${current}/${max} (${percentage.toFixed(1)}%)\n\`${progressBar}\``;
 
     return this.createBaseEmbed()
@@ -298,7 +305,10 @@ export class HawkEmbedBuilder {
   /**
    * Cria embed de leaderboard
    */
-  static createLeaderboardEmbed(title: string, entries: Array<{name: string, value: string, position: number}>): EmbedBuilder {
+  static createLeaderboardEmbed(
+    title: string,
+    entries: Array<{ name: string; value: string; position: number }>
+  ): EmbedBuilder {
     const embed = this.createRankingEmbed(title);
 
     entries.forEach((entry, index) => {
@@ -341,7 +351,7 @@ export class HawkEmbedBuilder {
     title: string,
     items: string[],
     currentPage: number,
-    itemsPerPage: number = 10,
+    itemsPerPage: number = 10
   ): EmbedBuilder {
     const totalPages = Math.ceil(items.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -351,8 +361,8 @@ export class HawkEmbedBuilder {
     const embed = this.createBaseEmbed()
       .setTitle(`${HAWK_EMOJIS.HAWK} ${title}`)
       .setDescription(pageItems.join('\n'))
-      .setFooter({ 
-        text: `🦅 Hawk Esports • Página ${currentPage}/${totalPages}`, 
+      .setFooter({
+        text: `🦅 Hawk Esports • Página ${currentPage}/${totalPages}`,
       });
 
     return embed;
@@ -366,10 +376,10 @@ export class HawkEmbedBuilder {
   static updateEmbedProgress(embed: EmbedBuilder, progress: number): EmbedBuilder {
     const progressBar = EmojiUtils.createProgressBar(progress, 100, 10);
     const currentDescription = embed.data.description || '';
-    
+
     // Remove barra de progresso anterior se existir
     const newDescription = currentDescription.replace(/Progresso:.*\n`.*`/g, '');
-    
+
     return embed.setDescription(`${newDescription}\n\nProgresso: ${progress}%\n\`${progressBar}\``);
   }
 

@@ -181,7 +181,7 @@ export class SecurityService {
     if (isBot) {
       this.recordSuspiciousActivity(clientIP);
       this.logger.warn(
-        `Atividade suspeita detectada - IP: ${clientIP}, Score: ${riskScore}, Razões: ${reasons.join(', ')}`,
+        `Atividade suspeita detectada - IP: ${clientIP}, Score: ${riskScore}, Razões: ${reasons.join(', ')}`
       );
     }
 
@@ -205,7 +205,7 @@ export class SecurityService {
 
     // Gerar códigos de backup
     const backupCodes = Array.from({ length: 8 }, () =>
-      crypto.randomBytes(4).toString('hex').toUpperCase(),
+      crypto.randomBytes(4).toString('hex').toUpperCase()
     );
 
     // Gerar QR Code
@@ -333,7 +333,7 @@ export class SecurityService {
     identifier: string,
     action: string,
     maxAttempts: number,
-    windowMs: number,
+    windowMs: number
   ): { allowed: boolean; remaining: number; resetTime: Date } {
     const key = `${identifier}:${action}`;
     const now = new Date();

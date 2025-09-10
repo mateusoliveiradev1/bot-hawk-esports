@@ -24,7 +24,7 @@ export class ComponentFactory {
   static createNavigationButtons(
     currentPage: number,
     totalPages: number,
-    customIdPrefix: string = 'nav',
+    customIdPrefix: string = 'nav'
   ): ActionRowBuilder<ButtonBuilder> {
     return new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
@@ -50,7 +50,7 @@ export class ComponentFactory {
         .setCustomId(`${customIdPrefix}_last`)
         .setLabel('⏭️ Último')
         .setStyle(ButtonStyle.Secondary)
-        .setDisabled(currentPage === totalPages),
+        .setDisabled(currentPage === totalPages)
     );
   }
 
@@ -60,7 +60,7 @@ export class ComponentFactory {
   static createSimpleNavigation(
     currentPage: number,
     totalPages: number,
-    customIdPrefix: string = 'nav',
+    customIdPrefix: string = 'nav'
   ): ActionRowBuilder<ButtonBuilder> {
     return new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
@@ -77,7 +77,7 @@ export class ComponentFactory {
         .setCustomId(`${customIdPrefix}_next`)
         .setLabel('Próximo ▶️')
         .setStyle(ButtonStyle.Secondary)
-        .setDisabled(currentPage === totalPages),
+        .setDisabled(currentPage === totalPages)
     );
   }
 
@@ -89,7 +89,7 @@ export class ComponentFactory {
    * Create confirmation buttons (Yes/No)
    */
   static createConfirmationButtons(
-    customIdPrefix: string = 'confirm',
+    customIdPrefix: string = 'confirm'
   ): ActionRowBuilder<ButtonBuilder> {
     return new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
@@ -99,7 +99,7 @@ export class ComponentFactory {
       new ButtonBuilder()
         .setCustomId(`${customIdPrefix}_no`)
         .setLabel('❌ Cancelar')
-        .setStyle(ButtonStyle.Danger),
+        .setStyle(ButtonStyle.Danger)
     );
   }
 
@@ -114,14 +114,14 @@ export class ComponentFactory {
       style?: ButtonStyle;
       disabled?: boolean;
     }>,
-    customIdPrefix: string = 'action',
+    customIdPrefix: string = 'action'
   ): ActionRowBuilder<ButtonBuilder> {
     const buttons = actions.map(action =>
       new ButtonBuilder()
         .setCustomId(`${customIdPrefix}_${action.id}`)
         .setLabel(action.emoji ? `${action.emoji} ${action.label}` : action.label)
         .setStyle(action.style || ButtonStyle.Primary)
-        .setDisabled(action.disabled || false),
+        .setDisabled(action.disabled || false)
     );
 
     return new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons.slice(0, 5));
@@ -130,9 +130,7 @@ export class ComponentFactory {
   /**
    * Profile action buttons
    */
-  static createProfileButtons(
-    customIdPrefix: string = 'profile',
-  ): ActionRowBuilder<ButtonBuilder> {
+  static createProfileButtons(customIdPrefix: string = 'profile'): ActionRowBuilder<ButtonBuilder> {
     return new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(`${customIdPrefix}_stats`)
@@ -149,7 +147,7 @@ export class ComponentFactory {
       new ButtonBuilder()
         .setCustomId(`${customIdPrefix}_compare`)
         .setLabel('⚖️ Comparar')
-        .setStyle(ButtonStyle.Secondary),
+        .setStyle(ButtonStyle.Secondary)
     );
   }
 
@@ -158,7 +156,7 @@ export class ComponentFactory {
    */
   static createMusicControls(
     isPlaying: boolean = false,
-    customIdPrefix: string = 'music',
+    customIdPrefix: string = 'music'
   ): ActionRowBuilder<ButtonBuilder> {
     return new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
@@ -180,7 +178,7 @@ export class ComponentFactory {
       new ButtonBuilder()
         .setCustomId(`${customIdPrefix}_queue`)
         .setLabel('📋 Fila')
-        .setStyle(ButtonStyle.Secondary),
+        .setStyle(ButtonStyle.Secondary)
     );
   }
 
@@ -199,14 +197,14 @@ export class ComponentFactory {
       emoji?: string;
     }>,
     customId: string = 'category_select',
-    placeholder: string = '🎯 Escolha uma categoria...',
+    placeholder: string = '🎯 Escolha uma categoria...'
   ): ActionRowBuilder<StringSelectMenuBuilder> {
     const options = categories.map(cat =>
       new StringSelectMenuOptionBuilder()
         .setValue(cat.value)
         .setLabel(cat.label)
         .setDescription(cat.description || `Comandos de ${cat.label}`)
-        .setEmoji(cat.emoji || '📁'),
+        .setEmoji(cat.emoji || '📁')
     );
 
     const selectMenu = new StringSelectMenuBuilder()
@@ -221,7 +219,7 @@ export class ComponentFactory {
    * Create help command menu
    */
   static createHelpMenu(
-    customId: string = 'help_category',
+    customId: string = 'help_category'
   ): ActionRowBuilder<StringSelectMenuBuilder> {
     const categories = [
       {
@@ -269,7 +267,7 @@ export class ComponentFactory {
    * Create ranking type menu
    */
   static createRankingMenu(
-    customId: string = 'ranking_type',
+    customId: string = 'ranking_type'
   ): ActionRowBuilder<StringSelectMenuBuilder> {
     const rankingTypes = [
       {
@@ -320,12 +318,8 @@ export class ComponentFactory {
   /**
    * Create feedback modal
    */
-  static createFeedbackModal(
-    customId: string = 'feedback_modal',
-  ): ModalBuilder {
-    const modal = new ModalBuilder()
-      .setCustomId(customId)
-      .setTitle('💬 Enviar Feedback');
+  static createFeedbackModal(customId: string = 'feedback_modal'): ModalBuilder {
+    const modal = new ModalBuilder().setCustomId(customId).setTitle('💬 Enviar Feedback');
 
     const titleInput = new TextInputBuilder()
       .setCustomId('feedback_title')
@@ -354,7 +348,7 @@ export class ComponentFactory {
     modal.addComponents(
       new ActionRowBuilder<TextInputBuilder>().addComponents(titleInput),
       new ActionRowBuilder<TextInputBuilder>().addComponents(messageInput),
-      new ActionRowBuilder<TextInputBuilder>().addComponents(typeInput),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(typeInput)
     );
 
     return modal;
@@ -363,12 +357,8 @@ export class ComponentFactory {
   /**
    * Create report modal
    */
-  static createReportModal(
-    customId: string = 'report_modal',
-  ): ModalBuilder {
-    const modal = new ModalBuilder()
-      .setCustomId(customId)
-      .setTitle('🚨 Reportar Problema');
+  static createReportModal(customId: string = 'report_modal'): ModalBuilder {
+    const modal = new ModalBuilder().setCustomId(customId).setTitle('🚨 Reportar Problema');
 
     const reasonInput = new TextInputBuilder()
       .setCustomId('report_reason')
@@ -397,7 +387,7 @@ export class ComponentFactory {
     modal.addComponents(
       new ActionRowBuilder<TextInputBuilder>().addComponents(reasonInput),
       new ActionRowBuilder<TextInputBuilder>().addComponents(descriptionInput),
-      new ActionRowBuilder<TextInputBuilder>().addComponents(evidenceInput),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(evidenceInput)
     );
 
     return modal;
@@ -410,10 +400,7 @@ export class ComponentFactory {
   /**
    * Create disabled button (for placeholders)
    */
-  static createDisabledButton(
-    label: string,
-    emoji?: string,
-  ): ButtonBuilder {
+  static createDisabledButton(label: string, emoji?: string): ButtonBuilder {
     return new ButtonBuilder()
       .setCustomId('disabled_placeholder')
       .setLabel(emoji ? `${emoji} ${label}` : label)
@@ -424,11 +411,7 @@ export class ComponentFactory {
   /**
    * Create link button
    */
-  static createLinkButton(
-    label: string,
-    url: string,
-    emoji?: string,
-  ): ButtonBuilder {
+  static createLinkButton(label: string, url: string, emoji?: string): ButtonBuilder {
     const button = new ButtonBuilder()
       .setLabel(emoji ? `${emoji} ${label}` : label)
       .setStyle(ButtonStyle.Link)
@@ -440,37 +423,31 @@ export class ComponentFactory {
   /**
    * Create refresh button
    */
-  static createRefreshButton(
-    customId: string = 'refresh',
-  ): ActionRowBuilder<ButtonBuilder> {
+  static createRefreshButton(customId: string = 'refresh'): ActionRowBuilder<ButtonBuilder> {
     return new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(customId)
         .setLabel('🔄 Atualizar')
-        .setStyle(ButtonStyle.Secondary),
+        .setStyle(ButtonStyle.Secondary)
     );
   }
 
   /**
    * Create close/dismiss button
    */
-  static createCloseButton(
-    customId: string = 'close',
-  ): ActionRowBuilder<ButtonBuilder> {
+  static createCloseButton(customId: string = 'close'): ActionRowBuilder<ButtonBuilder> {
     return new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(customId)
         .setLabel('❌ Fechar')
-        .setStyle(ButtonStyle.Secondary),
+        .setStyle(ButtonStyle.Secondary)
     );
   }
 
   /**
    * Combine multiple action rows (max 5 components per row)
    */
-  static combineActionRows(
-    ...rows: ActionRowBuilder<any>[]
-  ): ActionRowBuilder<any>[] {
+  static combineActionRows(...rows: ActionRowBuilder<any>[]): ActionRowBuilder<any>[] {
     return rows.slice(0, 5); // Discord limit of 5 action rows
   }
 
@@ -488,7 +465,7 @@ export class ComponentFactory {
       default?: boolean;
     }>,
     minValues: number = 1,
-    maxValues: number = 1,
+    maxValues: number = 1
   ): ActionRowBuilder<StringSelectMenuBuilder> {
     const selectOptions = options.slice(0, 25).map(option =>
       new StringSelectMenuOptionBuilder()
@@ -496,7 +473,7 @@ export class ComponentFactory {
         .setLabel(option.label)
         .setDescription(option.description || '')
         .setDefault(option.default || false)
-        .setEmoji(option.emoji || ''),
+        .setEmoji(option.emoji || '')
     );
 
     const selectMenu = new StringSelectMenuBuilder()
@@ -515,9 +492,9 @@ export class ComponentFactory {
  */
 export const COMPONENT_CONFIGS = {
   TIMEOUTS: {
-    SHORT: 30000,    // 30 seconds
-    MEDIUM: 300000,  // 5 minutes
-    LONG: 900000,    // 15 minutes
+    SHORT: 30000, // 30 seconds
+    MEDIUM: 300000, // 5 minutes
+    LONG: 900000, // 15 minutes
   },
   LIMITS: {
     BUTTONS_PER_ROW: 5,

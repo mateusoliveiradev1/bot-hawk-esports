@@ -1,6 +1,11 @@
 import { RateLimiter, RateLimitConfig, RateLimitPresets } from './rate-limiter';
 import { ErrorHandler, ErrorCategory, ErrorSeverity, HandleErrors } from './error-handler';
-import { AdvancedCache, AdvancedCacheConfig, CacheStrategy, InvalidationPattern } from './advanced-cache';
+import {
+  AdvancedCache,
+  AdvancedCacheConfig,
+  CacheStrategy,
+  InvalidationPattern,
+} from './advanced-cache';
 import { CacheService } from '../services/cache.service';
 import { Logger } from './logger';
 
@@ -32,7 +37,7 @@ export class IntegratedService {
 
   constructor(
     private readonly config: ServiceIntegrationConfig,
-    private readonly cacheService?: CacheService,
+    private readonly cacheService?: CacheService
   ) {
     // Initialize rate limiter
     if (config.enableRateLimit && config.rateLimitConfig) {
@@ -69,7 +74,7 @@ export class IntegratedService {
       };
       rateLimitKey?: string;
       errorContext?: Record<string, any>;
-    },
+    }
   ): Promise<T> {
     const { operationId, cacheKey, cacheTTL, cacheOptions, rateLimitKey, errorContext } = options;
 
@@ -85,14 +90,10 @@ export class IntegratedService {
 
       // Try cache first if enabled
       if (this.advancedCache && cacheKey) {
-        const cacheResult = await this.advancedCache.get(
-          cacheKey,
-          operation,
-          {
-            ttl: cacheTTL,
-            ...cacheOptions,
-          },
-        );
+        const cacheResult = await this.advancedCache.get(cacheKey, operation, {
+          ttl: cacheTTL,
+          ...cacheOptions,
+        });
 
         if (cacheResult.success) {
           this.logger.debug(`Cache ${cacheResult.fromCache ? 'hit' : 'miss'} for ${operationId}`, {
@@ -119,7 +120,6 @@ export class IntegratedService {
 
       // Execute operation directly
       return await operation();
-
     } catch (error) {
       // Handle error with integrated error handler
       if (this.errorHandler) {
@@ -306,7 +306,7 @@ export class ServiceIntegrationFactory {
    */
   static createCustomIntegration(
     config: ServiceIntegrationConfig,
-    cacheService?: CacheService,
+    cacheService?: CacheService
   ): IntegratedService {
     this.logger.info(`Created custom service integration: ${config.serviceName}`);
     return new IntegratedService(config, cacheService);
@@ -327,42 +327,40 @@ export function IntegratedOperation(
     };
     rateLimitKey?: string | ((args: any[]) => string);
     errorContext?: Record<string, any> | ((args: any[]) => Record<string, any>);
-  } = {},
+  } = {}
 ) {
   return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value;
-    
+
     descriptor.value = async function (...args: any[]) {
       const integration = (this as any).integration as IntegratedService;
       if (!integration) {
         return method.apply(this, args);
       }
 
-      const cacheKey = typeof options.cacheKey === 'function' 
-        ? options.cacheKey(args)
-        : options.cacheKey;
-      
-      const rateLimitKey = typeof options.rateLimitKey === 'function'
-        ? options.rateLimitKey(args)
-        : options.rateLimitKey;
-      
-      const errorContext = typeof options.errorContext === 'function'
-        ? options.errorContext(args)
-        : options.errorContext;
+      const cacheKey =
+        typeof options.cacheKey === 'function' ? options.cacheKey(args) : options.cacheKey;
 
-      return await integration.execute(
-        () => method.apply(this, args),
-        {
-          operationId: `${target.constructor.name}.${propertyName}`,
-          cacheKey,
-          cacheTTL: options.cacheTTL,
-          cacheOptions: options.cacheOptions,
-          rateLimitKey,
-          errorContext,
-        },
-      );
+      const rateLimitKey =
+        typeof options.rateLimitKey === 'function'
+          ? options.rateLimitKey(args)
+          : options.rateLimitKey;
+
+      const errorContext =
+        typeof options.errorContext === 'function'
+          ? options.errorContext(args)
+          : options.errorContext;
+
+      return await integration.execute(() => method.apply(this, args), {
+        operationId: `${target.constructor.name}.${propertyName}`,
+        cacheKey,
+        cacheTTL: options.cacheTTL,
+        cacheOptions: options.cacheOptions,
+        rateLimitKey,
+        errorContext,
+      });
     };
-    
+
     return descriptor;
   };
 }
@@ -383,14 +381,18 @@ export class ServiceMigrationHelper {
       methodsToWrap?: string[];
       cacheKeyGenerator?: (methodName: string, args: any[]) => string;
       rateLimitKeyGenerator?: (methodName: string, args: any[]) => string;
-    } = {},
+    } = {}
   ): void {
     const { methodsToWrap, cacheKeyGenerator, rateLimitKeyGenerator } = options;
-    
+
     // Get all methods if not specified
-    const methods = methodsToWrap || Object.getOwnPropertyNames(Object.getPrototypeOf(serviceInstance))
-      .filter(name => {
-        const descriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(serviceInstance), name);
+    const methods =
+      methodsToWrap ||
+      Object.getOwnPropertyNames(Object.getPrototypeOf(serviceInstance)).filter(name => {
+        const descriptor = Object.getOwnPropertyDescriptor(
+          Object.getPrototypeOf(serviceInstance),
+          name
+        );
         return descriptor && typeof descriptor.value === 'function' && name !== 'constructor';
       });
 
@@ -401,30 +403,29 @@ export class ServiceMigrationHelper {
       }
 
       serviceInstance[methodName] = async function (...args: any[]) {
-        const cacheKey = cacheKeyGenerator 
+        const cacheKey = cacheKeyGenerator
           ? cacheKeyGenerator(methodName, args)
           : `${serviceInstance.constructor.name}.${methodName}:${JSON.stringify(args)}`;
-        
+
         const rateLimitKey = rateLimitKeyGenerator
           ? rateLimitKeyGenerator(methodName, args)
           : `${serviceInstance.constructor.name}.${methodName}`;
 
-        return await integration.execute(
-          () => originalMethod.apply(serviceInstance, args),
-          {
-            operationId: `${serviceInstance.constructor.name}.${methodName}`,
-            cacheKey,
-            rateLimitKey,
-            errorContext: { methodName, args: args.length },
-          },
-        );
+        return await integration.execute(() => originalMethod.apply(serviceInstance, args), {
+          operationId: `${serviceInstance.constructor.name}.${methodName}`,
+          cacheKey,
+          rateLimitKey,
+          errorContext: { methodName, args: args.length },
+        });
       };
     }
 
     // Add integration instance to service
     serviceInstance.integration = integration;
 
-    this.logger.info(`Migrated service ${serviceInstance.constructor.name} with ${methods.length} methods`);
+    this.logger.info(
+      `Migrated service ${serviceInstance.constructor.name} with ${methods.length} methods`
+    );
   }
 
   /**
@@ -432,7 +433,7 @@ export class ServiceMigrationHelper {
    */
   static analyzeAndCreateConfig(
     serviceInstance: any,
-    serviceName: string,
+    serviceName: string
   ): ServiceIntegrationConfig {
     const config: ServiceIntegrationConfig = {
       serviceName,
@@ -443,21 +444,25 @@ export class ServiceMigrationHelper {
 
     // Analyze service for existing patterns
     const serviceCode = serviceInstance.toString();
-    
+
     // Check for rate limiting patterns
-    if (serviceCode.includes('rateLimitDelay') || 
-        serviceCode.includes('setTimeout') ||
-        serviceCode.includes('rate limit')) {
+    if (
+      serviceCode.includes('rateLimitDelay') ||
+      serviceCode.includes('setTimeout') ||
+      serviceCode.includes('rate limit')
+    ) {
       config.enableRateLimit = true;
       config.rateLimitConfig = RateLimitPresets.MODERATE;
       this.logger.info(`Detected rate limiting patterns in ${serviceName}`);
     }
 
     // Check for caching patterns
-    if (serviceCode.includes('cache') || 
-        serviceCode.includes('Cache') ||
-        serviceCode.includes('get(') ||
-        serviceCode.includes('set(')) {
+    if (
+      serviceCode.includes('cache') ||
+      serviceCode.includes('Cache') ||
+      serviceCode.includes('get(') ||
+      serviceCode.includes('set(')
+    ) {
       config.enableAdvancedCache = true;
       config.cacheConfig = {
         strategy: CacheStrategy.READ_THROUGH,
@@ -469,9 +474,11 @@ export class ServiceMigrationHelper {
     }
 
     // Check for API patterns
-    if (serviceCode.includes('axios') ||
-        serviceCode.includes('fetch') ||
-        serviceCode.includes('http')) {
+    if (
+      serviceCode.includes('axios') ||
+      serviceCode.includes('fetch') ||
+      serviceCode.includes('http')
+    ) {
       config.enableRateLimit = true;
       config.rateLimitConfig = RateLimitPresets.MODERATE;
       this.logger.info(`Detected API patterns in ${serviceName}`);
@@ -500,7 +507,7 @@ export class ServiceHealthChecker {
 
     try {
       const metrics = integration.getMetrics();
-      
+
       // Check rate limiter health
       const rateLimiter = integration.getRateLimiter();
       if (rateLimiter) {
@@ -522,7 +529,9 @@ export class ServiceHealthChecker {
         if (cacheMetrics.hitRate < 50) {
           issues.push('Low cache hit rate detected');
         }
-        this.logger.debug('Advanced cache is active', { metadata: { hitRate: cacheMetrics.hitRate } });
+        this.logger.debug('Advanced cache is active', {
+          metadata: { hitRate: cacheMetrics.hitRate },
+        });
       }
 
       if (issues.length > 0) {
@@ -534,7 +543,6 @@ export class ServiceHealthChecker {
         metrics,
         issues,
       };
-
     } catch (error) {
       this.logger.error('Health check failed', { metadata: { error } });
       return {

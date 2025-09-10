@@ -8,7 +8,11 @@ import { DatabaseService } from '../database/database.service';
 import { CacheService } from '../services/cache.service';
 import { ExtendedClient } from '../types/client';
 import { MetricsService } from '../services/metrics.service';
-import { ProductionMonitoringConfig, getProductionMonitoringConfig, validateMonitoringConfig } from './production-monitoring.config';
+import {
+  ProductionMonitoringConfig,
+  getProductionMonitoringConfig,
+  validateMonitoringConfig,
+} from './production-monitoring.config';
 import * as os from 'os';
 import * as process from 'process';
 
@@ -87,30 +91,30 @@ export class ProductionMonitoringService {
   private cache: CacheService;
   private discordClient?: ExtendedClient;
   private metricsService?: MetricsService;
-  
+
   private healthChecks: Map<string, HealthCheckFunction> = new Map();
   private healthCheckInterval?: NodeJS.Timeout;
   private metricsInterval?: NodeJS.Timeout;
-  
+
   private alerts: Map<string, Alert> = new Map();
   private metrics: SystemMetrics[] = [];
   private counters: Map<string, Counter> = new Map();
-  
+
   private isRunning = false;
 
   constructor(
     database: DatabaseService,
     cache: CacheService,
-    config?: Partial<ProductionMonitoringConfig>,
+    config?: Partial<ProductionMonitoringConfig>
   ) {
     this.logger = new Logger();
     this.database = database;
     this.cache = cache;
-    
+
     // Load and validate configuration
     this.config = { ...getProductionMonitoringConfig(), ...config };
     validateMonitoringConfig(this.config);
-    
+
     this.logger.info('Production monitoring service initialized', {
       metadata: {
         healthCheckInterval: this.config.healthCheckInterval,
@@ -118,7 +122,7 @@ export class ProductionMonitoringService {
         thresholds: this.config.performance,
       },
     });
-    
+
     this.setupDefaultHealthChecks();
     this.setupProcessHandlers();
   }
@@ -145,13 +149,13 @@ export class ProductionMonitoringService {
   private setupDefaultHealthChecks(): void {
     // System health check
     this.registerHealthCheck('system', this.checkSystemHealth.bind(this));
-    
+
     // Database health check
     this.registerHealthCheck('database', this.checkDatabaseHealth.bind(this));
-    
+
     // Cache health check
     this.registerHealthCheck('cache', this.checkCacheHealth.bind(this));
-    
+
     // Discord health check (will be registered when client is set)
     if (this.discordClient) {
       this.registerHealthCheck('discord', this.checkDiscordHealth.bind(this));
@@ -165,7 +169,7 @@ export class ProductionMonitoringService {
     // Graceful shutdown handlers
     process.on('SIGTERM', this.handleShutdown.bind(this, 'SIGTERM'));
     process.on('SIGINT', this.handleShutdown.bind(this, 'SIGINT'));
-    
+
     // Error handlers
     process.on('uncaughtException', this.handleUncaughtException.bind(this));
     process.on('unhandledRejection', this.handleUnhandledRejection.bind(this));
@@ -221,22 +225,22 @@ export class ProductionMonitoringService {
    */
   private async runHealthChecks(): Promise<HealthCheckResult[]> {
     const results: HealthCheckResult[] = [];
-    
+
     for (const [name, checkFunction] of this.healthChecks) {
       try {
         const startTime = Date.now();
         const timeoutPromise = new Promise<HealthCheckResult>((_, reject) => {
-          setTimeout(() => reject(new Error('Health check timeout')), this.config.healthCheckTimeout);
+          setTimeout(
+            () => reject(new Error('Health check timeout')),
+            this.config.healthCheckTimeout
+          );
         });
-        
-        const result = await Promise.race([
-          checkFunction(),
-          timeoutPromise,
-        ]);
-        
+
+        const result = await Promise.race([checkFunction(), timeoutPromise]);
+
         result.responseTime = Date.now() - startTime;
         results.push(result);
-        
+
         // Create alerts for unhealthy services
         if (result.status === 'unhealthy' || result.status === 'degraded') {
           this.createAlert({
@@ -247,7 +251,6 @@ export class ProductionMonitoringService {
             details: result,
           });
         }
-        
       } catch (error) {
         const result: HealthCheckResult = {
           service: name,
@@ -256,9 +259,9 @@ export class ProductionMonitoringService {
           message: error instanceof Error ? error.message : 'Unknown error',
           timestamp: new Date(),
         };
-        
+
         results.push(result);
-        
+
         this.createAlert({
           type: 'health',
           severity: 'high',
@@ -268,7 +271,7 @@ export class ProductionMonitoringService {
         });
       }
     }
-    
+
     return results;
   }
 
@@ -279,7 +282,7 @@ export class ProductionMonitoringService {
     const memUsage = process.memoryUsage();
     const cpuUsage = process.cpuUsage();
     const loadAvg = os.loadavg();
-    
+
     const metrics: SystemMetrics = {
       timestamp: new Date(),
       cpu: {
@@ -301,19 +304,19 @@ export class ProductionMonitoringService {
         version: process.version,
       },
     };
-    
+
     // Add Discord metrics if available
     if (this.discordClient && this.metricsService) {
       metrics.discord = await this.getDiscordMetrics();
     }
-    
+
     // Add database metrics (placeholder)
     metrics.database = {
       connections: 0,
       queries: 0,
       responseTime: 0,
     };
-    
+
     // Add cache metrics (placeholder)
     metrics.cache = {
       hits: 0,
@@ -321,22 +324,22 @@ export class ProductionMonitoringService {
       keys: 0,
       memory: 0,
     };
-    
+
     // Store metrics
     this.metrics.push(metrics);
-    
+
     // Clean old metrics
     const cutoff = new Date(Date.now() - this.config.metrics.retentionPeriod);
     this.metrics = this.metrics.filter(m => m.timestamp > cutoff);
-    
+
     // Limit metrics in memory
     if (this.metrics.length > this.config.metrics.maxMetricsInMemory) {
       this.metrics = this.metrics.slice(-this.config.metrics.maxMetricsInMemory);
     }
-    
+
     // Check performance thresholds
     this.checkPerformanceThresholds(metrics);
-    
+
     return metrics;
   }
 
@@ -347,7 +350,7 @@ export class ProductionMonitoringService {
     if (!this.discordClient || !this.metricsService) {
       return undefined;
     }
-    
+
     try {
       // Discord metrics not available from MetricsService
       const discordMetrics = undefined;
@@ -377,7 +380,7 @@ export class ProductionMonitoringService {
         details: { memoryUsage: metrics.memory },
       });
     }
-    
+
     // CPU usage alert (simplified check)
     const cpuPercentage = (metrics.cpu.usage / metrics.process.uptime) * 100;
     if (cpuPercentage > this.config.performance.cpuUsageThreshold) {
@@ -401,9 +404,9 @@ export class ProductionMonitoringService {
       resolved: false,
       ...alertData,
     };
-    
+
     this.alerts.set(alert.id, alert);
-    
+
     this.logger.warn(`Alert created: ${alert.message}`, {
       metadata: {
         alertId: alert.id,
@@ -412,14 +415,15 @@ export class ProductionMonitoringService {
         service: alert.service,
       },
     });
-    
+
     // Clean old alerts
     if (this.alerts.size > this.config.alerts.maxActiveAlerts) {
-      const oldestAlert = Array.from(this.alerts.values())
-        .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())[0];
+      const oldestAlert = Array.from(this.alerts.values()).sort(
+        (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+      )[0];
       this.alerts.delete(oldestAlert.id);
     }
-    
+
     return alert.id;
   }
 
@@ -431,11 +435,11 @@ export class ProductionMonitoringService {
     if (alert && !alert.resolved) {
       alert.resolved = true;
       alert.resolvedAt = new Date();
-      
+
       this.logger.info(`Alert resolved: ${alert.message}`, {
         metadata: { alertId },
       });
-      
+
       return true;
     }
     return false;
@@ -478,15 +482,15 @@ export class ProductionMonitoringService {
   private async checkSystemHealth(): Promise<HealthCheckResult> {
     const memUsage = process.memoryUsage();
     const memPercentage = (memUsage.rss / os.totalmem()) * 100;
-    
+
     let status: HealthCheckResult['status'] = 'healthy';
     let message = 'System is healthy';
-    
+
     if (memPercentage > this.config.performance.memoryUsageThreshold) {
       status = 'degraded';
       message = `High memory usage: ${memPercentage.toFixed(2)}%`;
     }
-    
+
     return {
       service: 'system',
       status,
@@ -507,20 +511,20 @@ export class ProductionMonitoringService {
   private async checkDatabaseHealth(): Promise<HealthCheckResult> {
     try {
       const startTime = Date.now();
-      
+
       // Simple ping to database
       // Database ping method not available
-      
+
       const responseTime = Date.now() - startTime;
-      
+
       let status: HealthCheckResult['status'] = 'healthy';
       let message = 'Database is healthy';
-      
+
       if (responseTime > this.config.database.queryTimeout / 2) {
         status = 'degraded';
         message = `Slow database response: ${responseTime}ms`;
       }
-      
+
       return {
         service: 'database',
         status,
@@ -545,20 +549,20 @@ export class ProductionMonitoringService {
   private async checkCacheHealth(): Promise<HealthCheckResult> {
     try {
       const startTime = Date.now();
-      
+
       // Simple ping to cache
       // Cache ping method not available
-      
+
       const responseTime = Date.now() - startTime;
-      
+
       let status: HealthCheckResult['status'] = 'healthy';
       let message = 'Cache is healthy';
-      
+
       if (responseTime > this.config.cache.operationTimeout / 2) {
         status = 'degraded';
         message = `Slow cache response: ${responseTime}ms`;
       }
-      
+
       return {
         service: 'cache',
         status,
@@ -590,25 +594,25 @@ export class ProductionMonitoringService {
         timestamp: new Date(),
       };
     }
-    
+
     try {
       const startTime = Date.now();
       const ping = this.discordClient.ws.ping;
       const responseTime = Date.now() - startTime;
-      
+
       let status: HealthCheckResult['status'] = 'healthy';
       let message = 'Discord is healthy';
-      
+
       if (ping > this.config.discord.latencyThreshold) {
         status = 'degraded';
         message = `High Discord latency: ${ping}ms`;
       }
-      
+
       if (!this.discordClient.isReady()) {
         status = 'unhealthy';
         message = 'Discord client not ready';
       }
-      
+
       return {
         service: 'discord',
         status,
@@ -641,9 +645,9 @@ export class ProductionMonitoringService {
       this.logger.warn('Production monitoring is already running');
       return;
     }
-    
+
     this.logger.info('Starting production monitoring...');
-    
+
     // Start health checks
     this.healthCheckInterval = setInterval(async () => {
       try {
@@ -652,7 +656,7 @@ export class ProductionMonitoringService {
         this.logger.error('Error running health checks:', { error });
       }
     }, this.config.healthCheckInterval);
-    
+
     // Start metrics collection
     this.metricsInterval = setInterval(async () => {
       try {
@@ -661,13 +665,13 @@ export class ProductionMonitoringService {
         this.logger.error('Error collecting metrics:', { error });
       }
     }, this.config.metricsCollectionInterval);
-    
+
     this.isRunning = true;
-    
+
     // Run initial checks
     await this.runHealthChecks();
     await this.collectMetrics();
-    
+
     this.logger.info('Production monitoring started successfully');
   }
 
@@ -678,22 +682,22 @@ export class ProductionMonitoringService {
     if (!this.isRunning) {
       return;
     }
-    
+
     this.logger.info('Shutting down production monitoring...');
-    
+
     // Clear intervals
     if (this.healthCheckInterval) {
       clearInterval(this.healthCheckInterval);
       this.healthCheckInterval = undefined;
     }
-    
+
     if (this.metricsInterval) {
       clearInterval(this.metricsInterval);
       this.metricsInterval = undefined;
     }
-    
+
     this.isRunning = false;
-    
+
     this.logger.info('Production monitoring stopped');
   }
 
@@ -710,10 +714,10 @@ export class ProductionMonitoringService {
     const healthChecks = await this.runHealthChecks();
     const latestMetrics = this.metrics[this.metrics.length - 1] || null;
     const activeAlerts = this.getActiveAlerts();
-    
+
     // Determine overall status
     let overallStatus: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
-    
+
     for (const check of healthChecks) {
       if (check.status === 'unhealthy') {
         overallStatus = 'unhealthy';
@@ -722,7 +726,7 @@ export class ProductionMonitoringService {
         overallStatus = 'degraded';
       }
     }
-    
+
     return {
       status: overallStatus,
       healthChecks,
@@ -752,15 +756,15 @@ export class ProductionMonitoringService {
   public apiMonitoringMiddleware() {
     return (req: any, res: any, next: any) => {
       const startTime = Date.now();
-      
+
       res.on('finish', () => {
         const duration = Date.now() - startTime;
-        
+
         // Increment API request counter
         this.incrementCounter('api_requests_total');
         this.incrementCounter(`api_requests_${req.method.toLowerCase()}`);
         this.incrementCounter(`api_responses_${res.statusCode}`);
-        
+
         // Log slow requests
         if (duration > this.config.performance.responseTimeThreshold) {
           this.logger.warn('Slow API request detected', {
@@ -771,7 +775,7 @@ export class ProductionMonitoringService {
               duration,
             },
           });
-          
+
           this.createAlert({
             type: 'performance',
             severity: 'medium',
@@ -786,7 +790,7 @@ export class ProductionMonitoringService {
           });
         }
       });
-      
+
       next();
     };
   }

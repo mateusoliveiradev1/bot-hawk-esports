@@ -83,11 +83,14 @@
   overflow: hidden;
   border-right: 2px solid #667eea;
   white-space: nowrap;
-  animation: typewriter 3s steps(40, end), blink-caret 0.75s step-end infinite;
+  animation:
+    typewriter 3s steps(40, end),
+    blink-caret 0.75s step-end infinite;
 }
 
 @keyframes blink-caret {
-  from, to {
+  from,
+  to {
     border-color: transparent;
   }
   50% {
@@ -97,7 +100,9 @@
 
 /* Hover effects */
 .hover-lift {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .hover-lift:hover {
@@ -114,7 +119,10 @@
 
 /* Neon glow effect */
 .neon-glow {
-  text-shadow: 0 0 5px currentColor, 0 0 10px currentColor, 0 0 15px currentColor;
+  text-shadow:
+    0 0 5px currentColor,
+    0 0 10px currentColor,
+    0 0 15px currentColor;
 }
 
 /* Particle background */
@@ -195,11 +203,11 @@
   .mobile-stack {
     flex-direction: column;
   }
-  
+
   .mobile-full {
     width: 100%;
   }
-  
+
   .mobile-center {
     text-align: center;
   }
@@ -211,7 +219,7 @@
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
-  
+
   .particle {
     background: rgba(139, 92, 246, 0.2);
   }
@@ -226,7 +234,7 @@
   .particle {
     animation: none;
   }
-  
+
   .animated-gradient {
     background: linear-gradient(-45deg, #667eea, #764ba2);
   }
@@ -244,7 +252,7 @@
     background: rgba(255, 255, 255, 0.9);
     border: 2px solid #000;
   }
-  
+
   .neon-glow {
     text-shadow: none;
     font-weight: bold;

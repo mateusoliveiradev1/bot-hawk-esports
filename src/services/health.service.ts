@@ -69,7 +69,7 @@ export class HealthService {
     private readonly loggingService: LoggingService,
     private readonly pubgService?: PUBGService,
     private readonly alertConfig?: AlertConfig,
-    private readonly loggerConfig?: StructuredLoggerConfig,
+    private readonly loggerConfig?: StructuredLoggerConfig
   ) {
     // Setup structured logging
     const defaultLoggerConfig: StructuredLoggerConfig = {
@@ -84,20 +84,16 @@ export class HealthService {
     };
     this.structuredLogger = new StructuredLogger(
       { ...defaultLoggerConfig, ...this.loggerConfig },
-      'HealthService',
+      'HealthService'
     );
-    
+
     this.metricsService = new MetricsService(databaseService, cacheService, client);
-    
+
     // Setup alert service
     if (this.alertConfig) {
-      this.alertService = new AlertService(
-        this.alertConfig,
-        this.databaseService,
-        this.client,
-      );
+      this.alertService = new AlertService(this.alertConfig, this.databaseService, this.client);
     }
-    
+
     this.registerServices();
   }
 
@@ -109,7 +105,7 @@ export class HealthService {
     loggingService: LoggingService,
     pubgService?: PUBGService,
     alertConfig?: AlertConfig,
-    loggerConfig?: StructuredLoggerConfig,
+    loggerConfig?: StructuredLoggerConfig
   ): HealthService {
     if (!HealthService.instance) {
       HealthService.instance = new HealthService(
@@ -120,7 +116,7 @@ export class HealthService {
         loggingService,
         pubgService,
         alertConfig,
-        loggerConfig,
+        loggerConfig
       );
     }
     return HealthService.instance;
@@ -136,7 +132,7 @@ export class HealthService {
       try {
         const isHealthy = await this.databaseService.healthCheck();
         const responseTime = performance.now() - start;
-        
+
         return {
           name: 'Database',
           status: isHealthy ? 'healthy' : 'unhealthy',
@@ -162,16 +158,16 @@ export class HealthService {
       try {
         const testKey = 'health:test';
         const testValue = `test-${Date.now()}`;
-        
+
         await this.cacheService.set(testKey, testValue, 10);
         const retrieved = await this.cacheService.get(testKey);
         await this.cacheService.del(testKey);
-        
+
         const isHealthy = retrieved === testValue;
         const responseTime = performance.now() - start;
         // Cache metrics not available, using basic info
         const metrics = { connected: true };
-        
+
         return {
           name: 'Cache',
           status: isHealthy ? 'healthy' : 'unhealthy',
@@ -200,10 +196,10 @@ export class HealthService {
       try {
         const stats = this.schedulerService.getStatistics();
         const responseTime = performance.now() - start;
-        
+
         let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
         let details = 'All tasks running normally';
-        
+
         if (stats.failedExecutions > 0) {
           const failureRate = stats.failedExecutions / stats.totalExecutions;
           if (failureRate > 0.5) {
@@ -214,7 +210,7 @@ export class HealthService {
             details = `Moderate failure rate: ${Math.round(failureRate * 100)}%`;
           }
         }
-        
+
         return {
           name: 'Scheduler',
           status,
@@ -247,10 +243,10 @@ export class HealthService {
       try {
         const stats = this.loggingService.getStats();
         const responseTime = performance.now() - start;
-        
+
         let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
         let details = 'Logging system operational';
-        
+
         if (stats.queueSize > 1000) {
           status = 'degraded';
           details = `High queue size: ${stats.queueSize}`;
@@ -258,7 +254,7 @@ export class HealthService {
           status = 'unhealthy';
           details = `Critical queue size: ${stats.queueSize}`;
         }
-        
+
         return {
           name: 'Logging',
           status,
@@ -289,7 +285,7 @@ export class HealthService {
         try {
           const health = await this.pubgService!.healthCheck();
           const responseTime = performance.now() - start;
-          
+
           let status: 'healthy' | 'degraded' | 'unhealthy';
           if (health.status === 'healthy') {
             status = 'healthy';
@@ -298,7 +294,7 @@ export class HealthService {
           } else {
             status = 'unhealthy';
           }
-          
+
           return {
             name: 'PUBG API',
             status,
@@ -331,7 +327,7 @@ export class HealthService {
       try {
         const isReady = this.client.isReady();
         const responseTime = performance.now() - start;
-        
+
         return {
           name: 'Discord Client',
           status: isReady ? 'healthy' : 'unhealthy',
@@ -424,15 +420,19 @@ export class HealthService {
       };
 
       this.lastHealthCheck = systemHealth;
-      
+
       const duration = performance.now() - start;
-      
+
       // Record metrics
       this.metricsService.recordMetric('health_check_duration', duration, 'gauge');
-      this.metricsService.recordMetric('health_check_status', overallStatus === 'healthy' ? 1 : 0, 'gauge');
+      this.metricsService.recordMetric(
+        'health_check_status',
+        overallStatus === 'healthy' ? 1 : 0,
+        'gauge'
+      );
       this.metricsService.recordMetric('health_services_total', services.length, 'gauge');
       this.metricsService.recordMetric('health_services_healthy', healthyServices, 'gauge');
-      
+
       this.logger.info(`Health check completed in ${Math.round(duration)}ms`, {
         metadata: {
           overall: overallStatus,
@@ -517,10 +517,10 @@ export class HealthService {
     this.structuredLogger.info('Health monitoring started', {
       metadata: { intervalMs: this.healthCheckIntervalMs, timestamp: new Date().toISOString() },
     });
-    
+
     // Start metrics collection
     this.metricsService.startPeriodicCollection(this.healthCheckIntervalMs);
-    
+
     // Perform initial health check
     this.performHealthCheck().catch(error => {
       this.logger.error('Initial health check failed:', error);
@@ -545,8 +545,10 @@ export class HealthService {
     if (this.alertService) {
       this.alertService.startMonitoring(async () => {
         const health = this.lastHealthCheck;
-        if (!health) {return {};}
-        
+        if (!health) {
+          return {};
+        }
+
         return {
           memory_percentage: health.system.memory.percentage,
           error_rate: 0, // This would need to be tracked separately
@@ -633,10 +635,18 @@ export class HealthService {
     const seconds = Math.floor(uptime % 60);
 
     const parts = [];
-    if (days > 0) {parts.push(`${days}d`);}
-    if (hours > 0) {parts.push(`${hours}h`);}
-    if (minutes > 0) {parts.push(`${minutes}m`);}
-    if (seconds > 0) {parts.push(`${seconds}s`);}
+    if (days > 0) {
+      parts.push(`${days}d`);
+    }
+    if (hours > 0) {
+      parts.push(`${hours}h`);
+    }
+    if (minutes > 0) {
+      parts.push(`${minutes}m`);
+    }
+    if (seconds > 0) {
+      parts.push(`${seconds}s`);
+    }
 
     return parts.join(' ') || '0s';
   }
@@ -659,7 +669,9 @@ export class HealthService {
    * Check for health-based alerts
    */
   private async checkHealthAlerts(systemHealth: SystemHealth): Promise<void> {
-    if (!this.alertService) {return;}
+    if (!this.alertService) {
+      return;
+    }
 
     try {
       // Memory usage alert
@@ -673,7 +685,7 @@ export class HealthService {
             memoryUsage: systemHealth.system.memory.percentage,
             memoryUsed: systemHealth.system.memory.used,
             memoryTotal: systemHealth.system.memory.total,
-          },
+          }
         );
       }
 
@@ -687,7 +699,7 @@ export class HealthService {
           {
             cpuUsage: systemHealth.system.cpu.usage,
             loadAverage: systemHealth.system.cpu.loadAverage,
-          },
+          }
         );
       }
 
@@ -701,7 +713,7 @@ export class HealthService {
           {
             discordPing: systemHealth.discord.ping,
             guilds: systemHealth.discord.guilds,
-          },
+          }
         );
       }
 
@@ -719,7 +731,7 @@ export class HealthService {
               details: s.details,
               responseTime: s.responseTime,
             })),
-          },
+          }
         );
       }
 
@@ -734,7 +746,7 @@ export class HealthService {
             overallStatus: systemHealth.overall,
             timestamp: systemHealth.timestamp.toISOString(),
             uptime: systemHealth.uptime,
-          },
+          }
         );
       }
     } catch (error) {

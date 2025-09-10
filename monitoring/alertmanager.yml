@@ -5,10 +5,10 @@ global:
   smtp_from: 'alertmanager@hawk-esports.local'
   smtp_auth_username: 'alertmanager@hawk-esports.local'
   smtp_auth_password: 'your-smtp-password'
-  
+
   # The API URL to use for Slack notifications.
   slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
-  
+
   # Global HTTP config
   http_config:
     tls_config:
@@ -22,22 +22,22 @@ templates:
 route:
   # The labels by which incoming alerts are grouped together.
   group_by: ['alertname', 'service', 'severity']
-  
+
   # When a new group of alerts is created by an incoming alert, wait at
   # least 'group_wait' to send the initial notification.
   group_wait: 10s
-  
+
   # When the first notification was sent, wait 'group_interval' to send a batch
   # of new alerts that started firing for that group.
   group_interval: 10s
-  
+
   # If an alert has successfully been sent, wait 'repeat_interval' to
   # resend them.
   repeat_interval: 1h
-  
+
   # A default receiver
   receiver: 'web.hook'
-  
+
   # All the above attributes are inherited by all child routes and can
   # overwritten on each.
   routes:
@@ -55,14 +55,14 @@ route:
           receiver: 'bot-down-alerts'
           group_wait: 0s
           repeat_interval: 15m
-        
+
         # Database alerts
         - match:
             service: database
           receiver: 'database-alerts'
           group_wait: 30s
           repeat_interval: 1h
-    
+
     # Warning alerts - less frequent notifications
     - match:
         severity: warning
@@ -70,7 +70,7 @@ route:
       group_wait: 30s
       group_interval: 5m
       repeat_interval: 2h
-    
+
     # Infrastructure alerts
     - match:
         service: infrastructure
@@ -78,7 +78,7 @@ route:
       group_wait: 1m
       group_interval: 10m
       repeat_interval: 4h
-    
+
     # Security alerts (rate limiting, etc.)
     - match:
         service: security
@@ -96,14 +96,14 @@ inhibit_rules:
       severity: 'warning'
     # Apply inhibition if the alert name is the same.
     equal: ['alertname', 'service']
-  
+
   # Mute database connection warnings if database is completely down
   - source_match:
       alertname: 'DatabaseConnectionFailed'
     target_match:
       service: 'database'
     equal: ['service']
-  
+
   # Mute individual service alerts if the bot is down
   - source_match:
       alertname: 'BotDown'
@@ -121,7 +121,7 @@ receivers:
           basic_auth:
             username: 'webhook-user'
             password: 'webhook-password'
-  
+
   # Critical alerts - multiple channels
   - name: 'critical-alerts'
     # Discord webhook for critical alerts
@@ -137,7 +137,7 @@ receivers:
         http_config:
           tls_config:
             insecure_skip_verify: true
-    
+
     # Email for critical alerts
     email_configs:
       - to: 'admin@hawk-esports.local'
@@ -145,22 +145,22 @@ receivers:
         subject: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
         body: |
           Critical alert detected in Hawk Esports Bot monitoring system.
-          
+
           Alert: {{ .GroupLabels.alertname }}
           Service: {{ .GroupLabels.service }}
           Severity: {{ .GroupLabels.severity }}
-          
+
           Details:
           {{ range .Alerts }}
           - {{ .Annotations.summary }}
             Description: {{ .Annotations.description }}
             Started: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
           {{ end }}
-          
+
           Please investigate immediately.
         headers:
           Priority: 'high'
-  
+
   # Bot down specific alerts
   - name: 'bot-down-alerts'
     webhook_configs:
@@ -169,15 +169,15 @@ receivers:
         title: '🔴 BOT DOWN - Hawk Esports Bot Offline'
         text: |
           **URGENT:** The Hawk Esports Bot is currently offline!
-          
+
           **Started:** {{ .Alerts.0.StartsAt.Format "2006-01-02 15:04:05" }}
           **Duration:** {{ .Alerts.0.StartsAt | since }}
-          
+
           Please check the bot status immediately and restart if necessary.
         http_config:
           tls_config:
             insecure_skip_verify: true
-  
+
   # Database alerts
   - name: 'database-alerts'
     webhook_configs:
@@ -186,16 +186,16 @@ receivers:
         title: '💾 Database Alert - {{ .GroupLabels.alertname }}'
         text: |
           **Database Issue Detected**
-          
+
           **Alert:** {{ .GroupLabels.alertname }}
           **Description:** {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
           **Time:** {{ .Alerts.0.StartsAt.Format "2006-01-02 15:04:05" }}
-          
+
           Database connectivity or performance may be affected.
         http_config:
           tls_config:
             insecure_skip_verify: true
-  
+
   # Warning alerts
   - name: 'warning-alerts'
     webhook_configs:
@@ -204,7 +204,7 @@ receivers:
         title: '⚠️ Warning - {{ .GroupLabels.alertname }}'
         text: |
           **Warning Alert**
-          
+
           **Service:** {{ .GroupLabels.service }}
           **Alert:** {{ .GroupLabels.alertname }}
           **Description:** {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
@@ -212,7 +212,7 @@ receivers:
         http_config:
           tls_config:
             insecure_skip_verify: true
-  
+
   # Infrastructure alerts
   - name: 'infrastructure-alerts'
     webhook_configs:
@@ -221,7 +221,7 @@ receivers:
         title: '🏗️ Infrastructure Alert - {{ .GroupLabels.alertname }}'
         text: |
           **Infrastructure Issue**
-          
+
           **Component:** {{ .GroupLabels.service }}
           **Alert:** {{ .GroupLabels.alertname }}
           **Description:** {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
@@ -229,7 +229,7 @@ receivers:
         http_config:
           tls_config:
             insecure_skip_verify: true
-  
+
   # Security alerts
   - name: 'security-alerts'
     webhook_configs:
@@ -238,11 +238,11 @@ receivers:
         title: '🔒 Security Alert - {{ .GroupLabels.alertname }}'
         text: |
           **Security Issue Detected**
-          
+
           **Type:** {{ .GroupLabels.alertname }}
           **Description:** {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
           **Time:** {{ .Alerts.0.StartsAt.Format "2006-01-02 15:04:05" }}
-          
+
           Please review security logs and take appropriate action.
         http_config:
           tls_config:

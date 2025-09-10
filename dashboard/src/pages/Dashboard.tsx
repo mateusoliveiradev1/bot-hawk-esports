@@ -13,25 +13,12 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import {
-  Activity,
-  Bot,
-  Command,
-  Server,
-  TrendingUp,
-  Users,
-} from 'lucide-react';
+import { Activity, Bot, Command, Server, TrendingUp, Users } from 'lucide-react';
 import { RefreshCw } from 'lucide-react';
 import { formatNumber } from '../lib/utils';
 import { apiService, type GuildStats } from '../services/api';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { 
-  StatCardSkeleton, 
-  ChartSkeleton, 
-
-  useToast,
-  toast,
-} from '../components/ui';
+import { StatCardSkeleton, ChartSkeleton, useToast, toast } from '../components/ui';
 import BadgesWidget from '../components/Gamification/BadgesWidget';
 import XPWidget from '../components/Gamification/XPWidget';
 import RankingWidget from '../components/Gamification/RankingWidget';
@@ -40,39 +27,48 @@ import AchievementsWidget from '../components/Gamification/AchievementsWidget';
 
 // Real-time data will be fetched from API - no more mock data
 
-function StatCard({ title, value, icon: Icon, trend, trendValue, isLoading }: {
-  title: string
-  value: string | number
-  icon: any
-  trend?: 'up' | 'down'
-  trendValue?: string
-  isLoading?: boolean
+function StatCard({
+  title,
+  value,
+  icon: Icon,
+  trend,
+  trendValue,
+  isLoading,
+}: {
+  title: string;
+  value: string | number;
+  icon: any;
+  trend?: 'up' | 'down';
+  trendValue?: string;
+  isLoading?: boolean;
 }) {
   if (isLoading) {
     return <StatCardSkeleton />;
   }
 
   return (
-    <div className="bg-card border border-border rounded-lg p-6 shadow-sm transition-all duration-200 hover:shadow-md">
-      <div className="flex items-center justify-between">
+    <div className='bg-card border border-border rounded-lg p-6 shadow-sm transition-all duration-200 hover:shadow-md'>
+      <div className='flex items-center justify-between'>
         <div>
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-2xl font-bold text-card-foreground">
+          <p className='text-sm font-medium text-muted-foreground'>{title}</p>
+          <p className='text-2xl font-bold text-card-foreground'>
             {typeof value === 'number' ? formatNumber(value) : value}
           </p>
           {trend && trendValue && (
-            <div className={`flex items-center mt-1 text-sm ${
-              trend === 'up' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-            }`}>
-              <TrendingUp className={`h-4 w-4 mr-1 ${
-                trend === 'down' ? 'rotate-180' : ''
-              }`} />
+            <div
+              className={`flex items-center mt-1 text-sm ${
+                trend === 'up'
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-red-600 dark:text-red-400'
+              }`}
+            >
+              <TrendingUp className={`h-4 w-4 mr-1 ${trend === 'down' ? 'rotate-180' : ''}`} />
               {trendValue}
             </div>
           )}
         </div>
-        <div className="p-3 bg-primary/10 rounded-lg">
-          <Icon className="h-6 w-6 text-primary" />
+        <div className='p-3 bg-primary/10 rounded-lg'>
+          <Icon className='h-6 w-6 text-primary' />
         </div>
       </div>
     </div>
@@ -94,11 +90,10 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [, setError] = useState<string | null>(null);
   const { addToast } = useToast();
-  
-  
+
   // Use the guild ID from environment
   const guildId = import.meta.env.VITE_GUILD_ID || '1409723307489755270';
-  
+
   // WebSocket connection for real-time updates
   const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3002';
   const { lastMessage, sendMessage } = useWebSocket(wsUrl, {
@@ -108,9 +103,9 @@ export default function Dashboard() {
       sendMessage('subscribe:dashboard', guildId);
     },
     onClose: () => console.log('WebSocket disconnected'),
-    onError: (error) => console.error('WebSocket error:', error),
+    onError: error => console.error('WebSocket error:', error),
   });
-  
+
   const fetchStats = async (isManualRefresh = false) => {
     try {
       if (isManualRefresh) {
@@ -118,15 +113,15 @@ export default function Dashboard() {
       } else {
         setLoading(true);
       }
-      
+
       // Fetch real data from API
       const [guildStats, commands] = await Promise.all([
         apiService.getGuildStats(guildId),
         apiService.getCommands(),
       ]);
-      
+
       setStats(guildStats);
-      
+
       // Process command usage data (top 8 commands)
       if (commands && commands.length > 0) {
         const sortedCommands = commands
@@ -138,7 +133,7 @@ export default function Dashboard() {
           }));
         setCommandUsage(sortedCommands);
       }
-      
+
       // Generate activity data for last 24h (mock for now, can be replaced with real data)
       const now = new Date();
       const activityPoints = [];
@@ -150,16 +145,16 @@ export default function Dashboard() {
         activityPoints.push({ time: hour, commands });
       }
       setActivityData(activityPoints);
-      
+
       setError(null);
-      
+
       if (isManualRefresh) {
         addToast(toast.success('Dados atualizados com sucesso!'));
       }
     } catch (err) {
       console.error('Failed to fetch stats:', err);
       setError('Falha ao carregar estatísticas');
-      
+
       if (isManualRefresh) {
         addToast(toast.error('Erro ao atualizar dados', 'Tente novamente em alguns instantes'));
       }
@@ -171,30 +166,30 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchStats();
-    
+
     // Refresh stats every 30 seconds
     const interval = setInterval(() => fetchStats(), 30000);
     return () => clearInterval(interval);
   }, [guildId]);
-  
+
   // Handle WebSocket messages for real-time updates
-   useEffect(() => {
-     if (lastMessage && lastMessage.type === 'stats') {
-       setStats(lastMessage.data);
-     }
-   }, [lastMessage]);
+  useEffect(() => {
+    if (lastMessage && lastMessage.type === 'stats') {
+      setStats(lastMessage.data);
+    }
+  }, [lastMessage]);
 
   return (
-    <div className="space-y-6">
+    <div className='space-y-6'>
       {/* Header with Refresh Button */}
-      <div className="flex items-center justify-between">
+      <div className='flex items-center justify-between'>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Visão geral das estatísticas do servidor</p>
+          <h1 className='text-2xl font-bold text-foreground'>Dashboard</h1>
+          <p className='text-muted-foreground'>Visão geral das estatísticas do servidor</p>
         </div>
         <button
           onClick={() => fetchStats(true)}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          className='px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors'
           disabled={loading || refreshing}
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
@@ -203,45 +198,45 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="dashboard-stats">
+      <div className='dashboard-stats'>
         <StatCard
-          title="Total de Usuários"
+          title='Total de Usuários'
           value={stats?.users.total || 0}
           icon={Users}
-          trend="up"
-          trendValue="+12%"
+          trend='up'
+          trendValue='+12%'
           isLoading={loading}
         />
         <StatCard
-          title="Usuários Ativos"
+          title='Usuários Ativos'
           value={stats?.users.active || 0}
           icon={Server}
-          trend="up"
-          trendValue="+5%"
+          trend='up'
+          trendValue='+5%'
           isLoading={loading}
         />
         <StatCard
-          title="Mensagens Totais"
+          title='Mensagens Totais'
           value={stats?.economy.totalMessages || 0}
           icon={Command}
-          trend="up"
-          trendValue="+18%"
+          trend='up'
+          trendValue='+18%'
           isLoading={loading}
         />
         <StatCard
-          title="XP Total"
+          title='XP Total'
           value={stats?.economy.totalXP || 0}
           icon={Activity}
           isLoading={loading}
         />
         <StatCard
-          title="Moedas Totais"
+          title='Moedas Totais'
           value={stats?.economy.totalCoins || 0}
           icon={Bot}
           isLoading={loading}
         />
         <StatCard
-          title="Badges"
+          title='Badges'
           value={stats?.engagement.badges || 0}
           icon={Command}
           isLoading={loading}
@@ -249,24 +244,24 @@ export default function Dashboard() {
       </div>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>
         {/* Command Usage Chart */}
         {loading ? (
           <ChartSkeleton />
         ) : (
-          <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-card-foreground mb-4">
+          <div className='bg-card border border-border rounded-lg p-6 shadow-sm'>
+            <h3 className='text-lg font-semibold text-card-foreground mb-4'>
               Comandos Mais Usados
             </h3>
-            <div className="analytics-chart-container">
-               <ResponsiveContainer width="100%" height={300}>
+            <div className='analytics-chart-container'>
+              <ResponsiveContainer width='100%' height={300}>
                 <BarChart data={commandUsage}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              </BarChart>
+                  <CartesianGrid strokeDasharray='3 3' />
+                  <XAxis dataKey='name' />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey='count' fill='#3b82f6' radius={[4, 4, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
@@ -276,21 +271,21 @@ export default function Dashboard() {
         {loading ? (
           <ChartSkeleton />
         ) : (
-          <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-card-foreground mb-4">
+          <div className='bg-card border border-border rounded-lg p-6 shadow-sm'>
+            <h3 className='text-lg font-semibold text-card-foreground mb-4'>
               Atividade nas Últimas 24h
             </h3>
-            <div className="analytics-chart-container">
-              <ResponsiveContainer width="100%" height={300}>
+            <div className='analytics-chart-container'>
+              <ResponsiveContainer width='100%' height={300}>
                 <LineChart data={activityData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="time" />
+                  <CartesianGrid strokeDasharray='3 3' />
+                  <XAxis dataKey='time' />
                   <YAxis />
                   <Tooltip />
                   <Line
-                    type="monotone"
-                    dataKey="commands"
-                    stroke="#10b981"
+                    type='monotone'
+                    dataKey='commands'
+                    stroke='#10b981'
                     strokeWidth={3}
                     dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
                   />
@@ -302,22 +297,20 @@ export default function Dashboard() {
       </div>
 
       {/* Guild Types and Recent Activity */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className='grid grid-cols-1 gap-6 lg:grid-cols-3'>
         {/* Guild Types */}
-        <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-card-foreground mb-4">
-            Tipos de Servidores
-          </h3>
-          <ResponsiveContainer width="100%" height={250}>
+        <div className='bg-card border border-border rounded-lg p-6 shadow-sm'>
+          <h3 className='text-lg font-semibold text-card-foreground mb-4'>Tipos de Servidores</h3>
+          <ResponsiveContainer width='100%' height={250}>
             <PieChart>
               <Pie
                 data={mockGuildTypes}
-                cx="50%"
-                cy="50%"
+                cx='50%'
+                cy='50%'
                 innerRadius={60}
                 outerRadius={100}
                 paddingAngle={5}
-                dataKey="value"
+                dataKey='value'
               >
                 {mockGuildTypes.map((entry: any, index: number) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
@@ -326,30 +319,26 @@ export default function Dashboard() {
               <Tooltip />
             </PieChart>
           </ResponsiveContainer>
-          <div className="mt-4 space-y-2">
+          <div className='mt-4 space-y-2'>
             {mockGuildTypes.map((type: any) => (
-              <div key={type.name} className="flex items-center justify-between">
-                <div className="flex items-center">
+              <div key={type.name} className='flex items-center justify-between'>
+                <div className='flex items-center'>
                   <div
-                    className="w-3 h-3 rounded-full mr-2"
+                    className='w-3 h-3 rounded-full mr-2'
                     style={{ backgroundColor: type.color }}
                   />
-                  <span className="text-sm text-muted-foreground">{type.name}</span>
+                  <span className='text-sm text-muted-foreground'>{type.name}</span>
                 </div>
-                <span className="text-sm font-medium text-card-foreground">
-                  {type.value}%
-                </span>
+                <span className='text-sm font-medium text-card-foreground'>{type.value}%</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-card border border-border rounded-lg p-6 shadow-sm lg:col-span-2">
-          <h3 className="text-lg font-semibold text-card-foreground mb-4">
-            Atividade Recente
-          </h3>
-          <div className="space-y-4">
+        <div className='bg-card border border-border rounded-lg p-6 shadow-sm lg:col-span-2'>
+          <h3 className='text-lg font-semibold text-card-foreground mb-4'>Atividade Recente</h3>
+          <div className='space-y-4'>
             {[
               {
                 action: 'Novo servidor adicionado',
@@ -376,24 +365,23 @@ export default function Dashboard() {
                 type: 'error',
               },
             ].map((activity, index) => (
-              <div key={index} className="flex items-center space-x-3">
-                <div className={`w-2 h-2 rounded-full ${
-                  activity.type === 'success' ? 'bg-green-500' :
-                  activity.type === 'info' ? 'bg-blue-500' :
-                  activity.type === 'warning' ? 'bg-yellow-500' :
-                  'bg-red-500'
-                }`} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-card-foreground">
-                    {activity.action}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {activity.server}
-                  </p>
+              <div key={index} className='flex items-center space-x-3'>
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    activity.type === 'success'
+                      ? 'bg-green-500'
+                      : activity.type === 'info'
+                        ? 'bg-blue-500'
+                        : activity.type === 'warning'
+                          ? 'bg-yellow-500'
+                          : 'bg-red-500'
+                  }`}
+                />
+                <div className='flex-1 min-w-0'>
+                  <p className='text-sm font-medium text-card-foreground'>{activity.action}</p>
+                  <p className='text-sm text-muted-foreground'>{activity.server}</p>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  {activity.time}
-                </div>
+                <div className='text-sm text-muted-foreground'>{activity.time}</div>
               </div>
             ))}
           </div>
@@ -401,46 +389,29 @@ export default function Dashboard() {
       </div>
 
       {/* Gamification Section */}
-      <div className="mt-8">
-        <h2 className="text-2xl font-bold text-card-foreground mb-6">Sistema de Gamificação</h2>
-        
+      <div className='mt-8'>
+        <h2 className='text-2xl font-bold text-card-foreground mb-6'>Sistema de Gamificação</h2>
+
         {/* Gamification Grid */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+        <div className='grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3'>
           {/* XP and Level Widget */}
-          <XPWidget 
-            guildId={guildId}
-            showRanking={true}
-            showProgress={true}
-          />
-          
+          <XPWidget guildId={guildId} showRanking={true} showProgress={true} />
+
           {/* Badges Widget */}
-          <BadgesWidget 
-            guildId={guildId}
-            showProgress={true}
-            showRarity={true}
-          />
-          
+          <BadgesWidget guildId={guildId} showProgress={true} showRarity={true} />
+
           {/* Mini-Games Widget */}
-          <MiniGamesWidget 
-            guildId={guildId}
-            showStats={true}
-            showActiveGames={true}
-          />
+          <MiniGamesWidget guildId={guildId} showStats={true} showActiveGames={true} />
         </div>
-        
+
         {/* Second Row - Ranking and Achievements */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mt-6">
+        <div className='grid grid-cols-1 gap-6 lg:grid-cols-2 mt-6'>
           {/* Ranking Widget */}
-          <RankingWidget 
-            guildId={guildId}
-            type="overall"
-            limit={10}
-            showBadges={true}
-          />
-          
+          <RankingWidget guildId={guildId} type='overall' limit={10} showBadges={true} />
+
           {/* Achievements Widget */}
-          <AchievementsWidget 
-            userId="" // Will be populated when user authentication is implemented
+          <AchievementsWidget
+            userId='' // Will be populated when user authentication is implemented
             guildId={guildId}
             showChallenges={true}
             showCompleted={false}

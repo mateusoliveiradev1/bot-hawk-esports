@@ -106,16 +106,20 @@ export const defaultMonitoringConfig: MonitoringConfig = {
     enableConsole: process.env.LOG_CONSOLE !== 'false',
     enableFile: process.env.LOG_FILE !== 'false',
     enableElastic: process.env.ELASTICSEARCH_URL ? true : false,
-    elasticConfig: process.env.ELASTICSEARCH_URL ? {
-      host: process.env.ELASTICSEARCH_URL,
-      index: process.env.ELASTICSEARCH_INDEX || 'bot-hawk-logs',
-      apiKey: process.env.ELASTICSEARCH_API_KEY,
-    } : undefined,
+    elasticConfig: process.env.ELASTICSEARCH_URL
+      ? {
+          host: process.env.ELASTICSEARCH_URL,
+          index: process.env.ELASTICSEARCH_INDEX || 'bot-hawk-logs',
+          apiKey: process.env.ELASTICSEARCH_API_KEY,
+        }
+      : undefined,
     enableDiscord: process.env.DISCORD_LOG_WEBHOOK ? true : false,
-    discordConfig: process.env.DISCORD_LOG_WEBHOOK ? {
-      webhookUrl: process.env.DISCORD_LOG_WEBHOOK,
-      minLevel: process.env.DISCORD_LOG_MIN_LEVEL || 'error',
-    } : undefined,
+    discordConfig: process.env.DISCORD_LOG_WEBHOOK
+      ? {
+          webhookUrl: process.env.DISCORD_LOG_WEBHOOK,
+          minLevel: process.env.DISCORD_LOG_MIN_LEVEL || 'error',
+        }
+      : undefined,
   },
   alerts: {
     enabled: process.env.ALERTS_ENABLED !== 'false',
@@ -148,7 +152,9 @@ export const defaultMonitoringConfig: MonitoringConfig = {
       webhook: {
         enabled: process.env.ALERT_WEBHOOK_URL ? true : false,
         url: process.env.ALERT_WEBHOOK_URL || '',
-        headers: process.env.ALERT_WEBHOOK_HEADERS ? JSON.parse(process.env.ALERT_WEBHOOK_HEADERS) : {},
+        headers: process.env.ALERT_WEBHOOK_HEADERS
+          ? JSON.parse(process.env.ALERT_WEBHOOK_HEADERS)
+          : {},
         timeout: parseInt(process.env.ALERT_WEBHOOK_TIMEOUT || '5000'),
       },
     },
@@ -191,12 +197,12 @@ export const defaultMonitoringConfig: MonitoringConfig = {
   healthCheck: {
     interval: parseInt(process.env.HEALTH_CHECK_INTERVAL || '30000'), // 30 seconds
     timeout: parseInt(process.env.HEALTH_CHECK_TIMEOUT || '5000'),
-    retries: parseInt(process.env.HEALTH_CHECK_RETRIES || '3')
+    retries: parseInt(process.env.HEALTH_CHECK_RETRIES || '3'),
   },
   metrics: {
     enabled: process.env.METRICS_ENABLED !== 'false',
     collectInterval: parseInt(process.env.METRICS_COLLECT_INTERVAL || '60000'), // 1 minute
-    retentionDays: parseInt(process.env.METRICS_RETENTION_DAYS || '30')
+    retentionDays: parseInt(process.env.METRICS_RETENTION_DAYS || '30'),
   },
   backup: {
     enabled: process.env.BACKUP_ENABLED !== 'false',
@@ -204,34 +210,36 @@ export const defaultMonitoringConfig: MonitoringConfig = {
       daily: process.env.BACKUP_DAILY !== 'false',
       weekly: process.env.BACKUP_WEEKLY === 'true',
       monthly: process.env.BACKUP_MONTHLY === 'true',
-      customCron: process.env.BACKUP_CUSTOM_CRON
+      customCron: process.env.BACKUP_CUSTOM_CRON,
     },
     retention: {
       daily: parseInt(process.env.BACKUP_RETENTION_DAILY || '7'),
       weekly: parseInt(process.env.BACKUP_RETENTION_WEEKLY || '4'),
-      monthly: parseInt(process.env.BACKUP_RETENTION_MONTHLY || '12')
+      monthly: parseInt(process.env.BACKUP_RETENTION_MONTHLY || '12'),
     },
     compression: {
       enabled: process.env.BACKUP_COMPRESSION !== 'false',
-      level: parseInt(process.env.BACKUP_COMPRESSION_LEVEL || '6')
+      level: parseInt(process.env.BACKUP_COMPRESSION_LEVEL || '6'),
     },
     storage: {
       local: {
         enabled: true,
-        path: process.env.BACKUP_DIR || './backups'
-      }
+        path: process.env.BACKUP_DIR || './backups',
+      },
     },
     verification: {
       enabled: process.env.BACKUP_VERIFICATION !== 'false',
-      checksumAlgorithm: (process.env.BACKUP_CHECKSUM_ALGORITHM as 'md5' | 'sha256') || 'sha256'
+      checksumAlgorithm: (process.env.BACKUP_CHECKSUM_ALGORITHM as 'md5' | 'sha256') || 'sha256',
     },
     notifications: {
       enabled: process.env.BACKUP_NOTIFICATIONS_ENABLED === 'true',
       onSuccess: process.env.BACKUP_NOTIFY_SUCCESS === 'true',
       onFailure: process.env.BACKUP_NOTIFY_FAILURE !== 'false',
-      channels: process.env.BACKUP_NOTIFICATION_CHANNELS ? process.env.BACKUP_NOTIFICATION_CHANNELS.split(',') : [],
-    }
-  }
+      channels: process.env.BACKUP_NOTIFICATION_CHANNELS
+        ? process.env.BACKUP_NOTIFICATION_CHANNELS.split(',')
+        : [],
+    },
+  },
 };
 
 /**
@@ -281,7 +289,10 @@ export function getMonitoringConfig(overrides?: Partial<MonitoringConfig>): Moni
 /**
  * Validate monitoring configuration
  */
-export function validateMonitoringConfig(config: MonitoringConfig): { isValid: boolean; errors: string[] } {
+export function validateMonitoringConfig(config: MonitoringConfig): {
+  isValid: boolean;
+  errors: string[];
+} {
   const errors: string[] = [];
 
   // Validate logging configuration
@@ -301,7 +312,7 @@ export function validateMonitoringConfig(config: MonitoringConfig): { isValid: b
   // Validate alert configuration
   if (config.alerts.enabled) {
     const { discord, email, webhook } = config.alerts.channels;
-    
+
     if (discord.enabled && !discord.webhook) {
       errors.push('Discord webhook URL is required when Discord alerts are enabled');
     }
@@ -321,7 +332,7 @@ export function validateMonitoringConfig(config: MonitoringConfig): { isValid: b
 
     // Validate thresholds
     const { memoryUsage, errorRate, apiResponseTime } = config.alerts.rules;
-    
+
     if (memoryUsage.warningThreshold >= memoryUsage.criticalThreshold) {
       errors.push('Memory warning threshold must be less than critical threshold');
     }
@@ -359,6 +370,6 @@ export function validateMonitoringConfig(config: MonitoringConfig): { isValid: b
 
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 }

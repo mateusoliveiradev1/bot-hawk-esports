@@ -15,14 +15,10 @@ export default {
     .setDescription('Comandos administrativos para gerenciar a API PUBG')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(subcommand =>
-      subcommand
-        .setName('status')
-        .setDescription('Verificar status detalhado da API PUBG'),
+      subcommand.setName('status').setDescription('Verificar status detalhado da API PUBG')
     )
     .addSubcommand(subcommand =>
-      subcommand
-        .setName('health')
-        .setDescription('Executar verificação de saúde da API PUBG'),
+      subcommand.setName('health').setDescription('Executar verificação de saúde da API PUBG')
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -37,9 +33,9 @@ export default {
               { name: 'Steam', value: 'steam' },
               { name: 'Xbox', value: 'xbox' },
               { name: 'PlayStation', value: 'psn' },
-              { name: 'Stadia', value: 'stadia' },
-            ),
-        ),
+              { name: 'Stadia', value: 'stadia' }
+            )
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -52,9 +48,9 @@ export default {
             .setRequired(true)
             .addChoices(
               { name: 'Limpar Cache', value: 'clear' },
-              { name: 'Estatísticas', value: 'stats' },
-            ),
-        ),
+              { name: 'Estatísticas', value: 'stats' }
+            )
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -69,9 +65,9 @@ export default {
               { name: 'Iniciar', value: 'start' },
               { name: 'Parar', value: 'stop' },
               { name: 'Status', value: 'status' },
-              { name: 'Forçar Recuperação', value: 'recover' },
-            ),
-        ),
+              { name: 'Forçar Recuperação', value: 'recover' }
+            )
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -83,8 +79,8 @@ export default {
             .setDescription('Máximo de usuários para sincronizar')
             .setRequired(false)
             .setMinValue(1)
-            .setMaxValue(100),
-        ),
+            .setMaxValue(100)
+        )
     ),
 
   async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
@@ -127,7 +123,7 @@ export default {
       }
     } catch (error: any) {
       console.error('Erro no comando pubg-admin:', error);
-      
+
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
           content: `❌ Erro ao executar comando: ${error.message}`,
@@ -146,16 +142,16 @@ export default {
 async function handleStatusCommand(
   interaction: ChatInputCommandInteraction,
   pubgService: PUBGService,
-  pubgMonitor?: PUBGMonitorService,
+  pubgMonitor?: PUBGMonitorService
 ) {
   await interaction.deferReply({ ephemeral: true });
 
   const health = await pubgService.healthCheck();
   const cacheStats = await pubgService.getCacheStats();
-  
+
   let monitorStatus = null;
   let monitorStats = null;
-  
+
   if (pubgMonitor) {
     monitorStatus = pubgMonitor.getStatus();
     monitorStats = pubgMonitor.getStatistics();
@@ -163,7 +159,9 @@ async function handleStatusCommand(
 
   const embed = new EmbedBuilder()
     .setTitle('🎮 Status da API PUBG')
-    .setColor(health.status === 'healthy' ? 0x00ff00 : health.status === 'degraded' ? 0xffaa00 : 0xff0000)
+    .setColor(
+      health.status === 'healthy' ? 0x00ff00 : health.status === 'degraded' ? 0xffaa00 : 0xff0000
+    )
     .addFields(
       {
         name: '📊 Status Geral',
@@ -179,7 +177,7 @@ async function handleStatusCommand(
         name: '💾 Cache',
         value: `**Total de Chaves:** ${cacheStats.totalKeys}\n**Padrões:** ${Object.keys(cacheStats.patterns).length}`,
         inline: true,
-      },
+      }
     )
     .setTimestamp();
 
@@ -194,7 +192,7 @@ async function handleStatusCommand(
         name: '📈 Estatísticas',
         value: `**Total de Verificações:** ${monitorStats.totalChecks}\n**Falhas Consecutivas:** ${monitorStatus.consecutiveFailures}\n**Tempo de Resposta:** ${monitorStats.averageResponseTime}ms`,
         inline: true,
-      },
+      }
     );
   }
 
@@ -203,7 +201,7 @@ async function handleStatusCommand(
 
 async function handleHealthCommand(
   interaction: ChatInputCommandInteraction,
-  pubgService: PUBGService,
+  pubgService: PUBGService
 ) {
   await interaction.deferReply({ ephemeral: true });
 
@@ -213,7 +211,9 @@ async function handleHealthCommand(
 
   const embed = new EmbedBuilder()
     .setTitle('🏥 Verificação de Saúde da API PUBG')
-    .setColor(health.status === 'healthy' ? 0x00ff00 : health.status === 'degraded' ? 0xffaa00 : 0xff0000)
+    .setColor(
+      health.status === 'healthy' ? 0x00ff00 : health.status === 'degraded' ? 0xffaa00 : 0xff0000
+    )
     .addFields(
       {
         name: '📊 Resultado',
@@ -224,7 +224,7 @@ async function handleHealthCommand(
         name: '🔍 Detalhes',
         value: `**API Disponível:** ${health.api ? '✅ Sim' : '❌ Não'}\n**Cache Funcionando:** ${health.cache ? '✅ Sim' : '❌ Não'}\n**Circuit Breaker:** ${getCircuitBreakerEmoji(health.circuitBreaker)} ${health.circuitBreaker}`,
         inline: false,
-      },
+      }
     )
     .setTimestamp();
 
@@ -241,12 +241,13 @@ async function handleHealthCommand(
 
 async function handleTestCommand(
   interaction: ChatInputCommandInteraction,
-  pubgService: PUBGService,
+  pubgService: PUBGService
 ) {
   await interaction.deferReply({ ephemeral: true });
 
-  const platform = (interaction.options.getString('platform') as PUBGPlatform) || PUBGPlatform.STEAM;
-  
+  const platform =
+    (interaction.options.getString('platform') as PUBGPlatform) || PUBGPlatform.STEAM;
+
   const embed = new EmbedBuilder()
     .setTitle('🧪 Teste de Conectividade PUBG API')
     .setColor(0x0099ff)
@@ -273,17 +274,18 @@ async function handleTestCommand(
         name: '📅 Teste de Season',
         value: `**Season Atual:** ${currentSeason || 'N/A'}\n**Tempo:** ${seasonTestDuration}ms\n**Status:** ${currentSeason ? '✅ Sucesso' : '❌ Falha'}`,
         inline: true,
-      },
+      }
     );
 
     if (isAvailable && currentSeason) {
       embed.setColor(0x00ff00);
-      embed.setDescription('✅ Todos os testes passaram! A API PUBG está funcionando corretamente.');
+      embed.setDescription(
+        '✅ Todos os testes passaram! A API PUBG está funcionando corretamente.'
+      );
     } else {
       embed.setColor(0xff0000);
       embed.setDescription('❌ Alguns testes falharam. Verifique a configuração da API.');
     }
-
   } catch (error: any) {
     embed.setColor(0xff0000);
     embed.setDescription(`❌ Erro durante os testes: ${error.message}`);
@@ -294,7 +296,7 @@ async function handleTestCommand(
 
 async function handleCacheCommand(
   interaction: ChatInputCommandInteraction,
-  pubgService: PUBGService,
+  pubgService: PUBGService
 ) {
   await interaction.deferReply({ ephemeral: true });
 
@@ -302,7 +304,7 @@ async function handleCacheCommand(
 
   if (action === 'clear') {
     await pubgService.clearCache();
-    
+
     const embed = new EmbedBuilder()
       .setTitle('🗑️ Cache Limpo')
       .setDescription('✅ O cache da API PUBG foi limpo com sucesso.')
@@ -312,22 +314,20 @@ async function handleCacheCommand(
     await interaction.editReply({ embeds: [embed] });
   } else if (action === 'stats') {
     const stats = await pubgService.getCacheStats();
-    
+
     const embed = new EmbedBuilder()
       .setTitle('📊 Estatísticas do Cache PUBG')
       .setColor(0x0099ff)
-      .addFields(
-        {
-          name: '📈 Resumo',
-          value: `**Total de Chaves:** ${stats.totalKeys}\n**Padrões Diferentes:** ${Object.keys(stats.patterns).length}`,
-          inline: false,
-        },
-      )
+      .addFields({
+        name: '📈 Resumo',
+        value: `**Total de Chaves:** ${stats.totalKeys}\n**Padrões Diferentes:** ${Object.keys(stats.patterns).length}`,
+        inline: false,
+      })
       .setTimestamp();
 
     if (Object.keys(stats.patterns).length > 0) {
       const patternsList = Object.entries(stats.patterns)
-        .sort(([,a], [,b]) => b - a)
+        .sort(([, a], [, b]) => b - a)
         .slice(0, 10)
         .map(([pattern, count]) => `**${pattern}:** ${count}`)
         .join('\n');
@@ -345,7 +345,7 @@ async function handleCacheCommand(
 
 async function handleMonitorCommand(
   interaction: ChatInputCommandInteraction,
-  pubgMonitor?: PUBGMonitorService,
+  pubgMonitor?: PUBGMonitorService
 ) {
   if (!pubgMonitor) {
     return interaction.reply({
@@ -376,7 +376,7 @@ async function handleMonitorCommand(
     case 'status':
       const status = pubgMonitor.getStatus();
       const stats = pubgMonitor.getStatistics();
-      
+
       const embed = new EmbedBuilder()
         .setTitle('🔍 Status do Monitoramento PUBG')
         .setColor(status.isHealthy ? 0x00ff00 : 0xff0000)
@@ -390,7 +390,7 @@ async function handleMonitorCommand(
             name: '📈 Estatísticas',
             value: `**Total de Verificações:** ${stats.totalChecks}\n**Falhas Consecutivas:** ${status.consecutiveFailures}\n**Tempo de Resposta:** ${stats.averageResponseTime}ms`,
             inline: true,
-          },
+          }
         )
         .setTimestamp();
 
@@ -408,8 +408,8 @@ async function handleMonitorCommand(
     case 'recover':
       const recovered = await pubgMonitor.forceRecovery();
       await interaction.editReply({
-        content: recovered 
-          ? '✅ Recuperação forçada executada com sucesso.' 
+        content: recovered
+          ? '✅ Recuperação forçada executada com sucesso.'
           : '❌ Falha na tentativa de recuperação forçada.',
       });
       break;
@@ -418,14 +418,14 @@ async function handleMonitorCommand(
 
 async function handleSyncCommand(
   interaction: ChatInputCommandInteraction,
-  pubgService: PUBGService,
+  pubgService: PUBGService
 ) {
   await interaction.deferReply({ ephemeral: true });
 
   const maxUsers = interaction.options.getInteger('max-users') || 50;
-  
+
   const syncedUsers = await pubgService.syncAllUserStats(maxUsers);
-  
+
   const embed = new EmbedBuilder()
     .setTitle('🔄 Sincronização de Estatísticas')
     .setDescription(`Sincronização concluída para ${syncedUsers} usuários.`)
@@ -442,19 +442,27 @@ async function handleSyncCommand(
 
 function getStatusEmoji(status: string): string {
   switch (status) {
-    case 'healthy': return '✅';
-    case 'degraded': return '⚠️';
-    case 'unhealthy': return '❌';
-    default: return '❓';
+    case 'healthy':
+      return '✅';
+    case 'degraded':
+      return '⚠️';
+    case 'unhealthy':
+      return '❌';
+    default:
+      return '❓';
   }
 }
 
 function getCircuitBreakerEmoji(state: string): string {
   switch (state) {
-    case 'closed': return '🟢';
-    case 'half-open': return '🟡';
-    case 'open': return '🔴';
-    default: return '❓';
+    case 'closed':
+      return '🟢';
+    case 'half-open':
+      return '🟡';
+    case 'open':
+      return '🔴';
+    default:
+      return '❓';
   }
 }
 

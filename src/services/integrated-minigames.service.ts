@@ -1,4 +1,11 @@
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, MessageFlags } from 'discord.js';
+import {
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ComponentType,
+  MessageFlags,
+} from 'discord.js';
 import { DatabaseService } from '../database/database.service';
 import { Logger } from '../utils/logger';
 import { ExtendedClient } from '../types/client';
@@ -46,9 +53,9 @@ export interface MiniGameRewards {
   special?: { condition: string; xp: number; coins: number; badge?: string };
 }
 
-export type MiniGameType = 
-  | 'guess_the_weapon' 
-  | 'pubg_trivia_battle' 
+export type MiniGameType =
+  | 'guess_the_weapon'
+  | 'pubg_trivia_battle'
   | 'reaction_tournament'
   | 'word_association'
   | 'strategy_challenge'
@@ -79,7 +86,7 @@ export class IntegratedMiniGamesService {
   private readonly client: ExtendedClient;
   private readonly activeSessions = new Map<string, MiniGameSession>();
   private readonly tournaments = new Map<string, TournamentData>();
-  
+
   // Game definitions
   private readonly gameDefinitions: MiniGameDefinition[] = [
     {
@@ -284,15 +291,25 @@ export class IntegratedMiniGamesService {
       damage: 49,
       range: 'Medium-Long',
       ammo: '7.62mm',
-      hints: ['Rifle de assalto soviético', 'Usa munição 7.62mm', 'Alto dano por tiro', 'Recuo considerável'],
+      hints: [
+        'Rifle de assalto soviético',
+        'Usa munição 7.62mm',
+        'Alto dano por tiro',
+        'Recuo considerável',
+      ],
     },
     {
       name: 'M416',
-      category: 'Assault Rifle', 
+      category: 'Assault Rifle',
       damage: 43,
       range: 'Medium-Long',
       ammo: '5.56mm',
-      hints: ['Rifle de assalto versátil', 'Aceita muitos attachments', 'Munição 5.56mm', 'Boa estabilidade'],
+      hints: [
+        'Rifle de assalto versátil',
+        'Aceita muitos attachments',
+        'Munição 5.56mm',
+        'Boa estabilidade',
+      ],
     },
     {
       name: 'AWM',
@@ -300,7 +317,12 @@ export class IntegratedMiniGamesService {
       damage: 120,
       range: 'Long',
       ammo: '.300 Magnum',
-      hints: ['Sniper mais poderosa', 'Mata com headshot em qualquer capacete', 'Munição especial', 'Só no airdrop'],
+      hints: [
+        'Sniper mais poderosa',
+        'Mata com headshot em qualquer capacete',
+        'Munição especial',
+        'Só no airdrop',
+      ],
     },
     {
       name: 'Kar98k',
@@ -316,7 +338,12 @@ export class IntegratedMiniGamesService {
       damage: 39,
       range: 'Short-Medium',
       ammo: '.45 ACP',
-      hints: ['Submetralhadora confiável', 'Munição .45 ACP', 'Boa para close combat', 'Baixo recuo'],
+      hints: [
+        'Submetralhadora confiável',
+        'Munição .45 ACP',
+        'Boa para close combat',
+        'Baixo recuo',
+      ],
     },
   ];
 
@@ -340,10 +367,12 @@ export class IntegratedMiniGamesService {
     guildId: string,
     channelId: string,
     hostId: string,
-    customSettings?: Partial<MiniGameSettings>,
+    customSettings?: Partial<MiniGameSettings>
   ): Promise<MiniGameSession | null> {
     const gameDefinition = this.gameDefinitions.find(g => g.id === gameId);
-    if (!gameDefinition) {return null;}
+    if (!gameDefinition) {
+      return null;
+    }
 
     const sessionId = `${guildId}_${channelId}_${Date.now()}`;
     const settings = { ...gameDefinition.defaultSettings, ...customSettings };
@@ -362,7 +391,7 @@ export class IntegratedMiniGamesService {
     };
 
     this.activeSessions.set(sessionId, session);
-    
+
     this.logger.info(`Created mini-game session: ${gameId} in ${guildId}/${channelId}`);
     return session;
   }
@@ -372,10 +401,16 @@ export class IntegratedMiniGamesService {
    */
   public joinSession(sessionId: string, userId: string, username: string): boolean {
     const session = this.activeSessions.get(sessionId);
-    if (!session || session.status !== 'waiting') {return false;}
+    if (!session || session.status !== 'waiting') {
+      return false;
+    }
 
-    if (session.participants.size >= session.settings.maxParticipants) {return false;}
-    if (session.participants.has(userId)) {return false;}
+    if (session.participants.size >= session.settings.maxParticipants) {
+      return false;
+    }
+    if (session.participants.has(userId)) {
+      return false;
+    }
 
     session.participants.set(userId, {
       userId,
@@ -395,22 +430,32 @@ export class IntegratedMiniGamesService {
    */
   public async startSession(sessionId: string): Promise<boolean> {
     const session = this.activeSessions.get(sessionId);
-    if (!session || session.status !== 'waiting') {return false;}
+    if (!session || session.status !== 'waiting') {
+      return false;
+    }
 
     const gameDefinition = this.gameDefinitions.find(g => g.type === session.type);
-    if (!gameDefinition) {return false;}
+    if (!gameDefinition) {
+      return false;
+    }
 
-    if (session.participants.size < gameDefinition.minParticipants) {return false;}
+    if (session.participants.size < gameDefinition.minParticipants) {
+      return false;
+    }
 
     if (session.settings.requireReady) {
       const allReady = Array.from(session.participants.values()).every(p => p.isReady);
-      if (!allReady) {return false;}
+      if (!allReady) {
+        return false;
+      }
     }
 
     session.status = 'active';
     session.startTime = new Date();
 
-    this.logger.info(`Started mini-game session ${sessionId} with ${session.participants.size} participants`);
+    this.logger.info(
+      `Started mini-game session ${sessionId} with ${session.participants.size} participants`
+    );
     return true;
   }
 
@@ -426,7 +471,9 @@ export class IntegratedMiniGamesService {
    */
   public async endSession(sessionId: string): Promise<MiniGameSession | null> {
     const session = this.activeSessions.get(sessionId);
-    if (!session) {return null;}
+    if (!session) {
+      return null;
+    }
 
     session.status = 'finished';
     session.endTime = new Date();
@@ -435,9 +482,12 @@ export class IntegratedMiniGamesService {
     await this.processRewards(session);
 
     // Clean up after 5 minutes
-    setTimeout(() => {
-      this.activeSessions.delete(sessionId);
-    }, 5 * 60 * 1000);
+    setTimeout(
+      () => {
+        this.activeSessions.delete(sessionId);
+      },
+      5 * 60 * 1000
+    );
 
     this.logger.info(`Ended mini-game session ${sessionId}`);
     return session;
@@ -455,7 +505,7 @@ export class IntegratedMiniGamesService {
           round: 0,
           weapons: [...this.weaponData].sort(() => Math.random() - 0.5),
         };
-      
+
       case 'pubg_trivia_battle':
         return {
           questions: [],
@@ -463,7 +513,7 @@ export class IntegratedMiniGamesService {
           round: 0,
           leaderboard: new Map(),
         };
-      
+
       case 'reaction_tournament':
         return {
           bracket: [],
@@ -471,7 +521,7 @@ export class IntegratedMiniGamesService {
           round: 0,
           eliminated: new Set(),
         };
-      
+
       case 'word_association':
         return {
           currentWord: '',
@@ -479,7 +529,7 @@ export class IntegratedMiniGamesService {
           chain: [],
           round: 0,
         };
-      
+
       case 'strategy_challenge':
         return {
           scenarios: [],
@@ -487,7 +537,7 @@ export class IntegratedMiniGamesService {
           round: 0,
           solutions: new Map(),
         };
-      
+
       case 'team_battle':
         return {
           teams: new Map(),
@@ -495,7 +545,7 @@ export class IntegratedMiniGamesService {
           round: 0,
           teamScores: new Map(),
         };
-      
+
       case 'survival_quiz':
         return {
           questions: [],
@@ -503,7 +553,7 @@ export class IntegratedMiniGamesService {
           round: 0,
           streaks: new Map(),
         };
-      
+
       case 'esports_prediction':
         return {
           matches: [],
@@ -511,7 +561,7 @@ export class IntegratedMiniGamesService {
           round: 0,
           predictions: new Map(),
         };
-      
+
       default:
         return {};
     }
@@ -528,10 +578,12 @@ export class IntegratedMiniGamesService {
       for (let i = 0; i < participants.length; i++) {
         const participant = participants[i];
         const isWinner = i === 0;
-        
+
         let xpReward = isWinner ? session.rewards.winner.xp : session.rewards.participant.xp;
-        let coinReward = isWinner ? session.rewards.winner.coins : session.rewards.participant.coins;
-        
+        let coinReward = isWinner
+          ? session.rewards.winner.coins
+          : session.rewards.participant.coins;
+
         // Check for special conditions
         if (session.rewards.special && this.checkSpecialCondition(session, participant)) {
           xpReward = session.rewards.special.xp;
@@ -564,36 +616,41 @@ export class IntegratedMiniGamesService {
   /**
    * Check if participant meets special reward conditions
    */
-  private checkSpecialCondition(session: MiniGameSession, participant: MiniGameParticipant): boolean {
-    if (!session.rewards.special) {return false;}
+  private checkSpecialCondition(
+    session: MiniGameSession,
+    participant: MiniGameParticipant
+  ): boolean {
+    if (!session.rewards.special) {
+      return false;
+    }
 
     const condition = session.rewards.special.condition;
-    
+
     switch (condition) {
       case 'perfect_score':
         return participant.score === (session.settings.rounds || 5) * 100;
-      
+
       case 'fastest_answers':
         return participant.data.averageTime && participant.data.averageTime < 5000;
-      
+
       case 'sub_200ms':
         return participant.data.bestTime && participant.data.bestTime < 200;
-      
+
       case 'creative_answers':
         return participant.data.creativityScore && participant.data.creativityScore > 80;
-      
+
       case 'tactical_genius':
         return participant.score > (session.settings.rounds || 6) * 90;
-      
+
       case 'perfect_teamwork':
         return participant.data.teamworkScore && participant.data.teamworkScore === 100;
-      
+
       case 'no_mistakes':
         return participant.data.mistakes === 0;
-      
+
       case 'perfect_predictions':
         return participant.data.correctPredictions === session.settings.rounds;
-      
+
       default:
         return false;
     }
@@ -645,10 +702,19 @@ export class IntegratedMiniGamesService {
         totalXP: stats?.xp || 0,
         totalCoins: stats?.coins || 0,
         badgesEarned: stats?.badges.length || 0,
-        miniGameBadges: stats?.badges.filter(b => 
-          ['weapon_master', 'trivia_champion', 'reaction_king', 'word_wizard', 
-           'strategist', 'team_player', 'survivor', 'prophet'].includes(b.badge.id),
-        ).length || 0,
+        miniGameBadges:
+          stats?.badges.filter(b =>
+            [
+              'weapon_master',
+              'trivia_champion',
+              'reaction_king',
+              'word_wizard',
+              'strategist',
+              'team_player',
+              'survivor',
+              'prophet',
+            ].includes(b.badge.id)
+          ).length || 0,
       };
     } catch (error) {
       this.logger.error('Error getting user mini-game stats:', error);

@@ -75,8 +75,8 @@ const ToastContainer: React.FC = () => {
   const { toasts } = useEnhancedToast();
 
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm w-full">
-      {toasts.map((toast) => (
+    <div className='fixed top-4 right-4 z-50 space-y-2 max-w-sm w-full'>
+      {toasts.map(toast => (
         <ToastItem key={toast.id} toast={toast} />
       ))}
     </div>
@@ -141,33 +141,29 @@ const ToastItem: React.FC<{ toast: Toast }> = ({ toast }) => {
         'transform transition-all duration-300 ease-in-out',
         isVisible && !isRemoving
           ? 'translate-x-0 opacity-100 scale-100'
-          : 'translate-x-full opacity-0 scale-95',
+          : 'translate-x-full opacity-0 scale-95'
       )}
     >
       <div
         className={cn(
           'rounded-lg border shadow-lg backdrop-blur-sm p-4',
           config.bgColor,
-          config.borderColor,
+          config.borderColor
         )}
       >
-        <div className="flex items-start space-x-3">
+        <div className='flex items-start space-x-3'>
           <Icon className={cn('h-5 w-5 mt-0.5 flex-shrink-0', config.iconColor)} />
-          <div className="flex-1 min-w-0">
+          <div className='flex-1 min-w-0'>
             {toast.title && (
-              <h4 className={cn('text-sm font-semibold mb-1', config.textColor)}>
-                {toast.title}
-              </h4>
+              <h4 className={cn('text-sm font-semibold mb-1', config.textColor)}>{toast.title}</h4>
             )}
-            <p className={cn('text-sm', config.textColor)}>
-              {toast.message}
-            </p>
+            <p className={cn('text-sm', config.textColor)}>{toast.message}</p>
             {toast.action && (
               <button
                 onClick={toast.action.onClick}
                 className={cn(
                   'mt-2 text-xs font-medium underline hover:no-underline',
-                  config.textColor,
+                  config.textColor
                 )}
               >
                 {toast.action.label}
@@ -178,10 +174,10 @@ const ToastItem: React.FC<{ toast: Toast }> = ({ toast }) => {
             onClick={handleRemove}
             className={cn(
               'flex-shrink-0 rounded-md p-1.5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors',
-              config.textColor,
+              config.textColor
             )}
           >
-            <X className="h-4 w-4" />
+            <X className='h-4 w-4' />
           </button>
         </div>
       </div>
@@ -269,37 +265,22 @@ export const InlineNotification: React.FC<InlineNotificationProps> = ({
   const Icon = config.icon;
 
   return (
-    <div
-      className={cn(
-        'rounded-lg border p-4',
-        config.bgColor,
-        config.borderColor,
-        className,
-      )}
-    >
-      <div className="flex items-start space-x-3">
-        {showIcon && (
-          <Icon className={cn('h-5 w-5 mt-0.5 flex-shrink-0', config.iconColor)} />
-        )}
-        <div className="flex-1 min-w-0">
-          {title && (
-            <h4 className={cn('text-sm font-semibold mb-1', config.textColor)}>
-              {title}
-            </h4>
-          )}
-          <p className={cn('text-sm', config.textColor)}>
-            {message}
-          </p>
+    <div className={cn('rounded-lg border p-4', config.bgColor, config.borderColor, className)}>
+      <div className='flex items-start space-x-3'>
+        {showIcon && <Icon className={cn('h-5 w-5 mt-0.5 flex-shrink-0', config.iconColor)} />}
+        <div className='flex-1 min-w-0'>
+          {title && <h4 className={cn('text-sm font-semibold mb-1', config.textColor)}>{title}</h4>}
+          <p className={cn('text-sm', config.textColor)}>{message}</p>
         </div>
         {onClose && (
           <button
             onClick={onClose}
             className={cn(
               'flex-shrink-0 rounded-md p-1.5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors',
-              config.textColor,
+              config.textColor
             )}
           >
-            <X className="h-4 w-4" />
+            <X className='h-4 w-4' />
           </button>
         )}
       </div>

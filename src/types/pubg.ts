@@ -389,16 +389,19 @@ export interface WeaponMedal {
 export interface WeaponMasteryData {
   attributes: {
     weaponMasterySummary: {
-      weaponSummaries: Record<string, {
-        Level: number;
-        XP: number;
-        Medals: WeaponMedal[];
-        Tier?: string;
-        Kills?: number;
-        Headshots?: number;
-        Damage?: number;
-        Accuracy?: number;
-      }>;
+      weaponSummaries: Record<
+        string,
+        {
+          Level: number;
+          XP: number;
+          Medals: WeaponMedal[];
+          Tier?: string;
+          Kills?: number;
+          Headshots?: number;
+          Damage?: number;
+          Accuracy?: number;
+        }
+      >;
     };
   };
 }
@@ -419,12 +422,15 @@ export interface WeaponMasteryBadge {
  * PUBG Survival Mastery Types
  */
 export interface SurvivalMasteryData {
-  attributes: Record<string, {
-    level: number;
-    xp: number;
-    tier?: string;
-    category?: string;
-  }>;
+  attributes: Record<
+    string,
+    {
+      level: number;
+      xp: number;
+      tier?: string;
+      category?: string;
+    }
+  >;
 }
 
 export interface SurvivalMasteryBadge {
@@ -440,7 +446,7 @@ export interface SurvivalMasteryBadge {
 export enum CircuitBreakerState {
   CLOSED = 'closed',
   OPEN = 'open',
-  HALF_OPEN = 'half-open'
+  HALF_OPEN = 'half-open',
 }
 
 export interface ApiOperationResult<T> {

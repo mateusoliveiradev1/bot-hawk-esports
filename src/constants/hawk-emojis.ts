@@ -1,9 +1,9 @@
 /**
  * 🦅 Hawk Esports - Emojis e Ícones Padronizados
- * 
+ *
  * Este arquivo centraliza todos os emojis utilizados no bot para manter
  * consistência visual e facilitar manutenção.
- * 
+ *
  * @version 2.0
  * @author Hawk Esports Development Team
  */
@@ -15,7 +15,7 @@ export const HAWK_EMOJIS = {
   COMPETITIVE: '⚔️',
   VICTORY: '👑',
   ESPORTS: '🎮',
-  
+
   // Sistema e Estados
   LOADING: '⏳',
   LOADING_ALT: '⌛',
@@ -27,7 +27,7 @@ export const HAWK_EMOJIS = {
   INFO: 'ℹ️',
   QUESTION: '❓',
   EXCLAMATION: '❗',
-  
+
   // 🎮 PUBG e Gaming
   PUBG: '🎮',
   KILL: '💀',
@@ -41,7 +41,7 @@ export const HAWK_EMOJIS = {
   ARMOR: '🛡️',
   PARACHUTE: '🪂',
   VEHICLE: '🚗',
-  
+
   // 🏆 Rankings e Competição
   RANK: '🏆',
   RANKING: '📊',
@@ -53,20 +53,20 @@ export const HAWK_EMOJIS = {
   TROPHY: '🏆',
   STAR: '⭐',
   CROWN: '👑',
-  
+
   // 🏅 Badges e Raridades
   BADGE: '🏅',
   ACHIEVEMENT: '🎖️',
   REWARD: '🎁',
-  
+
   // Raridades com cores visuais
-  COMMON: '⚪',      // Branco - Comum
-  UNCOMMON: '🟢',    // Verde - Incomum
-  RARE: '🔵',        // Azul - Raro
-  EPIC: '🟣',        // Roxo - Épico
-  LEGENDARY: '🟠',   // Laranja - Lendário
-  MYTHIC: '🔴',      // Vermelho - Mítico
-  
+  COMMON: '⚪', // Branco - Comum
+  UNCOMMON: '🟢', // Verde - Incomum
+  RARE: '🔵', // Azul - Raro
+  EPIC: '🟣', // Roxo - Épico
+  LEGENDARY: '🟠', // Laranja - Lendário
+  MYTHIC: '🔴', // Vermelho - Mítico
+
   // 🎵 Sistema de Música
   MUSIC: '🎵',
   PLAY: '▶️',
@@ -80,7 +80,7 @@ export const HAWK_EMOJIS = {
   VOLUME_DOWN: '🔉',
   MUTE: '🔇',
   SPOTIFY: '🎧',
-  
+
   // 👤 Perfil e Usuário
   PROFILE: '👤',
   USER: '👥',
@@ -89,7 +89,7 @@ export const HAWK_EMOJIS = {
   LEVEL: '📈',
   XP: '⭐',
   PROGRESS: '📊',
-  
+
   // 🎯 Navegação
   FIRST: '⏮️',
   PREV: '◀️',
@@ -101,7 +101,7 @@ export const HAWK_EMOJIS = {
   DOWN: '🔽',
   LEFT: '◀️',
   RIGHT: '▶️',
-  
+
   // 🔧 Ações e Controles
   SETTINGS: '⚙️',
   ADMIN: '🔧',
@@ -113,7 +113,7 @@ export const HAWK_EMOJIS = {
   SAVE: '💾',
   CANCEL: '❌',
   CONFIRM: '✅',
-  
+
   // 🎫 Tickets e Suporte
   TICKET: '🎫',
   SUPPORT: '🆘',
@@ -121,7 +121,7 @@ export const HAWK_EMOJIS = {
   REPORT: '📝',
   BUG: '🐛',
   FEEDBACK: '💬',
-  
+
   // 🎫 Sistema de Tickets
   TICKETS: {
     ID: '🆔',
@@ -139,14 +139,12 @@ export const HAWK_EMOJIS = {
     CREATE: '➕',
     LIST: '📋',
   },
-  
+
   // 🆘 Sistema de Suporte
   SUPPORT_SYSTEM: {
     TEAM: '👥',
     HELP: '❓',
   },
-
-
 
   // 📊 Sistema de Status
   STATUS: {
@@ -155,13 +153,13 @@ export const HAWK_EMOJIS = {
     SUCCESS: '✅',
     INFO: 'ℹ️',
   },
-  
+
   // 📺 Canais
   CHANNELS: {
     TEXT: '💬',
-    VOICE: '🔊', 
+    VOICE: '🔊',
   },
-  
+
   // ⚙️ Sistema
   SYSTEM: {
     HELP: '❓',
@@ -211,7 +209,7 @@ export const HAWK_EMOJIS = {
     TIP: '💡',
     BULLET: '•',
   },
-  
+
   // 💰 Sistema de Economia
   ECONOMY: {
     MONEY: '💰',
@@ -225,7 +223,7 @@ export const HAWK_EMOJIS = {
     SELL: '💸',
     TRADE: '🔄',
   },
-  
+
   // 🏅 Sistema de Badges
   BADGES: {
     BADGE: '🏅',
@@ -244,7 +242,7 @@ export const HAWK_EMOJIS = {
     RARITY_LEGENDARY: '🟠',
     RARITY_MYTHIC: '🔴',
   },
-  
+
   // 🎮 Sistema de Gaming
   GAMING: {
     CONTROLLER: '🎮',
@@ -257,12 +255,12 @@ export const HAWK_EMOJIS = {
     TYPES: '📋',
     GAME: '🎮',
   },
-  
+
   // 🔍 Sistema de Filtros
   FILTERS: {
     TYPE: '🔍',
   },
-  
+
   // ⏰ Sistema de Tempo
   TIME: {
     DURATION: '⏰',
@@ -274,8 +272,6 @@ export const HAWK_EMOJIS = {
     LAST_SEEN: '👁️',
     CALENDAR: '📅',
   },
-  
-
 
   // 🎯 Sistema de Ações
   ACTIONS: {
@@ -297,7 +293,7 @@ export const HAWK_EMOJIS = {
   EVENTS: {
     PARTICIPATION: '🎉',
   },
-  
+
   // 💰 Economia
   COIN: '🪙',
   MONEY: '💰',
@@ -306,7 +302,7 @@ export const HAWK_EMOJIS = {
   BUY: '💳',
   SELL: '💸',
   TRADE: '🔄',
-  
+
   // 🎯 Mini-Games
   GAME: '🎯',
   DICE: '🎲',
@@ -314,7 +310,7 @@ export const HAWK_EMOJIS = {
   SLOT_MACHINE: '🎰',
   PUZZLE: '🧩',
   CHALLENGE: '⚡',
-  
+
   // 📅 Tempo e Eventos
   CALENDAR: '📅',
   CLOCK: '🕐',
@@ -322,20 +318,20 @@ export const HAWK_EMOJIS = {
   EVENT: '🎉',
   BIRTHDAY: '🎂',
   ANNIVERSARY: '🎊',
-  
+
   // 🌐 Status de Usuário
   ONLINE: '🟢',
   OFFLINE: '⚫',
   IDLE: '🟡',
   DND: '🔴',
   INVISIBLE: '⚪',
-  
+
   // 📱 Dispositivos e Plataformas
   MOBILE: '📱',
   DESKTOP: '💻',
   WEB: '🌐',
   DISCORD: '💬',
-  
+
   // 🔒 Segurança e Permissões
   LOCK: '🔒',
   UNLOCK: '🔓',
@@ -343,40 +339,40 @@ export const HAWK_EMOJIS = {
   SHIELD: '🛡️',
   VERIFIED: '✅',
   BANNED: '🚫',
-  
+
   // 📊 Logs e Monitoramento
   LOG: '📋',
   MONITOR: '📊',
   ALERT: '🚨',
   NOTIFICATION: '🔔',
   MESSAGE: '💬',
-  
+
   // 🎨 Visual e Design
   PALETTE: '🎨',
   BRUSH: '🖌️',
   IMAGE: '🖼️',
   CAMERA: '📷',
   VIDEO: '🎥',
-  
+
   // 🔗 Links e Conexões
   LINK: '🔗',
   CHAIN: '⛓️',
   CONNECT: '🔌',
   DISCONNECT: '🔌',
-  
+
   // 📈 Estatísticas e Análises
   CHART: '📈',
   GRAPH: '📊',
   ANALYTICS: '📉',
   METRICS: '📏',
-  
+
   // 🎪 Especiais e Eventos
   PARTY: '🎉',
   CELEBRATION: '🎊',
   FIREWORKS: '🎆',
   SPARKLES: '✨',
   MAGIC: '🪄',
-  
+
   // 🏢 Servidor e Comunidade
   SERVER: '🏢',
   COMMUNITY: '👥',
@@ -389,7 +385,7 @@ export const HAWK_EMOJIS = {
 /**
  * Tipo para garantir que apenas emojis válidos sejam utilizados
  */
-export type HawkEmoji = typeof HAWK_EMOJIS[keyof typeof HAWK_EMOJIS];
+export type HawkEmoji = (typeof HAWK_EMOJIS)[keyof typeof HAWK_EMOJIS];
 
 /**
  * Utilitários para trabalhar com emojis
@@ -407,10 +403,10 @@ export class EmojiUtils {
       legendary: HAWK_EMOJIS.LEGENDARY,
       mythic: HAWK_EMOJIS.MYTHIC,
     };
-    
+
     return rarityMap[rarity.toLowerCase()] || HAWK_EMOJIS.COMMON;
   }
-  
+
   /**
    * Obtém emoji por status de usuário
    */
@@ -422,10 +418,10 @@ export class EmojiUtils {
       dnd: HAWK_EMOJIS.DND,
       invisible: HAWK_EMOJIS.INVISIBLE,
     };
-    
+
     return statusMap[status.toLowerCase()] || HAWK_EMOJIS.OFFLINE;
   }
-  
+
   /**
    * Obtém emoji de loading animado
    */
@@ -436,22 +432,26 @@ export class EmojiUtils {
       HAWK_EMOJIS.REFRESH,
       HAWK_EMOJIS.FAST,
     ];
-    
+
     return loadingEmojis[step % loadingEmojis.length];
   }
-  
+
   /**
    * Obtém emoji por posição no ranking
    */
   static getRankingEmoji(position: number): string {
     switch (position) {
-      case 1: return HAWK_EMOJIS.FIRST_PLACE;
-      case 2: return HAWK_EMOJIS.SECOND_PLACE;
-      case 3: return HAWK_EMOJIS.THIRD_PLACE;
-      default: return HAWK_EMOJIS.MEDAL;
+      case 1:
+        return HAWK_EMOJIS.FIRST_PLACE;
+      case 2:
+        return HAWK_EMOJIS.SECOND_PLACE;
+      case 3:
+        return HAWK_EMOJIS.THIRD_PLACE;
+      default:
+        return HAWK_EMOJIS.MEDAL;
     }
   }
-  
+
   /**
    * Cria barra de progresso com emojis
    */
@@ -459,21 +459,24 @@ export class EmojiUtils {
     const percentage = Math.min(current / max, 1);
     const filled = Math.floor(percentage * length);
     const empty = length - filled;
-    
+
     return '█'.repeat(filled) + '░'.repeat(empty);
   }
-  
+
   /**
    * Formata número com emoji apropriado
    */
-  static formatNumberWithEmoji(number: number, type: 'kills' | 'damage' | 'wins' | 'coins'): string {
+  static formatNumberWithEmoji(
+    number: number,
+    type: 'kills' | 'damage' | 'wins' | 'coins'
+  ): string {
     const emojiMap = {
       kills: HAWK_EMOJIS.KILL,
       damage: HAWK_EMOJIS.DAMAGE,
       wins: HAWK_EMOJIS.WIN,
       coins: HAWK_EMOJIS.COIN,
     };
-    
+
     return `${emojiMap[type]} ${number.toLocaleString()}`;
   }
 }
@@ -490,7 +493,7 @@ export const EMOJI_CONTEXTS = {
     next: HAWK_EMOJIS.NEXT,
     last: HAWK_EMOJIS.LAST,
   },
-  
+
   // Controles de música
   MUSIC_CONTROLS: {
     play: HAWK_EMOJIS.PLAY,
@@ -501,7 +504,7 @@ export const EMOJI_CONTEXTS = {
     shuffle: HAWK_EMOJIS.SHUFFLE,
     repeat: HAWK_EMOJIS.REPEAT,
   },
-  
+
   // Estados do sistema
   SYSTEM_STATUS: {
     success: HAWK_EMOJIS.SUCCESS,
@@ -510,7 +513,7 @@ export const EMOJI_CONTEXTS = {
     info: HAWK_EMOJIS.INFO,
     loading: HAWK_EMOJIS.LOADING,
   },
-  
+
   // Ações principais
   MAIN_ACTIONS: {
     profile: HAWK_EMOJIS.PROFILE,

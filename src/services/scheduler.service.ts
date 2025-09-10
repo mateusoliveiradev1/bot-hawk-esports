@@ -87,7 +87,11 @@ export class SchedulerService {
 
     try {
       this.rankingService = new RankingService(client);
-      this.badgeService = new BadgeService(client, (client as any).xpService, (client as any).services?.logging);
+      this.badgeService = new BadgeService(
+        client,
+        (client as any).xpService,
+        (client as any).services?.logging
+      );
       this.presenceService = new PresenceService(client);
       this.clipService = new ClipService(client);
       this.weaponMasteryService = new WeaponMasteryService(client);
@@ -421,7 +425,7 @@ export class SchedulerService {
         {
           scheduled: false,
           timezone: 'America/Sao_Paulo',
-        },
+        }
       );
 
       job.start();
@@ -537,7 +541,7 @@ export class SchedulerService {
       } else {
         // Use weighted average (70% old, 30% new) for smoother transitions
         task.averageExecutionTime = Math.round(
-          task.averageExecutionTime * 0.7 + execution.duration * 0.3,
+          task.averageExecutionTime * 0.7 + execution.duration * 0.3
         );
       }
 
@@ -556,7 +560,7 @@ export class SchedulerService {
         const errorRate = task.errorCount / task.runCount;
         if (errorRate > 0.8) {
           this.logger.warn(
-            `Task ${task.name} has high error rate (${Math.round(errorRate * 100)}%), consider reviewing`,
+            `Task ${task.name} has high error rate (${Math.round(errorRate * 100)}%), consider reviewing`
           );
         }
       }
@@ -619,7 +623,7 @@ export class SchedulerService {
             this.logger.error('Error during task health monitoring:', error);
           }
         },
-        5 * 60 * 1000,
+        5 * 60 * 1000
       );
 
       // Log statistics every hour
@@ -631,7 +635,7 @@ export class SchedulerService {
             this.logger.error('Error during statistics logging:', error);
           }
         },
-        60 * 60 * 1000,
+        60 * 60 * 1000
       );
 
       this.logger.info('Scheduler monitoring started successfully');
@@ -673,7 +677,7 @@ export class SchedulerService {
           const maxInterval = 24 * 60 * 60 * 1000; // 24 hours
           if (timeSinceLastRun > maxInterval) {
             this.logger.warn(
-              `Task ${task.name} hasn't run for ${Math.round(timeSinceLastRun / 1000 / 60 / 60)} hours`,
+              `Task ${task.name} hasn't run for ${Math.round(timeSinceLastRun / 1000 / 60 / 60)} hours`
             );
             isHealthy = false;
           }
@@ -685,7 +689,7 @@ export class SchedulerService {
           if (errorRate > 0.5) {
             // More than 50% failure rate
             this.logger.warn(
-              `Task ${task.name} has high error rate: ${Math.round(errorRate * 100)}%`,
+              `Task ${task.name} has high error rate: ${Math.round(errorRate * 100)}%`
             );
             isHealthy = false;
 
@@ -712,7 +716,7 @@ export class SchedulerService {
 
       if (unhealthyTasks > 0 || restartedTasks > 0) {
         this.logger.info(
-          `Task health check completed - Healthy: ${healthyTasks}, Unhealthy: ${unhealthyTasks}, Restarted: ${restartedTasks}`,
+          `Task health check completed - Healthy: ${healthyTasks}, Unhealthy: ${unhealthyTasks}, Restarted: ${restartedTasks}`
         );
       }
     } catch (error) {
@@ -966,7 +970,7 @@ export class SchedulerService {
             } catch (error) {
               this.logger.error(
                 `Failed to update PUBG ranking for user ${user.id} in guild ${userGuild.guildId}:`,
-                error,
+                error
               );
             }
           }
@@ -1173,7 +1177,7 @@ export class SchedulerService {
    */
   private async generateChallengesForGuild(
     guildId: string,
-    period: 'daily' | 'weekly' | 'monthly',
+    period: 'daily' | 'weekly' | 'monthly'
   ): Promise<any[]> {
     // This would generate appropriate challenges based on the period
     // For now, return empty array
@@ -1286,7 +1290,7 @@ export class SchedulerService {
   private async sendRankingNotification(
     guildId: string,
     period: string,
-    ranking: any[],
+    ranking: any[]
   ): Promise<void> {
     try {
       const guild = this.client.guilds.cache.get(guildId);
@@ -1296,7 +1300,7 @@ export class SchedulerService {
 
       // Find announcement channel
       const announcementChannel = guild.channels.cache.find(
-        channel => channel.name.includes('anúncios') || channel.name.includes('announcements'),
+        channel => channel.name.includes('anúncios') || channel.name.includes('announcements')
       ) as TextChannel;
 
       if (!announcementChannel) {
@@ -1330,7 +1334,7 @@ export class SchedulerService {
   private async sendChallengeNotification(
     guildId: string,
     period: string,
-    challenges: any[],
+    challenges: any[]
   ): Promise<void> {
     // Implementation for challenge notifications
   }
@@ -1446,7 +1450,7 @@ export class SchedulerService {
       }
 
       const announcementChannel = guild.channels.cache.find(
-        channel => channel.name.includes('anúncios') || channel.name.includes('announcements'),
+        channel => channel.name.includes('anúncios') || channel.name.includes('announcements')
       ) as TextChannel;
 
       if (!announcementChannel) {
@@ -1475,7 +1479,7 @@ export class SchedulerService {
             inline: true,
           },
           { name: '🎬 Clips Enviados', value: report.uploadedClips.toString(), inline: true },
-          { name: '🏆 Badges Conquistadas', value: report.earnedBadges.toString(), inline: true },
+          { name: '🏆 Badges Conquistadas', value: report.earnedBadges.toString(), inline: true }
         )
         .setTimestamp();
 
@@ -1524,7 +1528,7 @@ export class SchedulerService {
           try {
             const synced = await this.weaponMasteryService.syncUserWeaponMastery(
               user.id,
-              user.pubgUsername!,
+              user.pubgUsername!
             );
 
             if (synced) {
@@ -1547,7 +1551,7 @@ export class SchedulerService {
 
       this.logger.info(
         'Weapon mastery synchronization completed. ' +
-          `Synced: ${syncedCount}, Errors: ${errorCount}, Total: ${users.length}`,
+          `Synced: ${syncedCount}, Errors: ${errorCount}, Total: ${users.length}`
       );
     } catch (error) {
       this.logger.error('Failed to sync weapon mastery data:', error);
@@ -1626,7 +1630,7 @@ export class SchedulerService {
             });
             this.logger.error(
               `Ticket cleanup failed permanently for channel ${task.channelId}:`,
-              error,
+              error
             );
           } else {
             // Schedule retry
@@ -1641,7 +1645,7 @@ export class SchedulerService {
               },
             });
             this.logger.warn(
-              `Ticket cleanup retry ${retryCount}/${maxRetries} scheduled for channel ${task.channelId}`,
+              `Ticket cleanup retry ${retryCount}/${maxRetries} scheduled for channel ${task.channelId}`
             );
           }
         }
@@ -1687,7 +1691,7 @@ export class SchedulerService {
 
       // Count active tasks (enabled tasks with running cron jobs)
       const activeTasks = Array.from(this.tasks.values()).filter(
-        task => task.enabled && this.cronJobs.has(task.id),
+        task => task.enabled && this.cronJobs.has(task.id)
       ).length;
 
       return {

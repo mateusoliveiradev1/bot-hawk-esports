@@ -46,8 +46,10 @@ class ProductionCacheService extends EventEmitter {
   private async initializeRedis(): Promise<void> {
     try {
       if (!productionConfig.redis.url) {
-        productionLogger.warn('Redis URL not provided, using memory fallback', 
-          createLogContext(LogCategory.CACHE));
+        productionLogger.warn(
+          'Redis URL not provided, using memory fallback',
+          createLogContext(LogCategory.CACHE)
+        );
         return;
       }
 
@@ -62,16 +64,17 @@ class ProductionCacheService extends EventEmitter {
 
       this.redis.on('connect', () => {
         this.isRedisConnected = true;
-        productionLogger.info('Redis connected successfully', 
-          createLogContext(LogCategory.CACHE));
+        productionLogger.info('Redis connected successfully', createLogContext(LogCategory.CACHE));
       });
 
-      this.redis.on('error', (error) => {
+      this.redis.on('error', error => {
         this.isRedisConnected = false;
         this.stats.errors++;
-        productionLogger.error('Redis connection error', 
-          createLogContext(LogCategory.CACHE, { error }));
-        
+        productionLogger.error(
+          'Redis connection error',
+          createLogContext(LogCategory.CACHE, { error })
+        );
+
         productionMonitoring.createAlert('warning', 'redis', 'Redis connection error', {
           error: error.message,
         });
@@ -79,25 +82,24 @@ class ProductionCacheService extends EventEmitter {
 
       this.redis.on('close', () => {
         this.isRedisConnected = false;
-        productionLogger.warn('Redis connection closed', 
-          createLogContext(LogCategory.CACHE));
+        productionLogger.warn('Redis connection closed', createLogContext(LogCategory.CACHE));
       });
 
       this.redis.on('reconnecting', () => {
-        productionLogger.info('Redis reconnecting...', 
-          createLogContext(LogCategory.CACHE));
+        productionLogger.info('Redis reconnecting...', createLogContext(LogCategory.CACHE));
       });
 
       // Test connection
       await this.redis.connect();
       await this.redis.ping();
-      
     } catch (error) {
       this.isRedisConnected = false;
-      productionLogger.error('Failed to initialize Redis', 
+      productionLogger.error(
+        'Failed to initialize Redis',
         createLogContext(LogCategory.CACHE, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }));
+        })
+      );
     }
   }
 
@@ -106,17 +108,19 @@ class ProductionCacheService extends EventEmitter {
     this.cleanupInterval = setInterval(() => {
       const now = Date.now();
       let cleaned = 0;
-      
+
       for (const [key, item] of this.fallbackCache.entries()) {
         if (item.expires < now) {
           this.fallbackCache.delete(key);
           cleaned++;
         }
       }
-      
+
       if (cleaned > 0) {
-        productionLogger.debug(`Cleaned ${cleaned} expired keys from fallback cache`, 
-          createLogContext(LogCategory.CACHE));
+        productionLogger.debug(
+          `Cleaned ${cleaned} expired keys from fallback cache`,
+          createLogContext(LogCategory.CACHE)
+        );
       }
     }, 300000); // 5 minutes
   }
@@ -130,10 +134,12 @@ class ProductionCacheService extends EventEmitter {
     try {
       return JSON.stringify(value);
     } catch (error) {
-      productionLogger.error('Failed to serialize cache value', 
+      productionLogger.error(
+        'Failed to serialize cache value',
         createLogContext(LogCategory.CACHE, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }));
+        })
+      );
       throw error;
     }
   }
@@ -142,10 +148,12 @@ class ProductionCacheService extends EventEmitter {
     try {
       return JSON.parse(value);
     } catch (error) {
-      productionLogger.error('Failed to deserialize cache value', 
+      productionLogger.error(
+        'Failed to deserialize cache value',
         createLogContext(LogCategory.CACHE, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }));
+        })
+      );
       return value; // Return as string if JSON parsing fails
     }
   }
@@ -174,32 +182,38 @@ class ProductionCacheService extends EventEmitter {
       if (value !== null) {
         this.stats.hits++;
         productionMonitoring.incrementCounter('cacheHits');
-        
-        productionLogger.debug(`Cache hit: ${key}`, 
+
+        productionLogger.debug(
+          `Cache hit: ${key}`,
           createLogContext(LogCategory.CACHE, {
             duration,
             metadata: { key: fullKey },
-          }));
+          })
+        );
 
-        return options.serialize !== false ? this.deserialize(value) : value as T;
+        return options.serialize !== false ? this.deserialize(value) : (value as T);
       } else {
         this.stats.misses++;
         productionMonitoring.incrementCounter('cacheMisses');
-        
-        productionLogger.debug(`Cache miss: ${key}`, 
+
+        productionLogger.debug(
+          `Cache miss: ${key}`,
           createLogContext(LogCategory.CACHE, {
             duration,
             metadata: { key: fullKey },
-          }));
+          })
+        );
 
         return null;
       }
     } catch (error) {
       this.stats.errors++;
-      productionLogger.error(`Cache get error: ${key}`, 
+      productionLogger.error(
+        `Cache get error: ${key}`,
         createLogContext(LogCategory.CACHE, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }));
+        })
+      );
       return null;
     }
   }
@@ -218,7 +232,7 @@ class ProductionCacheService extends EventEmitter {
         // Fallback to memory cache
         this.fallbackCache.set(fullKey, {
           value: serializedValue,
-          expires: Date.now() + (ttl * 1000),
+          expires: Date.now() + ttl * 1000,
         });
 
         // Limit memory cache size
@@ -231,19 +245,23 @@ class ProductionCacheService extends EventEmitter {
       this.stats.sets++;
       const duration = Date.now() - startTime;
 
-      productionLogger.debug(`Cache set: ${key}`, 
+      productionLogger.debug(
+        `Cache set: ${key}`,
         createLogContext(LogCategory.CACHE, {
           duration,
           metadata: { key: fullKey, ttl },
-        }));
+        })
+      );
 
       return true;
     } catch (error) {
       this.stats.errors++;
-      productionLogger.error(`Cache set error: ${key}`, 
+      productionLogger.error(
+        `Cache set error: ${key}`,
         createLogContext(LogCategory.CACHE, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }));
+        })
+      );
       return false;
     }
   }
@@ -256,34 +274,40 @@ class ProductionCacheService extends EventEmitter {
       if (this.isRedisConnected && this.redis) {
         const result = await this.redis.del(fullKey);
         this.stats.deletes++;
-        
+
         const duration = Date.now() - startTime;
-        productionLogger.debug(`Cache delete: ${key}`, 
+        productionLogger.debug(
+          `Cache delete: ${key}`,
           createLogContext(LogCategory.CACHE, {
             duration,
             metadata: { key: fullKey, deleted: result > 0 },
-          }));
+          })
+        );
 
         return result > 0;
       } else {
         const deleted = this.fallbackCache.delete(fullKey);
         this.stats.deletes++;
-        
+
         const duration = Date.now() - startTime;
-        productionLogger.debug(`Cache delete: ${key}`, 
+        productionLogger.debug(
+          `Cache delete: ${key}`,
           createLogContext(LogCategory.CACHE, {
             duration,
             metadata: { key: fullKey, deleted },
-          }));
+          })
+        );
 
         return deleted;
       }
     } catch (error) {
       this.stats.errors++;
-      productionLogger.error(`Cache delete error: ${key}`, 
+      productionLogger.error(
+        `Cache delete error: ${key}`,
         createLogContext(LogCategory.CACHE, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }));
+        })
+      );
       return false;
     }
   }
@@ -313,16 +337,20 @@ class ProductionCacheService extends EventEmitter {
         }
       }
 
-      productionLogger.info(`Cache cleared${namespace ? ` for namespace: ${namespace}` : ''}`, 
-        createLogContext(LogCategory.CACHE));
+      productionLogger.info(
+        `Cache cleared${namespace ? ` for namespace: ${namespace}` : ''}`,
+        createLogContext(LogCategory.CACHE)
+      );
 
       return true;
     } catch (error) {
       this.stats.errors++;
-      productionLogger.error('Cache clear error', 
+      productionLogger.error(
+        'Cache clear error',
         createLogContext(LogCategory.CACHE, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }));
+        })
+      );
       return false;
     }
   }
@@ -345,10 +373,12 @@ class ProductionCacheService extends EventEmitter {
       }
     } catch (error) {
       this.stats.errors++;
-      productionLogger.error(`Cache exists error: ${key}`, 
+      productionLogger.error(
+        `Cache exists error: ${key}`,
         createLogContext(LogCategory.CACHE, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }));
+        })
+      );
       return false;
     }
   }
@@ -359,7 +389,7 @@ class ProductionCacheService extends EventEmitter {
         const info = await this.redis.info('memory');
         const memoryMatch = info.match(/used_memory:(\d+)/);
         const keysMatch = info.match(/keys=(\d+)/);
-        
+
         this.stats.memoryUsage = memoryMatch ? parseInt(memoryMatch[1]) : 0;
         this.stats.totalKeys = keysMatch ? parseInt(keysMatch[1]) : 0;
       } else {
@@ -367,10 +397,12 @@ class ProductionCacheService extends EventEmitter {
         this.stats.memoryUsage = JSON.stringify([...this.fallbackCache.entries()]).length;
       }
     } catch (error) {
-      productionLogger.error('Failed to get cache stats', 
+      productionLogger.error(
+        'Failed to get cache stats',
         createLogContext(LogCategory.CACHE, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }));
+        })
+      );
     }
 
     return { ...this.stats };
@@ -386,7 +418,7 @@ class ProductionCacheService extends EventEmitter {
         const startTime = Date.now();
         await this.redis.ping();
         const responseTime = Date.now() - startTime;
-        
+
         if (responseTime > 1000) {
           return { status: 'degraded', message: `High latency: ${responseTime}ms` };
         }
@@ -395,9 +427,9 @@ class ProductionCacheService extends EventEmitter {
         return { status: 'degraded', message: 'Using memory fallback' };
       }
     } catch (error) {
-      return { 
-        status: 'unhealthy', 
-        message: error instanceof Error ? error.message : 'Unknown error', 
+      return {
+        status: 'unhealthy',
+        message: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -416,15 +448,17 @@ class ProductionCacheService extends EventEmitter {
     this.fallbackCache.clear();
     this.isRedisConnected = false;
 
-    productionLogger.info('Production cache service shutdown completed', 
-      createLogContext(LogCategory.CACHE));
+    productionLogger.info(
+      'Production cache service shutdown completed',
+      createLogContext(LogCategory.CACHE)
+    );
   }
 
   // Utility methods for common caching patterns
   async getOrSet<T>(
-    key: string, 
-    factory: () => Promise<T>, 
-    options: CacheOptions = {},
+    key: string,
+    factory: () => Promise<T>,
+    options: CacheOptions = {}
   ): Promise<T> {
     const cached = await this.get<T>(key, options);
     if (cached !== null) {
@@ -438,21 +472,24 @@ class ProductionCacheService extends EventEmitter {
 
   async mget<T = any>(keys: string[], options: CacheOptions = {}): Promise<(T | null)[]> {
     const results: (T | null)[] = [];
-    
+
     for (const key of keys) {
       results.push(await this.get<T>(key, options));
     }
-    
+
     return results;
   }
 
-  async mset(items: Array<{ key: string; value: any }>, options: CacheOptions = {}): Promise<boolean[]> {
+  async mset(
+    items: Array<{ key: string; value: any }>,
+    options: CacheOptions = {}
+  ): Promise<boolean[]> {
     const results: boolean[] = [];
-    
+
     for (const item of items) {
       results.push(await this.set(item.key, item.value, options));
     }
-    
+
     return results;
   }
 }

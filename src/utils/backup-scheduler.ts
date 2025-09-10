@@ -16,11 +16,7 @@ export class BackupScheduler {
   private scheduledTask?: cron.ScheduledTask;
   private isRunning = false;
 
-  constructor(
-    backupService: BackupService,
-    logger: StructuredLogger,
-    alertService: AlertService,
-  ) {
+  constructor(backupService: BackupService, logger: StructuredLogger, alertService: AlertService) {
     this.backupService = backupService;
     this.logger = logger;
     this.alertService = alertService;
@@ -36,44 +32,45 @@ export class BackupScheduler {
     }
 
     const config = getMonitoringConfig();
-    
+
     if (!config.backup.enabled) {
       this.logger.info('Backup is disabled in configuration');
       return;
     }
 
     try {
-       const config = getMonitoringConfig();
-    
-    // Get cron expression from config
-    const cronExpression = typeof config.backup.schedule === 'string' 
-      ? config.backup.schedule 
-      : config.backup.schedule.customCron || '0 2 * * *';
-    
-    // Validate cron expression
-    if (!cron.validate(cronExpression)) {
-      throw new Error(`Invalid cron expression: ${cronExpression}`);
-    }
+      const config = getMonitoringConfig();
 
-    this.scheduledTask = cron.schedule(
-      cronExpression,
+      // Get cron expression from config
+      const cronExpression =
+        typeof config.backup.schedule === 'string'
+          ? config.backup.schedule
+          : config.backup.schedule.customCron || '0 2 * * *';
+
+      // Validate cron expression
+      if (!cron.validate(cronExpression)) {
+        throw new Error(`Invalid cron expression: ${cronExpression}`);
+      }
+
+      this.scheduledTask = cron.schedule(
+        cronExpression,
         async () => {
           await this.executeBackup();
         },
         {
           scheduled: false,
           timezone: 'America/Sao_Paulo',
-        },
+        }
       );
 
       this.scheduledTask.start();
       this.isRunning = true;
 
       this.logger.info('Backup scheduler started successfully', {
-           metadata: {
-             schedule: cronExpression,
-           },
-         });
+        metadata: {
+          schedule: cronExpression,
+        },
+      });
 
       // Send startup notification if enabled
       if (config.backup.notifications.enabled) {
@@ -85,7 +82,7 @@ export class BackupScheduler {
           {
             component: 'backup-scheduler',
             schedule: config.backup.schedule,
-          },
+          }
         );
       }
     } catch (error) {
@@ -95,15 +92,15 @@ export class BackupScheduler {
       });
 
       await this.alertService.createAlert(
-           'critical',
-           'Backup Scheduler Failed to Start',
-           `Error: ${error instanceof Error ? error.message : String(error)}`,
-           'backup_scheduler',
-           {
-             component: 'backup-scheduler',
-             error: String(error),
-           },
-         );
+        'critical',
+        'Backup Scheduler Failed to Start',
+        `Error: ${error instanceof Error ? error.message : String(error)}`,
+        'backup_scheduler',
+        {
+          component: 'backup-scheduler',
+          error: String(error),
+        }
+      );
 
       throw error;
     }
@@ -144,11 +141,14 @@ export class BackupScheduler {
     schedule?: string;
   } {
     const config = getMonitoringConfig();
-    
+
     return {
       isRunning: this.isRunning,
       nextExecution: undefined, // node-cron doesn't provide next execution time
-      schedule: typeof config.backup.schedule === 'string' ? config.backup.schedule : config.backup.schedule.customCron || '0 2 * * *',
+      schedule:
+        typeof config.backup.schedule === 'string'
+          ? config.backup.schedule
+          : config.backup.schedule.customCron || '0 2 * * *',
     };
   }
 
@@ -158,7 +158,7 @@ export class BackupScheduler {
   private async executeBackup(isManual = false): Promise<void> {
     const config = getMonitoringConfig();
     const startTime = Date.now();
-    
+
     try {
       this.logger.info('Starting scheduled backup', {
         metadata: {
@@ -170,15 +170,15 @@ export class BackupScheduler {
       const duration = Date.now() - startTime;
 
       this.logger.info('Backup completed successfully', {
-         metadata: {
-           isManual,
-           duration,
-           backupPath: result.backupPath,
-           size: result.size,
-           compressed: result.compressed,
-           checksum: result.checksum,
-         },
-        });
+        metadata: {
+          isManual,
+          duration,
+          backupPath: result.backupPath,
+          size: result.size,
+          compressed: result.compressed,
+          checksum: result.checksum,
+        },
+      });
 
       // Send success notification if enabled
       if (config.backup.notifications.enabled && config.backup.notifications.onSuccess) {
@@ -194,7 +194,7 @@ export class BackupScheduler {
             size: result.size,
             backupPath: result.backupPath,
             checksum: result.checksum,
-          },
+          }
         );
       }
     } catch (error) {
@@ -211,17 +211,17 @@ export class BackupScheduler {
       // Send failure notification if enabled
       if (config.backup.notifications.enabled && config.backup.notifications.onFailure) {
         await this.alertService.createAlert(
-           'critical',
-           `Database Backup ${isManual ? '(Manual)' : '(Scheduled)'} Failed`,
-           `Backup failed after ${(duration / 1000).toFixed(2)}s\nError: ${errorMessage}`,
-           'backup_scheduler',
-           {
-             component: 'backup-service',
-             isManual,
-             duration,
-             error: errorMessage,
-           },
-         );
+          'critical',
+          `Database Backup ${isManual ? '(Manual)' : '(Scheduled)'} Failed`,
+          `Backup failed after ${(duration / 1000).toFixed(2)}s\nError: ${errorMessage}`,
+          'backup_scheduler',
+          {
+            component: 'backup-service',
+            isManual,
+            duration,
+            error: errorMessage,
+          }
+        );
       }
 
       // Don't throw error for scheduled backups to prevent scheduler from stopping
@@ -235,12 +235,14 @@ export class BackupScheduler {
    * Format bytes to human readable format
    */
   private formatBytes(bytes: number): string {
-    if (bytes === 0) {return '0 Bytes';}
-    
+    if (bytes === 0) {
+      return '0 Bytes';
+    }
+
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 }
@@ -251,7 +253,7 @@ export class BackupScheduler {
 export function createBackupScheduler(
   backupService: BackupService,
   logger: StructuredLogger,
-  alertService: AlertService,
+  alertService: AlertService
 ): BackupScheduler {
   return new BackupScheduler(backupService, logger, alertService);
 }

@@ -8,7 +8,7 @@ test.describe('API - Authentication', () => {
 
   test.beforeEach(async ({ page }) => {
     helpers = new TestHelpers(page);
-    
+
     // Criar usuário de teste
     testUser = await helpers.createTestUser();
   });
@@ -18,16 +18,11 @@ test.describe('API - Authentication', () => {
   });
 
   test('deve fazer login com credenciais válidas', async ({ request }) => {
-    const loginEndpoints = [
-      '/api/auth/login',
-      '/auth/login',
-      '/api/login',
-      '/login'
-    ];
+    const loginEndpoints = ['/api/auth/login', '/auth/login', '/api/login', '/login'];
 
     const loginData = {
       email: TestData.user.email,
-      password: TestData.user.password
+      password: TestData.user.password,
     };
 
     let loginSuccessful = false;
@@ -37,24 +32,24 @@ test.describe('API - Authentication', () => {
         const response = await request.post(`${baseURL}${endpoint}`, {
           data: loginData,
           headers: {
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         });
-        
+
         if (response.ok()) {
           const data = await response.json();
-          
+
           // Verificar se retornou token
           const token = data.token || data.accessToken || data.access_token;
           expect(token).toBeTruthy();
-          
+
           // Verificar se retornou dados do usuário
           const user = data.user || data.userData;
           if (user) {
             expect(user.email).toBeTruthy();
             expect(user.id || user._id).toBeTruthy();
           }
-          
+
           loginSuccessful = true;
           break;
         }
@@ -68,15 +63,11 @@ test.describe('API - Authentication', () => {
   });
 
   test('deve rejeitar credenciais inválidas', async ({ request }) => {
-    const loginEndpoints = [
-      '/api/auth/login',
-      '/auth/login',
-      '/api/login'
-    ];
+    const loginEndpoints = ['/api/auth/login', '/auth/login', '/api/login'];
 
     const invalidLoginData = {
       email: 'invalid@example.com',
-      password: 'wrongpassword'
+      password: 'wrongpassword',
     };
 
     for (const endpoint of loginEndpoints) {
@@ -84,14 +75,14 @@ test.describe('API - Authentication', () => {
         const response = await request.post(`${baseURL}${endpoint}`, {
           data: invalidLoginData,
           headers: {
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         });
-        
+
         // Deve retornar erro de autenticação
         if (response.status() === 401 || response.status() === 400) {
           expect(response.status()).toBeGreaterThanOrEqual(400);
-          
+
           const errorData = await response.json();
           expect(errorData.error || errorData.message).toBeTruthy();
           break;
@@ -107,14 +98,14 @@ test.describe('API - Authentication', () => {
       '/api/auth/register',
       '/auth/register',
       '/api/register',
-      '/register'
+      '/register',
     ];
 
     const newUserData = {
       email: `test-${Date.now()}@example.com`,
       password: 'TestPassword123!',
       username: `testuser${Date.now()}`,
-      name: 'Test User E2E'
+      name: 'Test User E2E',
     };
 
     for (const endpoint of registerEndpoints) {
@@ -122,20 +113,20 @@ test.describe('API - Authentication', () => {
         const response = await request.post(`${baseURL}${endpoint}`, {
           data: newUserData,
           headers: {
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         });
-        
+
         if (response.ok()) {
           const data = await response.json();
-          
+
           // Verificar se o usuário foi criado
           expect(data).toBeTruthy();
-          
+
           // Pode retornar token imediatamente ou apenas confirmação
           const user = data.user || data;
           expect(user.email).toBe(newUserData.email);
-          
+
           break;
         }
       } catch (error) {
@@ -145,14 +136,11 @@ test.describe('API - Authentication', () => {
   });
 
   test('deve validar dados obrigatórios no registro', async ({ request }) => {
-    const registerEndpoints = [
-      '/api/auth/register',
-      '/auth/register'
-    ];
+    const registerEndpoints = ['/api/auth/register', '/auth/register'];
 
     const invalidData = {
       // email ausente
-      password: 'TestPassword123!'
+      password: 'TestPassword123!',
     };
 
     for (const endpoint of registerEndpoints) {
@@ -160,14 +148,14 @@ test.describe('API - Authentication', () => {
         const response = await request.post(`${baseURL}${endpoint}`, {
           data: invalidData,
           headers: {
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         });
-        
+
         // Deve retornar erro de validação
         if (response.status() >= 400 && response.status() < 500) {
           expect(response.status()).toBeGreaterThanOrEqual(400);
-          
+
           const errorData = await response.json();
           expect(errorData.error || errorData.message).toBeTruthy();
           break;
@@ -181,18 +169,18 @@ test.describe('API - Authentication', () => {
   test('deve verificar token válido', async ({ request }) => {
     // Primeiro fazer login para obter token
     let authToken: string;
-    
+
     try {
       const loginResponse = await request.post(`${baseURL}/api/auth/login`, {
         data: {
           email: TestData.user.email,
-          password: TestData.user.password
+          password: TestData.user.password,
         },
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       });
-      
+
       if (loginResponse.ok()) {
         const loginData = await loginResponse.json();
         authToken = loginData.token || loginData.accessToken;
@@ -207,25 +195,25 @@ test.describe('API - Authentication', () => {
         '/auth/verify',
         '/api/auth/me',
         '/auth/me',
-        '/api/me'
+        '/api/me',
       ];
 
       for (const endpoint of verifyEndpoints) {
         try {
           const response = await request.get(`${baseURL}${endpoint}`, {
             headers: {
-              'Authorization': `Bearer ${authToken}`
-            }
+              Authorization: `Bearer ${authToken}`,
+            },
           });
-          
+
           if (response.ok()) {
             const data = await response.json();
-            
+
             // Verificar se retornou dados do usuário
             expect(data).toBeTruthy();
             expect(data.email || data.user?.email).toBeTruthy();
             expect(data.id || data._id || data.user?.id).toBeTruthy();
-            
+
             break;
           }
         } catch (error) {
@@ -237,21 +225,17 @@ test.describe('API - Authentication', () => {
 
   test('deve rejeitar token inválido', async ({ request }) => {
     const invalidToken = 'invalid.jwt.token';
-    
-    const protectedEndpoints = [
-      '/api/auth/verify',
-      '/api/auth/me',
-      '/api/me'
-    ];
+
+    const protectedEndpoints = ['/api/auth/verify', '/api/auth/me', '/api/me'];
 
     for (const endpoint of protectedEndpoints) {
       try {
         const response = await request.get(`${baseURL}${endpoint}`, {
           headers: {
-            'Authorization': `Bearer ${invalidToken}`
-          }
+            Authorization: `Bearer ${invalidToken}`,
+          },
         });
-        
+
         // Deve retornar erro de autenticação
         if (response.status() === 401 || response.status() === 403) {
           expect(response.status()).toBeGreaterThanOrEqual(401);
@@ -266,15 +250,15 @@ test.describe('API - Authentication', () => {
   test('deve fazer logout', async ({ request }) => {
     // Primeiro fazer login
     let authToken: string;
-    
+
     try {
       const loginResponse = await request.post(`${baseURL}/api/auth/login`, {
         data: {
           email: TestData.user.email,
-          password: TestData.user.password
-        }
+          password: TestData.user.password,
+        },
       });
-      
+
       if (loginResponse.ok()) {
         const loginData = await loginResponse.json();
         authToken = loginData.token || loginData.accessToken;
@@ -284,21 +268,16 @@ test.describe('API - Authentication', () => {
     }
 
     if (authToken) {
-      const logoutEndpoints = [
-        '/api/auth/logout',
-        '/auth/logout',
-        '/api/logout',
-        '/logout'
-      ];
+      const logoutEndpoints = ['/api/auth/logout', '/auth/logout', '/api/logout', '/logout'];
 
       for (const endpoint of logoutEndpoints) {
         try {
           const response = await request.post(`${baseURL}${endpoint}`, {
             headers: {
-              'Authorization': `Bearer ${authToken}`
-            }
+              Authorization: `Bearer ${authToken}`,
+            },
           });
-          
+
           if (response.ok()) {
             const data = await response.json();
             expect(data.message || data.success).toBeTruthy();
@@ -315,15 +294,15 @@ test.describe('API - Authentication', () => {
     // Primeiro fazer login
     let authToken: string;
     let refreshToken: string;
-    
+
     try {
       const loginResponse = await request.post(`${baseURL}/api/auth/login`, {
         data: {
           email: TestData.user.email,
-          password: TestData.user.password
-        }
+          password: TestData.user.password,
+        },
       });
-      
+
       if (loginResponse.ok()) {
         const loginData = await loginResponse.json();
         authToken = loginData.token || loginData.accessToken;
@@ -334,31 +313,27 @@ test.describe('API - Authentication', () => {
     }
 
     if (refreshToken) {
-      const refreshEndpoints = [
-        '/api/auth/refresh',
-        '/auth/refresh',
-        '/api/refresh'
-      ];
+      const refreshEndpoints = ['/api/auth/refresh', '/auth/refresh', '/api/refresh'];
 
       for (const endpoint of refreshEndpoints) {
         try {
           const response = await request.post(`${baseURL}${endpoint}`, {
             data: {
-              refreshToken: refreshToken
+              refreshToken: refreshToken,
             },
             headers: {
-              'Content-Type': 'application/json'
-            }
+              'Content-Type': 'application/json',
+            },
           });
-          
+
           if (response.ok()) {
             const data = await response.json();
-            
+
             // Verificar se retornou novo token
             const newToken = data.token || data.accessToken;
             expect(newToken).toBeTruthy();
             expect(newToken).not.toBe(authToken); // Deve ser diferente do anterior
-            
+
             break;
           }
         } catch (error) {
@@ -372,11 +347,11 @@ test.describe('API - Authentication', () => {
     const resetEndpoints = [
       '/api/auth/forgot-password',
       '/auth/forgot-password',
-      '/api/forgot-password'
+      '/api/forgot-password',
     ];
 
     const resetData = {
-      email: TestData.user.email
+      email: TestData.user.email,
     };
 
     for (const endpoint of resetEndpoints) {
@@ -384,10 +359,10 @@ test.describe('API - Authentication', () => {
         const response = await request.post(`${baseURL}${endpoint}`, {
           data: resetData,
           headers: {
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         });
-        
+
         if (response.ok()) {
           const data = await response.json();
           expect(data.message || data.success).toBeTruthy();
@@ -400,15 +375,12 @@ test.describe('API - Authentication', () => {
   });
 
   test('deve validar formato de email', async ({ request }) => {
-    const registerEndpoints = [
-      '/api/auth/register',
-      '/auth/register'
-    ];
+    const registerEndpoints = ['/api/auth/register', '/auth/register'];
 
     const invalidEmailData = {
       email: 'invalid-email-format',
       password: 'TestPassword123!',
-      username: 'testuser'
+      username: 'testuser',
     };
 
     for (const endpoint of registerEndpoints) {
@@ -416,14 +388,14 @@ test.describe('API - Authentication', () => {
         const response = await request.post(`${baseURL}${endpoint}`, {
           data: invalidEmailData,
           headers: {
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         });
-        
+
         // Deve retornar erro de validação
         if (response.status() >= 400 && response.status() < 500) {
           expect(response.status()).toBeGreaterThanOrEqual(400);
-          
+
           const errorData = await response.json();
           expect(errorData.error || errorData.message).toBeTruthy();
           break;
@@ -435,15 +407,12 @@ test.describe('API - Authentication', () => {
   });
 
   test('deve validar força da senha', async ({ request }) => {
-    const registerEndpoints = [
-      '/api/auth/register',
-      '/auth/register'
-    ];
+    const registerEndpoints = ['/api/auth/register', '/auth/register'];
 
     const weakPasswordData = {
       email: `test-weak-${Date.now()}@example.com`,
       password: '123', // Senha muito fraca
-      username: 'testuser'
+      username: 'testuser',
     };
 
     for (const endpoint of registerEndpoints) {
@@ -451,14 +420,14 @@ test.describe('API - Authentication', () => {
         const response = await request.post(`${baseURL}${endpoint}`, {
           data: weakPasswordData,
           headers: {
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         });
-        
+
         // Deve retornar erro de validação
         if (response.status() >= 400 && response.status() < 500) {
           expect(response.status()).toBeGreaterThanOrEqual(400);
-          
+
           const errorData = await response.json();
           expect(errorData.error || errorData.message).toBeTruthy();
           break;
@@ -471,25 +440,25 @@ test.describe('API - Authentication', () => {
 
   test('deve prevenir registro de email duplicado', async ({ request }) => {
     const registerEndpoint = '/api/auth/register';
-    
+
     const userData = {
       email: TestData.user.email, // Email já existente
       password: 'TestPassword123!',
-      username: `duplicate${Date.now()}`
+      username: `duplicate${Date.now()}`,
     };
 
     try {
       const response = await request.post(`${baseURL}${registerEndpoint}`, {
         data: userData,
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       });
-      
+
       // Deve retornar erro de conflito
       if (response.status() === 409 || response.status() === 400) {
         expect(response.status()).toBeGreaterThanOrEqual(400);
-        
+
         const errorData = await response.json();
         expect(errorData.error || errorData.message).toBeTruthy();
       }
@@ -500,32 +469,32 @@ test.describe('API - Authentication', () => {
 
   test('deve lidar com rate limiting', async ({ request }) => {
     const loginEndpoint = '/api/auth/login';
-    
+
     const invalidData = {
       email: 'nonexistent@example.com',
-      password: 'wrongpassword'
+      password: 'wrongpassword',
     };
 
     // Fazer múltiplas tentativas de login inválidas
     const attempts = [];
     for (let i = 0; i < 10; i++) {
       attempts.push(
-        request.post(`${baseURL}${loginEndpoint}`, {
-          data: invalidData,
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }).catch(() => null)
+        request
+          .post(`${baseURL}${loginEndpoint}`, {
+            data: invalidData,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          })
+          .catch(() => null)
       );
     }
 
     const responses = await Promise.allSettled(attempts);
-    
+
     // Verificar se alguma resposta indica rate limiting
     const rateLimitedResponses = responses.filter(
-      result => result.status === 'fulfilled' && 
-                result.value && 
-                result.value.status() === 429
+      result => result.status === 'fulfilled' && result.value && result.value.status() === 429
     );
 
     // Se há rate limiting implementado, deve haver pelo menos uma resposta 429

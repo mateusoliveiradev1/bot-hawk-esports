@@ -15,8 +15,8 @@ export abstract class BaseService {
   protected serviceName: string;
 
   constructor(
-    client: ExtendedClient, 
-    requiredServices: Array<keyof ExtendedClient> = ['database', 'cache'],
+    client: ExtendedClient,
+    requiredServices: Array<keyof ExtendedClient> = ['database', 'cache']
   ) {
     this.serviceName = this.constructor.name;
     this.validateDependencies(client, requiredServices);
@@ -28,18 +28,16 @@ export abstract class BaseService {
    * Valida se todas as dependências necessárias estão disponíveis
    */
   private validateDependencies(
-    client: ExtendedClient, 
-    required: Array<keyof ExtendedClient>,
+    client: ExtendedClient,
+    required: Array<keyof ExtendedClient>
   ): void {
     if (!client) {
       throw new Error('ExtendedClient is required');
     }
-    
+
     const missing = required.filter(service => !client[service]);
     if (missing.length > 0) {
-      throw new Error(
-        `Missing required services for ${this.serviceName}: ${missing.join(', ')}`,
-      );
+      throw new Error(`Missing required services for ${this.serviceName}: ${missing.join(', ')}`);
     }
   }
 
@@ -59,7 +57,7 @@ export abstract class BaseService {
   protected async executeWithLogging<T>(
     operation: () => Promise<T>,
     operationName: string,
-    errorMessage?: string,
+    errorMessage?: string
   ): Promise<T> {
     try {
       const result = await operation();
@@ -89,7 +87,7 @@ export abstract class BaseService {
     const clientConnected = !!this.client;
 
     let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
-    
+
     if (!clientConnected) {
       status = 'unhealthy';
     } else if (!databaseConnected || !cacheConnected) {

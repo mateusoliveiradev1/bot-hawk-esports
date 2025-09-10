@@ -85,7 +85,7 @@ export class DistributedCache extends EventEmitter {
       smartTTLConfig: SmartTTLConfig;
       cleanupIntervalMs?: number;
       refreshIntervalMs?: number;
-    },
+    }
   ) {
     super();
     this.tiers = options.tiers.sort((a, b) => a.priority - b.priority);
@@ -131,7 +131,7 @@ export class DistributedCache extends EventEmitter {
       dependencies?: string[];
       tags?: string[];
       forceRefresh?: boolean;
-    },
+    }
   ): Promise<T | null> {
     const startTime = Date.now();
 
@@ -158,7 +158,7 @@ export class DistributedCache extends EventEmitter {
         // Update local cache
         const tier = this.selectTier(options?.tier);
         const ttl = this.calculateSmartTTL(key, tier.ttl);
-        
+
         const entry: CacheEntry = {
           value: distributedValue,
           createdAt: Date.now(),
@@ -192,13 +192,12 @@ export class DistributedCache extends EventEmitter {
       this.stats.misses++;
       this.updateStats(Date.now() - startTime);
       return null;
-
     } catch (error) {
       this.logger.error('Error getting cache value', {
         error: error as Error,
         metadata: { key, options },
       });
-      
+
       // Try fallback on error
       if (fallbackFn) {
         try {
@@ -210,7 +209,7 @@ export class DistributedCache extends EventEmitter {
           });
         }
       }
-      
+
       return null;
     }
   }
@@ -226,7 +225,7 @@ export class DistributedCache extends EventEmitter {
       ttl?: number;
       dependencies?: string[];
       tags?: string[];
-    },
+    }
   ): Promise<void> {
     try {
       const tier = this.selectTier(options?.tier);
@@ -253,7 +252,7 @@ export class DistributedCache extends EventEmitter {
 
       // Store in local cache
       this.entries.set(key, entry);
-      
+
       // Store in distributed cache
       await this.cacheService.set(key, value, ttl);
 
@@ -276,7 +275,6 @@ export class DistributedCache extends EventEmitter {
       });
 
       this.emit('set', { key, value, tier: tier.name, ttl });
-
     } catch (error) {
       this.logger.error('Error setting cache value', {
         error: error as Error,
@@ -292,10 +290,10 @@ export class DistributedCache extends EventEmitter {
   async delete(key: string): Promise<boolean> {
     try {
       const entry = this.entries.get(key);
-      
+
       // Remove from local cache
       const localDeleted = this.entries.delete(key);
-      
+
       // Remove from distributed cache
       const distributedDeleted = await this.cacheService.del(key);
 
@@ -406,12 +404,12 @@ export class DistributedCache extends EventEmitter {
    */
   addInvalidationRule(rule: InvalidationRule): void {
     this.invalidationRules.push(rule);
-    
+
     // Set up event listeners for triggers
     rule.triggers.forEach(trigger => {
       this.on(trigger, async (data: any) => {
         await this.invalidatePattern(rule.pattern);
-        
+
         if (rule.cascading && rule.dependencies) {
           for (const dep of rule.dependencies) {
             await this.invalidateByDependency(dep);
@@ -436,14 +434,16 @@ export class DistributedCache extends EventEmitter {
   /**
    * Warm up cache with predefined data
    */
-  async warmUp(entries: Array<{
-    key: string;
-    value: any;
-    tier?: string;
-    ttl?: number;
-    dependencies?: string[];
-    tags?: string[];
-  }>): Promise<number> {
+  async warmUp(
+    entries: Array<{
+      key: string;
+      value: any;
+      tier?: string;
+      ttl?: number;
+      dependencies?: string[];
+      tags?: string[];
+    }>
+  ): Promise<number> {
     let warmedUp = 0;
 
     for (const entry of entries) {
@@ -499,7 +499,7 @@ export class DistributedCache extends EventEmitter {
     let refreshed = 0;
 
     for (const [key, entry] of this.entries.entries()) {
-      const timeToExpire = (entry.createdAt + entry.ttl * 1000) - now;
+      const timeToExpire = entry.createdAt + entry.ttl * 1000 - now;
       const refreshThreshold = entry.ttl * 1000 * 0.2; // 20% of TTL
 
       if (timeToExpire <= refreshThreshold && timeToExpire > 0) {
@@ -533,23 +533,20 @@ export class DistributedCache extends EventEmitter {
       // Increase TTL for frequently accessed items
       const accessFrequencyFactor = Math.min(
         entry.accessCount * this.smartTTLConfig.accessFrequencyMultiplier,
-        3, // Max 3x multiplier
+        3 // Max 3x multiplier
       );
 
       // Decrease TTL for old items
       const age = Date.now() - entry.createdAt;
       const ageFactor = Math.max(
         1 - (age / (24 * 60 * 60 * 1000)) * this.smartTTLConfig.dataAgeMultiplier,
-        0.1, // Min 10% of original TTL
+        0.1 // Min 10% of original TTL
       );
 
       ttl = baseTTL * accessFrequencyFactor * ageFactor;
     }
 
-    return Math.max(
-      Math.min(ttl, this.smartTTLConfig.maxTTL),
-      this.smartTTLConfig.minTTL,
-    );
+    return Math.max(Math.min(ttl, this.smartTTLConfig.maxTTL), this.smartTTLConfig.minTTL);
   }
 
   /**
@@ -558,7 +555,9 @@ export class DistributedCache extends EventEmitter {
   private selectTier(tierName?: string): CacheTier {
     if (tierName) {
       const tier = this.tiers.find(t => t.name === tierName);
-      if (tier) {return tier;}
+      if (tier) {
+        return tier;
+      }
     }
     return this.tiers[0]; // Default to highest priority tier
   }
@@ -645,8 +644,7 @@ export class DistributedCache extends EventEmitter {
    * Update statistics
    */
   private updateStats(executionTime: number): void {
-    this.stats.averageAccessTime = 
-      (this.stats.averageAccessTime + executionTime) / 2;
+    this.stats.averageAccessTime = (this.stats.averageAccessTime + executionTime) / 2;
   }
 
   /**
@@ -701,30 +699,27 @@ export function CacheResult(
     tier?: string;
     dependencies?: string[];
     tags?: string[];
-  } = {},
+  } = {}
 ) {
   return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value;
-    
+
     descriptor.value = async function (...args: any[]) {
       const cache = (this as any).distributedCache as DistributedCache;
       if (!cache) {
         return await method.apply(this, args);
       }
 
-      const cacheKey = options.key || `${target.constructor.name}:${propertyName}:${JSON.stringify(args)}`;
-      
-      return await cache.get(
-        cacheKey,
-        () => method.apply(this, args),
-        {
-          tier: options.tier,
-          dependencies: options.dependencies,
-          tags: options.tags,
-        },
-      );
+      const cacheKey =
+        options.key || `${target.constructor.name}:${propertyName}:${JSON.stringify(args)}`;
+
+      return await cache.get(cacheKey, () => method.apply(this, args), {
+        tier: options.tier,
+        dependencies: options.dependencies,
+        tags: options.tags,
+      });
     };
-    
+
     return descriptor;
   };
 }
@@ -737,14 +732,14 @@ export function InvalidateCache(
     pattern?: string;
     dependencies?: string[];
     tags?: string[];
-  } = {},
+  } = {}
 ) {
   return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value;
-    
+
     descriptor.value = async function (...args: any[]) {
       const result = await method.apply(this, args);
-      
+
       const cache = (this as any).distributedCache as DistributedCache;
       if (cache) {
         if (options.pattern) {
@@ -761,10 +756,10 @@ export function InvalidateCache(
           }
         }
       }
-      
+
       return result;
     };
-    
+
     return descriptor;
   };
 }

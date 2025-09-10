@@ -18,10 +18,7 @@ interface UseWebSocketOptions {
 /**
  * Generic WebSocket hook using Socket.IO
  */
-export function useWebSocket(
-  url: string,
-  options: UseWebSocketOptions = {},
-) {
+export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -29,13 +26,7 @@ export function useWebSocket(
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
 
-  const {
-    onOpen,
-    onClose,
-    onError,
-    reconnectAttempts = 5,
-    reconnectInterval = 3000,
-  } = options;
+  const { onOpen, onClose, onError, reconnectAttempts = 5, reconnectInterval = 3000 } = options;
 
   const connect = useCallback(() => {
     // Prevent multiple connections
@@ -58,18 +49,18 @@ export function useWebSocket(
         onOpen?.();
       });
 
-      socket.on('disconnect', (reason) => {
+      socket.on('disconnect', reason => {
         console.log('WebSocket disconnected:', reason);
         setIsConnected(false);
         onClose?.();
-        
+
         // Only attempt reconnect for certain disconnect reasons
         if (reason === 'io server disconnect' || reason === 'transport close') {
           attemptReconnect();
         }
       });
 
-      socket.on('connect_error', (err) => {
+      socket.on('connect_error', err => {
         console.error('WebSocket connection error:', err.message);
         setError(`Connection error: ${err.message}`);
         onError?.(err as any);
@@ -93,12 +84,12 @@ export function useWebSocket(
     if (reconnectAttemptsRef.current < reconnectAttempts) {
       reconnectAttemptsRef.current++;
       console.log(`Attempting reconnect ${reconnectAttemptsRef.current}/${reconnectAttempts}`);
-      
+
       // Clear existing timeout
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
-      
+
       reconnectTimeoutRef.current = setTimeout(() => {
         connect();
       }, reconnectInterval);
@@ -108,11 +99,14 @@ export function useWebSocket(
     }
   }, [connect, reconnectAttempts, reconnectInterval]);
 
-  const sendMessage = useCallback((event: string, data: any) => {
-    if (socketRef.current && isConnected) {
-      socketRef.current.emit(event, data);
-    }
-  }, [isConnected]);
+  const sendMessage = useCallback(
+    (event: string, data: any) => {
+      if (socketRef.current && isConnected) {
+        socketRef.current.emit(event, data);
+      }
+    },
+    [isConnected]
+  );
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -158,12 +152,12 @@ export function useDashboardWebSocket(guildId: string) {
       onClose: () => {
         console.log('Dashboard WebSocket disconnected');
       },
-      onError: (error) => {
+      onError: error => {
         console.error('Dashboard WebSocket error:', error);
       },
       reconnectAttempts: 3,
       reconnectInterval: 5000,
-    },
+    }
   );
 
   // Handle incoming messages

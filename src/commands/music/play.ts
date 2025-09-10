@@ -26,19 +26,19 @@ export class PlayCommand extends BaseCommand {
           option
             .setName('query')
             .setDescription('Nome da música, URL do YouTube/Spotify ou termo de busca')
-            .setRequired(true),
+            .setRequired(true)
         )
         .addBooleanOption(option =>
           option
             .setName('shuffle')
             .setDescription('Embaralhar a playlist (padrão: false)')
-            .setRequired(false),
+            .setRequired(false)
         )
         .addBooleanOption(option =>
           option
             .setName('next')
             .setDescription('Adicionar no início da fila (padrão: false)')
-            .setRequired(false),
+            .setRequired(false)
         ) as SlashCommandBuilder,
       category: CommandCategory.MUSIC,
       cooldown: 3,
@@ -93,7 +93,7 @@ export class PlayCommand extends BaseCommand {
       // Join voice channel
       const member = interaction.member as any;
       const voiceChannel = member.voice.channel;
-      
+
       logger.debug(`🔗 Joining voice channel: ${voiceChannel.name}`);
       const connection = await musicService.joinChannel(voiceChannel);
       if (!connection) {
@@ -116,7 +116,13 @@ export class PlayCommand extends BaseCommand {
       }
 
       // Create and send response
-      const embed = await this.createPlayEmbed(tracks, interaction.user.id, wasEmpty, queue, musicService);
+      const embed = await this.createPlayEmbed(
+        tracks,
+        interaction.user.id,
+        wasEmpty,
+        queue,
+        musicService
+      );
       const buttonsRow = this.createControlButtons();
 
       const response = await interaction.editReply({
@@ -129,7 +135,7 @@ export class PlayCommand extends BaseCommand {
 
       // Log activity
       logger.info(
-        `🎵 Music command executed by ${interaction.user.tag} in ${interaction.guild?.name} - Query: ${query}, Track: ${tracks[0]?.title || 'Unknown'}`,
+        `🎵 Music command executed by ${interaction.user.tag} in ${interaction.guild?.name} - Query: ${query}, Track: ${tracks[0]?.title || 'Unknown'}`
       );
     } catch (error) {
       logger.error('Play command error:', error);
@@ -146,7 +152,7 @@ export class PlayCommand extends BaseCommand {
    */
   private async validateVoiceChannel(interaction: ChatInputCommandInteraction): Promise<boolean> {
     const member = interaction.member as any;
-    
+
     if (!member?.voice?.channel) {
       await interaction.reply({
         content: '❌ Você precisa estar em um canal de voz para tocar música!',
@@ -157,7 +163,7 @@ export class PlayCommand extends BaseCommand {
 
     const voiceChannel = member.voice.channel;
     const permissions = voiceChannel.permissionsFor(interaction.client.user!);
-    
+
     if (!permissions?.has(['Connect', 'Speak'])) {
       await interaction.reply({
         content: '❌ Não tenho permissão para conectar ou falar neste canal de voz!',
@@ -179,11 +185,14 @@ export class PlayCommand extends BaseCommand {
   /**
    * Handle track not found scenario
    */
-  private async handleTrackNotFound(interaction: ChatInputCommandInteraction, query: string): Promise<void> {
+  private async handleTrackNotFound(
+    interaction: ChatInputCommandInteraction,
+    query: string
+  ): Promise<void> {
     const embed = new EmbedBuilder()
       .setTitle('❌ Nenhuma música encontrada')
       .setDescription(
-        `Não foi possível encontrar resultados para: **${query}**\n\nTente:\n• Verificar a ortografia\n• Usar termos mais específicos\n• Usar um link direto do YouTube/Spotify`,
+        `Não foi possível encontrar resultados para: **${query}**\n\nTente:\n• Verificar a ortografia\n• Usar termos mais específicos\n• Usar um link direto do YouTube/Spotify`
       )
       .setColor('#FF0000');
 
@@ -198,7 +207,7 @@ export class PlayCommand extends BaseCommand {
     userId: string,
     wasEmpty: boolean,
     queue: any,
-    musicService: MusicService,
+    musicService: MusicService
   ): Promise<EmbedBuilder> {
     const track = tracks[0];
     const isNowPlaying = wasEmpty || !queue?.isPlaying;
@@ -214,7 +223,7 @@ export class PlayCommand extends BaseCommand {
           name: '🔗 Fonte',
           value: track.platform === 'youtube' ? 'YouTube' : 'Spotify',
           inline: true,
-        },
+        }
       )
       .setThumbnail(track.thumbnail || '')
       .setTimestamp();
@@ -268,7 +277,7 @@ export class PlayCommand extends BaseCommand {
         .setCustomId('music_stop')
         .setLabel('Parar')
         .setStyle(ButtonStyle.Danger)
-        .setEmoji('⏹️'),
+        .setEmoji('⏹️')
     );
   }
 
@@ -279,7 +288,7 @@ export class PlayCommand extends BaseCommand {
     response: any,
     interaction: ChatInputCommandInteraction,
     musicService: MusicService,
-    logger: Logger,
+    logger: Logger
   ): Promise<void> {
     const collector = response.createMessageComponentCollector({
       time: 300000, // 5 minutes
@@ -323,7 +332,10 @@ export class PlayCommand extends BaseCommand {
 
           case 'music_stop':
             await musicService.stop(interaction.guildId!);
-            await i.reply({ content: '⏹️ Música parada e fila limpa!', flags: MessageFlags.Ephemeral });
+            await i.reply({
+              content: '⏹️ Música parada e fila limpa!',
+              flags: MessageFlags.Ephemeral,
+            });
             break;
         }
       } catch (error) {
@@ -343,10 +355,16 @@ export class PlayCommand extends BaseCommand {
   /**
    * Create queue embed
    */
-  private async createQueueEmbed(guildId: string, musicService: MusicService): Promise<EmbedBuilder> {
+  private async createQueueEmbed(
+    guildId: string,
+    musicService: MusicService
+  ): Promise<EmbedBuilder> {
     const queue = await musicService.getQueue(guildId);
 
-    const embed = new EmbedBuilder().setTitle('📋 Fila de Música').setColor('#0099FF').setTimestamp();
+    const embed = new EmbedBuilder()
+      .setTitle('📋 Fila de Música')
+      .setColor('#0099FF')
+      .setTimestamp();
 
     if (!queue || queue.tracks.length === 0) {
       embed.setDescription('A fila está vazia.\n\nUse `/play` para adicionar músicas!');
@@ -418,7 +436,7 @@ export const command = {
   data: commandInstance.data,
   category: CommandCategory.MUSIC,
   cooldown: 3,
-  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) => 
+  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) =>
     commandInstance.execute(interaction, client),
 };
 

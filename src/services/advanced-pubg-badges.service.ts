@@ -28,7 +28,13 @@ interface AdvancedBadgeDefinition {
 }
 
 interface AdvancedRequirement {
-  type: 'streak' | 'consistency' | 'weapon_mastery' | 'survival_time' | 'damage_threshold' | 'headshot_ratio';
+  type:
+    | 'streak'
+    | 'consistency'
+    | 'weapon_mastery'
+    | 'survival_time'
+    | 'damage_threshold'
+    | 'headshot_ratio';
   operator: 'gte' | 'lte' | 'eq';
   value: number;
   timeframe: 'daily' | 'weekly' | 'monthly' | 'all_time';
@@ -99,7 +105,7 @@ export class AdvancedPUBGBadgesService {
   private async initializeAdvancedBadges(): Promise<void> {
     try {
       const advancedBadges = await this.createAdvancedBadgeDefinitions();
-      
+
       for (const badge of advancedBadges) {
         await this.registerAdvancedBadge(badge);
       }
@@ -123,13 +129,15 @@ export class AdvancedPUBGBadgesService {
         icon: '🥇',
         category: 'pubg_advanced',
         rarity: 'rare',
-        requirements: [{
-          type: 'streak',
-          operator: 'gte',
-          value: 3,
-          timeframe: 'all_time',
-          additional: { streakType: 'wins' },
-        }],
+        requirements: [
+          {
+            type: 'streak',
+            operator: 'gte',
+            value: 3,
+            timeframe: 'all_time',
+            additional: { streakType: 'wins' },
+          },
+        ],
         rewards: { xp: 500, coins: 250, title: 'Vencedor Consecutivo' },
         isSecret: false,
         isActive: true,
@@ -142,13 +150,15 @@ export class AdvancedPUBGBadgesService {
         icon: '👑',
         category: 'pubg_advanced',
         rarity: 'epic',
-        requirements: [{
-          type: 'streak',
-          operator: 'gte',
-          value: 5,
-          timeframe: 'all_time',
-          additional: { streakType: 'wins' },
-        }],
+        requirements: [
+          {
+            type: 'streak',
+            operator: 'gte',
+            value: 5,
+            timeframe: 'all_time',
+            additional: { streakType: 'wins' },
+          },
+        ],
         rewards: { xp: 1000, coins: 500, role: 'chicken_master', title: 'Dominador' },
         isSecret: false,
         isActive: true,
@@ -161,13 +171,15 @@ export class AdvancedPUBGBadgesService {
         icon: '🌟',
         category: 'pubg_advanced',
         rarity: 'mythic',
-        requirements: [{
-          type: 'streak',
-          operator: 'gte',
-          value: 10,
-          timeframe: 'all_time',
-          additional: { streakType: 'wins' },
-        }],
+        requirements: [
+          {
+            type: 'streak',
+            operator: 'gte',
+            value: 10,
+            timeframe: 'all_time',
+            additional: { streakType: 'wins' },
+          },
+        ],
         rewards: { xp: 2500, coins: 1000, role: 'immortal_legend', title: 'Imortal' },
         isSecret: false,
         isActive: true,
@@ -182,13 +194,15 @@ export class AdvancedPUBGBadgesService {
         icon: '🛡️',
         category: 'pubg_advanced',
         rarity: 'rare',
-        requirements: [{
-          type: 'consistency',
-          operator: 'gte',
-          value: 70,
-          timeframe: 'all_time',
-          additional: { minGames: 50 },
-        }],
+        requirements: [
+          {
+            type: 'consistency',
+            operator: 'gte',
+            value: 70,
+            timeframe: 'all_time',
+            additional: { minGames: 50 },
+          },
+        ],
         rewards: { xp: 750, coins: 300, title: 'Consistente' },
         isSecret: false,
         isActive: true,
@@ -201,13 +215,15 @@ export class AdvancedPUBGBadgesService {
         icon: '🏕️',
         category: 'pubg_advanced',
         rarity: 'epic',
-        requirements: [{
-          type: 'consistency',
-          operator: 'gte',
-          value: 85,
-          timeframe: 'all_time',
-          additional: { minGames: 100 },
-        }],
+        requirements: [
+          {
+            type: 'consistency',
+            operator: 'gte',
+            value: 85,
+            timeframe: 'all_time',
+            additional: { minGames: 100 },
+          },
+        ],
         rewards: { xp: 1500, coins: 600, role: 'survival_master', title: 'Mestre Sobrevivente' },
         isSecret: false,
         isActive: true,
@@ -222,13 +238,15 @@ export class AdvancedPUBGBadgesService {
         icon: '🔫',
         category: 'pubg_advanced',
         rarity: 'legendary',
-        requirements: [{
-          type: 'weapon_mastery',
-          operator: 'gte',
-          value: 10,
-          timeframe: 'all_time',
-          additional: { weapon: 'AKM' },
-        }],
+        requirements: [
+          {
+            type: 'weapon_mastery',
+            operator: 'gte',
+            value: 10,
+            timeframe: 'all_time',
+            additional: { weapon: 'AKM' },
+          },
+        ],
         rewards: { xp: 1000, coins: 400, title: 'Mestre AKM' },
         isSecret: false,
         isActive: true,
@@ -241,13 +259,15 @@ export class AdvancedPUBGBadgesService {
         icon: '🎯',
         category: 'pubg_advanced',
         rarity: 'legendary',
-        requirements: [{
-          type: 'weapon_mastery',
-          operator: 'gte',
-          value: 10,
-          timeframe: 'all_time',
-          additional: { weapon: 'Kar98k' },
-        }],
+        requirements: [
+          {
+            type: 'weapon_mastery',
+            operator: 'gte',
+            value: 10,
+            timeframe: 'all_time',
+            additional: { weapon: 'Kar98k' },
+          },
+        ],
         rewards: { xp: 1000, coins: 400, title: 'Elite Sniper' },
         isSecret: false,
         isActive: true,
@@ -262,13 +282,15 @@ export class AdvancedPUBGBadgesService {
         icon: '💀',
         category: 'pubg_advanced',
         rarity: 'epic',
-        requirements: [{
-          type: 'headshot_ratio',
-          operator: 'gte',
-          value: 50,
-          timeframe: 'all_time',
-          additional: { minKills: 500 },
-        }],
+        requirements: [
+          {
+            type: 'headshot_ratio',
+            operator: 'gte',
+            value: 50,
+            timeframe: 'all_time',
+            additional: { minKills: 500 },
+          },
+        ],
         rewards: { xp: 1200, coins: 500, title: 'Precisão Mortal' },
         isSecret: false,
         isActive: true,
@@ -283,12 +305,14 @@ export class AdvancedPUBGBadgesService {
         icon: '⏰',
         category: 'pubg_advanced',
         rarity: 'rare',
-        requirements: [{
-          type: 'survival_time',
-          operator: 'gte',
-          value: 1500, // 25 minutes in seconds
-          timeframe: 'all_time',
-        }],
+        requirements: [
+          {
+            type: 'survival_time',
+            operator: 'gte',
+            value: 1500, // 25 minutes in seconds
+            timeframe: 'all_time',
+          },
+        ],
         rewards: { xp: 600, coins: 250, title: 'Maratonista' },
         isSecret: false,
         isActive: true,
@@ -303,12 +327,14 @@ export class AdvancedPUBGBadgesService {
         icon: '💥',
         category: 'pubg_advanced',
         rarity: 'epic',
-        requirements: [{
-          type: 'damage_threshold',
-          operator: 'gte',
-          value: 2000,
-          timeframe: 'all_time',
-        }],
+        requirements: [
+          {
+            type: 'damage_threshold',
+            operator: 'gte',
+            value: 2000,
+            timeframe: 'all_time',
+          },
+        ],
         rewards: { xp: 800, coins: 350, title: 'Devastador' },
         isSecret: false,
         isActive: true,
@@ -354,7 +380,11 @@ export class AdvancedPUBGBadgesService {
   /**
    * Update user streak data
    */
-  public async updateStreak(userId: string, type: 'wins' | 'top10' | 'top5' | 'kills', success: boolean): Promise<void> {
+  public async updateStreak(
+    userId: string,
+    type: 'wins' | 'top10' | 'top5' | 'kills',
+    success: boolean
+  ): Promise<void> {
     try {
       const userStreaks = this.streakCache.get(userId) || [];
       let streak = userStreaks.find(s => s.type === type);
@@ -406,12 +436,15 @@ export class AdvancedPUBGBadgesService {
       const wins = pubgStats.wins || 0;
       const averageRank = pubgStats.averageRank || 50;
 
-      if (totalGames === 0) {return;}
+      if (totalGames === 0) {
+        return;
+      }
 
       const consistencyScore = Math.round(
-        ((top10Finishes / totalGames) * 70 + 
-         (top5Finishes / totalGames) * 20 + 
-         (wins / totalGames) * 10) * 100,
+        ((top10Finishes / totalGames) * 70 +
+          (top5Finishes / totalGames) * 20 +
+          (wins / totalGames) * 10) *
+          100
       );
 
       const stats: ConsistencyStats = {
@@ -443,10 +476,10 @@ export class AdvancedPUBGBadgesService {
   public async updateWeaponMastery(userId: string, weaponData: any): Promise<void> {
     try {
       const userWeapons = this.weaponMasteryCache.get(userId) || [];
-      
+
       for (const weapon of weaponData) {
         let progress = userWeapons.find(w => w.weapon === weapon.weaponName);
-        
+
         if (!progress) {
           progress = {
             userId,
@@ -508,8 +541,10 @@ export class AdvancedPUBGBadgesService {
     ];
 
     for (const badge of consistencyBadges) {
-      if (stats.totalGames >= badge.minGames && 
-          (stats.top10Finishes / stats.totalGames * 100) >= badge.minScore) {
+      if (
+        stats.totalGames >= badge.minGames &&
+        (stats.top10Finishes / stats.totalGames) * 100 >= badge.minScore
+      ) {
         await this.awardAdvancedBadge(userId, badge.id);
       }
     }
@@ -518,7 +553,10 @@ export class AdvancedPUBGBadgesService {
   /**
    * Check weapon mastery badges
    */
-  private async checkWeaponMasteryBadges(userId: string, progress: WeaponMasteryProgress): Promise<void> {
+  private async checkWeaponMasteryBadges(
+    userId: string,
+    progress: WeaponMasteryProgress
+  ): Promise<void> {
     const weaponBadges = [
       { id: 'akm_grandmaster', weapon: 'AKM', level: 10 },
       { id: 'kar98k_sniper_elite', weapon: 'Kar98k', level: 10 },
@@ -544,7 +582,7 @@ export class AdvancedPUBGBadgesService {
 
       // Award badge through badge service
       const success = await this.badgeService.awardBadge(userId, badgeId);
-      
+
       if (success) {
         this.logger.info(`🏆 Advanced badge ${badgeId} awarded to user ${userId}`);
       }
@@ -558,19 +596,21 @@ export class AdvancedPUBGBadgesService {
    */
   private async saveStreakData(userId: string, streak: UserStreak): Promise<void> {
     try {
-      if (!this.database?.client) {return;}
+      if (!this.database?.client) {
+        return;
+      }
 
       // TODO: Implement streak data storage using existing models or create UserStreak model
       // For now, store in cache only
       const userStreaks = this.streakCache.get(userId) || [];
       const existingIndex = userStreaks.findIndex(s => s.type === streak.type);
-      
+
       if (existingIndex >= 0) {
         userStreaks[existingIndex] = streak;
       } else {
         userStreaks.push(streak);
       }
-      
+
       this.streakCache.set(userId, userStreaks);
       this.logger.debug(`💾 Streak data cached for user ${userId}, type: ${streak.type}`);
     } catch (error) {
@@ -583,7 +623,9 @@ export class AdvancedPUBGBadgesService {
    */
   private async saveConsistencyData(userId: string, stats: ConsistencyStats): Promise<void> {
     try {
-      if (!this.database?.client) {return;}
+      if (!this.database?.client) {
+        return;
+      }
 
       // TODO: Implement consistency data storage using existing models or create Consistency model
       // For now, store in cache only
@@ -597,9 +639,14 @@ export class AdvancedPUBGBadgesService {
   /**
    * Save weapon mastery data to database
    */
-  private async saveWeaponMasteryData(userId: string, weapons: WeaponMasteryProgress[]): Promise<void> {
+  private async saveWeaponMasteryData(
+    userId: string,
+    weapons: WeaponMasteryProgress[]
+  ): Promise<void> {
     try {
-      if (!this.database?.client) {return;}
+      if (!this.database?.client) {
+        return;
+      }
 
       // Convert WeaponMasteryProgress to the format expected by the schema
       const weaponsData = weapons.map(weapon => ({
@@ -617,7 +664,8 @@ export class AdvancedPUBGBadgesService {
 
       const totalLevel = weapons.reduce((sum, weapon) => sum + weapon.masteryLevel, 0);
       const totalXP = totalLevel * 100;
-      const favoriteWeapon = weapons.sort((a, b) => b.masteryLevel - a.masteryLevel)[0]?.weapon || 'Unknown';
+      const favoriteWeapon =
+        weapons.sort((a, b) => b.masteryLevel - a.masteryLevel)[0]?.weapon || 'Unknown';
 
       await this.database.client.weaponMastery.upsert({
         where: { userId },
@@ -647,11 +695,21 @@ export class AdvancedPUBGBadgesService {
    * Get mastery tier based on level
    */
   private getMasteryTier(level: number): string {
-    if (level >= 10) {return 'Master';}
-    if (level >= 8) {return 'Expert';}
-    if (level >= 6) {return 'Advanced';}
-    if (level >= 4) {return 'Intermediate';}
-    if (level >= 2) {return 'Novice';}
+    if (level >= 10) {
+      return 'Master';
+    }
+    if (level >= 8) {
+      return 'Expert';
+    }
+    if (level >= 6) {
+      return 'Advanced';
+    }
+    if (level >= 4) {
+      return 'Intermediate';
+    }
+    if (level >= 2) {
+      return 'Novice';
+    }
     return 'Beginner';
   }
 
@@ -660,13 +718,16 @@ export class AdvancedPUBGBadgesService {
    */
   private scheduleConsistencyCalculation(): void {
     // Calculate consistency every 6 hours
-    setInterval(async () => {
-      try {
-        await this.calculateAllUsersConsistency();
-      } catch (error) {
-        this.logger.error('❌ Failed to calculate consistency for all users:', error);
-      }
-    }, 6 * 60 * 60 * 1000); // 6 hours
+    setInterval(
+      async () => {
+        try {
+          await this.calculateAllUsersConsistency();
+        } catch (error) {
+          this.logger.error('❌ Failed to calculate consistency for all users:', error);
+        }
+      },
+      6 * 60 * 60 * 1000
+    ); // 6 hours
   }
 
   /**
@@ -674,7 +735,9 @@ export class AdvancedPUBGBadgesService {
    */
   private async calculateAllUsersConsistency(): Promise<void> {
     try {
-      if (!this.database?.client) {return;}
+      if (!this.database?.client) {
+        return;
+      }
 
       const users = await this.database.client.user.findMany({
         select: { id: true },
@@ -727,7 +790,8 @@ export class AdvancedPUBGBadgesService {
       await this.updateStreak(userId, 'kills', kills > 0);
 
       // Check single-match achievements
-      if (survivalTime >= 1500) { // 25 minutes
+      if (survivalTime >= 1500) {
+        // 25 minutes
         await this.awardAdvancedBadge(userId, 'marathon_survivor');
       }
 

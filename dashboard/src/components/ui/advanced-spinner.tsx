@@ -23,20 +23,26 @@ const colorClasses = {
 };
 
 // Spinner com efeito de onda
-export const WaveSpinner: React.FC<AdvancedSpinnerProps> = ({ 
-  size = 'md', 
-  className, 
-  color = 'primary', 
+export const WaveSpinner: React.FC<AdvancedSpinnerProps> = ({
+  size = 'md',
+  className,
+  color = 'primary',
 }) => {
   return (
     <div className={cn('flex space-x-1', className)}>
-      {[0, 1, 2, 3, 4].map((index) => (
+      {[0, 1, 2, 3, 4].map(index => (
         <div
           key={index}
           className={cn(
             'bg-current rounded-full animate-pulse',
-            size === 'sm' ? 'h-2 w-1' : size === 'md' ? 'h-3 w-1.5' : size === 'lg' ? 'h-4 w-2' : 'h-6 w-3',
-            colorClasses[color],
+            size === 'sm'
+              ? 'h-2 w-1'
+              : size === 'md'
+                ? 'h-3 w-1.5'
+                : size === 'lg'
+                  ? 'h-4 w-2'
+                  : 'h-6 w-3',
+            colorClasses[color]
           )}
           style={{
             animationDelay: `${index * 0.1}s`,
@@ -49,21 +55,21 @@ export const WaveSpinner: React.FC<AdvancedSpinnerProps> = ({
 };
 
 // Spinner com efeito de crescimento
-export const GrowSpinner: React.FC<AdvancedSpinnerProps> = ({ 
-  size = 'md', 
-  className, 
-  color = 'primary', 
+export const GrowSpinner: React.FC<AdvancedSpinnerProps> = ({
+  size = 'md',
+  className,
+  color = 'primary',
 }) => {
   return (
     <div className={cn('flex space-x-1', className)}>
-      {[0, 1, 2].map((index) => (
+      {[0, 1, 2].map(index => (
         <div
           key={index}
           className={cn(
             'rounded-full animate-bounce',
             sizeClasses[size],
             colorClasses[color],
-            'bg-current',
+            'bg-current'
           )}
           style={{
             animationDelay: `${index * 0.16}s`,
@@ -75,10 +81,10 @@ export const GrowSpinner: React.FC<AdvancedSpinnerProps> = ({
 };
 
 // Spinner orbital
-export const OrbitSpinner: React.FC<AdvancedSpinnerProps> = ({ 
-  size = 'md', 
-  className, 
-  color = 'primary', 
+export const OrbitSpinner: React.FC<AdvancedSpinnerProps> = ({
+  size = 'md',
+  className,
+  color = 'primary',
 }) => {
   const containerSize = {
     sm: 'h-8 w-8',
@@ -96,39 +102,49 @@ export const OrbitSpinner: React.FC<AdvancedSpinnerProps> = ({
 
   return (
     <div className={cn('relative', containerSize[size], className)}>
-      <div className="absolute inset-0 animate-spin">
-        <div className={cn(
-          'absolute top-0 left-1/2 transform -translate-x-1/2 rounded-full bg-current',
-          dotSize[size],
-          colorClasses[color],
-        )} />
+      <div className='absolute inset-0 animate-spin'>
+        <div
+          className={cn(
+            'absolute top-0 left-1/2 transform -translate-x-1/2 rounded-full bg-current',
+            dotSize[size],
+            colorClasses[color]
+          )}
+        />
       </div>
-      <div className="absolute inset-0 animate-spin" style={{ animationDelay: '0.5s' }}>
-        <div className={cn(
-          'absolute bottom-0 left-1/2 transform -translate-x-1/2 rounded-full bg-current opacity-60',
-          dotSize[size],
-          colorClasses[color],
-        )} />
+      <div className='absolute inset-0 animate-spin' style={{ animationDelay: '0.5s' }}>
+        <div
+          className={cn(
+            'absolute bottom-0 left-1/2 transform -translate-x-1/2 rounded-full bg-current opacity-60',
+            dotSize[size],
+            colorClasses[color]
+          )}
+        />
       </div>
     </div>
   );
 };
 
 // Spinner com efeito de escala
-export const ScaleSpinner: React.FC<AdvancedSpinnerProps> = ({ 
-  size = 'md', 
-  className, 
-  color = 'primary', 
+export const ScaleSpinner: React.FC<AdvancedSpinnerProps> = ({
+  size = 'md',
+  className,
+  color = 'primary',
 }) => {
   return (
     <div className={cn('grid grid-cols-3 gap-1', className)}>
-      {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((index) => (
+      {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(index => (
         <div
           key={index}
           className={cn(
             'rounded-sm bg-current',
-            size === 'sm' ? 'h-1 w-1' : size === 'md' ? 'h-1.5 w-1.5' : size === 'lg' ? 'h-2 w-2' : 'h-3 w-3',
-            colorClasses[color],
+            size === 'sm'
+              ? 'h-1 w-1'
+              : size === 'md'
+                ? 'h-1.5 w-1.5'
+                : size === 'lg'
+                  ? 'h-2 w-2'
+                  : 'h-3 w-3',
+            colorClasses[color]
           )}
           style={{
             animation: 'pulse 1.5s ease-in-out infinite',
@@ -136,16 +152,15 @@ export const ScaleSpinner: React.FC<AdvancedSpinnerProps> = ({
           }}
         />
       ))}
-
     </div>
   );
 };
 
 // Spinner com efeito de DNA
-export const DNASpinner: React.FC<AdvancedSpinnerProps> = ({ 
-  size = 'md', 
-  className, 
-  color = 'primary', 
+export const DNASpinner: React.FC<AdvancedSpinnerProps> = ({
+  size = 'md',
+  className,
+  color = 'primary',
 }) => {
   const containerHeight = {
     sm: 'h-8',
@@ -156,14 +171,20 @@ export const DNASpinner: React.FC<AdvancedSpinnerProps> = ({
 
   return (
     <div className={cn('flex items-center justify-center', containerHeight[size], className)}>
-      <div className="relative">
-        {[0, 1, 2, 3, 4].map((index) => (
+      <div className='relative'>
+        {[0, 1, 2, 3, 4].map(index => (
           <div
             key={index}
             className={cn(
               'absolute rounded-full bg-current',
-              size === 'sm' ? 'h-1.5 w-1.5' : size === 'md' ? 'h-2 w-2' : size === 'lg' ? 'h-3 w-3' : 'h-4 w-4',
-              colorClasses[color],
+              size === 'sm'
+                ? 'h-1.5 w-1.5'
+                : size === 'md'
+                  ? 'h-2 w-2'
+                  : size === 'lg'
+                    ? 'h-3 w-3'
+                    : 'h-4 w-4',
+              colorClasses[color]
             )}
             style={{
               left: `${index * 8}px`,
@@ -172,31 +193,25 @@ export const DNASpinner: React.FC<AdvancedSpinnerProps> = ({
             }}
           />
         ))}
-
       </div>
     </div>
   );
 };
 
 // Spinner com efeito de coração pulsante
-export const HeartbeatSpinner: React.FC<AdvancedSpinnerProps> = ({ 
-  size = 'md', 
-  className, 
-  color = 'primary', 
+export const HeartbeatSpinner: React.FC<AdvancedSpinnerProps> = ({
+  size = 'md',
+  className,
+  color = 'primary',
 }) => {
   return (
     <div className={cn('flex items-center justify-center', className)}>
       <div
-        className={cn(
-          'rounded-full bg-current',
-          sizeClasses[size],
-          colorClasses[color],
-        )}
+        className={cn('rounded-full bg-current', sizeClasses[size], colorClasses[color])}
         style={{
           animation: 'pulse 1.5s ease-in-out infinite',
         }}
       />
-
     </div>
   );
 };

@@ -91,7 +91,7 @@ class ProductionMonitoringService extends EventEmitter {
     this.discordClient = discordClient || null;
     this.metricsService = metricsService || null;
     this.setupDefaultHealthChecks();
-    this.setupProcessHandlers();
+    // Process handlers will be setup when start() is called
   }
 
   setDiscordClient(client: ExtendedClient): void {
@@ -111,7 +111,8 @@ class ProductionMonitoringService extends EventEmitter {
       const responseTime = Date.now() - startTime;
 
       const memoryPercentage = (memUsage.heapUsed / memUsage.heapTotal) * 100;
-      const status = memoryPercentage > 90 ? 'unhealthy' : memoryPercentage > 70 ? 'degraded' : 'healthy';
+      const status =
+        memoryPercentage > 90 ? 'unhealthy' : memoryPercentage > 70 ? 'degraded' : 'healthy';
 
       return {
         service: 'system',
@@ -133,7 +134,7 @@ class ProductionMonitoringService extends EventEmitter {
         // Simple query to check database connectivity
         // This would be replaced with actual database ping
         await new Promise(resolve => setTimeout(resolve, 10));
-        
+
         const responseTime = Date.now() - startTime;
         const status = responseTime > 1000 ? 'degraded' : 'healthy';
 
@@ -160,7 +161,7 @@ class ProductionMonitoringService extends EventEmitter {
       try {
         // Redis ping would go here
         await new Promise(resolve => setTimeout(resolve, 5));
-        
+
         const responseTime = Date.now() - startTime;
         const status = responseTime > 500 ? 'degraded' : 'healthy';
 
@@ -202,57 +203,62 @@ class ProductionMonitoringService extends EventEmitter {
     });
 
     // Handle uncaught exceptions
-    process.on('uncaughtException', (error) => {
-      productionLogger.error('Uncaught exception', 
+    process.on('uncaughtException', error => {
+      productionLogger.error(
+        'Uncaught exception',
         createLogContext(LogCategory.SYSTEM, {
           error,
-        }));
+        })
+      );
       this.createAlert('critical', 'system', `Uncaught exception: ${error.message}`);
     });
 
     // Handle unhandled promise rejections
     process.on('unhandledRejection', (reason, promise) => {
-      productionLogger.error('Unhandled promise rejection', 
+      productionLogger.error(
+        'Unhandled promise rejection',
         createLogContext(LogCategory.SYSTEM, {
           metadata: { reason, promise },
-        }));
+        })
+      );
       this.createAlert('critical', 'system', `Unhandled promise rejection: ${reason}`);
     });
   }
 
   registerHealthCheck(name: string, check: () => Promise<HealthCheckResult>): void {
     this.healthChecks.set(name, check);
-    productionLogger.info(`Health check registered: ${name}`, 
-      createLogContext(LogCategory.SYSTEM));
+    productionLogger.info(`Health check registered: ${name}`, createLogContext(LogCategory.SYSTEM));
   }
 
   async runHealthChecks(): Promise<HealthCheckResult[]> {
     const results: HealthCheckResult[] = [];
-    
+
     for (const [name, check] of this.healthChecks) {
       try {
         const result = await Promise.race([
           check(),
-          new Promise<HealthCheckResult>((_, reject) => 
-            setTimeout(() => reject(new Error('Health check timeout')), 5000),
+          new Promise<HealthCheckResult>((_, reject) =>
+            setTimeout(() => reject(new Error('Health check timeout')), 5000)
           ),
         ]);
         results.push(result);
-        
+
         // Log health check result
-        productionLogger.healthCheck(name, result.status, 
+        productionLogger.healthCheck(
+          name,
+          result.status,
           createLogContext(LogCategory.SYSTEM, {
             duration: result.responseTime,
             metadata: result.metadata,
-          }));
-        
+          })
+        );
+
         // Create alerts for unhealthy services
         if (result.status === 'unhealthy') {
           this.createAlert('critical', name, result.message || 'Service is unhealthy');
         } else if (result.status === 'degraded') {
           this.createAlert('warning', name, result.message || 'Service is degraded');
         }
-        
       } catch (error) {
         const result: HealthCheckResult = {
           service: name,
@@ -261,14 +267,16 @@ class ProductionMonitoringService extends EventEmitter {
           timestamp: new Date(),
         };
         results.push(result);
-        
-        productionLogger.error(`Health check failed: ${name}`, 
+
+        productionLogger.error(
+          `Health check failed: ${name}`,
           createLogContext(LogCategory.SYSTEM, {
             error: error instanceof Error ? error : new Error(String(error)),
-          }));
+          })
+        );
       }
     }
-    
+
     return results;
   }
 
@@ -276,7 +284,7 @@ class ProductionMonitoringService extends EventEmitter {
     const now = new Date();
     const memUsage = process.memoryUsage();
     const cpuUsage = process.cpuUsage();
-    
+
     this.metrics = {
       timestamp: now,
       cpu: {
@@ -310,23 +318,42 @@ class ProductionMonitoringService extends EventEmitter {
     };
 
     // Log performance metrics
-    productionLogger.performance('memory_usage', this.metrics.memory.percentage, 
-      createLogContext(LogCategory.PERFORMANCE));
+    productionLogger.performance(
+      'memory_usage',
+      this.metrics.memory.percentage,
+      createLogContext(LogCategory.PERFORMANCE)
+    );
 
-    productionLogger.performance('cpu_usage', this.metrics.cpu.usage, 
-      createLogContext(LogCategory.PERFORMANCE));
+    productionLogger.performance(
+      'cpu_usage',
+      this.metrics.cpu.usage,
+      createLogContext(LogCategory.PERFORMANCE)
+    );
 
     // Check for performance alerts
     if (this.metrics.memory.percentage > 90) {
-      this.createAlert('critical', 'system', `High memory usage: ${this.metrics.memory.percentage.toFixed(2)}%`);
+      this.createAlert(
+        'critical',
+        'system',
+        `High memory usage: ${this.metrics.memory.percentage.toFixed(2)}%`
+      );
     } else if (this.metrics.memory.percentage > 80) {
-      this.createAlert('warning', 'system', `High memory usage: ${this.metrics.memory.percentage.toFixed(2)}%`);
+      this.createAlert(
+        'warning',
+        'system',
+        `High memory usage: ${this.metrics.memory.percentage.toFixed(2)}%`
+      );
     }
 
     return this.metrics;
   }
 
-  createAlert(type: Alert['type'], service: string, message: string, metadata?: Record<string, any>): void {
+  createAlert(
+    type: Alert['type'],
+    service: string,
+    message: string,
+    metadata?: Record<string, any>
+  ): void {
     const alert: Alert = {
       id: `${service}-${Date.now()}`,
       type,
@@ -340,10 +367,12 @@ class ProductionMonitoringService extends EventEmitter {
     this.alerts.set(alert.id, alert);
     this.emit('alert', alert);
 
-    productionLogger.security(`Alert created: ${type}`, 
+    productionLogger.security(
+      `Alert created: ${type}`,
       createLogContext(LogCategory.SECURITY, {
         metadata: { alert },
-      }));
+      })
+    );
   }
 
   resolveAlert(alertId: string): void {
@@ -351,11 +380,13 @@ class ProductionMonitoringService extends EventEmitter {
     if (alert) {
       alert.resolved = true;
       this.emit('alertResolved', alert);
-      
-      productionLogger.info(`Alert resolved: ${alertId}`, 
+
+      productionLogger.info(
+        `Alert resolved: ${alertId}`,
         createLogContext(LogCategory.SYSTEM, {
           metadata: { alert },
-        }));
+        })
+      );
     }
   }
 
@@ -377,10 +408,15 @@ class ProductionMonitoringService extends EventEmitter {
   }
 
   start(): void {
-    if (this.isRunning) {return;}
+    if (this.isRunning) {
+      return;
+    }
 
     this.isRunning = true;
-    
+
+    // Setup process handlers when starting
+    this.setupProcessHandlers();
+
     // Run health checks every 30 seconds
     this.monitoringInterval = setInterval(async () => {
       await this.runHealthChecks();
@@ -391,12 +427,13 @@ class ProductionMonitoringService extends EventEmitter {
       this.collectMetrics();
     }, 60000);
 
-    productionLogger.info('Production monitoring started', 
-      createLogContext(LogCategory.SYSTEM));
+    productionLogger.info('Production monitoring started', createLogContext(LogCategory.SYSTEM));
   }
 
   async shutdown(): Promise<void> {
-    if (!this.isRunning) {return;}
+    if (!this.isRunning) {
+      return;
+    }
 
     this.isRunning = false;
 
@@ -410,24 +447,21 @@ class ProductionMonitoringService extends EventEmitter {
       this.metricsInterval = null;
     }
 
-    productionLogger.info('Production monitoring stopped', 
-      createLogContext(LogCategory.SYSTEM));
+    productionLogger.info('Production monitoring stopped', createLogContext(LogCategory.SYSTEM));
 
     // Wait for graceful shutdown timeout
-    await new Promise(resolve => 
-      setTimeout(resolve, productionConfig.shutdown.timeout),
-    );
+    await new Promise(resolve => setTimeout(resolve, productionConfig.shutdown.timeout));
   }
 
   // Express middleware for API monitoring
   apiMonitoringMiddleware() {
     return (req: any, res: any, next: any) => {
       const startTime = Date.now();
-      
+
       res.on('finish', () => {
         const duration = Date.now() - startTime;
         this.incrementCounter('apiRequests');
-        
+
         productionLogger.apiRequest(
           req.method,
           req.originalUrl,
@@ -437,10 +471,10 @@ class ProductionMonitoringService extends EventEmitter {
             requestId: req.id,
             userAgent: req.get('User-Agent'),
             ip: req.ip,
-          }),
+          })
         );
       });
-      
+
       next();
     };
   }
@@ -458,27 +492,36 @@ class ProductionMonitoringService extends EventEmitter {
     try {
       const guilds = this.discordClient.guilds.cache.size;
       const users = this.discordClient.guilds.cache.reduce(
-        (acc, guild) => acc + (guild.memberCount || 0), 
-        0,
+        (acc, guild) => acc + (guild.memberCount || 0),
+        0
       );
       const channels = this.discordClient.channels.cache.size;
       const ping = this.discordClient.ws.ping;
 
       // Log Discord metrics
-      productionLogger.performance('discord_guilds', guilds, 
+      productionLogger.performance(
+        'discord_guilds',
+        guilds,
         createLogContext(LogCategory.PERFORMANCE, {
           metadata: { service: 'discord' },
-        }));
+        })
+      );
 
-      productionLogger.performance('discord_users', users, 
+      productionLogger.performance(
+        'discord_users',
+        users,
         createLogContext(LogCategory.PERFORMANCE, {
           metadata: { service: 'discord' },
-        }));
+        })
+      );
 
-      productionLogger.performance('discord_ping', ping, 
+      productionLogger.performance(
+        'discord_ping',
+        ping,
         createLogContext(LogCategory.PERFORMANCE, {
           metadata: { service: 'discord' },
-        }));
+        })
+      );
 
       // Create alerts for Discord connectivity issues
       if (ping > 1000) {
@@ -494,11 +537,13 @@ class ProductionMonitoringService extends EventEmitter {
         ping,
       };
     } catch (error) {
-      productionLogger.error('Failed to collect Discord metrics', 
+      productionLogger.error(
+        'Failed to collect Discord metrics',
         createLogContext(LogCategory.SYSTEM, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }));
-      
+        })
+      );
+
       return {
         guilds: 0,
         users: 0,
@@ -511,7 +556,7 @@ class ProductionMonitoringService extends EventEmitter {
   // Enhanced health check for Discord
   private async checkDiscordHealth(): Promise<HealthCheckResult> {
     const startTime = Date.now();
-    
+
     try {
       if (!this.discordClient) {
         return {
@@ -536,10 +581,10 @@ class ProductionMonitoringService extends EventEmitter {
       const ping = this.discordClient.ws.ping;
       const guilds = this.discordClient.guilds.cache.size;
       const responseTime = Date.now() - startTime;
-      
+
       let status: 'healthy' | 'unhealthy' | 'degraded' = 'healthy';
       let message = 'Discord connection is healthy';
-      
+
       if (ping > 2000) {
         status = 'unhealthy';
         message = `Very high latency: ${ping}ms`;

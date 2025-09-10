@@ -35,8 +35,8 @@ class DailyCommand extends BaseCommand {
               { name: '🎁 Resgatar Recompensa', value: 'claim' },
               { name: '📊 Ver Streak', value: 'streak' },
               { name: '🏆 Ranking de Streaks', value: 'leaderboard' },
-              { name: '📅 Calendário Mensal', value: 'calendar' },
-            ),
+              { name: '📅 Calendário Mensal', value: 'calendar' }
+            )
         ) as SlashCommandBuilder,
       category: CommandCategory.GENERAL,
       cooldown: 5,
@@ -62,7 +62,7 @@ class DailyCommand extends BaseCommand {
           .setTitle('❌ Usuário Não Registrado')
           .setDescription(
             'Você precisa estar registrado para usar este comando.\n\n' +
-              'Use `/register-server` para se registrar no servidor.',
+              'Use `/register-server` para se registrar no servidor.'
           )
           .setColor(0xff0000)
           .setTimestamp();
@@ -112,7 +112,7 @@ class DailyCommand extends BaseCommand {
     interaction: ChatInputCommandInteraction,
     database: DatabaseService,
     badgeService: BadgeService,
-    user: any,
+    user: any
   ) {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -135,7 +135,7 @@ class DailyCommand extends BaseCommand {
           'Você já resgatou sua recompensa diária hoje!\n\n' +
             `**Próxima recompensa em:** ${hoursLeft}h ${minutesLeft}m\n` +
             `**Streak atual:** ${user.dailyStreak} dias\n\n` +
-            'Use `/daily streak` para ver detalhes do seu streak!',
+            'Use `/daily streak` para ver detalhes do seu streak!'
         )
         .setColor(0xffa500)
         .setTimestamp();
@@ -148,7 +148,7 @@ class DailyCommand extends BaseCommand {
         new ButtonBuilder()
           .setCustomId('daily_calendar')
           .setLabel('📅 Calendário')
-          .setStyle(ButtonStyle.Secondary),
+          .setStyle(ButtonStyle.Secondary)
       );
 
       const response = await interaction.reply({
@@ -243,7 +243,7 @@ class DailyCommand extends BaseCommand {
           '**Seus Totais:**\n' +
           `📊 Level: ${updatedUser.level}\n` +
           `⭐ XP: ${updatedUser.xp.toLocaleString()}\n` +
-          `💰 Moedas: ${updatedUser.coins.toLocaleString()}`,
+          `💰 Moedas: ${updatedUser.coins.toLocaleString()}`
       )
       .setColor(0x00ff00)
       .setFooter({
@@ -274,7 +274,7 @@ class DailyCommand extends BaseCommand {
       new ButtonBuilder()
         .setCustomId('daily_calendar')
         .setLabel('📅 Calendário')
-        .setStyle(ButtonStyle.Secondary),
+        .setStyle(ButtonStyle.Secondary)
     );
 
     const response = await interaction.reply({
@@ -336,7 +336,7 @@ class DailyCommand extends BaseCommand {
         `${streakEmoji} **Status:** ${streakStatus}\n` +
           `🔥 **Streak atual:** ${currentStreak} dias\n` +
           `📅 **Último resgate:** ${lastClaim ? lastClaim.toLocaleDateString('pt-BR') : 'Nunca'}\n` +
-          `🏅 **Último marco:** ${lastMilestone} dias${progressText}`,
+          `🏅 **Último marco:** ${lastMilestone} dias${progressText}`
       )
       .setColor(currentStreak > 0 ? 0x00ff00 : 0xff0000)
       .setTimestamp();
@@ -369,7 +369,7 @@ class DailyCommand extends BaseCommand {
       new ButtonBuilder()
         .setCustomId('daily_calendar')
         .setLabel('📅 Calendário')
-        .setStyle(ButtonStyle.Secondary),
+        .setStyle(ButtonStyle.Secondary)
     );
 
     const response = await interaction.reply({
@@ -421,7 +421,7 @@ class DailyCommand extends BaseCommand {
           const discordUser = await interaction.client.users.fetch(user.id);
           const lastClaim = (user as any).lastDaily ? new Date((user as any).lastDaily) : null;
           const today = new Date();
-          const isActive = lastClaim && (today.getTime() - lastClaim.getTime()) < 48 * 60 * 60 * 1000; // 48 hours
+          const isActive = lastClaim && today.getTime() - lastClaim.getTime() < 48 * 60 * 60 * 1000; // 48 hours
 
           leaderboardData.push({
             position: i + 1,
@@ -442,11 +442,12 @@ class DailyCommand extends BaseCommand {
           'Top usuários com maiores streaks de login consecutivos:\n\n' +
             leaderboardData
               .map(user => {
-                const medal = user.position <= 3 ? ['🥇', '🥈', '🥉'][user.position - 1] : `${user.position}.`;
+                const medal =
+                  user.position <= 3 ? ['🥇', '🥈', '🥉'][user.position - 1] : `${user.position}.`;
                 const status = user.isActive ? '🔥' : '💔';
                 return `${medal} **${user.username}** - ${status} ${user.streak} dias`;
               })
-              .join('\n'),
+              .join('\n')
         )
         .setColor(0xffd700)
         .setFooter({
@@ -462,7 +463,7 @@ class DailyCommand extends BaseCommand {
         new ButtonBuilder()
           .setCustomId('daily_streak')
           .setLabel('📊 Meu Streak')
-          .setStyle(ButtonStyle.Primary),
+          .setStyle(ButtonStyle.Primary)
       );
 
       const response = await interaction.reply({
@@ -515,11 +516,11 @@ class DailyCommand extends BaseCommand {
     // Add days of month
     for (let day = 1; day <= daysInMonth; day++) {
       const dayStr = day.toString().padStart(2, ' ');
-      
+
       // Check if this day was claimed (simplified - would need actual claim data)
       const isToday = day === today;
       const isClaimed = day < today && user.dailyStreak > 0; // Simplified logic
-      
+
       if (isToday) {
         weekLine += `[${dayStr}]`;
       } else if (isClaimed) {
@@ -543,20 +544,30 @@ class DailyCommand extends BaseCommand {
     calendar += '```';
 
     const monthNames = [
-      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+      'Janeiro',
+      'Fevereiro',
+      'Março',
+      'Abril',
+      'Maio',
+      'Junho',
+      'Julho',
+      'Agosto',
+      'Setembro',
+      'Outubro',
+      'Novembro',
+      'Dezembro',
     ];
 
     const embed = new EmbedBuilder()
       .setTitle(`📅 Calendário de ${monthNames[currentMonth]} ${currentYear}`)
       .setDescription(
         calendar +
-        '\n**Legenda:**\n' +
-        '`[XX]` - Hoje\n' +
-        '`XX✓` - Dia resgatado\n' +
-        '`XX ` - Dia não resgatado\n\n' +
-        `**Streak atual:** ${user.dailyStreak} dias\n` +
-        `**Dias restantes no mês:** ${daysInMonth - today}`,
+          '\n**Legenda:**\n' +
+          '`[XX]` - Hoje\n' +
+          '`XX✓` - Dia resgatado\n' +
+          '`XX ` - Dia não resgatado\n\n' +
+          `**Streak atual:** ${user.dailyStreak} dias\n` +
+          `**Dias restantes no mês:** ${daysInMonth - today}`
       )
       .setColor(0x00aaff)
       .setTimestamp();
@@ -569,7 +580,7 @@ class DailyCommand extends BaseCommand {
       new ButtonBuilder()
         .setCustomId('daily_streak')
         .setLabel('📊 Ver Streak')
-        .setStyle(ButtonStyle.Primary),
+        .setStyle(ButtonStyle.Primary)
     );
 
     const response = await interaction.reply({
@@ -587,7 +598,7 @@ class DailyCommand extends BaseCommand {
     response: any,
     interaction: ChatInputCommandInteraction,
     database: DatabaseService,
-    user: any,
+    user: any
   ) {
     const collector = response.createMessageComponentCollector({
       componentType: ComponentType.Button,
@@ -605,17 +616,24 @@ class DailyCommand extends BaseCommand {
 
       try {
         const action = buttonInteraction.customId.replace('daily_', '');
-        
+
         // Get fresh user data
-        const freshUser = user || await database.client.user.findUnique({
-          where: { id: interaction.user.id },
-          include: { stats: true },
-        });
+        const freshUser =
+          user ||
+          (await database.client.user.findUnique({
+            where: { id: interaction.user.id },
+            include: { stats: true },
+          }));
 
         switch (action) {
           case 'claim':
             await buttonInteraction.deferUpdate();
-            await this.claimDailyReward(buttonInteraction, database, (interaction.client as any).badgeService, freshUser);
+            await this.claimDailyReward(
+              buttonInteraction,
+              database,
+              (interaction.client as any).badgeService,
+              freshUser
+            );
             break;
           case 'streak':
             await buttonInteraction.deferUpdate();
@@ -640,10 +658,9 @@ class DailyCommand extends BaseCommand {
       const disabledComponents = response.components?.map((row: any) => {
         const newRow = new ActionRowBuilder();
         row.components.forEach((component: any) => {
-          if (component.type === 2) { // Button
-            newRow.addComponents(
-              ButtonBuilder.from(component).setDisabled(true),
-            );
+          if (component.type === 2) {
+            // Button
+            newRow.addComponents(ButtonBuilder.from(component).setDisabled(true));
           }
         });
         return newRow;
@@ -659,12 +676,24 @@ class DailyCommand extends BaseCommand {
    * Get streak bonus rewards
    */
   private getStreakBonus(streak: number): { xp: number; coins: number } {
-    if (streak >= 365) {return { xp: 500, coins: 1000 };} // 1 year
-    if (streak >= 100) {return { xp: 200, coins: 400 };} // 100 days
-    if (streak >= 60) {return { xp: 100, coins: 200 };} // 2 months
-    if (streak >= 30) {return { xp: 50, coins: 100 };} // 1 month
-    if (streak >= 14) {return { xp: 25, coins: 50 };} // 2 weeks
-    if (streak >= 7) {return { xp: 10, coins: 25 };} // 1 week
+    if (streak >= 365) {
+      return { xp: 500, coins: 1000 };
+    } // 1 year
+    if (streak >= 100) {
+      return { xp: 200, coins: 400 };
+    } // 100 days
+    if (streak >= 60) {
+      return { xp: 100, coins: 200 };
+    } // 2 months
+    if (streak >= 30) {
+      return { xp: 50, coins: 100 };
+    } // 1 month
+    if (streak >= 14) {
+      return { xp: 25, coins: 50 };
+    } // 2 weeks
+    if (streak >= 7) {
+      return { xp: 10, coins: 25 };
+    } // 1 week
     return { xp: 0, coins: 0 };
   }
 

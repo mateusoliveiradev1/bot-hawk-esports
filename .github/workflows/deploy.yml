@@ -2,8 +2,8 @@ name: CD - Continuous Deployment
 
 on:
   push:
-    branches: [ main ]
-    tags: [ 'v*' ]
+    branches: [main]
+    tags: ['v*']
   workflow_dispatch:
     inputs:
       environment:
@@ -12,8 +12,8 @@ on:
         default: 'staging'
         type: choice
         options:
-        - staging
-        - production
+          - staging
+          - production
       force_deploy:
         description: 'Force deployment even if tests fail'
         required: false
@@ -34,13 +34,13 @@ jobs:
       should_deploy: ${{ steps.check.outputs.should_deploy }}
       environment: ${{ steps.check.outputs.environment }}
       version: ${{ steps.version.outputs.version }}
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          
+
       - name: 🔍 Check deployment conditions
         id: check
         run: |
@@ -57,7 +57,7 @@ jobs:
             echo "should_deploy=false" >> $GITHUB_OUTPUT
             echo "environment=none" >> $GITHUB_OUTPUT
           fi
-          
+
       - name: 📋 Generate version
         id: version
         run: |
@@ -85,21 +85,21 @@ jobs:
     outputs:
       image: ${{ steps.image.outputs.image }}
       digest: ${{ steps.build.outputs.digest }}
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-        
+
       - name: 🐳 Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        
+
       - name: 🔐 Log in to Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: 🏷️ Extract metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -113,7 +113,7 @@ jobs:
             type=semver,pattern={{major}}
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
-            
+
       - name: 🏗️ Build and push Docker image
         id: build
         uses: docker/build-push-action@v5
@@ -125,7 +125,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
-          
+
       - name: 📋 Output image info
         id: image
         run: |
@@ -140,34 +140,34 @@ jobs:
     environment:
       name: staging
       url: https://staging.hawk-esports.com
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-        
+
       - name: 🚀 Deploy to staging
         run: |
           echo "🚀 Deploying to staging environment..."
           echo "Image: ${{ needs.build-and-push.outputs.image }}"
           echo "Version: ${{ needs.pre-deploy.outputs.version }}"
-          
+
           # Generate deployment package
           zip -r deploy-staging.zip dist/ package.json package-lock.json prisma/ docker-compose.yml monitoring/ .env.example
-          
+
           echo "✅ Staging deployment package created!"
-          
+
       - name: 📤 Upload staging deployment artifact
         uses: actions/upload-artifact@v4
         with:
           name: staging-deployment-package
           path: deploy-staging.zip
           retention-days: 30
-          
+
       - name: 🧪 Run smoke tests
         run: |
           echo "🧪 Running smoke tests on staging..."
           echo "✅ Smoke tests passed!"
-          
+
       - name: 📢 Notify staging deployment
         run: |
           echo "📢 Staging deployment completed!"
@@ -183,45 +183,45 @@ jobs:
     environment:
       name: production
       url: https://hawk-esports.com
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-        
+
       - name: 🔒 Verify production deployment
         run: |
           echo "🔒 Verifying production deployment conditions..."
-          
+
           if [[ "${{ github.ref }}" != refs/tags/v* ]] && [[ "${{ github.event.inputs.environment }}" != "production" ]]; then
             echo "❌ Production deployment only allowed for version tags or manual dispatch"
             exit 1
           fi
-          
+
           echo "✅ Production deployment conditions verified"
-          
+
       - name: 🏭 Deploy to production
         run: |
           echo "🏭 Deploying to production environment..."
           echo "Image: ${{ needs.build-and-push.outputs.image }}"
           echo "Version: ${{ needs.pre-deploy.outputs.version }}"
-          
+
           # Generate production deployment package
           zip -r deploy-production.zip dist/ package.json package-lock.json prisma/ docker-compose.yml monitoring/ .env.example
-          
+
           echo "✅ Production deployment package created!"
-          
+
       - name: 📤 Upload production deployment artifact
         uses: actions/upload-artifact@v4
         with:
           name: production-deployment-package
           path: deploy-production.zip
           retention-days: 90
-          
+
       - name: 🧪 Run production smoke tests
         run: |
           echo "🧪 Running smoke tests on production..."
           echo "✅ Production smoke tests passed!"
-          
+
       - name: 📢 Notify production deployment
         run: |
           echo "📢 Production deployment completed!"
@@ -234,7 +234,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [pre-deploy, deploy-staging, deploy-production]
     if: always() && (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
-    
+
     steps:
       - name: 📊 Update deployment metrics
         run: |
@@ -242,7 +242,7 @@ jobs:
           echo "Environment: ${{ needs.pre-deploy.outputs.environment }}"
           echo "Version: ${{ needs.pre-deploy.outputs.version }}"
           echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-          
+
       - name: 🏷️ Create GitHub release
         if: needs.pre-deploy.outputs.environment == 'production' && startsWith(github.ref, 'refs/tags/')
         uses: actions/create-release@v1
@@ -253,12 +253,12 @@ jobs:
           release_name: Release ${{ github.ref_name }}
           body: |
             ## 🚀 Release ${{ github.ref_name }}
-            
+
             ### 📋 Changes
             - Automated release from CI/CD pipeline
             - Docker image: ${{ needs.build-and-push.outputs.image }}
             - Commit: ${{ github.sha }}
-            
+
             ### 🐳 Docker Image
             ```
             docker pull ${{ needs.build-and-push.outputs.image }}

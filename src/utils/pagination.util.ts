@@ -63,12 +63,12 @@ export class PaginationUtil {
   static createPaginatedData<T>(
     items: T[],
     currentPage: number = 1,
-    itemsPerPage: number = 10,
+    itemsPerPage: number = 10
   ): PaginatedData<T> {
     const totalItems = items.length;
     const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
     const validPage = Math.max(1, Math.min(currentPage, totalPages));
-    
+
     const startIndex = (validPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const pageItems = items.slice(startIndex, endIndex);
@@ -89,7 +89,7 @@ export class PaginationUtil {
     interaction: CommandInteraction,
     allItems: T[],
     embedGenerator: EmbedGenerator<T>,
-    options: PaginationOptions = {},
+    options: PaginationOptions = {}
   ): Promise<void> {
     const {
       itemsPerPage = 10,
@@ -105,7 +105,7 @@ export class PaginationUtil {
     if (allItems.length === 0) {
       const emptyEmbed = EmbedUtils.createInfoEmbed(
         'Nenhum item encontrado',
-        'Não há itens para exibir.',
+        'Não há itens para exibir.'
       );
       await interaction.reply({ embeds: [emptyEmbed], flags: MessageFlags.Ephemeral });
       return;
@@ -123,24 +123,24 @@ export class PaginationUtil {
       if (showPageNumbers) {
         const pageInfo = `Página ${page}/${totalPages}`;
         const currentFooter = embed.data.footer?.text;
-        const newFooter = footerText 
+        const newFooter = footerText
           ? `${footerText} • ${pageInfo}`
-          : currentFooter 
+          : currentFooter
             ? `${currentFooter} • ${pageInfo}`
             : pageInfo;
         embed.setFooter({ text: newFooter });
       }
 
       const components = [];
-      
+
       if (showNavigation && totalPages > 1) {
         if (simpleNavigation) {
           components.push(
-            ComponentFactory.createSimpleNavigation(page, totalPages, customIdPrefix),
+            ComponentFactory.createSimpleNavigation(page, totalPages, customIdPrefix)
           );
         } else {
           components.push(
-            ComponentFactory.createNavigationButtons(page, totalPages, customIdPrefix),
+            ComponentFactory.createNavigationButtons(page, totalPages, customIdPrefix)
           );
         }
       }
@@ -150,16 +150,18 @@ export class PaginationUtil {
 
     // Send initial response
     const response = generateResponse(currentPage);
-    const message = await interaction.reply({ ...response, fetchReply: true }) as Message;
+    const message = (await interaction.reply({ ...response, fetchReply: true })) as Message;
 
     // If only one page, no need for collector
-    if (totalPages <= 1) {return;}
+    if (totalPages <= 1) {
+      return;
+    }
 
     // Create button collector
     const collector = message.createMessageComponentCollector({
       componentType: ComponentType.Button,
       time: timeout,
-      filter: (i) => {
+      filter: i => {
         if (authorOnly && i.user.id !== interaction.user.id) {
           i.reply({
             content: '❌ Apenas quem executou o comando pode navegar pelas páginas.',
@@ -173,7 +175,7 @@ export class PaginationUtil {
 
     collector.on('collect', async (buttonInteraction: ButtonInteraction) => {
       const action = buttonInteraction.customId.split('_')[1];
-      
+
       switch (action) {
         case 'first':
           currentPage = 1;
@@ -233,7 +235,7 @@ export class PaginationUtil {
       color?: number;
       thumbnail?: string;
       itemFormatter?: (item: string, index: number) => string;
-    } = {},
+    } = {}
   ): Promise<void> {
     const {
       description,
@@ -243,10 +245,8 @@ export class PaginationUtil {
       ...paginationOptions
     } = options;
 
-    const embedGenerator: EmbedGenerator<string> = (data) => {
-      const embed = new EmbedBuilder()
-        .setTitle(title)
-        .setColor(color || 0x3498db);
+    const embedGenerator: EmbedGenerator<string> = data => {
+      const embed = new EmbedBuilder().setTitle(title).setColor(color || 0x3498db);
 
       if (description) {
         embed.setDescription(description);
@@ -261,7 +261,7 @@ export class PaginationUtil {
         const formattedItems = data.items
           .map((item, index) => itemFormatter(item, startIndex + index))
           .join('\n');
-        
+
         embed.addFields({
           name: `📋 Lista (${data.totalItems} itens)`,
           value: formattedItems || 'Nenhum item encontrado',
@@ -271,12 +271,7 @@ export class PaginationUtil {
       return embed;
     };
 
-    await this.createPaginatedEmbed(
-      interaction,
-      items,
-      embedGenerator,
-      paginationOptions,
-    );
+    await this.createPaginatedEmbed(interaction, items, embedGenerator, paginationOptions);
   }
 
   /**
@@ -296,20 +291,12 @@ export class PaginationUtil {
       color?: number;
       thumbnail?: string;
       valueLabel?: string;
-    } = {},
+    } = {}
   ): Promise<void> {
-    const {
-      description,
-      color,
-      thumbnail,
-      valueLabel = 'Pontos',
-      ...paginationOptions
-    } = options;
+    const { description, color, thumbnail, valueLabel = 'Pontos', ...paginationOptions } = options;
 
-    const embedGenerator: EmbedGenerator<typeof rankings[0]> = (data) => {
-      const embed = new EmbedBuilder()
-        .setTitle(title)
-        .setColor(color || 0xf39c12);
+    const embedGenerator: EmbedGenerator<(typeof rankings)[0]> = data => {
+      const embed = new EmbedBuilder().setTitle(title).setColor(color || 0xf39c12);
 
       if (description) {
         embed.setDescription(description);
@@ -327,7 +314,7 @@ export class PaginationUtil {
             return `${medal} **${item.position}º** ${item.name}\n└ ${valueLabel}: **${item.value}**${extra}`;
           })
           .join('\n\n');
-        
+
         embed.addFields({
           name: `🏆 Ranking (${data.totalItems} participantes)`,
           value: rankingText,
@@ -337,12 +324,7 @@ export class PaginationUtil {
       return embed;
     };
 
-    await this.createPaginatedEmbed(
-      interaction,
-      rankings,
-      embedGenerator,
-      paginationOptions,
-    );
+    await this.createPaginatedEmbed(interaction, rankings, embedGenerator, paginationOptions);
   }
 
   /**
@@ -361,23 +343,15 @@ export class PaginationUtil {
       color?: number;
       thumbnail?: string;
       fieldsPerPage?: number;
-    } = {},
+    } = {}
   ): Promise<void> {
-    const {
-      description,
-      color,
-      thumbnail,
-      fieldsPerPage = 6,
-      ...paginationOptions
-    } = options;
+    const { description, color, thumbnail, fieldsPerPage = 6, ...paginationOptions } = options;
 
     // Override itemsPerPage for fields
     paginationOptions.itemsPerPage = fieldsPerPage;
 
-    const embedGenerator: EmbedGenerator<typeof stats[0]> = (data) => {
-      const embed = new EmbedBuilder()
-        .setTitle(title)
-        .setColor(color || 0x9b59b6);
+    const embedGenerator: EmbedGenerator<(typeof stats)[0]> = data => {
+      const embed = new EmbedBuilder().setTitle(title).setColor(color || 0x9b59b6);
 
       if (description) {
         embed.setDescription(description);
@@ -400,12 +374,7 @@ export class PaginationUtil {
       return embed;
     };
 
-    await this.createPaginatedEmbed(
-      interaction,
-      stats,
-      embedGenerator,
-      paginationOptions,
-    );
+    await this.createPaginatedEmbed(interaction, stats, embedGenerator, paginationOptions);
   }
 
   /**
@@ -413,12 +382,17 @@ export class PaginationUtil {
    */
   private static getRankingMedal(position: number): string {
     switch (position) {
-      case 1: return '🥇';
-      case 2: return '🥈';
-      case 3: return '🥉';
+      case 1:
+        return '🥇';
+      case 2:
+        return '🥈';
+      case 3:
+        return '🥉';
       case 4:
-      case 5: return '🏅';
-      default: return '▫️';
+      case 5:
+        return '🏅';
+      default:
+        return '▫️';
     }
   }
 
@@ -430,40 +404,35 @@ export class PaginationUtil {
     query: string,
     results: T[],
     embedGenerator: EmbedGenerator<T>,
-    options: PaginationOptions = {},
+    options: PaginationOptions = {}
   ): Promise<void> {
     if (results.length === 0) {
       const noResultsEmbed = EmbedUtils.createWarningEmbed(
         'Nenhum resultado encontrado',
-        `Não foram encontrados resultados para: **${query}**`,
+        `Não foram encontrados resultados para: **${query}**`
       );
       await interaction.reply({ embeds: [noResultsEmbed], flags: MessageFlags.Ephemeral });
       return;
     }
 
-    const enhancedEmbedGenerator: EmbedGenerator<T> = (data) => {
+    const enhancedEmbedGenerator: EmbedGenerator<T> = data => {
       const embed = embedGenerator(data);
-      
+
       // Add search info to description
       const currentDescription = embed.data.description || '';
       const searchInfo = `🔍 Resultados para: **${query}** (${data.totalItems} encontrados)`;
-      const newDescription = currentDescription 
+      const newDescription = currentDescription
         ? `${searchInfo}\n\n${currentDescription}`
         : searchInfo;
-      
+
       embed.setDescription(newDescription);
       return embed;
     };
 
-    await this.createPaginatedEmbed(
-      interaction,
-      results,
-      enhancedEmbedGenerator,
-      {
-        ...options,
-        footerText: options.footerText || `Busca: ${query}`,
-      },
-    );
+    await this.createPaginatedEmbed(interaction, results, enhancedEmbedGenerator, {
+      ...options,
+      footerText: options.footerText || `Busca: ${query}`,
+    });
   }
 
   /**
@@ -483,7 +452,7 @@ export class PaginationUtil {
   static calculatePagination(
     totalItems: number,
     currentPage: number,
-    itemsPerPage: number,
+    itemsPerPage: number
   ): {
     totalPages: number;
     startIndex: number;
@@ -517,9 +486,9 @@ export const PAGINATION_CONFIGS = {
     EXTRA_LARGE: 20,
   },
   TIMEOUTS: {
-    SHORT: 60000,    // 1 minute
-    MEDIUM: 300000,  // 5 minutes
-    LONG: 900000,    // 15 minutes
+    SHORT: 60000, // 1 minute
+    MEDIUM: 300000, // 5 minutes
+    LONG: 900000, // 15 minutes
   },
   STYLES: {
     SIMPLE: { simpleNavigation: true, showPageNumbers: true },

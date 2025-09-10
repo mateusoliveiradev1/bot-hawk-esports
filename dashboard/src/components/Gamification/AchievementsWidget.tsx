@@ -44,11 +44,11 @@ interface AchievementsWidgetProps {
   showCompleted?: boolean;
 }
 
-export default function AchievementsWidget({ 
-  userId, 
-  guildId, 
-  showChallenges = true, 
-  showCompleted = false 
+export default function AchievementsWidget({
+  userId,
+  guildId,
+  showChallenges = true,
+  showCompleted = false,
 }: AchievementsWidgetProps) {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -61,19 +61,19 @@ export default function AchievementsWidget({
     const fetchData = async () => {
       try {
         setLoading(true);
-        
+
         const [achievementsData, challengesData] = await Promise.all([
           apiService.getUserAchievements(userId, guildId),
-          showChallenges ? apiService.getUserChallenges(userId, guildId) : Promise.resolve([])
+          showChallenges ? apiService.getUserChallenges(userId, guildId) : Promise.resolve([]),
         ]);
-        
+
         setAchievements(achievementsData);
         setChallenges(challengesData);
         setError(null);
       } catch (err) {
         console.error('Failed to fetch achievements data:', err);
         setError('Erro ao carregar conquistas');
-        
+
         // Mock data for development
         setAchievements([
           {
@@ -87,7 +87,7 @@ export default function AchievementsWidget({
             completed: true,
             completedAt: '2024-01-15T10:30:00Z',
             rewards: { xp: 500, coins: 100, badge: 'chicken-dinner' },
-            icon: '🏆'
+            icon: '🏆',
           },
           {
             id: '2',
@@ -99,7 +99,7 @@ export default function AchievementsWidget({
             maxProgress: 100,
             completed: false,
             rewards: { xp: 1000, coins: 250, badge: 'sniper-elite' },
-            icon: '🎯'
+            icon: '🎯',
           },
           {
             id: '3',
@@ -112,7 +112,7 @@ export default function AchievementsWidget({
             completed: true,
             completedAt: '2024-01-20T15:45:00Z',
             rewards: { xp: 300, coins: 75 },
-            icon: '💬'
+            icon: '💬',
           },
           {
             id: '4',
@@ -124,7 +124,7 @@ export default function AchievementsWidget({
             maxProgress: 50,
             completed: false,
             rewards: { xp: 5000, coins: 1000, badge: 'legend', title: 'Lenda' },
-            icon: '👑'
+            icon: '👑',
           },
           {
             id: '5',
@@ -136,10 +136,10 @@ export default function AchievementsWidget({
             maxProgress: 25,
             completed: false,
             rewards: { xp: 2000, coins: 500, badge: 'collector' },
-            icon: '🏅'
-          }
+            icon: '🏅',
+          },
         ]);
-        
+
         if (showChallenges) {
           setChallenges([
             {
@@ -152,7 +152,7 @@ export default function AchievementsWidget({
               maxProgress: 10,
               completed: false,
               expiresAt: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
-              rewards: { xp: 100, coins: 25 }
+              rewards: { xp: 100, coins: 25 },
             },
             {
               id: '2',
@@ -164,7 +164,7 @@ export default function AchievementsWidget({
               maxProgress: 5,
               completed: false,
               expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-              rewards: { xp: 500, coins: 150 }
+              rewards: { xp: 500, coins: 150 },
             },
             {
               id: '3',
@@ -176,8 +176,8 @@ export default function AchievementsWidget({
               maxProgress: 20,
               completed: true,
               expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-              rewards: { xp: 200, coins: 50 }
-            }
+              rewards: { xp: 200, coins: 50 },
+            },
           ]);
         }
       } finally {
@@ -221,17 +221,17 @@ export default function AchievementsWidget({
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'combat':
-        return <Target className="h-4 w-4" />;
+        return <Target className='h-4 w-4' />;
       case 'social':
-        return <Award className="h-4 w-4" />;
+        return <Award className='h-4 w-4' />;
       case 'progression':
-        return <Star className="h-4 w-4" />;
+        return <Star className='h-4 w-4' />;
       case 'special':
-        return <Crown className="h-4 w-4" />;
+        return <Crown className='h-4 w-4' />;
       case 'seasonal':
-        return <Zap className="h-4 w-4" />;
+        return <Zap className='h-4 w-4' />;
       default:
-        return <Trophy className="h-4 w-4" />;
+        return <Trophy className='h-4 w-4' />;
     }
   };
 
@@ -267,12 +267,12 @@ export default function AchievementsWidget({
     const now = new Date();
     const expires = new Date(expiresAt);
     const diff = expires.getTime() - now.getTime();
-    
+
     if (diff <= 0) return 'Expirado';
-    
+
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     }
@@ -293,35 +293,35 @@ export default function AchievementsWidget({
 
   if (loading) {
     return (
-      <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-card-foreground mb-4">Conquistas</h3>
-        <div className="animate-pulse space-y-4">
+      <div className='bg-card border border-border rounded-lg p-6 shadow-sm'>
+        <h3 className='text-lg font-semibold text-card-foreground mb-4'>Conquistas</h3>
+        <div className='animate-pulse space-y-4'>
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="bg-gray-200 dark:bg-gray-700 rounded-lg h-20"></div>
+            <div key={i} className='bg-gray-200 dark:bg-gray-700 rounded-lg h-20'></div>
           ))}
         </div>
       </div>
     );
   }
 
-  if (error && (!achievements.length && !challenges.length)) {
+  if (error && !achievements.length && !challenges.length) {
     return (
-      <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-card-foreground mb-4">Conquistas</h3>
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">{error}</p>
+      <div className='bg-card border border-border rounded-lg p-6 shadow-sm'>
+        <h3 className='text-lg font-semibold text-card-foreground mb-4'>Conquistas</h3>
+        <div className='text-center py-8'>
+          <p className='text-muted-foreground'>{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-card-foreground">Conquistas</h3>
-        <div className="flex items-center space-x-1">
-          <Trophy className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">
+    <div className='bg-card border border-border rounded-lg p-6 shadow-sm'>
+      <div className='flex items-center justify-between mb-4'>
+        <h3 className='text-lg font-semibold text-card-foreground'>Conquistas</h3>
+        <div className='flex items-center space-x-1'>
+          <Trophy className='h-4 w-4 text-muted-foreground' />
+          <span className='text-sm text-muted-foreground'>
             {achievements.filter(a => a.completed).length}/{achievements.length}
           </span>
         </div>
@@ -329,7 +329,7 @@ export default function AchievementsWidget({
 
       {/* Tabs */}
       {showChallenges && (
-        <div className="flex space-x-1 mb-4 bg-muted rounded-lg p-1">
+        <div className='flex space-x-1 mb-4 bg-muted rounded-lg p-1'>
           <button
             onClick={() => setActiveTab('achievements')}
             className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -338,7 +338,7 @@ export default function AchievementsWidget({
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <Award className="h-4 w-4" />
+            <Award className='h-4 w-4' />
             <span>Conquistas</span>
           </button>
           <button
@@ -349,15 +349,15 @@ export default function AchievementsWidget({
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <Target className="h-4 w-4" />
+            <Target className='h-4 w-4' />
             <span>Desafios</span>
           </button>
         </div>
       )}
 
       {/* Filter */}
-      <div className="flex space-x-2 mb-4">
-        {(['all', 'in-progress', 'completed'] as const).map((filterType) => (
+      <div className='flex space-x-2 mb-4'>
+        {(['all', 'in-progress', 'completed'] as const).map(filterType => (
           <button
             key={filterType}
             onClick={() => setFilter(filterType)}
@@ -376,77 +376,77 @@ export default function AchievementsWidget({
 
       {/* Achievements */}
       {activeTab === 'achievements' && (
-        <div className="space-y-3">
+        <div className='space-y-3'>
           {filteredAchievements.length === 0 ? (
-            <div className="text-center py-8">
-              <Award className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-              <p className="text-muted-foreground">Nenhuma conquista encontrada</p>
+            <div className='text-center py-8'>
+              <Award className='h-12 w-12 text-muted-foreground mx-auto mb-2' />
+              <p className='text-muted-foreground'>Nenhuma conquista encontrada</p>
             </div>
           ) : (
-            filteredAchievements.map((achievement) => (
+            filteredAchievements.map(achievement => (
               <div
                 key={achievement.id}
                 className={`border rounded-lg p-4 transition-all ${
-                  achievement.completed 
+                  achievement.completed
                     ? getRarityColor(achievement.rarity) + ' opacity-90'
                     : 'border-border bg-card hover:bg-accent/50'
                 }`}
               >
-                <div className="flex items-start space-x-3">
-                  <div className="text-2xl">{achievement.icon}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <h4 className={`font-medium ${
-                        achievement.completed ? 'text-card-foreground' : 'text-muted-foreground'
-                      }`}>
+                <div className='flex items-start space-x-3'>
+                  <div className='text-2xl'>{achievement.icon}</div>
+                  <div className='flex-1 min-w-0'>
+                    <div className='flex items-center space-x-2 mb-1'>
+                      <h4
+                        className={`font-medium ${
+                          achievement.completed ? 'text-card-foreground' : 'text-muted-foreground'
+                        }`}
+                      >
                         {achievement.name}
                       </h4>
-                      {achievement.completed && (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      )}
+                      {achievement.completed && <CheckCircle className='h-4 w-4 text-green-600' />}
                       {!achievement.completed && achievement.progress === 0 && (
-                        <Lock className="h-4 w-4 text-muted-foreground" />
+                        <Lock className='h-4 w-4 text-muted-foreground' />
                       )}
                     </div>
-                    
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {achievement.description}
-                    </p>
-                    
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center space-x-2">
+
+                    <p className='text-sm text-muted-foreground mb-2'>{achievement.description}</p>
+
+                    <div className='flex items-center justify-between mb-2'>
+                      <div className='flex items-center space-x-2'>
                         {getCategoryIcon(achievement.category)}
-                        <span className={`text-xs font-medium ${getRarityTextColor(achievement.rarity)}`}>
+                        <span
+                          className={`text-xs font-medium ${getRarityTextColor(achievement.rarity)}`}
+                        >
                           {achievement.rarity.toUpperCase()}
                         </span>
                       </div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className='text-xs text-muted-foreground'>
                         {achievement.progress}/{achievement.maxProgress}
                       </div>
                     </div>
-                    
+
                     {!achievement.completed && (
-                      <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
+                      <div className='bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2'>
                         <div
-                          className="bg-primary rounded-full h-2 transition-all duration-300"
-                          style={{ width: `${(achievement.progress / achievement.maxProgress) * 100}%` }}
+                          className='bg-primary rounded-full h-2 transition-all duration-300'
+                          style={{
+                            width: `${(achievement.progress / achievement.maxProgress) * 100}%`,
+                          }}
                         ></div>
                       </div>
                     )}
-                    
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-green-600">+{achievement.rewards.xp} XP</span>
-                        <span className="text-yellow-600">+{achievement.rewards.coins} moedas</span>
+
+                    <div className='flex items-center justify-between text-xs'>
+                      <div className='flex items-center space-x-2'>
+                        <span className='text-green-600'>+{achievement.rewards.xp} XP</span>
+                        <span className='text-yellow-600'>+{achievement.rewards.coins} moedas</span>
                         {achievement.rewards.badge && (
-                          <span className="text-purple-600">Badge</span>
+                          <span className='text-purple-600'>Badge</span>
                         )}
-                        {achievement.rewards.title && (
-                          <span className="text-blue-600">Título</span>
-                        )}
+                        {achievement.rewards.title && <span className='text-blue-600'>Título</span>}
                       </div>
                       {achievement.completedAt && (
-                        <span className="text-muted-foreground">
+                        <span className='text-muted-foreground'>
                           {new Date(achievement.completedAt).toLocaleDateString()}
                         </span>
                       )}
@@ -461,63 +461,67 @@ export default function AchievementsWidget({
 
       {/* Challenges */}
       {activeTab === 'challenges' && showChallenges && (
-        <div className="space-y-3">
+        <div className='space-y-3'>
           {filteredChallenges.length === 0 ? (
-            <div className="text-center py-8">
-              <Target className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-              <p className="text-muted-foreground">Nenhum desafio encontrado</p>
+            <div className='text-center py-8'>
+              <Target className='h-12 w-12 text-muted-foreground mx-auto mb-2' />
+              <p className='text-muted-foreground'>Nenhum desafio encontrado</p>
             </div>
           ) : (
-            filteredChallenges.map((challenge) => (
+            filteredChallenges.map(challenge => (
               <div
                 key={challenge.id}
                 className={`border border-border rounded-lg p-4 transition-colors ${
-                  challenge.completed ? 'bg-green-50 dark:bg-green-900/20' : 'bg-card hover:bg-accent/50'
+                  challenge.completed
+                    ? 'bg-green-50 dark:bg-green-900/20'
+                    : 'bg-card hover:bg-accent/50'
                 }`}
               >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <h4 className="font-medium text-card-foreground">{challenge.name}</h4>
-                      {challenge.completed && (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      )}
+                <div className='flex items-start justify-between mb-2'>
+                  <div className='flex-1'>
+                    <div className='flex items-center space-x-2 mb-1'>
+                      <h4 className='font-medium text-card-foreground'>{challenge.name}</h4>
+                      {challenge.completed && <CheckCircle className='h-4 w-4 text-green-600' />}
                     </div>
-                    <p className="text-sm text-muted-foreground">{challenge.description}</p>
+                    <p className='text-sm text-muted-foreground'>{challenge.description}</p>
                   </div>
-                  <div className="flex flex-col items-end space-y-1">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(challenge.type)}`}>
+                  <div className='flex flex-col items-end space-y-1'>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(challenge.type)}`}
+                    >
                       {challenge.type}
                     </span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(challenge.difficulty)}`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(challenge.difficulty)}`}
+                    >
                       {challenge.difficulty}
                     </span>
                   </div>
                 </div>
-                
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-sm text-muted-foreground">
+
+                <div className='flex items-center justify-between mb-2'>
+                  <div className='text-sm text-muted-foreground'>
                     Progresso: {challenge.progress}/{challenge.maxProgress}
                   </div>
-                  <div className="flex items-center space-x-1 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
+                  <div className='flex items-center space-x-1 text-xs text-muted-foreground'>
+                    <Clock className='h-3 w-3' />
                     <span>{getTimeRemaining(challenge.expiresAt)}</span>
                   </div>
                 </div>
-                
+
                 {!challenge.completed && (
-                  <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
+                  <div className='bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2'>
                     <div
-                      className="bg-primary rounded-full h-2 transition-all duration-300"
+                      className='bg-primary rounded-full h-2 transition-all duration-300'
                       style={{ width: `${(challenge.progress / challenge.maxProgress) * 100}%` }}
                     ></div>
                   </div>
                 )}
-                
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-green-600">+{challenge.rewards.xp} XP</span>
-                    <span className="text-yellow-600">+{challenge.rewards.coins} moedas</span>
+
+                <div className='flex items-center justify-between text-xs'>
+                  <div className='flex items-center space-x-2'>
+                    <span className='text-green-600'>+{challenge.rewards.xp} XP</span>
+                    <span className='text-yellow-600'>+{challenge.rewards.coins} moedas</span>
                   </div>
                 </div>
               </div>

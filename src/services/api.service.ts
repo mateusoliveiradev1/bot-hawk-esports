@@ -27,7 +27,11 @@ import MongoStore from 'connect-mongo';
 import { SecurityService } from './security.service';
 import { HealthService } from './health.service';
 import { AlertService, AlertConfig } from './alert.service';
-import { StructuredLogger, LoggerConfig, createDefaultLoggerConfig } from './structured-logger.service';
+import {
+  StructuredLogger,
+  LoggerConfig,
+  createDefaultLoggerConfig,
+} from './structured-logger.service';
 import { AdvancedRateLimitService } from './advanced-rate-limit.service';
 import { RateLimitConfiguration, RateLimitMiddleware } from '../config/rate-limit.config';
 import { ProductionMonitoringService } from '../production/production-monitoring.service';
@@ -113,26 +117,27 @@ export class APIService {
 
     this.client = client;
     this.logger = new Logger();
-    
+
     // Setup structured logging
     const defaultLoggerConfig = createDefaultLoggerConfig(process.env.NODE_ENV || 'development');
     this.structuredLogger = new StructuredLogger(defaultLoggerConfig, 'APIService');
-    
+
     // Initialize advanced rate limiting service
     this.advancedRateLimitService = new AdvancedRateLimitService(
       this.cache as any,
-      this.structuredLogger,
+      this.structuredLogger
     );
-    
+
     // Initialize production monitoring service if in production
-    if (process.env.NODE_ENV === 'production') {
-      this.productionMonitoringService = new ProductionMonitoringService(
-        this.database,
-        this.client as any,
-      );
-      this.productionMonitoringService.setDiscordClient(this.client);
-    }
-    
+    // Temporarily disabled to prevent event listener conflicts
+    // if (process.env.NODE_ENV === 'production') {
+    //   this.productionMonitoringService = new ProductionMonitoringService(
+    //     this.database,
+    //     this.client as any
+    //   );
+    //   this.productionMonitoringService.setDiscordClient(this.client);
+    // }
+
     this.database = client.database;
     // Initialize optimized cache service for production
     if (process.env.NODE_ENV === 'production') {
@@ -148,7 +153,7 @@ export class APIService {
     this.gameService = client.gameService;
     this.clipService = client.clipService;
     this.securityService = new SecurityService(this.database);
-    
+
     // Setup alert service if Discord webhook is configured
     if (process.env.DISCORD_ALERT_WEBHOOK) {
       const alertConfig: AlertConfig = {
@@ -161,7 +166,7 @@ export class APIService {
 
     // Initialize backup services
     this.metricsService = new MetricsService();
-    
+
     if (process.env.NODE_ENV === 'production') {
       // Use production backup service for production environment
       this.productionBackupService = productionBackup;
@@ -174,7 +179,7 @@ export class APIService {
           this.structuredLogger,
           this.healthService!,
           this.metricsService,
-          monitoringConfig.backup,
+          monitoringConfig.backup
         );
       }
     }
@@ -190,7 +195,7 @@ export class APIService {
       port: this.validatePort(process.env.API_PORT || '3001'),
       host: process.env.API_HOST || '0.0.0.0',
       corsOrigins: this.validateCorsOrigins(
-        process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000'],
+        process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000']
       ),
       jwtSecret: process.env.JWT_SECRET || 'your-secret-key',
       jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
@@ -198,14 +203,14 @@ export class APIService {
         process.env.RATE_LIMIT_WINDOW_MS,
         900000,
         60000,
-        3600000,
+        3600000
       ), // 1min - 1hour
       rateLimitMax: this.validateNumber(process.env.RATE_LIMIT_MAX, 100, 10, 1000),
       uploadMaxSize: this.validateNumber(
         process.env.UPLOAD_MAX_SIZE,
         104857600,
         1048576,
-        1073741824,
+        1073741824
       ), // 1MB - 1GB
       uploadDir: process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads'),
     };
@@ -225,18 +230,18 @@ export class APIService {
       helmet({
         contentSecurityPolicy: {
           directives: {
-            defaultSrc: ['\'self\''],
-            styleSrc: ['\'self\'', '\'unsafe-inline\'' /* Required for some UI frameworks */],
-            scriptSrc: ['\'self\'', '\'unsafe-eval\'' /* Required for development */],
-            imgSrc: ['\'self\'', 'data:', 'https:', 'cdn.discordapp.com'],
-            connectSrc: ['\'self\'', 'wss:', 'https:'],
-            fontSrc: ['\'self\'', 'data:', 'https:'],
-            objectSrc: ['\'none\''],
-            mediaSrc: ['\'self\''],
-            frameSrc: ['\'none\''],
-            baseUri: ['\'self\''],
-            formAction: ['\'self\''],
-            frameAncestors: ['\'none\''],
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'" /* Required for some UI frameworks */],
+            scriptSrc: ["'self'", "'unsafe-eval'" /* Required for development */],
+            imgSrc: ["'self'", 'data:', 'https:', 'cdn.discordapp.com'],
+            connectSrc: ["'self'", 'wss:', 'https:'],
+            fontSrc: ["'self'", 'data:', 'https:'],
+            objectSrc: ["'none'"],
+            mediaSrc: ["'self'"],
+            frameSrc: ["'none'"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"],
+            frameAncestors: ["'none'"],
             upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
           },
           reportOnly: process.env.NODE_ENV === 'development',
@@ -258,18 +263,18 @@ export class APIService {
         permittedCrossDomainPolicies: false,
         referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
         xssFilter: true,
-      }),
+      })
     );
 
     // HTTP Request Logging Middleware
     this.app.use((req: Request, res: Response, next: NextFunction) => {
       const startTime = Date.now();
       const originalSend = res.send;
-      
-      res.send = function(body) {
+
+      res.send = function (body) {
         const responseTime = Date.now() - startTime;
         const statusCode = res.statusCode;
-        
+
         // Log HTTP request with structured logger
         if (this.structuredLogger) {
           this.structuredLogger.logHttpRequest({
@@ -283,10 +288,10 @@ export class APIService {
             guildId: (req as AuthenticatedRequest).user?.guildId,
           });
         }
-        
+
         return originalSend.call(this, body);
       }.bind(this);
-      
+
       next();
     });
 
@@ -294,28 +299,31 @@ export class APIService {
     this.app.use((req: Request, res: Response, next: NextFunction) => {
       // Prevent clickjacking
       res.setHeader('X-Frame-Options', 'DENY');
-      
+
       // Prevent MIME type sniffing
       res.setHeader('X-Content-Type-Options', 'nosniff');
-      
+
       // Enable XSS protection
       res.setHeader('X-XSS-Protection', '1; mode=block');
-      
+
       // Referrer policy
       res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-      
+
       // Feature policy / Permissions policy
-      res.setHeader('Permissions-Policy', [
-        'camera=()',
-        'microphone=()',
-        'geolocation=()',
-        'payment=()',
-        'usb=()',
-        'magnetometer=()',
-        'gyroscope=()',
-        'accelerometer=()',
-      ].join(', '));
-      
+      res.setHeader(
+        'Permissions-Policy',
+        [
+          'camera=()',
+          'microphone=()',
+          'geolocation=()',
+          'payment=()',
+          'usb=()',
+          'magnetometer=()',
+          'gyroscope=()',
+          'accelerometer=()',
+        ].join(', ')
+      );
+
       // Cache control for sensitive endpoints
       if (req.path.includes('/api/auth') || req.path.includes('/api/user')) {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -323,7 +331,7 @@ export class APIService {
         res.setHeader('Expires', '0');
         res.setHeader('Surrogate-Control', 'no-store');
       }
-      
+
       next();
     });
 
@@ -334,7 +342,7 @@ export class APIService {
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-      }),
+      })
     );
 
     // Session middleware with secure configuration
@@ -360,53 +368,60 @@ export class APIService {
           sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
           domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined,
         },
-      }),
+      })
     );
 
     // Advanced rate limiting with intelligent behavior analysis
-    
+
     // Apply intelligent rate limiting for different endpoint types
-    this.app.use('/api/', rateLimit(RateLimitMiddleware.create(
-      RateLimitConfiguration.GENERAL,
-    )));
-    
-    this.app.use('/api/auth/login', rateLimit(RateLimitMiddleware.create(
-      RateLimitConfiguration.AUTH_LOGIN,
-    )));
-    
-    this.app.use('/api/auth/register', rateLimit(RateLimitMiddleware.create(
-      RateLimitConfiguration.AUTH_REGISTER,
-    )));
-    
-    this.app.use('/api/clips/upload', rateLimit(RateLimitMiddleware.create(
-      RateLimitConfiguration.UPLOAD_CLIPS,
-    )));
-    
-    this.app.use('/api/*/upload', rateLimit(RateLimitMiddleware.create(
-      RateLimitConfiguration.UPLOAD_GENERAL,
-    )));
-    
+    this.app.use('/api/', rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.GENERAL)));
+
+    this.app.use(
+      '/api/auth/login',
+      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.AUTH_LOGIN))
+    );
+
+    this.app.use(
+      '/api/auth/register',
+      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.AUTH_REGISTER))
+    );
+
+    this.app.use(
+      '/api/clips/upload',
+      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.UPLOAD_CLIPS))
+    );
+
+    this.app.use(
+      '/api/*/upload',
+      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.UPLOAD_GENERAL))
+    );
+
     // Apply progressive rate limiting for repeated violations
-    this.app.use('/api/auth/', rateLimit(RateLimitMiddleware.createProgressive(
-      RateLimitConfiguration.AUTH_LOGIN,
-    )));
-    
+    this.app.use(
+      '/api/auth/',
+      rateLimit(RateLimitMiddleware.createProgressive(RateLimitConfiguration.AUTH_LOGIN))
+    );
+
     // Apply API-specific rate limiting
-    this.app.use('/api/pubg/', rateLimit(RateLimitMiddleware.create(
-      RateLimitConfiguration.API_PUBG,
-    )));
-    
-    this.app.use('/api/stats/', rateLimit(RateLimitMiddleware.create(
-      RateLimitConfiguration.API_STATS,
-    )));
-    
-    this.app.use('/api/ranking/', rateLimit(RateLimitMiddleware.create(
-      RateLimitConfiguration.API_RANKING,
-    )));
-    
-    this.app.use('/api/admin/', rateLimit(RateLimitMiddleware.create(
-      RateLimitConfiguration.ADMIN_GENERAL,
-    )));
+    this.app.use(
+      '/api/pubg/',
+      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.API_PUBG))
+    );
+
+    this.app.use(
+      '/api/stats/',
+      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.API_STATS))
+    );
+
+    this.app.use(
+      '/api/ranking/',
+      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.API_RANKING))
+    );
+
+    this.app.use(
+      '/api/admin/',
+      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.ADMIN_GENERAL))
+    );
 
     // Security middleware for bot detection
     this.app.use('/api/auth/register', (req: Request, res: Response, next: NextFunction) => {
@@ -445,9 +460,7 @@ export class APIService {
         },
         filename: (req, file, cb) => {
           // Sanitize original filename
-          const sanitizedName = file.originalname
-            .replace(/[^a-zA-Z0-9.-]/g, '_')
-            .substring(0, 50); // Limit filename length
+          const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_').substring(0, 50); // Limit filename length
           const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
           const ext = path.extname(sanitizedName).toLowerCase();
           cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
@@ -471,20 +484,22 @@ export class APIService {
             'video/x-matroska',
             'video/webm',
           ];
-          
+
           const ext = path.extname(file.originalname).toLowerCase();
           const mimeType = file.mimetype.toLowerCase();
-          
+
           // Check file extension
           if (!allowedExtensions.includes(ext)) {
-            return cb(new Error(`Invalid file extension. Allowed: ${allowedExtensions.join(', ')}`));
+            return cb(
+              new Error(`Invalid file extension. Allowed: ${allowedExtensions.join(', ')}`)
+            );
           }
-          
+
           // Check MIME type
           if (!allowedMimeTypes.includes(mimeType)) {
             return cb(new Error(`Invalid MIME type. Expected video file, got: ${mimeType}`));
           }
-          
+
           // Check for suspicious filenames
           const suspiciousPatterns = [
             /\.\./, // Path traversal
@@ -492,18 +507,18 @@ export class APIService {
             /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i, // Windows reserved names
             /\.(exe|bat|cmd|scr|pif|com|dll|jar|sh|ps1)$/i, // Executable extensions
           ];
-          
+
           for (const pattern of suspiciousPatterns) {
             if (pattern.test(file.originalname)) {
               return cb(new Error('Suspicious filename detected'));
             }
           }
-          
+
           // Additional security: Check if filename is too long
           if (file.originalname.length > 255) {
             return cb(new Error('Filename too long'));
           }
-          
+
           // Log upload attempt for monitoring
           this.logger.info('File upload attempt', {
             category: LogCategory.API,
@@ -515,7 +530,7 @@ export class APIService {
               userAgent: req.get('User-Agent'),
             },
           });
-          
+
           cb(null, true);
         } catch (error) {
           this.logger.error('File filter error:', error);
@@ -599,8 +614,9 @@ export class APIService {
         }
 
         const health = await this.healthService.performHealthCheck();
-        const statusCode = health.overall === 'healthy' ? 200 : health.overall === 'degraded' ? 200 : 503;
-        
+        const statusCode =
+          health.overall === 'healthy' ? 200 : health.overall === 'degraded' ? 200 : 503;
+
         res.status(statusCode).json({
           success: health.overall !== 'unhealthy',
           data: {
@@ -640,67 +656,77 @@ export class APIService {
     });
 
     // Detailed health check (admin only)
-    this.app.get('/health/detailed', this.authenticateToken, this.requireRole(['Administrador', 'Admin']), async (req: Request, res: Response) => {
-      try {
-        if (!this.healthService) {
-          res.status(503).json({
-            success: false,
-            error: 'Health service not available',
-          });
-          return;
-        }
+    this.app.get(
+      '/health/detailed',
+      this.authenticateToken,
+      this.requireRole(['Administrador', 'Admin']),
+      async (req: Request, res: Response) => {
+        try {
+          if (!this.healthService) {
+            res.status(503).json({
+              success: false,
+              error: 'Health service not available',
+            });
+            return;
+          }
 
-        const health = await this.healthService.performHealthCheck();
-        res.json({
-          success: true,
-          data: health,
-        });
-      } catch (error) {
-        this.logger.error('Detailed health check failed:', error);
-        res.status(500).json({
-          success: false,
-          error: 'Detailed health check failed',
-        });
+          const health = await this.healthService.performHealthCheck();
+          res.json({
+            success: true,
+            data: health,
+          });
+        } catch (error) {
+          this.logger.error('Detailed health check failed:', error);
+          res.status(500).json({
+            success: false,
+            error: 'Detailed health check failed',
+          });
+        }
       }
-    });
+    );
 
     // Service-specific health check
-    this.app.get('/health/service/:serviceName', this.authenticateToken, this.requireRole(['Administrador', 'Admin']), async (req: Request, res: Response) => {
-      try {
-        if (!this.healthService) {
-          res.status(503).json({
-            success: false,
-            error: 'Health service not available',
-          });
-          return;
-        }
+    this.app.get(
+      '/health/service/:serviceName',
+      this.authenticateToken,
+      this.requireRole(['Administrador', 'Admin']),
+      async (req: Request, res: Response) => {
+        try {
+          if (!this.healthService) {
+            res.status(503).json({
+              success: false,
+              error: 'Health service not available',
+            });
+            return;
+          }
 
-        const { serviceName } = req.params;
-        const serviceHealth = await this.healthService.getServiceHealth(serviceName);
-        
-        if (!serviceHealth) {
-          res.status(404).json({
-            success: false,
-            error: 'Service not found',
-            data: {
-              availableServices: this.healthService.getAvailableServices(),
-            },
-          });
-          return;
-        }
+          const { serviceName } = req.params;
+          const serviceHealth = await this.healthService.getServiceHealth(serviceName);
 
-        res.json({
-          success: true,
-          data: serviceHealth,
-        });
-      } catch (error) {
-        this.logger.error(`Service health check failed for ${req.params.serviceName}:`, error);
-        res.status(500).json({
-          success: false,
-          error: 'Service health check failed',
-        });
+          if (!serviceHealth) {
+            res.status(404).json({
+              success: false,
+              error: 'Service not found',
+              data: {
+                availableServices: this.healthService.getAvailableServices(),
+              },
+            });
+            return;
+          }
+
+          res.json({
+            success: true,
+            data: serviceHealth,
+          });
+        } catch (error) {
+          this.logger.error(`Service health check failed for ${req.params.serviceName}:`, error);
+          res.status(500).json({
+            success: false,
+            error: 'Service health check failed',
+          });
+        }
       }
-    });
+    );
 
     // Metrics endpoint for Prometheus
     this.app.get('/metrics', (req: Request, res: Response) => {
@@ -708,7 +734,7 @@ export class APIService {
         if (!this.healthService) {
           return res.status(503).send('Health service not available');
         }
-        
+
         const metrics = this.healthService.getPrometheusMetrics();
         res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
         res.send(metrics);
@@ -717,48 +743,68 @@ export class APIService {
         res.status(500).send('Failed to get metrics');
       }
     });
-    
+
     // JSON metrics endpoint (admin only)
-    this.app.get('/metrics/json', this.authenticateToken, this.requireRole(['Administrador', 'Admin']), async (req: Request, res: Response) => {
-      try {
-        if (!this.healthService) {
-          return res.status(503).json({ 
+    this.app.get(
+      '/metrics/json',
+      this.authenticateToken,
+      this.requireRole(['Administrador', 'Admin']),
+      async (req: Request, res: Response) => {
+        try {
+          if (!this.healthService) {
+            return res.status(503).json({
+              success: false,
+              error: 'Health service not available',
+            });
+          }
+
+          const metricsService = this.healthService.getMetricsService();
+          const systemMetrics = metricsService.getSystemMetrics();
+          const appMetrics = await metricsService.getApplicationMetrics();
+          const allMetrics = metricsService.getAllMetrics();
+
+          res.json({
+            success: true,
+            data: {
+              system: systemMetrics,
+              application: appMetrics,
+              raw: allMetrics,
+              timestamp: new Date().toISOString(),
+            },
+          });
+        } catch (error) {
+          this.logger.error('Failed to get JSON metrics:', error);
+          res.status(500).json({
             success: false,
-            error: 'Health service not available', 
+            error: 'Failed to get metrics',
           });
         }
-        
-        const metricsService = this.healthService.getMetricsService();
-        const systemMetrics = metricsService.getSystemMetrics();
-        const appMetrics = await metricsService.getApplicationMetrics();
-        const allMetrics = metricsService.getAllMetrics();
-        
-        res.json({
-          success: true,
-          data: {
-            system: systemMetrics,
-            application: appMetrics,
-            raw: allMetrics,
-            timestamp: new Date().toISOString(),
-          },
-        });
-      } catch (error) {
-        this.logger.error('Failed to get JSON metrics:', error);
-        res.status(500).json({ 
-          success: false, 
-          error: 'Failed to get metrics', 
-        });
       }
-    });
+    );
 
     // Monitoring routes (admin only)
-    this.app.use('/api/monitoring', this.authenticateToken, this.requireRole(['Administrador', 'Admin']), this.getMonitoringRoutes());
+    this.app.use(
+      '/api/monitoring',
+      this.authenticateToken,
+      this.requireRole(['Administrador', 'Admin']),
+      this.getMonitoringRoutes()
+    );
 
     // Backup routes (admin only)
-    this.app.use('/api/backup', this.authenticateToken, this.requireRole(['Administrador', 'Admin']), this.getBackupRoutes());
+    this.app.use(
+      '/api/backup',
+      this.authenticateToken,
+      this.requireRole(['Administrador', 'Admin']),
+      this.getBackupRoutes()
+    );
 
     // Rate limiting routes (admin only)
-    this.app.use('/api/ratelimit', this.authenticateToken, this.requireRole(['Administrador', 'Admin']), this.getRateLimitRoutes());
+    this.app.use(
+      '/api/ratelimit',
+      this.authenticateToken,
+      this.requireRole(['Administrador', 'Admin']),
+      this.getRateLimitRoutes()
+    );
 
     // API routes
     this.app.use('/api/auth', this.getAuthRoutes());
@@ -776,10 +822,20 @@ export class APIService {
     this.app.use('/api/music', this.authenticateToken, this.getMusicRoutes());
     this.app.use('/api/games', this.authenticateToken, this.getGameRoutes());
     this.app.use('/api/clips', this.authenticateToken, this.getClipRoutes());
-    
+
     // Admin routes - require moderator/admin roles
-    this.app.use('/api/guilds', this.authenticateToken, this.requireRole(['Moderador', 'Administrador', 'Admin', 'Mod']), this.getGuildRoutes());
-    this.app.use('/api/stats', this.authenticateToken, this.requireRole(['Moderador', 'Administrador', 'Admin', 'Mod']), this.getStatsRoutes());
+    this.app.use(
+      '/api/guilds',
+      this.authenticateToken,
+      this.requireRole(['Moderador', 'Administrador', 'Admin', 'Mod']),
+      this.getGuildRoutes()
+    );
+    this.app.use(
+      '/api/stats',
+      this.authenticateToken,
+      this.requireRole(['Moderador', 'Administrador', 'Admin', 'Mod']),
+      this.getStatsRoutes()
+    );
 
     // Catch all
     this.app.use('*', (req: Request, res: Response) => {
@@ -873,7 +929,7 @@ export class APIService {
     return async (
       req: AuthenticatedRequest,
       res: Response,
-      next: NextFunction,
+      next: NextFunction
     ): Promise<void | Response> => {
       try {
         if (!req.user) {
@@ -884,7 +940,7 @@ export class APIService {
         }
 
         const { guildId, roles } = req.user;
-        
+
         if (!guildId) {
           return res.status(403).json({
             success: false,
@@ -903,9 +959,8 @@ export class APIService {
 
         // Check if user has any of the required roles
         const hasRequiredRole = requiredRoles.some(roleName => {
-          const role = guild.roles.cache.find(r => 
-            r.name.toLowerCase() === roleName.toLowerCase() ||
-            r.id === roleName,
+          const role = guild.roles.cache.find(
+            r => r.name.toLowerCase() === roleName.toLowerCase() || r.id === roleName
           );
           return role && roles.includes(role.id);
         });
@@ -938,7 +993,7 @@ export class APIService {
   private authenticateToken = async (
     req: AuthenticatedRequest,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ): Promise<void | Response> => {
     try {
       const authHeader = req.headers['authorization'];
@@ -996,7 +1051,9 @@ export class APIService {
 
       // Validate session if present
       if (decoded.sessionId && !(await this.validateSession(decoded.userId, decoded.sessionId))) {
-        this.logger.warn(`Authentication failed: Invalid session for user ${decoded.userId} from IP ${clientIP}`);
+        this.logger.warn(
+          `Authentication failed: Invalid session for user ${decoded.userId} from IP ${clientIP}`
+        );
         return res.status(401).json({
           success: false,
           error: 'Session invalid or expired',
@@ -1031,7 +1088,7 @@ export class APIService {
         discordUser = (await Promise.race([
           this.client.users.fetch(user.id),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Discord API timeout')), 3000),
+            setTimeout(() => reject(new Error('Discord API timeout')), 3000)
           ),
         ])) as any;
       } catch (error) {
@@ -1050,7 +1107,7 @@ export class APIService {
             member = (await Promise.race([
               guild.members.fetch(user.id),
               new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Member fetch timeout')), 3000),
+                setTimeout(() => reject(new Error('Member fetch timeout')), 3000)
               ),
             ])) as any;
           } catch (error) {
@@ -1287,11 +1344,15 @@ export class APIService {
                 lastUsed = commandLogs[0].createdAt;
                 // Calculate success rate based on error logs
                 const errorLogs = commandLogs.filter(
-                  log => log.metadata && typeof log.metadata === 'object' && log.metadata !== null && 'error' in (log.metadata as any),
+                  log =>
+                    log.metadata &&
+                    typeof log.metadata === 'object' &&
+                    log.metadata !== null &&
+                    'error' in (log.metadata as any)
                 );
                 successRate = Math.max(
                   0,
-                  ((commandLogs.length - errorLogs.length) / commandLogs.length) * 100,
+                  ((commandLogs.length - errorLogs.length) / commandLogs.length) * 100
                 );
               }
             } catch (dbError) {
@@ -1446,7 +1507,7 @@ export class APIService {
             error: 'Failed to setup 2FA',
           });
         }
-      },
+      }
     );
 
     // Enable 2FA
@@ -1484,7 +1545,7 @@ export class APIService {
             error: 'Failed to enable 2FA',
           });
         }
-      },
+      }
     );
 
     // Disable 2FA
@@ -1506,7 +1567,7 @@ export class APIService {
             error: 'Failed to disable 2FA',
           });
         }
-      },
+      }
     );
 
     // Verify 2FA
@@ -1537,7 +1598,7 @@ export class APIService {
             error: 'Failed to verify 2FA',
           });
         }
-      },
+      }
     );
 
     return router;
@@ -1642,7 +1703,7 @@ export class APIService {
           // Get detailed member info from bot's perspective
           let memberRoles: string[] = [];
           let memberPermissions: string[] = [];
-          
+
           try {
             const guild = this.client.guilds.cache.get(guildId);
             if (guild) {
@@ -1667,7 +1728,7 @@ export class APIService {
           userId = discordUser.id;
         } catch (oauthError) {
           this.logger.error('OAuth2 flow failed:', oauthError);
-          
+
           // Only fall back to dev mode in development
           if (process.env.NODE_ENV !== 'production') {
             this.logger.warn('Falling back to development mode authentication');
@@ -1726,7 +1787,7 @@ export class APIService {
             discriminator: userData.discriminator,
           },
           this.config.jwtSecret,
-          { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions,
+          { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions
         );
 
         // Generate refresh token
@@ -1737,7 +1798,7 @@ export class APIService {
             type: 'refresh',
           },
           this.config.jwtSecret,
-          { expiresIn: '30d' } as jwt.SignOptions,
+          { expiresIn: '30d' } as jwt.SignOptions
         );
 
         return res.json({
@@ -1809,7 +1870,7 @@ export class APIService {
             discriminator: userData.discriminator,
           },
           this.config.jwtSecret,
-          { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions,
+          { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions
         );
 
         // Generate new refresh token
@@ -1820,7 +1881,7 @@ export class APIService {
             type: 'refresh',
           },
           this.config.jwtSecret,
-          { expiresIn: '30d' } as jwt.SignOptions,
+          { expiresIn: '30d' } as jwt.SignOptions
         );
 
         return res.json({
@@ -1841,89 +1902,97 @@ export class APIService {
     });
 
     // Validate session
-    router.post('/validate', this.authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-      try {
-        // If we reach here, token is valid (middleware passed)
-        const user = req.user;
-        if (!user) {
+    router.post(
+      '/validate',
+      this.authenticateToken,
+      async (req: AuthenticatedRequest, res: Response) => {
+        try {
+          // If we reach here, token is valid (middleware passed)
+          const user = req.user;
+          if (!user) {
+            return res.status(401).json({
+              success: false,
+              error: 'Invalid session',
+            });
+          }
+
+          // Check if session exists in store
+          if (req.session && req.sessionID) {
+            return res.json({
+              success: true,
+              user: {
+                id: user.id,
+                username: user.username,
+                discriminator: user.discriminator,
+                avatar: user.avatar,
+                guildId: user.guildId,
+                roles: user.roles,
+                permissions: user.permissions,
+              },
+              sessionId: req.sessionID,
+            });
+          }
+
           return res.status(401).json({
             success: false,
-            error: 'Invalid session',
+            error: 'Session not found',
+          });
+        } catch (error) {
+          this.logger.error('Session validation error:', error);
+          return res.status(500).json({
+            success: false,
+            error: 'Session validation failed',
           });
         }
-
-        // Check if session exists in store
-        if (req.session && req.sessionID) {
-          return res.json({
-            success: true,
-            user: {
-              id: user.id,
-              username: user.username,
-              discriminator: user.discriminator,
-              avatar: user.avatar,
-              guildId: user.guildId,
-              roles: user.roles,
-              permissions: user.permissions,
-            },
-            sessionId: req.sessionID,
-          });
-        }
-
-        return res.status(401).json({
-          success: false,
-          error: 'Session not found',
-        });
-      } catch (error) {
-        this.logger.error('Session validation error:', error);
-        return res.status(500).json({
-          success: false,
-          error: 'Session validation failed',
-        });
       }
-    });
+    );
 
     // Clear all user sessions
-    router.post('/clear-sessions', this.authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-      try {
-        const user = req.user;
-        if (!user) {
-          return res.status(401).json({
+    router.post(
+      '/clear-sessions',
+      this.authenticateToken,
+      async (req: AuthenticatedRequest, res: Response) => {
+        try {
+          const user = req.user;
+          if (!user) {
+            return res.status(401).json({
+              success: false,
+              error: 'Unauthorized',
+            });
+          }
+
+          // Destroy current session
+          if (req.session) {
+            req.session.destroy(err => {
+              if (err) {
+                this.logger.error('Session destroy error:', err);
+              }
+            });
+          }
+
+          // Clear session cookie
+          res.clearCookie('hawk.sid');
+
+          // In a production environment, you might want to:
+          // 1. Invalidate all JWT tokens for this user (blacklist)
+          // 2. Clear all sessions from the session store for this user
+          // 3. Log the security event
+
+          this.logger.info(`All sessions cleared for user: ${user.id}`);
+
+          return res.json({
+            success: true,
+            message: 'All sessions cleared successfully',
+          });
+        } catch (error) {
+          this.logger.error('Clear sessions error:', error);
+          return res.status(500).json({
             success: false,
-            error: 'Unauthorized',
+            error: 'Failed to clear sessions',
           });
         }
-
-        // Destroy current session
-        if (req.session) {
-          req.session.destroy((err) => {
-            if (err) {
-              this.logger.error('Session destroy error:', err);
-            }
-          });
-        }
-
-        // Clear session cookie
-        res.clearCookie('hawk.sid');
-
-        // In a production environment, you might want to:
-        // 1. Invalidate all JWT tokens for this user (blacklist)
-        // 2. Clear all sessions from the session store for this user
-        // 3. Log the security event
-
-        this.logger.info(`All sessions cleared for user: ${user.id}`);
-
-        return res.json({
-          success: true,
-          message: 'All sessions cleared successfully',
-        });
-      } catch (error) {
-        this.logger.error('Clear sessions error:', error);
-        return res.status(500).json({
-          success: false,
-          error: 'Failed to clear sessions',
-        });
       }
-    });
+    );
 
     return router;
   }
@@ -2083,7 +2152,12 @@ export class APIService {
         let totalCommands = 0;
 
         commandLogs.forEach(log => {
-          if (log.metadata && typeof log.metadata === 'object' && log.metadata !== null && 'command' in (log.metadata as any)) {
+          if (
+            log.metadata &&
+            typeof log.metadata === 'object' &&
+            log.metadata !== null &&
+            'command' in (log.metadata as any)
+          ) {
             const commandName = (log.metadata as any).command;
             commandStats.set(commandName, (commandStats.get(commandName) || 0) + 1);
             totalCommands++;
@@ -2442,7 +2516,7 @@ export class APIService {
 
             userSessions.set(
               presence.userId,
-              (userSessions.get(presence.userId) || 0) + sessionMinutes,
+              (userSessions.get(presence.userId) || 0) + sessionMinutes
             );
             totalSessionTime += sessionMinutes;
             sessionCount++;
@@ -2661,7 +2735,7 @@ export class APIService {
           rankingPeriod,
           undefined, // gameMode - use default
           'rankPoints', // sortBy - use default
-          Number(limit),
+          Number(limit)
         );
 
         return res.json({
@@ -2726,7 +2800,7 @@ export class APIService {
           req.user!.guildId,
           rankingPeriod,
           'level', // sortBy - use default
-          Number(limit),
+          Number(limit)
         );
 
         return res.json({
@@ -2788,14 +2862,14 @@ export class APIService {
             rankingPeriod!,
             undefined,
             'rankPoints',
-            Number(limit),
+            Number(limit)
           );
         } else if (type === 'internal') {
           leaderboard = this.rankingService.getInternalRanking(
             req.user!.guildId,
             rankingPeriod!,
             'level',
-            Number(limit),
+            Number(limit)
           );
         } else {
           // Combined leaderboard - mix both rankings
@@ -2804,13 +2878,13 @@ export class APIService {
             rankingPeriod!,
             undefined,
             'rankPoints',
-            25,
+            25
           );
           const internalRanking = this.rankingService.getInternalRanking(
             req.user!.guildId,
             rankingPeriod!,
             'level',
-            25,
+            25
           );
 
           leaderboard = {
@@ -3208,14 +3282,14 @@ export class APIService {
                 acc[stat.category] = stat._count.id;
                 return acc;
               },
-              {} as Record<string, number>,
+              {} as Record<string, number>
             ),
             rarityDistribution: rarityStats.reduce(
               (acc, stat) => {
                 acc[stat.rarity] = stat._count.id;
                 return acc;
               },
-              {} as Record<string, number>,
+              {} as Record<string, number>
             ),
           },
         });
@@ -3487,7 +3561,7 @@ export class APIService {
             title,
             description,
             gameMode,
-            tags ? JSON.parse(tags) : undefined,
+            tags ? JSON.parse(tags) : undefined
           );
 
           // Clean up uploaded file
@@ -3505,7 +3579,7 @@ export class APIService {
             error: 'Failed to upload clip',
           });
         }
-      },
+      }
     );
 
     // Get clips
@@ -3525,7 +3599,7 @@ export class APIService {
           guildId,
           status as any,
           Number(limit),
-          Number(offset),
+          Number(offset)
         );
 
         return res.json({
@@ -3694,7 +3768,7 @@ export class APIService {
 
         const { alertId } = req.params;
         this.productionMonitoringService.resolveAlert(alertId);
-        
+
         return res.json({
           success: true,
           message: 'Alert resolved successfully',
@@ -3717,9 +3791,8 @@ export class APIService {
     // Get backup status and statistics
     router.get('/status', async (req: Request, res: Response) => {
       try {
-        const backupService = process.env.NODE_ENV === 'production' 
-          ? this.productionBackupService 
-          : this.backupService;
+        const backupService =
+          process.env.NODE_ENV === 'production' ? this.productionBackupService : this.backupService;
 
         if (!backupService) {
           return res.status(503).json({
@@ -3729,10 +3802,10 @@ export class APIService {
         }
 
         const stats = {
-            totalBackups: 0,
-            lastBackup: null,
-            backupSize: 0,
-            status: 'unknown',
+          totalBackups: 0,
+          lastBackup: null,
+          backupSize: 0,
+          status: 'unknown',
         };
         const isRunning = false; // Backup running status not available
 
@@ -3757,9 +3830,8 @@ export class APIService {
     router.get('/history', async (req: Request, res: Response) => {
       try {
         const { type, limit = 50 } = req.query;
-        const backupService = process.env.NODE_ENV === 'production' 
-          ? this.productionBackupService 
-          : this.backupService;
+        const backupService =
+          process.env.NODE_ENV === 'production' ? this.productionBackupService : this.backupService;
 
         if (!backupService) {
           return res.status(503).json({
@@ -3797,9 +3869,8 @@ export class APIService {
     router.post('/create', async (req: Request, res: Response) => {
       try {
         const { type = 'manual' } = req.body;
-        const backupService = process.env.NODE_ENV === 'production' 
-          ? this.productionBackupService 
-          : this.backupService;
+        const backupService =
+          process.env.NODE_ENV === 'production' ? this.productionBackupService : this.backupService;
 
         if (!backupService) {
           return res.status(503).json({
@@ -3848,9 +3919,8 @@ export class APIService {
       try {
         const { backupId } = req.params;
         const { type = 'database' } = req.body;
-        const backupService = process.env.NODE_ENV === 'production' 
-          ? this.productionBackupService 
-          : this.backupService;
+        const backupService =
+          process.env.NODE_ENV === 'production' ? this.productionBackupService : this.backupService;
 
         if (!backupService) {
           return res.status(503).json({
@@ -3887,9 +3957,8 @@ export class APIService {
     router.post('/cleanup', async (req: Request, res: Response) => {
       try {
         const { type } = req.body;
-        const backupService = process.env.NODE_ENV === 'production' 
-          ? this.productionBackupService 
-          : this.backupService;
+        const backupService =
+          process.env.NODE_ENV === 'production' ? this.productionBackupService : this.backupService;
 
         if (!backupService) {
           return res.status(503).json({
@@ -3979,12 +4048,12 @@ export class APIService {
     router.post('/user/:userId/reset', async (req: AuthenticatedRequest, res: Response) => {
       try {
         const { userId } = req.params;
-        
+
         // Reset rate limit using advanced rate limit service
         this.advancedRateLimitService.resetRateLimit(userId);
-        
+
         this.logger.info(`Rate limit reset for user ${userId} by admin ${req.user?.username}`);
-        
+
         res.json({
           success: true,
           message: `Rate limit reset for user ${userId}`,
@@ -4009,7 +4078,7 @@ export class APIService {
           suspiciousIPs: 0,
           timestamp: new Date().toISOString(),
         };
-        
+
         res.json({
           success: true,
           data: stats,
@@ -4063,7 +4132,7 @@ export class APIService {
       // Calculate active users (seen in last 7 days)
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       const activeUsers = userGuilds.filter(
-        ug => ug.user.lastSeen && new Date(ug.user.lastSeen) > sevenDaysAgo,
+        ug => ug.user.lastSeen && new Date(ug.user.lastSeen) > sevenDaysAgo
       ).length;
 
       // Calculate totals
@@ -4071,7 +4140,7 @@ export class APIService {
       const totalCoins = userGuilds.reduce((sum, ug) => sum + (ug.user.coins || 0), 0);
       const totalMessages = userGuilds.reduce(
         (sum, ug) => sum + (ug.user.stats?.messagesCount || 0),
-        0,
+        0
       );
 
       return {
@@ -4148,7 +4217,7 @@ export class APIService {
               this.cache as any, // Type assertion to handle OptimizedCacheService compatibility
               this.client.schedulerService,
               this.client.loggingService,
-              this.pubgService,
+              this.pubgService
             );
             this.healthService.startPeriodicHealthChecks();
             this.logger.info('Health service initialized and started');
@@ -4305,7 +4374,7 @@ export class APIService {
       message: string;
       category?: string;
       autoClose?: boolean;
-    },
+    }
   ): void {
     if (this.io) {
       this.io.to(`dashboard:${guildId}`).emit('dashboard:update', {
@@ -4383,7 +4452,7 @@ export class APIService {
             this.logger.error('Error disconnecting optimized cache service:', cacheError);
           }
         }
-        
+
         this.logger.info('✅ API server stopped gracefully');
         resolve();
       };
@@ -4471,7 +4540,7 @@ export class APIService {
     // Real notifications will be sent by actual bot events
     // No simulated notifications in production
     this.logger.info(
-      '✅ Real-time updates configured - notifications will be sent by actual bot events',
+      '✅ Real-time updates configured - notifications will be sent by actual bot events'
     );
   }
 
@@ -4531,7 +4600,7 @@ export class APIService {
     value: string | undefined,
     defaultValue: number,
     min: number,
-    max: number,
+    max: number
   ): number {
     if (!value) {
       return defaultValue;

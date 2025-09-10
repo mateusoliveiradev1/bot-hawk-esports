@@ -259,7 +259,7 @@ export class DynamicBadgeService {
           await this.processRealtimeBadges();
         }
       },
-      5 * 60 * 1000,
+      5 * 60 * 1000
     );
 
     // Process daily badges every hour
@@ -270,7 +270,7 @@ export class DynamicBadgeService {
           await this.processDailyBadges();
         }
       },
-      60 * 60 * 1000,
+      60 * 60 * 1000
     );
 
     // Process weekly badges every day at midnight
@@ -281,7 +281,7 @@ export class DynamicBadgeService {
           await this.processWeeklyBadges();
         }
       },
-      60 * 60 * 1000,
+      60 * 60 * 1000
     );
 
     this.logger.info('Dynamic badge processing started');
@@ -298,7 +298,7 @@ export class DynamicBadgeService {
     this.isProcessing = true;
     try {
       const realtimeRules = Array.from(this.dynamicRules.values()).filter(
-        rule => rule.frequency === 'realtime' && rule.isActive,
+        rule => rule.frequency === 'realtime' && rule.isActive
       );
 
       const activeUsers = await this.getActiveUsers();
@@ -326,7 +326,7 @@ export class DynamicBadgeService {
   public async processDailyBadges(): Promise<void> {
     try {
       const dailyRules = Array.from(this.dynamicRules.values()).filter(
-        rule => rule.frequency === 'daily' && rule.isActive,
+        rule => rule.frequency === 'daily' && rule.isActive
       );
 
       const activeUsers = await this.getActiveUsers();
@@ -352,7 +352,7 @@ export class DynamicBadgeService {
   public async processWeeklyBadges(): Promise<void> {
     try {
       const weeklyRules = Array.from(this.dynamicRules.values()).filter(
-        rule => rule.frequency === 'weekly' && rule.isActive,
+        rule => rule.frequency === 'weekly' && rule.isActive
       );
 
       const activeUsers = await this.getActiveUsers();
@@ -378,7 +378,7 @@ export class DynamicBadgeService {
   private async processUserBadges(
     userId: string,
     rules: DynamicBadgeRule[],
-    context: PUBGStatsContext,
+    context: PUBGStatsContext
   ): Promise<string[]> {
     const awardedBadges: string[] = [];
 
@@ -604,7 +604,7 @@ export class DynamicBadgeService {
    */
   private async ensureBadgeExists(
     badgeId: string,
-    template: DynamicBadgeRule['badgeTemplate'],
+    template: DynamicBadgeRule['badgeTemplate']
   ): Promise<void> {
     try {
       await this.database.client.badge.upsert({

@@ -37,7 +37,7 @@ export class CommandManager {
     this.cooldowns = new Collection();
     this.commandPaths = new Map();
     this.lazyLoadingEnabled = lazyLoading;
-    
+
     // Initialize Discord rate limiter
     const cacheService = new CacheService();
     const advancedRateLimit = new AdvancedRateLimitService(cacheService);
@@ -50,7 +50,9 @@ export class CommandManager {
   public async loadCommands(): Promise<void> {
     try {
       const commandsPath = path.join(__dirname);
-      this.logger.debug(`${this.lazyLoadingEnabled ? 'Indexing' : 'Loading'} commands from: ${commandsPath}`);
+      this.logger.debug(
+        `${this.lazyLoadingEnabled ? 'Indexing' : 'Loading'} commands from: ${commandsPath}`
+      );
 
       const commandFolders = fs
         .readdirSync(commandsPath)
@@ -62,15 +64,17 @@ export class CommandManager {
         const folderPath = path.join(commandsPath, folder);
         const commandFiles = fs
           .readdirSync(folderPath)
-          .filter(file => (file.endsWith('.ts') || file.endsWith('.js')) && !file.endsWith('.d.ts'));
+          .filter(
+            file => (file.endsWith('.ts') || file.endsWith('.js')) && !file.endsWith('.d.ts')
+          );
 
         this.logger.debug(
-          `Found ${commandFiles.length} command files in ${folder}: ${commandFiles.join(', ')}`,
+          `Found ${commandFiles.length} command files in ${folder}: ${commandFiles.join(', ')}`
         );
 
         for (const file of commandFiles) {
           const filePath = path.join(folderPath, file);
-          
+
           if (this.lazyLoadingEnabled) {
             // Index command without loading it
             await this.indexCommand(filePath);
@@ -93,7 +97,7 @@ export class CommandManager {
         this.logger.info(`Indexed ${this.commandPaths.size} commands for lazy loading`);
       } else {
         this.logger.info(
-          `Loaded ${this.commands.size} slash commands and ${this.contextMenus.size} context menu commands`,
+          `Loaded ${this.commands.size} slash commands and ${this.contextMenus.size} context menu commands`
         );
       }
     } catch (error) {
@@ -109,20 +113,20 @@ export class CommandManager {
       // Quick check to get command name without full loading
       const commandModule = require(filePath);
       const command = commandModule.default || commandModule;
-      
+
       if (command && command.data && command.data.name) {
         this.commandPaths.set(command.data.name, filePath);
-        
+
         // Also index aliases if they exist
         if (command.aliases) {
           for (const alias of command.aliases) {
             this.aliases.set(alias, command.data.name);
           }
         }
-        
+
         this.logger.debug(`Indexed command: ${command.data.name}`);
       }
-      
+
       // Clear from cache to avoid memory buildup during indexing
       delete require.cache[require.resolve(filePath)];
     } catch (error) {
@@ -192,7 +196,8 @@ export class CommandManager {
    */
   public async getCommand(name: string): Promise<Command | null> {
     // Check if command is already loaded
-    const existingCommand = this.commands.get(name) || this.commands.get(this.aliases.get(name) || '');
+    const existingCommand =
+      this.commands.get(name) || this.commands.get(this.aliases.get(name) || '');
     if (existingCommand) {
       return existingCommand;
     }
@@ -201,11 +206,11 @@ export class CommandManager {
     if (this.lazyLoadingEnabled) {
       const commandName = this.aliases.get(name) || name;
       const filePath = this.commandPaths.get(commandName);
-      
+
       if (filePath) {
         this.logger.debug(`Lazy loading command: ${commandName}`);
         const command = await this.loadCommand(filePath);
-        
+
         if (command) {
           this.registerCommand(command);
           this.logger.debug(`Successfully lazy loaded command: ${command.data.name}`);
@@ -236,7 +241,7 @@ export class CommandManager {
    */
   public isOnCooldown(
     commandName: string,
-    userId: string,
+    userId: string
   ): { onCooldown: boolean; timeLeft?: number } {
     if (!this.cooldowns.has(commandName)) {
       this.cooldowns.set(commandName, new Collection());
@@ -364,7 +369,7 @@ export class CommandManager {
    */
   public async handleSlashCommand(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<void> {
     const command = await this.getCommand(interaction.commandName);
     if (!command) {
@@ -377,12 +382,12 @@ export class CommandManager {
         interaction.user.id,
         interaction.guildId,
         command.data.name,
-        command.category || 'general',
+        command.category || 'general'
       );
 
       if (!rateLimitResult.allowed) {
         let message = '🚫 **Rate limit atingido!**\n';
-        
+
         switch (rateLimitResult.action) {
           case 'timeout':
             message += `⏱️ Você está em timeout por ${rateLimitResult.timeLeft} segundos devido a violações de rate limit.`;
@@ -391,15 +396,17 @@ export class CommandManager {
             message += `⏰ Aguarde ${rateLimitResult.timeLeft} segundos antes de usar comandos novamente.`;
             break;
           case 'warn':
-            message += '⚠️ Você está sendo monitorado por uso excessivo de comandos. Use com moderação.';
+            message +=
+              '⚠️ Você está sendo monitorado por uso excessivo de comandos. Use com moderação.';
             break;
           case 'ban':
-            message += '🔨 Você foi banido temporariamente de usar comandos devido a violações graves.';
+            message +=
+              '🔨 Você foi banido temporariamente de usar comandos devido a violações graves.';
             break;
           default:
             message += `⏰ Aguarde ${rateLimitResult.timeLeft || 0} segundos antes de tentar novamente.`;
         }
-        
+
         if (rateLimitResult.reason) {
           message += `\n\n**Motivo:** ${rateLimitResult.reason}`;
         }
@@ -439,7 +446,7 @@ export class CommandManager {
    */
   public async handleContextCommand(
     interaction: ContextMenuCommandInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<void> {
     const command = this.getContextMenu(interaction.commandName);
     if (!command) {
@@ -465,7 +472,7 @@ export class CommandManager {
    */
   public async handleAutocomplete(
     interaction: AutocompleteInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<void> {
     const command = await this.getCommand(interaction.commandName);
     if (!command || !command.autocomplete) {

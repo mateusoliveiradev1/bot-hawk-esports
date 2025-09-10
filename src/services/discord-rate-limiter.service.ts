@@ -50,16 +50,13 @@ export class DiscordRateLimiterService {
   private globalConfig: CommandRateLimitConfig;
   private cleanupInterval: NodeJS.Timeout;
 
-  constructor(
-    cacheService: CacheService,
-    advancedRateLimit: AdvancedRateLimitService,
-  ) {
+  constructor(cacheService: CacheService, advancedRateLimit: AdvancedRateLimitService) {
     this.logger = new Logger();
     this.cacheService = cacheService;
     this.advancedRateLimit = advancedRateLimit;
     this.userLimits = new Collection();
     this.commandConfigs = new Map();
-    
+
     // Global rate limit configuration
     this.globalConfig = {
       maxCommands: 10, // 10 commands per window
@@ -132,7 +129,7 @@ export class DiscordRateLimiterService {
     userId: string,
     guildId: string | null,
     commandName: string,
-    commandCategory: string,
+    commandCategory: string
   ): Promise<DiscordRateLimitResult> {
     try {
       // Get user data
@@ -159,7 +156,7 @@ export class DiscordRateLimiterService {
         {
           userId: userId,
           endpoint: commandName,
-        },
+        }
       );
 
       if (!advancedCheck.allowed) {
@@ -171,7 +168,12 @@ export class DiscordRateLimiterService {
         return {
           allowed: false,
           timeLeft: 0,
-          violationLevel: advancedCheck.violationLevel === 'critical' ? 'critical' : advancedCheck.violationLevel === 'warning' ? 'warning' : 'none',
+          violationLevel:
+            advancedCheck.violationLevel === 'critical'
+              ? 'critical'
+              : advancedCheck.violationLevel === 'warning'
+                ? 'warning'
+                : 'none',
           action: this.mapAdvancedAction(advancedCheck.recommendedAction),
           reason: 'Rate limit exceeded',
         };
@@ -200,7 +202,7 @@ export class DiscordRateLimiterService {
       };
     } catch (error) {
       this.logger.error('Error checking Discord rate limit:', { error, userId, commandName });
-      
+
       // Fail safe - allow command but log error
       return {
         allowed: true,
@@ -239,7 +241,7 @@ export class DiscordRateLimiterService {
   private checkCommandRateLimit(
     userData: UserRateLimitData,
     config: CommandRateLimitConfig,
-    now: number,
+    now: number
   ): DiscordRateLimitResult {
     // Reset window if expired
     if (now - userData.lastCommand > config.windowMs) {
@@ -261,7 +263,7 @@ export class DiscordRateLimiterService {
     // Check cooldown with penalty multiplier
     const effectiveCooldown = config.cooldownMs * userData.penaltyMultiplier;
     const timeSinceLastCommand = now - userData.lastCommand;
-    
+
     if (timeSinceLastCommand < effectiveCooldown) {
       const timeLeft = Math.ceil((effectiveCooldown - timeSinceLastCommand) / 1000);
       return {
@@ -287,28 +289,30 @@ export class DiscordRateLimiterService {
     userId: string,
     userData: UserRateLimitData,
     config: CommandRateLimitConfig,
-    now: number,
+    now: number
   ): void {
     userData.violations++;
     userData.warningCount++;
-    
+
     // Increase penalty multiplier
     userData.penaltyMultiplier = Math.min(
       userData.penaltyMultiplier * config.penaltyMultiplier,
-      10, // Max 10x penalty
+      10 // Max 10x penalty
     );
 
     // Apply timeout if too many violations
     if (userData.violations >= config.maxViolations) {
       const timeoutDuration = Math.min(
         config.windowMs * userData.violations,
-        30 * 60 * 1000, // Max 30 minutes
+        30 * 60 * 1000 // Max 30 minutes
       );
-      
+
       userData.timeoutUntil = now + timeoutDuration;
       userData.violations = 0; // Reset after timeout
-      
-      this.logger.warn(`User ${userId} timed out for ${timeoutDuration / 1000} seconds due to rate limit violations`);
+
+      this.logger.warn(
+        `User ${userId} timed out for ${timeoutDuration / 1000} seconds due to rate limit violations`
+      );
     }
 
     // Log violation
@@ -323,24 +327,31 @@ export class DiscordRateLimiterService {
   private updateUserData(userId: string, userData: UserRateLimitData, now: number): void {
     userData.commandCount++;
     userData.lastCommand = now;
-    
+
     // Gradually reduce penalty multiplier for good behavior
     if (userData.penaltyMultiplier > 1 && userData.violations === 0) {
-      userData.penaltyMultiplier = Math.max(
-        userData.penaltyMultiplier * 0.9,
-        1,
-      );
+      userData.penaltyMultiplier = Math.max(userData.penaltyMultiplier * 0.9, 1);
     }
   }
 
   /**
    * Map advanced rate limit violation levels
    */
-  private mapAdvancedViolationLevel(level: number): 'none' | 'warning' | 'moderate' | 'severe' | 'critical' {
-    if (level <= 1) {return 'none';}
-    if (level <= 2) {return 'warning';}
-    if (level <= 3) {return 'moderate';}
-    if (level <= 4) {return 'severe';}
+  private mapAdvancedViolationLevel(
+    level: number
+  ): 'none' | 'warning' | 'moderate' | 'severe' | 'critical' {
+    if (level <= 1) {
+      return 'none';
+    }
+    if (level <= 2) {
+      return 'warning';
+    }
+    if (level <= 3) {
+      return 'moderate';
+    }
+    if (level <= 4) {
+      return 'severe';
+    }
     return 'critical';
   }
 
@@ -349,10 +360,14 @@ export class DiscordRateLimiterService {
    */
   private mapAdvancedAction(action: string): 'allow' | 'warn' | 'cooldown' | 'timeout' | 'ban' {
     switch (action) {
-      case 'block': return 'cooldown';
-      case 'warn': return 'warn';
-      case 'ban': return 'ban';
-      default: return 'allow';
+      case 'block':
+        return 'cooldown';
+      case 'warn':
+        return 'warn';
+      case 'ban':
+        return 'ban';
+      default:
+        return 'allow';
     }
   }
 
@@ -395,14 +410,15 @@ export class DiscordRateLimiterService {
   } {
     const users = Array.from(this.userLimits.values());
     const now = Date.now();
-    
+
     return {
       totalUsers: users.length,
       usersInTimeout: users.filter(u => u.timeoutUntil && now < u.timeoutUntil).length,
       totalViolations: users.reduce((sum, u) => sum + u.violations, 0),
-      averagePenaltyMultiplier: users.length > 0 
-        ? users.reduce((sum, u) => sum + u.penaltyMultiplier, 0) / users.length 
-        : 1,
+      averagePenaltyMultiplier:
+        users.length > 0
+          ? users.reduce((sum, u) => sum + u.penaltyMultiplier, 0) / users.length
+          : 1,
     };
   }
 
@@ -410,9 +426,12 @@ export class DiscordRateLimiterService {
    * Start cleanup interval to remove old data
    */
   private startCleanupInterval(): void {
-    this.cleanupInterval = setInterval(() => {
-      this.cleanupOldData();
-    }, 5 * 60 * 1000); // Every 5 minutes
+    this.cleanupInterval = setInterval(
+      () => {
+        this.cleanupOldData();
+      },
+      5 * 60 * 1000
+    ); // Every 5 minutes
   }
 
   /**

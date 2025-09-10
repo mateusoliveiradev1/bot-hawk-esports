@@ -24,9 +24,9 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   const renderLoader = () => {
     switch (variant) {
       case 'dots':
-        return <LoadingDots className="scale-150" />;
+        return <LoadingDots className='scale-150' />;
       case 'pulse':
-        return <PulseLoader className="scale-150" />;
+        return <PulseLoader className='scale-150' />;
       default:
         return <Spinner size={spinnerSize} />;
     }
@@ -36,16 +36,16 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
     <div className={cn('relative', className)}>
       {children}
       {isLoading && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className={cn(
-            'flex flex-col items-center space-y-4 p-6 rounded-lg bg-card border shadow-lg',
-            blur && 'backdrop-blur-md',
-          )}>
+        <div className='absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm'>
+          <div
+            className={cn(
+              'flex flex-col items-center space-y-4 p-6 rounded-lg bg-card border shadow-lg',
+              blur && 'backdrop-blur-md'
+            )}
+          >
             {renderLoader()}
             {message && (
-              <p className="text-sm text-muted-foreground text-center max-w-xs">
-                {message}
-              </p>
+              <p className='text-sm text-muted-foreground text-center max-w-xs'>{message}</p>
             )}
           </div>
         </div>
@@ -61,23 +61,21 @@ export const FullPageLoader: React.FC<{
   const renderLoader = () => {
     switch (variant) {
       case 'dots':
-        return <LoadingDots className="scale-150" />;
+        return <LoadingDots className='scale-150' />;
       case 'pulse':
-        return <PulseLoader className="scale-150" />;
+        return <PulseLoader className='scale-150' />;
       default:
-        return <Spinner size="xl" />;
+        return <Spinner size='xl' />;
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background">
-      <div className="flex flex-col items-center space-y-6">
+    <div className='fixed inset-0 z-50 flex flex-col items-center justify-center bg-background'>
+      <div className='flex flex-col items-center space-y-6'>
         {renderLoader()}
-        <div className="text-center space-y-2">
-          <h3 className="text-lg font-semibold text-foreground">{message}</h3>
-          <p className="text-sm text-muted-foreground">
-            Por favor, aguarde um momento...
-          </p>
+        <div className='text-center space-y-2'>
+          <h3 className='text-lg font-semibold text-foreground'>{message}</h3>
+          <p className='text-sm text-muted-foreground'>Por favor, aguarde um momento...</p>
         </div>
       </div>
     </div>
@@ -104,9 +102,7 @@ export const InlineLoader: React.FC<{
   return (
     <div className={cn('flex items-center space-x-3', className)}>
       {renderLoader()}
-      {message && (
-        <span className="text-sm text-muted-foreground">{message}</span>
-      )}
+      {message && <span className='text-sm text-muted-foreground'>{message}</span>}
     </div>
   );
 };
@@ -119,20 +115,15 @@ export const ButtonLoader: React.FC<{
 }> = ({ isLoading, children, className, disabled }) => {
   return (
     <button
-      className={cn(
-        'relative inline-flex items-center justify-center',
-        className,
-      )}
+      className={cn('relative inline-flex items-center justify-center', className)}
       disabled={disabled || isLoading}
     >
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Spinner size="sm" />
+        <div className='absolute inset-0 flex items-center justify-center'>
+          <Spinner size='sm' />
         </div>
       )}
-      <span className={cn(isLoading && 'opacity-0')}>
-        {children}
-      </span>
+      <span className={cn(isLoading && 'opacity-0')}>{children}</span>
     </button>
   );
 };

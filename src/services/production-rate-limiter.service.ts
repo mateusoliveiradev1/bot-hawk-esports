@@ -42,7 +42,7 @@ class ProductionRateLimiterService extends EventEmitter {
     super();
     this.defaultConfig = {
       windowMs: productionConfig.rateLimit.window,
-    maxRequests: productionConfig.rateLimit.maxRequests,
+      maxRequests: productionConfig.rateLimit.maxRequests,
       skipSuccessfulRequests: false,
       skipFailedRequests: false,
       keyGenerator: (identifier: string) => `rate_limit:${identifier}`,
@@ -73,7 +73,7 @@ class ProductionRateLimiterService extends EventEmitter {
 
   async checkRateLimit(
     identifier: string,
-    config: Partial<RateLimitConfig> = {},
+    config: Partial<RateLimitConfig> = {}
   ): Promise<RateLimitResult> {
     const finalConfig = { ...this.defaultConfig, ...config };
     const key = finalConfig.keyGenerator!(identifier);
@@ -87,16 +87,17 @@ class ProductionRateLimiterService extends EventEmitter {
 
     try {
       // Get current count for this window
-      const currentCount = await productionCache.get<number>(windowKey) || 0;
+      const currentCount = (await productionCache.get<number>(windowKey)) || 0;
       const newCount = currentCount + 1;
 
       // Check if limit exceeded
       if (newCount > finalConfig.maxRequests) {
         this.stats.blockedRequests++;
         productionMonitoring.incrementCounter('rateLimitBlocked');
-        
+
         // Log rate limit exceeded
-        productionLogger.warn(`Rate limit exceeded for ${identifier}`, 
+        productionLogger.warn(
+          `Rate limit exceeded for ${identifier}`,
           createLogContext(LogCategory.SECURITY, {
             metadata: {
               identifier,
@@ -105,7 +106,8 @@ class ProductionRateLimiterService extends EventEmitter {
               windowMs: finalConfig.windowMs,
               resetTime,
             },
-          }));
+          })
+        );
 
         // Create security alert
         productionMonitoring.createAlert('warning', 'security', 'Rate limit exceeded', {
@@ -135,7 +137,8 @@ class ProductionRateLimiterService extends EventEmitter {
 
       const remaining = Math.max(0, finalConfig.maxRequests - newCount);
 
-      productionLogger.debug(`Rate limit check passed for ${identifier}`, 
+      productionLogger.debug(
+        `Rate limit check passed for ${identifier}`,
         createLogContext(LogCategory.SECURITY, {
           metadata: {
             identifier,
@@ -143,7 +146,8 @@ class ProductionRateLimiterService extends EventEmitter {
             remaining,
             resetTime,
           },
-        }));
+        })
+      );
 
       return {
         allowed: true,
@@ -152,10 +156,12 @@ class ProductionRateLimiterService extends EventEmitter {
         totalHits: newCount,
       };
     } catch (error) {
-      productionLogger.error(`Rate limit check failed for ${identifier}`, 
+      productionLogger.error(
+        `Rate limit check failed for ${identifier}`,
         createLogContext(LogCategory.SECURITY, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }));
+        })
+      );
 
       // On error, allow the request but log it
       return {
@@ -167,32 +173,39 @@ class ProductionRateLimiterService extends EventEmitter {
     }
   }
 
-  async resetRateLimit(identifier: string, config: Partial<RateLimitConfig> = {}): Promise<boolean> {
+  async resetRateLimit(
+    identifier: string,
+    config: Partial<RateLimitConfig> = {}
+  ): Promise<boolean> {
     const finalConfig = { ...this.defaultConfig, ...config };
     const key = finalConfig.keyGenerator!(identifier);
-    
+
     try {
       // Clear all windows for this identifier
       await productionCache.clear(`rate_limit:${identifier}`);
-      
-      productionLogger.info(`Rate limit reset for ${identifier}`, 
+
+      productionLogger.info(
+        `Rate limit reset for ${identifier}`,
         createLogContext(LogCategory.SECURITY, {
           metadata: { identifier },
-        }));
+        })
+      );
 
       return true;
     } catch (error) {
-      productionLogger.error(`Failed to reset rate limit for ${identifier}`, 
+      productionLogger.error(
+        `Failed to reset rate limit for ${identifier}`,
         createLogContext(LogCategory.SECURITY, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }));
+        })
+      );
       return false;
     }
   }
 
   async getRemainingRequests(
     identifier: string,
-    config: Partial<RateLimitConfig> = {},
+    config: Partial<RateLimitConfig> = {}
   ): Promise<{ remaining: number; resetTime: number }> {
     const finalConfig = { ...this.defaultConfig, ...config };
     const key = finalConfig.keyGenerator!(identifier);
@@ -202,7 +215,7 @@ class ProductionRateLimiterService extends EventEmitter {
     const resetTime = windowStart + finalConfig.windowMs;
 
     try {
-      const currentCount = await productionCache.get<number>(windowKey) || 0;
+      const currentCount = (await productionCache.get<number>(windowKey)) || 0;
       const remaining = Math.max(0, finalConfig.maxRequests - currentCount);
 
       return { remaining, resetTime };
@@ -219,7 +232,7 @@ class ProductionRateLimiterService extends EventEmitter {
     try {
       // Get cache stats to estimate active windows
       const cacheStats = await productionCache.getStats();
-      
+
       // Estimate active windows (rough approximation)
       this.stats.activeWindows = Math.floor(cacheStats.totalKeys * 0.1); // Assume 10% are rate limit keys
 
@@ -276,16 +289,16 @@ class ProductionRateLimiterService extends EventEmitter {
       burstSize: number;
       refillRate: number; // tokens per second
       maxTokens: number;
-    },
+    }
   ): Promise<RateLimitResult> {
     const key = `burst:${identifier}`;
     const now = Date.now();
 
     try {
-      const bucket = await productionCache.get<{
+      const bucket = (await productionCache.get<{
         tokens: number;
         lastRefill: number;
-      }>(key) || {
+      }>(key)) || {
         tokens: burstConfig.maxTokens,
         lastRefill: now,
       };
@@ -298,7 +311,7 @@ class ProductionRateLimiterService extends EventEmitter {
       if (newTokens < 1) {
         // No tokens available
         const resetTime = now + ((1 - newTokens) / burstConfig.refillRate) * 1000;
-        
+
         productionLogger.warn(`Burst rate limit exceeded for ${identifier}`, {
           category: LogCategory.SECURITY,
           metadata: {
@@ -364,17 +377,19 @@ class ProductionRateLimiterService extends EventEmitter {
   private async blockIP(ip: string, durationMs: number): Promise<void> {
     const blockKey = `blocked_ip:${ip}`;
     const ttlSeconds = Math.ceil(durationMs / 1000);
-    
+
     await productionCache.set(blockKey, true, { ttl: ttlSeconds });
-    
-    productionLogger.warn(`IP ${ip} temporarily blocked`, 
+
+    productionLogger.warn(
+      `IP ${ip} temporarily blocked`,
       createLogContext(LogCategory.SECURITY, {
         metadata: {
           ip,
           duration: durationMs,
           reason: 'Rate limit exceeded',
         },
-      }));
+      })
+    );
 
     productionMonitoring.createAlert('critical', 'security', 'IP temporarily blocked', {
       ip,
@@ -390,14 +405,16 @@ class ProductionRateLimiterService extends EventEmitter {
   async unblockIP(ip: string): Promise<boolean> {
     const blockKey = `blocked_ip:${ip}`;
     const result = await productionCache.delete(blockKey);
-    
+
     if (result) {
-      productionLogger.info(`IP ${ip} unblocked`, 
+      productionLogger.info(
+        `IP ${ip} unblocked`,
         createLogContext(LogCategory.SECURITY, {
           metadata: { ip },
-        }));
+        })
+      );
     }
-    
+
     return result;
   }
 
@@ -407,8 +424,10 @@ class ProductionRateLimiterService extends EventEmitter {
       this.cleanupInterval = null;
     }
 
-    productionLogger.info('Production rate limiter service shutdown completed', 
-      createLogContext(LogCategory.SYSTEM));
+    productionLogger.info(
+      'Production rate limiter service shutdown completed',
+      createLogContext(LogCategory.SYSTEM)
+    );
   }
 
   // Middleware for Express.js

@@ -10,8 +10,8 @@ jest.mock('discord.js', () => ({
   PermissionFlagsBits: {
     Administrator: 8n,
     ManageGuild: 32n,
-    ModerateMembers: 1099511627776n
-  }
+    ModerateMembers: 1099511627776n,
+  },
 }));
 
 // Mock DatabaseService
@@ -24,8 +24,8 @@ jest.mock('../../src/utils/embed-builder.util', () => ({
     internalError: jest.fn().mockReturnValue({ title: 'Error' }),
     noPermission: jest.fn().mockReturnValue({ title: 'No Permission' }),
     createErrorEmbed: jest.fn().mockReturnValue({ title: 'Error' }),
-    insufficientPermissions: jest.fn().mockReturnValue({ title: 'Insufficient Permissions' })
-  }
+    insufficientPermissions: jest.fn().mockReturnValue({ title: 'Insufficient Permissions' }),
+  },
 }));
 
 describe('ValidationUtils', () => {
@@ -39,35 +39,35 @@ describe('ValidationUtils', () => {
       guildId: 'guild123',
       guild: { id: 'guild123' },
       editReply: jest.fn(),
-      member: null
+      member: null,
     } as any;
 
     mockDatabase = {
       client: {
         user: {
-          findUnique: jest.fn()
-        }
-      }
+          findUnique: jest.fn(),
+        },
+      },
     } as any;
 
     mockMember = {
       permissions: {
-        has: jest.fn()
+        has: jest.fn(),
       },
       guild: {
-        id: 'guild123'
-      }
+        id: 'guild123',
+      },
     } as any;
   });
 
   describe('validateUserRegistration', () => {
     it('deve retornar válido para usuário registrado', async () => {
       const mockUser = {
-         id: 'user123',
-         guilds: [{ guildId: 'guild123' }]
-       } as any;
-       
-       (mockDatabase.client.user.findUnique as jest.MockedFunction<any>).mockResolvedValue(mockUser);
+        id: 'user123',
+        guilds: [{ guildId: 'guild123' }],
+      } as any;
+
+      (mockDatabase.client.user.findUnique as jest.MockedFunction<any>).mockResolvedValue(mockUser);
 
       const result = await ValidationUtils.validateUserRegistration(mockInteraction, mockDatabase);
 
@@ -76,23 +76,25 @@ describe('ValidationUtils', () => {
     });
 
     it('deve retornar inválido para usuário não registrado', async () => {
-       (mockDatabase.client.user.findUnique as jest.MockedFunction<any>).mockResolvedValue(null);
+      (mockDatabase.client.user.findUnique as jest.MockedFunction<any>).mockResolvedValue(null);
 
-       const result = await ValidationUtils.validateUserRegistration(mockInteraction, mockDatabase);
+      const result = await ValidationUtils.validateUserRegistration(mockInteraction, mockDatabase);
 
-       expect(result.isValid).toBe(false);
-       expect(result.user).toBeUndefined();
-       expect(mockInteraction.editReply).toHaveBeenCalled();
-     });
+      expect(result.isValid).toBe(false);
+      expect(result.user).toBeUndefined();
+      expect(mockInteraction.editReply).toHaveBeenCalled();
+    });
 
-     it('deve lidar com erros de banco de dados', async () => {
-       (mockDatabase.client.user.findUnique as jest.MockedFunction<any>).mockRejectedValue(new Error('Database error'));
+    it('deve lidar com erros de banco de dados', async () => {
+      (mockDatabase.client.user.findUnique as jest.MockedFunction<any>).mockRejectedValue(
+        new Error('Database error')
+      );
 
-       const result = await ValidationUtils.validateUserRegistration(mockInteraction, mockDatabase);
+      const result = await ValidationUtils.validateUserRegistration(mockInteraction, mockDatabase);
 
-       expect(result.isValid).toBe(false);
-       expect(mockInteraction.editReply).toHaveBeenCalled();
-     });
+      expect(result.isValid).toBe(false);
+      expect(mockInteraction.editReply).toHaveBeenCalled();
+    });
   });
 
   describe('validatePermissions', () => {
@@ -118,7 +120,11 @@ describe('ValidationUtils', () => {
 
   describe('validateStringParameter', () => {
     it('deve retornar true para string válida', () => {
-      const result = ValidationUtils.validateStringParameter('valid string', 'test', mockInteraction);
+      const result = ValidationUtils.validateStringParameter(
+        'valid string',
+        'test',
+        mockInteraction
+      );
       expect(result).toBe(true);
     });
 

@@ -27,12 +27,12 @@ export class TicketConfigCommand extends BaseCommand {
             option
               .setName('horas')
               .setDescription(
-                'Horas de inatividade antes do fechamento automático (0 = desabilitar)',
+                'Horas de inatividade antes do fechamento automático (0 = desabilitar)'
               )
               .setRequired(true)
               .setMinValue(0)
-              .setMaxValue(168), // 7 dias máximo
-        ),
+              .setMaxValue(168) // 7 dias máximo
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -44,8 +44,8 @@ export class TicketConfigCommand extends BaseCommand {
             .setDescription('Número máximo de tickets por usuário')
             .setRequired(true)
             .setMinValue(1)
-            .setMaxValue(10),
-        ),
+            .setMaxValue(10)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -55,8 +55,8 @@ export class TicketConfigCommand extends BaseCommand {
           option
             .setName('ativo')
             .setDescription('Ativar ou desativar atribuição automática')
-            .setRequired(true),
-        ),
+            .setRequired(true)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -66,8 +66,8 @@ export class TicketConfigCommand extends BaseCommand {
           option
             .setName('obrigatorio')
             .setDescription('Tornar motivo obrigatório ou opcional')
-            .setRequired(true),
-        ),
+            .setRequired(true)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -77,29 +77,29 @@ export class TicketConfigCommand extends BaseCommand {
           option
             .setName('criar')
             .setDescription('Notificar quando ticket for criado')
-            .setRequired(false),
+            .setRequired(false)
         )
         .addBooleanOption(option =>
           option
             .setName('atribuir')
             .setDescription('Notificar quando ticket for atribuído')
-            .setRequired(false),
+            .setRequired(false)
         )
         .addBooleanOption(option =>
           option
             .setName('fechar')
             .setDescription('Notificar quando ticket for fechado')
-            .setRequired(false),
+            .setRequired(false)
         )
         .addBooleanOption(option =>
           option
             .setName('reabrir')
             .setDescription('Notificar quando ticket for reaberto')
-            .setRequired(false),
-        ),
+            .setRequired(false)
+        )
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('view').setDescription('Ver configurações atuais do sistema de tickets'),
+      subcommand.setName('view').setDescription('Ver configurações atuais do sistema de tickets')
     );
 
   public category = CommandCategory.ADMIN;
@@ -107,7 +107,7 @@ export class TicketConfigCommand extends BaseCommand {
 
   public async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
     let subcommand: string | undefined;
-    
+
     try {
       // Validate interaction and client
       this.validateInteraction(interaction);
@@ -157,8 +157,9 @@ export class TicketConfigCommand extends BaseCommand {
       });
 
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      const embed = HawkEmbedBuilder.createErrorEmbed('Erro no Comando de Configuração de Tickets')
-        .setDescription(`Erro ao executar comando: ${errorMessage}`);
+      const embed = HawkEmbedBuilder.createErrorEmbed(
+        'Erro no Comando de Configuração de Tickets'
+      ).setDescription(`Erro ao executar comando: ${errorMessage}`);
 
       await this.safeReply(interaction, { embeds: [embed] });
     }
@@ -186,7 +187,7 @@ export class TicketConfigCommand extends BaseCommand {
         .setDescription(
           horas === 0
             ? 'Fechamento automático por inatividade foi **desabilitado**.'
-            : `Tickets serão fechados automaticamente após **${horas} horas** de inatividade.`,
+            : `Tickets serão fechados automaticamente após **${horas} horas** de inatividade.`
         )
         .addFields(
           {
@@ -194,13 +195,15 @@ export class TicketConfigCommand extends BaseCommand {
             value: `${currentSettings.closeAfterInactivity}h`,
             inline: true,
           },
-          { name: '🆕 Novo Tempo', value: horas === 0 ? 'Desabilitado' : `${horas}h`, inline: true },
+          { name: '🆕 Novo Tempo', value: horas === 0 ? 'Desabilitado' : `${horas}h`, inline: true }
         )
         .setTimestamp();
 
       await this.safeReply(interaction, { embeds: [embed] });
     } catch (error) {
-      throw new Error(`Não foi possível atualizar a configuração de timeout: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Não foi possível atualizar a configuração de timeout: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -209,7 +212,7 @@ export class TicketConfigCommand extends BaseCommand {
    */
   private async handleMaxTicketsConfig(
     interaction: ChatInputCommandInteraction,
-    ticketService: any,
+    ticketService: any
   ) {
     const quantidade = interaction.options.getInteger('quantidade', true);
     const guildId = interaction.guildId!;
@@ -228,14 +231,20 @@ export class TicketConfigCommand extends BaseCommand {
       const embed = HawkEmbedBuilder.createSuccessEmbed('Configuração Atualizada')
         .setDescription(`Número máximo de tickets por usuário definido para **${quantidade}**.`)
         .addFields(
-          { name: '📊 Limite Anterior', value: `${currentSettings.maxTicketsPerUser}`, inline: true },
-          { name: '🆕 Novo Limite', value: `${quantidade}`, inline: true },
+          {
+            name: '📊 Limite Anterior',
+            value: `${currentSettings.maxTicketsPerUser}`,
+            inline: true,
+          },
+          { name: '🆕 Novo Limite', value: `${quantidade}`, inline: true }
         )
         .setTimestamp();
 
       await this.safeReply(interaction, { embeds: [embed] });
     } catch (error) {
-      throw new Error(`Não foi possível atualizar a configuração de limite de tickets: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Não foi possível atualizar a configuração de limite de tickets: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -244,7 +253,7 @@ export class TicketConfigCommand extends BaseCommand {
    */
   private async handleAutoAssignConfig(
     interaction: ChatInputCommandInteraction,
-    ticketService: any,
+    ticketService: any
   ) {
     const ativo = interaction.options.getBoolean('ativo', true);
     const guildId = interaction.guildId!;
@@ -264,7 +273,7 @@ export class TicketConfigCommand extends BaseCommand {
         .setDescription(
           ativo
             ? 'Atribuição automática de tickets foi **ativada**.'
-            : 'Atribuição automática de tickets foi **desativada**.',
+            : 'Atribuição automática de tickets foi **desativada**.'
         )
         .addFields(
           {
@@ -272,13 +281,15 @@ export class TicketConfigCommand extends BaseCommand {
             value: currentSettings.autoAssign ? 'Ativo' : 'Inativo',
             inline: true,
           },
-          { name: '🆕 Novo Status', value: ativo ? 'Ativo' : 'Inativo', inline: true },
+          { name: '🆕 Novo Status', value: ativo ? 'Ativo' : 'Inativo', inline: true }
         )
         .setTimestamp();
 
       await this.safeReply(interaction, { embeds: [embed] });
     } catch (error) {
-      throw new Error(`Não foi possível atualizar a configuração de atribuição automática: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Não foi possível atualizar a configuração de atribuição automática: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -287,7 +298,7 @@ export class TicketConfigCommand extends BaseCommand {
    */
   private async handleRequireReasonConfig(
     interaction: ChatInputCommandInteraction,
-    ticketService: any,
+    ticketService: any
   ) {
     const obrigatorio = interaction.options.getBoolean('obrigatorio', true);
     const guildId = interaction.guildId!;
@@ -307,7 +318,7 @@ export class TicketConfigCommand extends BaseCommand {
         .setDescription(
           obrigatorio
             ? 'Motivo agora é **obrigatório** para criar tickets.'
-            : 'Motivo agora é **opcional** para criar tickets.',
+            : 'Motivo agora é **opcional** para criar tickets.'
         )
         .addFields(
           {
@@ -315,13 +326,15 @@ export class TicketConfigCommand extends BaseCommand {
             value: currentSettings.requireReason ? 'Obrigatório' : 'Opcional',
             inline: true,
           },
-          { name: '🆕 Novo Status', value: obrigatorio ? 'Obrigatório' : 'Opcional', inline: true },
+          { name: '🆕 Novo Status', value: obrigatorio ? 'Obrigatório' : 'Opcional', inline: true }
         )
         .setTimestamp();
 
       await this.safeReply(interaction, { embeds: [embed] });
     } catch (error) {
-      throw new Error(`Não foi possível atualizar a configuração de motivo obrigatório: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Não foi possível atualizar a configuração de motivo obrigatório: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -330,7 +343,7 @@ export class TicketConfigCommand extends BaseCommand {
    */
   private async handleNotificationsConfig(
     interaction: ChatInputCommandInteraction,
-    ticketService: any,
+    ticketService: any
   ) {
     const criar = interaction.options.getBoolean('criar');
     const atribuir = interaction.options.getBoolean('atribuir');
@@ -378,13 +391,15 @@ export class TicketConfigCommand extends BaseCommand {
             name: '🔓 Reabrir Ticket',
             value: newNotificationSettings.onReopen ? '✅ Ativo' : '❌ Inativo',
             inline: true,
-          },
+          }
         )
         .setTimestamp();
 
       await this.safeReply(interaction, { embeds: [embed] });
     } catch (error) {
-      throw new Error(`Não foi possível atualizar as configurações de notificação: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Não foi possível atualizar as configurações de notificação: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -426,7 +441,7 @@ export class TicketConfigCommand extends BaseCommand {
                 ? `${settings.closeAfterInactivity}h`
                 : '❌ Desabilitado',
             inline: true,
-          },
+          }
         )
         .addFields(
           { name: '🔔 Notificações', value: '\u200B', inline: false },
@@ -449,7 +464,7 @@ export class TicketConfigCommand extends BaseCommand {
             name: '🔓 Reabrir',
             value: settings.notificationSettings.onReopen ? '✅' : '❌',
             inline: true,
-          },
+          }
         )
         .setTimestamp();
 
@@ -471,7 +486,9 @@ export class TicketConfigCommand extends BaseCommand {
 
       await this.safeReply(interaction, { embeds: [embed] });
     } catch (error) {
-      throw new Error(`Não foi possível carregar as configurações: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Não foi possível carregar as configurações: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 }
@@ -483,8 +500,8 @@ const command = {
   data: commandInstance.data,
   category: commandInstance.category,
   cooldown: commandInstance.cooldown,
-  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) => 
-    commandInstance.execute(interaction, client),  
+  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) =>
+    commandInstance.execute(interaction, client),
 };
 
 export default command;

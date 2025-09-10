@@ -30,13 +30,13 @@ class ProfileCommand extends BaseCommand {
           option
             .setName('user')
             .setDescription('Usuário para ver o perfil (deixe vazio para ver o seu)')
-            .setRequired(false),
+            .setRequired(false)
         )
         .addBooleanOption(option =>
           option
             .setName('public')
             .setDescription('Tornar a resposta pública (padrão: privado)')
-            .setRequired(false),
+            .setRequired(false)
         ) as SlashCommandBuilder,
       category: CommandCategory.GENERAL,
       cooldown: 10,
@@ -64,7 +64,7 @@ class ProfileCommand extends BaseCommand {
       if (!userData) {
         const errorEmbed = HawkEmbedBuilder.createError(
           'Usuário não encontrado',
-          'Este usuário não está registrado no sistema.',
+          'Este usuário não está registrado no sistema.'
         );
         await interaction.editReply({ embeds: [errorEmbed] });
         return;
@@ -74,7 +74,10 @@ class ProfileCommand extends BaseCommand {
       const [userBadges, pubgStats, rankings, presenceData] = await Promise.all([
         badgeService.getUserBadges(targetUser.id),
         userData.pubgUsername
-          ? pubgService.getPlayerByName(userData.pubgUsername, userData.pubgPlatform as any || 'steam')
+          ? pubgService.getPlayerByName(
+              userData.pubgUsername,
+              (userData.pubgPlatform as any) || 'steam'
+            )
           : null,
         rankingService.getUserRank(interaction.guild?.id || '', targetUser.id, 'internal'),
         presenceService.getUserStats(interaction.guild?.id || '', targetUser.id),
@@ -88,7 +91,7 @@ class ProfileCommand extends BaseCommand {
         pubgStats,
         rankings,
         presenceData,
-        isOwnProfile,
+        isOwnProfile
       );
 
       // Create action buttons
@@ -117,7 +120,7 @@ class ProfileCommand extends BaseCommand {
           HawkComponentFactory.createLinkButton(
             'Dashboard',
             'https://your-dashboard-url.com/profile',
-            HAWK_EMOJIS.WEB,
+            HAWK_EMOJIS.WEB
           ),
         ]);
       } else {
@@ -143,7 +146,14 @@ class ProfileCommand extends BaseCommand {
       });
 
       // Handle button interactions
-      await this.handleButtonInteractions(response, interaction, targetUser, userData, userBadges, pubgStats);
+      await this.handleButtonInteractions(
+        response,
+        interaction,
+        targetUser,
+        userData,
+        userBadges,
+        pubgStats
+      );
     } catch (error) {
       await interaction.reply({
         content: '❌ Ocorreu um erro ao carregar o perfil. Tente novamente mais tarde.',
@@ -159,11 +169,11 @@ class ProfileCommand extends BaseCommand {
     pubgStats: any,
     rankings: any,
     presenceData: any,
-    isOwnProfile: boolean,
+    isOwnProfile: boolean
   ): Promise<EmbedBuilder> {
     const embed = HawkEmbedBuilder.createInfo(
       `${HAWK_EMOJIS.USER} Perfil de ${user.displayName}`,
-      '',
+      ''
     )
       .setThumbnail(user.displayAvatarURL())
       .setTimestamp();
@@ -241,7 +251,10 @@ class ProfileCommand extends BaseCommand {
     if (rankings && Object.keys(rankings).length > 0) {
       const rankingText = Object.entries(rankings)
         .slice(0, 3)
-        .map(([type, rank]: [string, any]) => `${this.getRankingEmoji(type)} **${this.getRankingName(type)}:** #${rank.position}`)
+        .map(
+          ([type, rank]: [string, any]) =>
+            `${this.getRankingEmoji(type)} **${this.getRankingName(type)}:** #${rank.position}`
+        )
         .join('\n');
       embed.addFields({
         name: `${HAWK_EMOJIS.TROPHY} Rankings`,
@@ -267,7 +280,7 @@ class ProfileCommand extends BaseCommand {
     targetUser: any,
     userData: any,
     userBadges: any[],
-    pubgStats: any,
+    pubgStats: any
   ): Promise<void> {
     const collector = response.createMessageComponentCollector({
       time: 300000, // 5 minutes
@@ -305,7 +318,7 @@ class ProfileCommand extends BaseCommand {
           const compareEmbed = new EmbedBuilder()
             .setTitle('⚖️ Comparação de Perfis')
             .setDescription(
-              'Funcionalidade em desenvolvimento!\nEm breve você poderá comparar estatísticas entre jogadores.',
+              'Funcionalidade em desenvolvimento!\nEm breve você poderá comparar estatísticas entre jogadores.'
             )
             .setColor('#FFA500');
           await i.reply({ embeds: [compareEmbed], flags: MessageFlags.Ephemeral });
@@ -322,13 +335,13 @@ class ProfileCommand extends BaseCommand {
     if (badges.length === 0) {
       return HawkEmbedBuilder.createWarning(
         `${HAWK_EMOJIS.BADGE} Badges de ${user.displayName}`,
-        'Este usuário ainda não possui badges.\n\nParticipe das atividades do servidor para conquistar badges!',
+        'Este usuário ainda não possui badges.\n\nParticipe das atividades do servidor para conquistar badges!'
       ).setThumbnail(user.displayAvatarURL());
     }
 
     const embed = HawkEmbedBuilder.createSuccess(
       `${HAWK_EMOJIS.BADGE} Badges de ${user.displayName}`,
-      '',
+      ''
     ).setThumbnail(user.displayAvatarURL());
 
     // Group badges by category
@@ -354,7 +367,9 @@ class ProfileCommand extends BaseCommand {
       });
     });
 
-    embed.setFooter({ text: `${HAWK_EMOJIS.SYSTEM.COUNT} Total: ${badges.length} badges conquistadas` });
+    embed.setFooter({
+      text: `${HAWK_EMOJIS.SYSTEM.COUNT} Total: ${badges.length} badges conquistadas`,
+    });
 
     return embed;
   }
@@ -362,7 +377,7 @@ class ProfileCommand extends BaseCommand {
   private async createPUBGStatsEmbed(user: any, stats: any, userData: any): Promise<EmbedBuilder> {
     const embed = HawkEmbedBuilder.createInfo(
       `${HAWK_EMOJIS.PUBG} Estatísticas PUBG - ${user.displayName}`,
-      '',
+      ''
     ).setThumbnail(user.displayAvatarURL());
 
     // Current season stats
@@ -383,7 +398,7 @@ class ProfileCommand extends BaseCommand {
           name: `${HAWK_EMOJIS.WEAPON} Combate`,
           value: `${HAWK_EMOJIS.KILL} Kills: ${season.kills}\n${HAWK_EMOJIS.DAMAGE} Dano: ${Math.round(season.damageDealt)}\n${HAWK_EMOJIS.GAMING.TARGET} K/D: ${season.kdr?.toFixed(2)}`,
           inline: true,
-        },
+        }
       );
     }
 
@@ -405,7 +420,7 @@ class ProfileCommand extends BaseCommand {
           name: `${HAWK_EMOJIS.BADGES.ACHIEVEMENT} Conquistas`,
           value: `${HAWK_EMOJIS.TROPHY} Chicken Dinners: ${lifetime.wins}\n${HAWK_EMOJIS.CHART} Top 10: ${lifetime.top10s}\n${HAWK_EMOJIS.GAMING.TARGET} Headshots: ${lifetime.headshotKills}`,
           inline: true,
-        },
+        }
       );
     }
 
@@ -429,7 +444,7 @@ class ProfileCommand extends BaseCommand {
   private async createAchievementsEmbed(user: any, userData: any): Promise<EmbedBuilder> {
     const embed = HawkEmbedBuilder.createInfo(
       `${HAWK_EMOJIS.ACHIEVEMENT} Conquistas de ${user.displayName}`,
-      '',
+      ''
     ).setThumbnail(user.displayAvatarURL());
 
     // Mock achievements data - replace with actual data from database
@@ -473,7 +488,9 @@ class ProfileCommand extends BaseCommand {
     const pending = achievements.filter(a => !a.completed);
 
     if (completed.length > 0) {
-      const completedList = completed.map(a => `${HAWK_EMOJIS.SUCCESS} **${a.name}**\n${a.description}`).join('\n\n');
+      const completedList = completed
+        .map(a => `${HAWK_EMOJIS.SUCCESS} **${a.name}**\n${a.description}`)
+        .join('\n\n');
       embed.addFields({
         name: `${HAWK_EMOJIS.ACHIEVEMENT} Conquistadas (${completed.length})`,
         value: completedList,
@@ -482,7 +499,9 @@ class ProfileCommand extends BaseCommand {
     }
 
     if (pending.length > 0) {
-      const pendingList = pending.map(a => `${HAWK_EMOJIS.CLOCK} **${a.name}**\n${a.description}`).join('\n\n');
+      const pendingList = pending
+        .map(a => `${HAWK_EMOJIS.CLOCK} **${a.name}**\n${a.description}`)
+        .join('\n\n');
       embed.addFields({
         name: `${HAWK_EMOJIS.CLOCK} Em Progresso (${pending.length})`,
         value: pendingList,
@@ -565,7 +584,7 @@ export const command = {
   data: commandInstance.data,
   category: CommandCategory.GENERAL,
   cooldown: 10,
-  execute: (interaction: any, client: ExtendedClient) => 
+  execute: (interaction: any, client: ExtendedClient) =>
     commandInstance.execute(interaction, client),
 };
 

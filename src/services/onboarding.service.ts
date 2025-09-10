@@ -185,7 +185,7 @@ export class OnboardingService {
   private async sendWelcomeMessage(member: GuildMember, config: OnboardingConfig): Promise<void> {
     try {
       const welcomeChannel = member.guild.channels.cache.get(
-        config.welcomeChannelId!,
+        config.welcomeChannelId!
       ) as TextChannel;
 
       if (!welcomeChannel) {
@@ -204,7 +204,7 @@ export class OnboardingService {
             '**2️⃣ Registro PUBG** (Opcional)\n' +
             '• Digite `/register` para conectar seu PUBG\n' +
             '• Acesso a rankings e estatísticas\n\n' +
-            '📨 **Verifique seu DM** - Enviamos um guia detalhado!',
+            '📨 **Verifique seu DM** - Enviamos um guia detalhado!'
         )
         .setColor(0x00ff00)
         .setThumbnail(member.user.displayAvatarURL())
@@ -229,7 +229,7 @@ export class OnboardingService {
         new ButtonBuilder()
           .setCustomId('view_commands')
           .setLabel('🤖 Ver Comandos')
-          .setStyle(ButtonStyle.Secondary),
+          .setStyle(ButtonStyle.Secondary)
       );
 
       await welcomeChannel.send({
@@ -259,7 +259,7 @@ export class OnboardingService {
             '• Use o comando `/register` no servidor\n' +
             '• Conecta sua conta PUBG para recursos avançados\n' +
             '• Acesso a rankings, estatísticas e badges\n\n' +
-            '🎯 **Dica:** Comece com `/register-server` para ter acesso imediato!',
+            '🎯 **Dica:** Comece com `/register-server` para ter acesso imediato!'
         )
         .setColor(0x00ff00)
         .setThumbnail(member.guild.iconURL())
@@ -277,7 +277,7 @@ export class OnboardingService {
             name: '❓ Precisa de Ajuda?',
             value: 'Mencione um moderador no servidor ou abra um ticket!',
             inline: false,
-          },
+          }
         )
         .setTimestamp()
         .setFooter({
@@ -295,7 +295,7 @@ export class OnboardingService {
           .setCustomId('view_rules')
           .setLabel('📖 Ver Regras')
           .setStyle(ButtonStyle.Secondary)
-          .setEmoji('📖'),
+          .setEmoji('📖')
       );
 
       await member.send({
@@ -354,7 +354,7 @@ export class OnboardingService {
           '**5.** Siga as diretrizes da comunidade do Discord\n' +
           '**6.** Registre-se com seu nick real do PUBG\n' +
           '**7.** Não faça trapaça ou use cheats\n' +
-          '**8.** Divirta-se e seja parte da comunidade! 🎮',
+          '**8.** Divirta-se e seja parte da comunidade! 🎮'
       )
       .setColor(0xff9900)
       .setTimestamp();
@@ -378,7 +378,7 @@ export class OnboardingService {
           '• `stadia` - Stadia\n\n' +
           '**Exemplo:**\n' +
           '`/register nick:PlayerName123 plataforma:steam`\n\n' +
-          '⚠️ **Importante:** Use seu nick exato do PUBG para verificação automática!',
+          '⚠️ **Importante:** Use seu nick exato do PUBG para verificação automática!'
       )
       .setColor(0x00ff00)
       .setTimestamp();
@@ -407,7 +407,7 @@ export class OnboardingService {
           '**🎵 Música:**\n' +
           '• `/play` - Tocar música\n' +
           '• `/queue` - Ver fila de música\n\n' +
-          'Use `/help` para mais informações sobre cada comando!',
+          'Use `/help` para mais informações sobre cada comando!'
       )
       .setColor(0x0099ff)
       .setTimestamp();
@@ -420,16 +420,16 @@ export class OnboardingService {
    */
   private async sendFallbackWelcomeMessage(
     member: GuildMember,
-    config: OnboardingConfig,
+    config: OnboardingConfig
   ): Promise<void> {
     try {
       const welcomeChannel = member.guild.channels.cache.get(
-        config.welcomeChannelId!,
+        config.welcomeChannelId!
       ) as TextChannel;
 
       if (!welcomeChannel) {
         this.logger.warn(
-          `Welcome channel not found for fallback message in guild ${member.guild.name}`,
+          `Welcome channel not found for fallback message in guild ${member.guild.name}`
         );
         return;
       }
@@ -445,7 +445,7 @@ export class OnboardingService {
             '**2️⃣ Registro PUBG** (Opcional)\n' +
             '• Digite `/register` para conectar seu PUBG\n' +
             '• Acesso a rankings e estatísticas\n\n' +
-            '💡 **Dica:** Habilite DMs de membros do servidor para receber notificações!',
+            '💡 **Dica:** Habilite DMs de membros do servidor para receber notificações!'
         )
         .setColor(0xffa500)
         .setThumbnail(member.user.displayAvatarURL())
@@ -463,7 +463,7 @@ export class OnboardingService {
             this.logger.warn('Failed to delete fallback welcome message:', error);
           }
         },
-        5 * 60 * 1000,
+        5 * 60 * 1000
       );
 
       this.logger.info(`Sent fallback welcome message for ${member.user.tag}`);
@@ -485,7 +485,7 @@ export class OnboardingService {
               '1️⃣ Digite o comando: `/register-server`\n' +
               '2️⃣ Pressione Enter para executar\n' +
               '3️⃣ Pronto! Você terá acesso aos canais\n\n' +
-              '💡 **Dica:** Você pode digitar o comando aqui mesmo neste canal!',
+              '💡 **Dica:** Você pode digitar o comando aqui mesmo neste canal!'
           )
           .setColor(0x00ff00)
           .setTimestamp();
@@ -504,7 +504,7 @@ export class OnboardingService {
               '   • Conecta sua conta PUBG\n\n' +
               '🆘 **Ainda com problemas?**\n' +
               '   • Mencione um moderador\n' +
-              '   • Abra um ticket de suporte',
+              '   • Abra um ticket de suporte'
           )
           .setColor(0x0099ff)
           .setTimestamp();
@@ -513,7 +513,7 @@ export class OnboardingService {
       } else if (interaction.customId === 'view_rules') {
         // Find rules channel
         const rulesChannel = interaction.guild?.channels.cache.find(
-          ch => ch.name.includes('regras') || ch.name.includes('rules'),
+          ch => ch.name.includes('regras') || ch.name.includes('rules')
         );
 
         const embed = new EmbedBuilder()
@@ -523,7 +523,7 @@ export class OnboardingService {
               ? `📋 Confira as regras em ${rulesChannel}\n\n` +
                   '⚠️ **Importante:** Leia todas as regras antes de participar!'
               : '📋 Procure pelo canal de regras no servidor\n\n' +
-                  '⚠️ **Importante:** Leia todas as regras antes de participar!',
+                  '⚠️ **Importante:** Leia todas as regras antes de participar!'
           )
           .setColor(0xff9900)
           .setTimestamp();
@@ -626,7 +626,7 @@ export class OnboardingService {
    */
   async updateGuildConfig(
     guildId: string,
-    config: Partial<OnboardingConfig>,
+    config: Partial<OnboardingConfig>
   ): Promise<OnboardingConfig> {
     if (!this.client.db) {
       throw new Error('Database service not available');

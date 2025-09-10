@@ -29,7 +29,7 @@ class PubgCommand extends BaseCommand {
               option
                 .setName('username')
                 .setDescription('Seu nome de usuário no PUBG')
-                .setRequired(true),
+                .setRequired(true)
             )
             .addStringOption(option =>
               option
@@ -41,9 +41,9 @@ class PubgCommand extends BaseCommand {
                   { name: 'Xbox', value: 'xbox' },
                   { name: 'PlayStation', value: 'psn' },
                   { name: 'Stadia', value: 'stadia' },
-                  { name: 'Kakao', value: 'kakao' },
-                ),
-            ),
+                  { name: 'Kakao', value: 'kakao' }
+                )
+            )
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -53,7 +53,7 @@ class PubgCommand extends BaseCommand {
               option
                 .setName('usuario')
                 .setDescription('Usuário para ver as estatísticas (deixe vazio para ver as suas)')
-                .setRequired(false),
+                .setRequired(false)
             )
             .addStringOption(option =>
               option
@@ -66,9 +66,9 @@ class PubgCommand extends BaseCommand {
                   { name: 'Squad', value: 'squad' },
                   { name: 'Solo FPP', value: 'solo-fpp' },
                   { name: 'Duo FPP', value: 'duo-fpp' },
-                  { name: 'Squad FPP', value: 'squad-fpp' },
-                ),
-            ),
+                  { name: 'Squad FPP', value: 'squad-fpp' }
+                )
+            )
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -78,13 +78,13 @@ class PubgCommand extends BaseCommand {
               option
                 .setName('usuario1')
                 .setDescription('Primeiro usuário para comparar')
-                .setRequired(true),
+                .setRequired(true)
             )
             .addUserOption(option =>
               option
                 .setName('usuario2')
                 .setDescription('Segundo usuário para comparar (deixe vazio para comparar consigo)')
-                .setRequired(false),
+                .setRequired(false)
             )
             .addStringOption(option =>
               option
@@ -97,9 +97,9 @@ class PubgCommand extends BaseCommand {
                   { name: 'Squad', value: 'squad' },
                   { name: 'Solo FPP', value: 'solo-fpp' },
                   { name: 'Duo FPP', value: 'duo-fpp' },
-                  { name: 'Squad FPP', value: 'squad-fpp' },
-                ),
-            ),
+                  { name: 'Squad FPP', value: 'squad-fpp' }
+                )
+            )
         ),
       category: CommandCategory.PUBG,
       cooldown: 5,
@@ -129,7 +129,7 @@ class PubgCommand extends BaseCommand {
     } catch (error) {
       logger.error('Error in PUBG command:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      
+
       if (interaction.deferred || interaction.replied) {
         await interaction.editReply({
           content: `❌ Erro ao executar comando: ${errorMessage}`,
@@ -143,10 +143,13 @@ class PubgCommand extends BaseCommand {
     }
   }
 
-  private async handleLinkCommand(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
+  private async handleLinkCommand(
+    interaction: ChatInputCommandInteraction,
+    client: ExtendedClient
+  ) {
     const username = interaction.options.getString('username', true);
     const platform = interaction.options.getString('platform', true) as PUBGPlatform;
-    
+
     await interaction.deferReply({ ephemeral: true });
 
     try {
@@ -155,7 +158,7 @@ class PubgCommand extends BaseCommand {
           .setTitle('❌ Serviço indisponível')
           .setDescription('O serviço PUBG está temporariamente indisponível.')
           .setColor('#FF0000');
-        
+
         await interaction.editReply({ embeds: [serviceErrorEmbed] });
         return;
       }
@@ -195,14 +198,16 @@ class PubgCommand extends BaseCommand {
 
       // Buscar estatísticas iniciais
       const stats = await pubgService.getPlayerStats(player.name, platform);
-      
+
       const embed = new EmbedBuilder()
         .setTitle('✅ Conta PUBG vinculada com sucesso!')
-        .setDescription(`Sua conta **${player.name}** foi vinculada à plataforma **${platform.toUpperCase()}**.`)
+        .setDescription(
+          `Sua conta **${player.name}** foi vinculada à plataforma **${platform.toUpperCase()}**.`
+        )
         .addFields(
           { name: '👤 Jogador', value: player.name, inline: true },
           { name: '🎮 Plataforma', value: platform.toUpperCase(), inline: true },
-          { name: '🆔 ID do Jogador', value: player.id, inline: true },
+          { name: '🆔 ID do Jogador', value: player.id, inline: true }
         )
         .setColor(0x00ff00)
         .setThumbnail(interaction.user.displayAvatarURL())
@@ -215,7 +220,7 @@ class PubgCommand extends BaseCommand {
             { name: '🎯 Estatísticas Rápidas (Squad)', value: '\u200B', inline: false },
             { name: '🎮 Partidas', value: squadStats.roundsPlayed.toString(), inline: true },
             { name: '🏆 Vitórias', value: squadStats.wins.toString(), inline: true },
-            { name: '💀 Kills', value: squadStats.kills.toString(), inline: true },
+            { name: '💀 Kills', value: squadStats.kills.toString(), inline: true }
           );
         }
       }
@@ -225,10 +230,9 @@ class PubgCommand extends BaseCommand {
       }
 
       await interaction.editReply({ embeds: [embed] });
-
     } catch (error) {
       logger.error(`Error linking PUBG account for user ${interaction.user.id}:`, error);
-      
+
       let errorMessage = 'Erro desconhecido';
       if (error instanceof Error) {
         if (error.message.includes('Player not found')) {
@@ -246,24 +250,27 @@ class PubgCommand extends BaseCommand {
     }
   }
 
-  private async handleStatsCommand(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
+  private async handleStatsCommand(
+    interaction: ChatInputCommandInteraction,
+    client: ExtendedClient
+  ) {
     const targetUser = interaction.options.getUser('usuario') || interaction.user;
-    const gameMode = interaction.options.getString('modo') as PUBGGameMode || PUBGGameMode.SQUAD;
-    
+    const gameMode = (interaction.options.getString('modo') as PUBGGameMode) || PUBGGameMode.SQUAD;
+
     await interaction.deferReply();
 
     try {
-       if (!client.services?.pubg) {
-         const serviceErrorEmbed = new EmbedBuilder()
-           .setTitle('❌ Serviço indisponível')
-           .setDescription('O serviço PUBG está temporariamente indisponível.')
-           .setColor('#FF0000');
-         
-         await interaction.editReply({ embeds: [serviceErrorEmbed] });
-         return;
-       }
+      if (!client.services?.pubg) {
+        const serviceErrorEmbed = new EmbedBuilder()
+          .setTitle('❌ Serviço indisponível')
+          .setDescription('O serviço PUBG está temporariamente indisponível.')
+          .setColor('#FF0000');
 
-       const pubgService = client.services.pubg;
+        await interaction.editReply({ embeds: [serviceErrorEmbed] });
+        return;
+      }
+
+      const pubgService = client.services.pubg;
 
       // Buscar dados do usuário no banco
       const userData = await client.database.client.user.findUnique({
@@ -277,7 +284,10 @@ class PubgCommand extends BaseCommand {
       }
 
       // Buscar estatísticas atualizadas
-      const stats = await pubgService.getPlayerStats(userData.pubgUsername, userData.pubgPlatform as PUBGPlatform);
+      const stats = await pubgService.getPlayerStats(
+        userData.pubgUsername,
+        userData.pubgPlatform as PUBGPlatform
+      );
       if (!stats) {
         await interaction.editReply({
           content: `❌ Não foi possível obter as estatísticas de **${userData.pubgUsername}**.`,
@@ -295,20 +305,52 @@ class PubgCommand extends BaseCommand {
 
       const embed = new EmbedBuilder()
         .setTitle(`📊 Estatísticas PUBG - ${userData.pubgUsername}`)
-        .setDescription(`Modo: **${gameMode.toUpperCase()}** | Plataforma: **${userData.pubgPlatform?.toUpperCase()}**`)
+        .setDescription(
+          `Modo: **${gameMode.toUpperCase()}** | Plataforma: **${userData.pubgPlatform?.toUpperCase()}**`
+        )
         .addFields(
           { name: '🎮 Partidas', value: modeStats.roundsPlayed.toString(), inline: true },
           { name: '🏆 Vitórias', value: modeStats.wins.toString(), inline: true },
-          { name: '📈 Taxa de Vitória', value: `${((modeStats.wins / modeStats.roundsPlayed) * 100).toFixed(1)}%`, inline: true },
+          {
+            name: '📈 Taxa de Vitória',
+            value: `${((modeStats.wins / modeStats.roundsPlayed) * 100).toFixed(1)}%`,
+            inline: true,
+          },
           { name: '💀 Kills', value: modeStats.kills.toString(), inline: true },
           { name: '⚰️ Mortes', value: modeStats.losses.toString(), inline: true },
-          { name: '📊 K/D', value: pubgService.calculateKDA(modeStats.kills, modeStats.losses, modeStats.assists || 0).toFixed(2), inline: true },
-          { name: '💥 Dano Total', value: Math.round(modeStats.damageDealt).toLocaleString(), inline: true },
-          { name: '🎯 Dano Médio', value: Math.round(modeStats.damageDealt / modeStats.roundsPlayed).toLocaleString(), inline: true },
+          {
+            name: '📊 K/D',
+            value: pubgService
+              .calculateKDA(modeStats.kills, modeStats.losses, modeStats.assists || 0)
+              .toFixed(2),
+            inline: true,
+          },
+          {
+            name: '💥 Dano Total',
+            value: Math.round(modeStats.damageDealt).toLocaleString(),
+            inline: true,
+          },
+          {
+            name: '🎯 Dano Médio',
+            value: Math.round(modeStats.damageDealt / modeStats.roundsPlayed).toLocaleString(),
+            inline: true,
+          },
           { name: '🎯 Headshots', value: modeStats.headshotKills.toString(), inline: true },
-          { name: '🚗 Distância Percorrida', value: `${(modeStats.rideDistance / 1000).toFixed(1)} km`, inline: true },
-          { name: '🏃 Distância Caminhada', value: `${(modeStats.walkDistance / 1000).toFixed(1)} km`, inline: true },
-          { name: '⏱️ Tempo Sobrevivido', value: `${Math.round(modeStats.timeSurvived / 60)} min`, inline: true },
+          {
+            name: '🚗 Distância Percorrida',
+            value: `${(modeStats.rideDistance / 1000).toFixed(1)} km`,
+            inline: true,
+          },
+          {
+            name: '🏃 Distância Caminhada',
+            value: `${(modeStats.walkDistance / 1000).toFixed(1)} km`,
+            inline: true,
+          },
+          {
+            name: '⏱️ Tempo Sobrevivido',
+            value: `${Math.round(modeStats.timeSurvived / 60)} min`,
+            inline: true,
+          }
         )
         .setColor(0x0099ff)
         .setThumbnail(targetUser.displayAvatarURL())
@@ -317,25 +359,25 @@ class PubgCommand extends BaseCommand {
 
       // Adicionar informações de rank se disponível
       if (stats.bestRankPoint > 0) {
-        embed.addFields(
-          { name: '🏅 Melhor Rank', value: `${stats.bestRankPoint} RP`, inline: true },
-        );
+        embed.addFields({
+          name: '🏅 Melhor Rank',
+          value: `${stats.bestRankPoint} RP`,
+          inline: true,
+        });
       }
 
-      const row = new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId(`pubg_refresh_${targetUser.id}`)
-            .setLabel('🔄 Atualizar')
-            .setStyle(ButtonStyle.Secondary),
-          new ButtonBuilder()
-            .setCustomId(`pubg_modes_${targetUser.id}`)
-            .setLabel('🎮 Outros Modos')
-            .setStyle(ButtonStyle.Primary),
-        );
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`pubg_refresh_${targetUser.id}`)
+          .setLabel('🔄 Atualizar')
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId(`pubg_modes_${targetUser.id}`)
+          .setLabel('🎮 Outros Modos')
+          .setStyle(ButtonStyle.Primary)
+      );
 
       await interaction.editReply({ embeds: [embed], components: [row] });
-
     } catch (error) {
       logger.error(`Error getting PUBG stats for user ${targetUser.id}:`, error);
       await interaction.editReply({
@@ -344,21 +386,23 @@ class PubgCommand extends BaseCommand {
     }
   }
 
-  private async handleCompareCommand(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
+  private async handleCompareCommand(
+    interaction: ChatInputCommandInteraction,
+    client: ExtendedClient
+  ) {
     const user1 = interaction.options.getUser('usuario1', true);
     const user2 = interaction.options.getUser('usuario2') || interaction.user;
-    const gameMode = interaction.options.getString('modo') as PUBGGameMode || PUBGGameMode.SQUAD;
-    
+    const gameMode = (interaction.options.getString('modo') as PUBGGameMode) || PUBGGameMode.SQUAD;
+
     await interaction.deferReply();
 
     try {
-
       if (!client.services?.pubg) {
         const serviceErrorEmbed = new EmbedBuilder()
           .setTitle('❌ Serviço indisponível')
           .setDescription('O serviço PUBG está temporariamente indisponível.')
           .setColor('#FF0000');
-        
+
         await interaction.editReply({ embeds: [serviceErrorEmbed] });
         return;
       }
@@ -388,9 +432,9 @@ class PubgCommand extends BaseCommand {
 
       // Buscar estatísticas de ambos os usuários
       const [stats1, stats2] = await Promise.all([
-         pubgService.getPlayerStats(userData1.pubgUsername, userData1.pubgPlatform as PUBGPlatform),
-         pubgService.getPlayerStats(userData2.pubgUsername, userData2.pubgPlatform as PUBGPlatform),
-       ]);
+        pubgService.getPlayerStats(userData1.pubgUsername, userData1.pubgPlatform as PUBGPlatform),
+        pubgService.getPlayerStats(userData2.pubgUsername, userData2.pubgPlatform as PUBGPlatform),
+      ]);
 
       if (!stats1 || !stats2) {
         await interaction.editReply({
@@ -410,8 +454,16 @@ class PubgCommand extends BaseCommand {
       }
 
       // Calcular métricas para comparação
-      const kda1 = pubgService.calculateKDA(modeStats1.kills, modeStats1.losses, modeStats1.assists || 0);
-       const kda2 = pubgService.calculateKDA(modeStats2.kills, modeStats2.losses, modeStats2.assists || 0);
+      const kda1 = pubgService.calculateKDA(
+        modeStats1.kills,
+        modeStats1.losses,
+        modeStats1.assists || 0
+      );
+      const kda2 = pubgService.calculateKDA(
+        modeStats2.kills,
+        modeStats2.losses,
+        modeStats2.assists || 0
+      );
       const winRate1 = (modeStats1.wins / modeStats1.roundsPlayed) * 100;
       const winRate2 = (modeStats2.wins / modeStats2.roundsPlayed) * 100;
       const avgDamage1 = modeStats1.damageDealt / modeStats1.roundsPlayed;
@@ -421,32 +473,68 @@ class PubgCommand extends BaseCommand {
         .setTitle(`⚔️ Comparação PUBG - ${gameMode.toUpperCase()}`)
         .setDescription(`**${userData1.pubgUsername}** vs **${userData2.pubgUsername}**`)
         .addFields(
-          { name: '👤 Jogadores', value: `${userData1.pubgUsername}\n${userData2.pubgUsername}`, inline: true },
-          { name: '🎮 Partidas', value: `${modeStats1.roundsPlayed}\n${modeStats2.roundsPlayed}`, inline: true },
+          {
+            name: '👤 Jogadores',
+            value: `${userData1.pubgUsername}\n${userData2.pubgUsername}`,
+            inline: true,
+          },
+          {
+            name: '🎮 Partidas',
+            value: `${modeStats1.roundsPlayed}\n${modeStats2.roundsPlayed}`,
+            inline: true,
+          },
           { name: '🏆 Vitórias', value: `${modeStats1.wins}\n${modeStats2.wins}`, inline: true },
-          { name: '📈 Taxa de Vitória', value: `${winRate1.toFixed(1)}%\n${winRate2.toFixed(1)}%`, inline: true },
+          {
+            name: '📈 Taxa de Vitória',
+            value: `${winRate1.toFixed(1)}%\n${winRate2.toFixed(1)}%`,
+            inline: true,
+          },
           { name: '💀 Kills', value: `${modeStats1.kills}\n${modeStats2.kills}`, inline: true },
           { name: '📊 K/D', value: `${kda1.toFixed(2)}\n${kda2.toFixed(2)}`, inline: true },
-          { name: '💥 Dano Médio', value: `${Math.round(avgDamage1).toLocaleString()}\n${Math.round(avgDamage2).toLocaleString()}`, inline: true },
-          { name: '🎯 Headshots', value: `${modeStats1.headshotKills}\n${modeStats2.headshotKills}`, inline: true },
-          { name: '⏱️ Tempo Médio', value: `${Math.round(modeStats1.timeSurvived / 60)} min\n${Math.round(modeStats2.timeSurvived / 60)} min`, inline: true },
+          {
+            name: '💥 Dano Médio',
+            value: `${Math.round(avgDamage1).toLocaleString()}\n${Math.round(avgDamage2).toLocaleString()}`,
+            inline: true,
+          },
+          {
+            name: '🎯 Headshots',
+            value: `${modeStats1.headshotKills}\n${modeStats2.headshotKills}`,
+            inline: true,
+          },
+          {
+            name: '⏱️ Tempo Médio',
+            value: `${Math.round(modeStats1.timeSurvived / 60)} min\n${Math.round(modeStats2.timeSurvived / 60)} min`,
+            inline: true,
+          }
         )
         .setColor(0xff6600)
         .setTimestamp();
 
       // Adicionar vencedor em cada categoria
       const comparisons = [
-        { name: '🏆 Melhor Taxa de Vitória', winner: winRate1 > winRate2 ? userData1.pubgUsername : userData2.pubgUsername },
-        { name: '💀 Mais Kills', winner: modeStats1.kills > modeStats2.kills ? userData1.pubgUsername : userData2.pubgUsername },
-        { name: '📊 Melhor K/D', winner: kda1 > kda2 ? userData1.pubgUsername : userData2.pubgUsername },
-        { name: '💥 Maior Dano Médio', winner: avgDamage1 > avgDamage2 ? userData1.pubgUsername : userData2.pubgUsername },
+        {
+          name: '🏆 Melhor Taxa de Vitória',
+          winner: winRate1 > winRate2 ? userData1.pubgUsername : userData2.pubgUsername,
+        },
+        {
+          name: '💀 Mais Kills',
+          winner:
+            modeStats1.kills > modeStats2.kills ? userData1.pubgUsername : userData2.pubgUsername,
+        },
+        {
+          name: '📊 Melhor K/D',
+          winner: kda1 > kda2 ? userData1.pubgUsername : userData2.pubgUsername,
+        },
+        {
+          name: '💥 Maior Dano Médio',
+          winner: avgDamage1 > avgDamage2 ? userData1.pubgUsername : userData2.pubgUsername,
+        },
       ];
 
       const winnersText = comparisons.map(comp => `${comp.name}: **${comp.winner}**`).join('\n');
       embed.addFields({ name: '🎖️ Vencedores por Categoria', value: winnersText, inline: false });
 
       await interaction.editReply({ embeds: [embed] });
-
     } catch (error) {
       logger.error('Error comparing PUBG stats:', error);
       await interaction.editReply({
@@ -463,7 +551,7 @@ export const command = {
   data: commandInstance.data,
   category: CommandCategory.PUBG,
   cooldown: 5,
-  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) => 
+  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) =>
     commandInstance.execute(interaction, client),
 };
 

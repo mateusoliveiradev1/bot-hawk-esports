@@ -93,7 +93,7 @@ class ProductionLogger {
             message,
             ...meta,
           });
-        }),
+        })
       ),
       transports: [
         // Daily rotating file for all logs
@@ -105,14 +105,13 @@ class ProductionLogger {
           level: productionConfig.logging.level,
         }),
         // Console output for development
-        ...(process.env.NODE_ENV !== 'production' ? [
-          new winston.transports.Console({
-            format: winston.format.combine(
-              winston.format.colorize(),
-              winston.format.simple(),
-            ),
-          }),
-        ] : []),
+        ...(process.env.NODE_ENV !== 'production'
+          ? [
+              new winston.transports.Console({
+                format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
+              }),
+            ]
+          : []),
       ],
     });
 
@@ -122,7 +121,7 @@ class ProductionLogger {
       format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.errors({ stack: true }),
-        winston.format.json(),
+        winston.format.json()
       ),
       transports: [
         new winston.transports.DailyRotateFile({
@@ -138,10 +137,7 @@ class ProductionLogger {
     // Audit logger for security events
     this.auditLogger = winston.createLogger({
       level: 'info',
-      format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.json(),
-      ),
+      format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
       transports: [
         new winston.transports.DailyRotateFile({
           filename: 'logs/audit/audit-%DATE%.log',
@@ -155,10 +151,7 @@ class ProductionLogger {
     // Performance logger
     this.performanceLogger = winston.createLogger({
       level: 'info',
-      format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.json(),
-      ),
+      format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
       transports: [
         new winston.transports.DailyRotateFile({
           filename: 'logs/performance/performance-%DATE%.log',
@@ -172,7 +165,7 @@ class ProductionLogger {
 
   private sanitizeContext(context: ProductionLogContext): ProductionLogContext {
     const sanitized = { ...context };
-    
+
     // Remove sensitive information
     if (sanitized.metadata) {
       const sensitiveKeys = ['password', 'token', 'secret', 'key', 'authorization'];
@@ -188,7 +181,7 @@ class ProductionLogger {
 
   private formatLogEntry(level: LogLevel, message: string, context?: ProductionLogContext) {
     const sanitizedContext = context ? this.sanitizeContext(context) : {};
-    
+
     return {
       level,
       message,
@@ -269,7 +262,7 @@ class ProductionLogger {
       commandName,
       duration,
     });
-    
+
     // Log performance if command took too long
     if (duration > 5000) {
       this.performance('slow_command', duration, {
@@ -289,10 +282,16 @@ class ProductionLogger {
   }
 
   // API request logging
-  apiRequest(method: string, url: string, statusCode: number, duration: number, context?: ProductionLogContext): void {
+  apiRequest(
+    method: string,
+    url: string,
+    statusCode: number,
+    duration: number,
+    context?: ProductionLogContext
+  ): void {
     const level = statusCode >= 400 ? LogLevel.WARN : LogLevel.INFO;
     const message = `${method} ${url} - ${statusCode} (${duration}ms)`;
-    
+
     const logEntry = this.formatLogEntry(level, message, {
       ...context,
       category: LogCategory.API,
@@ -330,7 +329,11 @@ class ProductionLogger {
   }
 
   // System health logging
-  healthCheck(service: string, status: 'healthy' | 'unhealthy' | 'degraded', context?: ProductionLogContext): void {
+  healthCheck(
+    service: string,
+    status: 'healthy' | 'unhealthy' | 'degraded',
+    context?: ProductionLogContext
+  ): void {
     const level = status === 'healthy' ? LogLevel.INFO : LogLevel.WARN;
     this.logger.log(level, `Health check: ${service} - ${status}`, {
       ...context,
@@ -346,7 +349,7 @@ class ProductionLogger {
   // Graceful shutdown
   async close(): Promise<void> {
     const loggers = [this.logger, this.errorLogger, this.auditLogger, this.performanceLogger];
-    
+
     loggers.forEach(logger => {
       logger.close();
     });
@@ -354,7 +357,10 @@ class ProductionLogger {
 }
 
 // Helper function to create valid log context
-export function createLogContext(category: LogCategory, additional?: Partial<ProductionLogContext>): ProductionLogContext {
+export function createLogContext(
+  category: LogCategory,
+  additional?: Partial<ProductionLogContext>
+): ProductionLogContext {
   return {
     category,
     userId: 'system',

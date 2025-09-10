@@ -110,7 +110,7 @@ export class BadgeOptimizationService {
   constructor(
     private client: ExtendedClient,
     private badgeService: BadgeService,
-    private pubgService: PUBGService,
+    private pubgService: PUBGService
   ) {
     this.logger = new Logger();
     this.cache = client.cache;
@@ -135,7 +135,12 @@ export class BadgeOptimizationService {
       // Log any failed initializations
       results.forEach((result, index) => {
         if (result.status === 'rejected') {
-          const operations = ['loadBadgeCollections', 'loadDynamicRules', 'initializeSeasonalBadges', 'setupAutomaticOptimizations'];
+          const operations = [
+            'loadBadgeCollections',
+            'loadDynamicRules',
+            'initializeSeasonalBadges',
+            'setupAutomaticOptimizations',
+          ];
           this.logger.error(`Failed to initialize ${operations[index]}:`, result.reason);
         }
       });
@@ -321,7 +326,7 @@ export class BadgeOptimizationService {
 
       this.seasonalBadges.set(currentSeason, seasonalBadges);
       this.logger.info(
-        `Initialized ${seasonalBadges.length} seasonal badges for season ${currentSeason}`,
+        `Initialized ${seasonalBadges.length} seasonal badges for season ${currentSeason}`
       );
     } catch (error) {
       this.logger.error('Failed to initialize seasonal badges:', error);
@@ -337,7 +342,7 @@ export class BadgeOptimizationService {
       async () => {
         await this.processDynamicRules();
       },
-      30 * 60 * 1000,
+      30 * 60 * 1000
     );
 
     // Update seasonal badges daily
@@ -345,7 +350,7 @@ export class BadgeOptimizationService {
       async () => {
         await this.updateSeasonalBadges();
       },
-      24 * 60 * 60 * 1000,
+      24 * 60 * 60 * 1000
     );
 
     // Optimize badge difficulty weekly
@@ -353,7 +358,7 @@ export class BadgeOptimizationService {
       async () => {
         await this.optimizeBadgeDifficulty();
       },
-      7 * 24 * 60 * 60 * 1000,
+      7 * 24 * 60 * 60 * 1000
     );
 
     this.logger.info('Automatic optimization processes started');
@@ -396,15 +401,15 @@ export class BadgeOptimizationService {
           }
 
           // Process batch in parallel with concurrency limit
-          const promises = users.map(user => 
+          const promises = users.map(user =>
             this.checkDynamicBadges(user.id).catch(error => {
               this.logger.error(`Failed to check dynamic badges for user ${user.id}:`, error);
               return [];
-            }),
+            })
           );
 
           await Promise.all(promises);
-          
+
           processedCount += users.length;
           skip += batchSize;
 
@@ -422,15 +427,20 @@ export class BadgeOptimizationService {
         }
 
         const executionTime = Date.now() - startTime;
-        this.logger.info(`Processed dynamic rules for ${processedCount} users in ${executionTime}ms`);
+        this.logger.info(
+          `Processed dynamic rules for ${processedCount} users in ${executionTime}ms`
+        );
 
         // Update cache with processing stats
-        await this.cache.set('dynamic_rules_last_run', {
-          timestamp: Date.now(),
-          processedUsers: processedCount,
-          executionTime,
-        }, 24 * 60 * 60); // Cache for 24 hours
-
+        await this.cache.set(
+          'dynamic_rules_last_run',
+          {
+            timestamp: Date.now(),
+            processedUsers: processedCount,
+            executionTime,
+          },
+          24 * 60 * 60
+        ); // Cache for 24 hours
       } finally {
         // Always clear the processing flag
         await this.cache.del('dynamic_rules_processing');
@@ -501,7 +511,7 @@ export class BadgeOptimizationService {
               await this.cache.set(
                 `dynamic_badge_${ruleId}_${userId}`,
                 Date.now().toString(),
-                rule.cooldown * 60,
+                rule.cooldown * 60
               );
             }
           }
@@ -596,7 +606,7 @@ export class BadgeOptimizationService {
           lastUpdated: new Date().toISOString(),
           totalHolders: badgeHolders,
         }),
-        24 * 60 * 60,
+        24 * 60 * 60
       ); // 24 hours
     } catch (error) {
       this.logger.error(`Failed to update metadata for badge ${badgeId}:`, error);
@@ -750,14 +760,14 @@ export class BadgeOptimizationService {
           acc[ub.badgeId] = (acc[ub.badgeId] || 0) + 1;
           return acc;
         },
-        {} as Record<string, number>,
+        {} as Record<string, number>
       );
 
       const rarest = badges.find(
-        b => badgeCounts[b.id] === Math.min(...Object.values(badgeCounts)),
+        b => badgeCounts[b.id] === Math.min(...Object.values(badgeCounts))
       );
       const mostPopular = badges.find(
-        b => badgeCounts[b.id] === Math.max(...Object.values(badgeCounts)),
+        b => badgeCounts[b.id] === Math.max(...Object.values(badgeCounts))
       );
 
       // Badges granted today
@@ -775,7 +785,7 @@ export class BadgeOptimizationService {
           acc[badge.rarity] = (acc[badge.rarity] || 0) + 1;
           return acc;
         },
-        {} as Record<string, number>,
+        {} as Record<string, number>
       );
 
       return {
@@ -963,7 +973,7 @@ export class BadgeOptimizationService {
     try {
       const user = await this.client.users.fetch(userId);
       const channel = this.client.channels.cache.find(
-        c => c.type === 0 && (c as any).name === 'badges',
+        c => c.type === 0 && (c as any).name === 'badges'
       ) as TextChannel;
 
       if (!channel) {
@@ -977,7 +987,7 @@ export class BadgeOptimizationService {
         .addFields(
           { name: '👑 Badge', value: 'Fundador', inline: true },
           { name: '🎁 Recompensas', value: '5000 XP\n2500 Moedas\nCargo Fundador', inline: true },
-          { name: '⭐ Raridade', value: 'Fundador (Única)', inline: true },
+          { name: '⭐ Raridade', value: 'Fundador (Única)', inline: true }
         )
         .setColor(this.enhancedRarityColors['founder'] as any)
         .setThumbnail(user.displayAvatarURL())

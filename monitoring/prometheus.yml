@@ -11,12 +11,12 @@ alerting:
   alertmanagers:
     - static_configs:
         - targets:
-          - alertmanager:9093
+            - alertmanager:9093
 
 # Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
 rule_files:
-  - "alert_rules.yml"
-  - "recording_rules.yml"
+  - 'alert_rules.yml'
+  - 'recording_rules.yml'
 
 # A scrape configuration containing exactly one endpoint to scrape:
 scrape_configs:
@@ -61,7 +61,6 @@ scrape_configs:
       - targets: ['grafana:3000']
     metrics_path: '/metrics'
     scrape_interval: 30s
-
 # Remote write configuration (optional - for long-term storage)
 # remote_write:
 #   - url: "https://your-remote-storage/api/v1/write"

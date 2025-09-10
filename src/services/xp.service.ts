@@ -137,160 +137,164 @@ export class XPService extends BaseService {
     userId: string,
     activityType: string,
     timeSpent?: number, // em horas
-    multiplier: number = 1,
+    multiplier: number = 1
   ): Promise<XPGainResult> {
     return ErrorHandler.executeWithLogging(
       async () => {
         // Validate inputs
-        ServiceValidator.validateInput(userId, 'userId', [{ validator: (v) => v && typeof v === 'string', message: 'userId is required' }]);
-        ServiceValidator.validateInput(activityType, 'activityType', [{ validator: (v) => v && typeof v === 'string', message: 'activityType is required' }]);
+        ServiceValidator.validateInput(userId, 'userId', [
+          { validator: v => v && typeof v === 'string', message: 'userId is required' },
+        ]);
+        ServiceValidator.validateInput(activityType, 'activityType', [
+          { validator: v => v && typeof v === 'string', message: 'activityType is required' },
+        ]);
         ServiceValidator.validateRange(multiplier, 0, 10, 'multiplier');
-        
+
         if (timeSpent !== undefined) {
           ServiceValidator.validateRange(timeSpent, 0, 24, 'timeSpent');
         }
 
-      // Buscar usuário atual com transação
-      const user = await this.database?.client.user.findUnique({
-        where: { id: userId },
-        select: {
-          id: true,
-          xp: true,
-          totalXp: true,
-          level: true,
-          prestigeLevel: true,
-        },
-      });
-
-      if (!user) {
-        throw new Error(`User ${userId} not found`);
-      }
-
-      // Rate limiting removido - campo lastXpGain não existe no modelo User
-      const now = new Date();
-
-      // Calcular XP base
-      const activityKey = activityType.toUpperCase();
-      const baseActivityXP = this.ACTIVITY_XP[activityKey];
-
-      if (baseActivityXP === undefined) {
-        this.logger.warn(`Unknown activity type: ${activityType}`);
-        return {
-          userId,
-          baseXP: 0,
-          bonusXP: 0,
-          totalXP: 0,
-          newLevel: user.level,
-          oldLevel: user.level,
-          leveledUp: false,
-        };
-      }
-
-      let baseXP = Math.floor(baseActivityXP * multiplier);
-
-      // Aplicar bônus de prestígio
-      if (user.prestigeLevel && user.prestigeLevel > 0) {
-        const prestigeBonus = await this.calculatePrestigeBonus(userId, baseXP);
-        baseXP += prestigeBonus;
-      }
-
-      // Calcular bônus por tempo
-      let bonusXP = 0;
-      if (timeSpent && timeSpent > 0) {
-        if (timeSpent >= 4) {
-          bonusXP = this.TIME_BONUS_XP['4h+'] || 0;
-        } else if (timeSpent >= 3) {
-          bonusXP = this.TIME_BONUS_XP['3h'] || 0;
-        } else if (timeSpent >= 2) {
-          bonusXP = this.TIME_BONUS_XP['2h'] || 0;
-        } else if (timeSpent >= 1) {
-          bonusXP = this.TIME_BONUS_XP['1h'] || 0;
-        } else if (timeSpent >= 0.5) {
-          bonusXP = this.TIME_BONUS_XP['30m'] || 0;
-        }
-      }
-
-      const totalXPGain = baseXP + bonusXP;
-      const newTotalXP = user.totalXp + totalXPGain;
-      const newLevel = this.calculateLevelFromXP(newTotalXP);
-      const leveledUp = newLevel > user.level;
-
-      // Usar transação para garantir consistência
-      const updatedUser = await this.database?.client.$transaction(async tx => {
-        return await tx.user.update({
+        // Buscar usuário atual com transação
+        const user = await this.database?.client.user.findUnique({
           where: { id: userId },
-          data: {
-            xp: user.xp + totalXPGain,
-            totalXp: newTotalXP,
-            level: newLevel,
-            updatedAt: now,
+          select: {
+            id: true,
+            xp: true,
+            totalXp: true,
+            level: true,
+            prestigeLevel: true,
           },
         });
-      });
 
-      // Notify BadgeService about XP gain
-      const badgeService = this.client?.services?.badge;
-      if (badgeService) {
-        await badgeService.onXPGained(userId, totalXPGain, newLevel, user.level);
-      }
-
-      // Limpar cache do usuário
-      const cacheKeys = [
-        `user:${userId}`,
-        `user:${userId}:xp`,
-        `user:${userId}:level`,
-        `user:${userId}:xp_info`,
-        'xp_leaderboard:*',
-      ];
-
-      for (const key of cacheKeys) {
-        if (key.includes('*')) {
-          await this.cache.clearPattern(key);
-        } else {
-          await this.cache.del(key);
+        if (!user) {
+          throw new Error(`User ${userId} not found`);
         }
-      }
 
-      const result: XPGainResult = {
-        userId,
-        baseXP,
-        bonusXP,
-        totalXP: totalXPGain,
-        newLevel,
-        oldLevel: user.level,
-        leveledUp,
-      };
+        // Rate limiting removido - campo lastXpGain não existe no modelo User
+        const now = new Date();
 
-      // Log da atividade
-      this.logger.info(`💫 XP gained for user ${userId}:`, {
-        userId,
-        metadata: {
-          activity: activityType,
+        // Calcular XP base
+        const activityKey = activityType.toUpperCase();
+        const baseActivityXP = this.ACTIVITY_XP[activityKey];
+
+        if (baseActivityXP === undefined) {
+          this.logger.warn(`Unknown activity type: ${activityType}`);
+          return {
+            userId,
+            baseXP: 0,
+            bonusXP: 0,
+            totalXP: 0,
+            newLevel: user.level,
+            oldLevel: user.level,
+            leveledUp: false,
+          };
+        }
+
+        let baseXP = Math.floor(baseActivityXP * multiplier);
+
+        // Aplicar bônus de prestígio
+        if (user.prestigeLevel && user.prestigeLevel > 0) {
+          const prestigeBonus = await this.calculatePrestigeBonus(userId, baseXP);
+          baseXP += prestigeBonus;
+        }
+
+        // Calcular bônus por tempo
+        let bonusXP = 0;
+        if (timeSpent && timeSpent > 0) {
+          if (timeSpent >= 4) {
+            bonusXP = this.TIME_BONUS_XP['4h+'] || 0;
+          } else if (timeSpent >= 3) {
+            bonusXP = this.TIME_BONUS_XP['3h'] || 0;
+          } else if (timeSpent >= 2) {
+            bonusXP = this.TIME_BONUS_XP['2h'] || 0;
+          } else if (timeSpent >= 1) {
+            bonusXP = this.TIME_BONUS_XP['1h'] || 0;
+          } else if (timeSpent >= 0.5) {
+            bonusXP = this.TIME_BONUS_XP['30m'] || 0;
+          }
+        }
+
+        const totalXPGain = baseXP + bonusXP;
+        const newTotalXP = user.totalXp + totalXPGain;
+        const newLevel = this.calculateLevelFromXP(newTotalXP);
+        const leveledUp = newLevel > user.level;
+
+        // Usar transação para garantir consistência
+        const updatedUser = await this.database?.client.$transaction(async tx => {
+          return await tx.user.update({
+            where: { id: userId },
+            data: {
+              xp: user.xp + totalXPGain,
+              totalXp: newTotalXP,
+              level: newLevel,
+              updatedAt: now,
+            },
+          });
+        });
+
+        // Notify BadgeService about XP gain
+        const badgeService = this.client?.services?.badge;
+        if (badgeService) {
+          await badgeService.onXPGained(userId, totalXPGain, newLevel, user.level);
+        }
+
+        // Limpar cache do usuário
+        const cacheKeys = [
+          `user:${userId}`,
+          `user:${userId}:xp`,
+          `user:${userId}:level`,
+          `user:${userId}:xp_info`,
+          'xp_leaderboard:*',
+        ];
+
+        for (const key of cacheKeys) {
+          if (key.includes('*')) {
+            await this.cache.clearPattern(key);
+          } else {
+            await this.cache.del(key);
+          }
+        }
+
+        const result: XPGainResult = {
+          userId,
           baseXP,
           bonusXP,
-          totalGain: totalXPGain,
+          totalXP: totalXPGain,
           newLevel,
+          oldLevel: user.level,
           leveledUp,
-          prestigeLevel: user.prestigeLevel || 0,
-        },
-      });
+        };
 
-      // Se subiu de nível, processar recompensas
-      if (leveledUp) {
-        await this.processLevelUpRewards(userId, user.level, newLevel);
-        
-        // Criar animação de level up
-        await this.createLevelUpAnimation(userId, newLevel, result);
-      } else {
-        // Criar animação de ganho de XP
-        await this.createXPGainAnimation(userId, result, activityType);
-      }
+        // Log da atividade
+        this.logger.info(`💫 XP gained for user ${userId}:`, {
+          userId,
+          metadata: {
+            activity: activityType,
+            baseXP,
+            bonusXP,
+            totalGain: totalXPGain,
+            newLevel,
+            leveledUp,
+            prestigeLevel: user.prestigeLevel || 0,
+          },
+        });
+
+        // Se subiu de nível, processar recompensas
+        if (leveledUp) {
+          await this.processLevelUpRewards(userId, user.level, newLevel);
+
+          // Criar animação de level up
+          await this.createLevelUpAnimation(userId, newLevel, result);
+        } else {
+          // Criar animação de ganho de XP
+          await this.createXPGainAnimation(userId, result, activityType);
+        }
 
         return result;
       },
       this.logger,
       `addXP for user ${userId}`,
-      `userId: ${userId}, activityType: ${activityType}, timeSpent: ${timeSpent}, multiplier: ${multiplier}`,
+      `userId: ${userId}, activityType: ${activityType}, timeSpent: ${timeSpent}, multiplier: ${multiplier}`
     );
   }
 
@@ -300,7 +304,7 @@ export class XPService extends BaseService {
   private async processLevelUpRewards(
     userId: string,
     oldLevel: number,
-    newLevel: number,
+    newLevel: number
   ): Promise<void> {
     try {
       if (!userId || oldLevel >= newLevel) {
@@ -373,7 +377,11 @@ export class XPService extends BaseService {
   /**
    * Verifica e concede badges baseadas no nível
    */
-  private async checkLevelBadges(userId: string, level: number, oldLevel: number = 0): Promise<void> {
+  private async checkLevelBadges(
+    userId: string,
+    level: number,
+    oldLevel: number = 0
+  ): Promise<void> {
     try {
       if (!userId || !Number.isInteger(level) || level < 1) {
         return;
@@ -388,7 +396,7 @@ export class XPService extends BaseService {
 
       // Fallback to legacy badge logic if BadgeService is not available
       this.logger.warn('⚠️ BadgeService not available, using legacy badge logic');
-      
+
       const levelBadges = [
         { level: 5, badge: 'novato', name: 'Novato' },
         { level: 15, badge: 'experiente', name: 'Experiente' },
@@ -449,12 +457,12 @@ export class XPService extends BaseService {
           });
 
           this.logger.info(
-            `🏆 Badge '${badgeInfo.name}' awarded to user ${userId} for reaching level ${level}`,
+            `🏆 Badge '${badgeInfo.name}' awarded to user ${userId} for reaching level ${level}`
           );
         } catch (badgeError) {
           this.logger.error(
             `Failed to award badge '${badgeInfo.badge}' to user ${userId}:`,
-            badgeError,
+            badgeError
           );
         }
       }
@@ -615,7 +623,7 @@ export class XPService extends BaseService {
    */
   public async getXPLeaderboard(
     guildId?: string,
-    limit: number = 10,
+    limit: number = 10
   ): Promise<
     Array<{
       userId: string;
@@ -788,7 +796,7 @@ export class XPService extends BaseService {
    */
   public async addDailyChallengeXP(
     userId: string,
-    difficulty: 'easy' | 'medium' | 'hard' | 'extreme' | 'legendary' = 'medium',
+    difficulty: 'easy' | 'medium' | 'hard' | 'extreme' | 'legendary' = 'medium'
   ): Promise<XPGainResult> {
     try {
       if (!userId) {
@@ -832,7 +840,7 @@ export class XPService extends BaseService {
    */
   public async addAchievementXP(
     userId: string,
-    achievementPoints: number = 100,
+    achievementPoints: number = 100
   ): Promise<XPGainResult> {
     try {
       if (!userId) {
@@ -877,7 +885,7 @@ export class XPService extends BaseService {
   public async addChallengeXP(
     userId: string,
     difficulty: string,
-    baseXP: number = 60,
+    baseXP: number = 60
   ): Promise<XPGainResult> {
     try {
       if (!userId) {
@@ -900,7 +908,7 @@ export class XPService extends BaseService {
         userId,
         'DAILY_CHALLENGE',
         undefined,
-        finalXP / challengeBaseXP,
+        finalXP / challengeBaseXP
       );
 
       // Registrar atividade
@@ -976,7 +984,7 @@ export class XPService extends BaseService {
    */
   public async addTournamentWinXP(
     userId: string,
-    tournamentTier: 'local' | 'regional' | 'national' | 'international' = 'local',
+    tournamentTier: 'local' | 'regional' | 'national' | 'international' = 'local'
   ): Promise<XPGainResult> {
     try {
       if (!userId) {
@@ -1169,7 +1177,7 @@ export class XPService extends BaseService {
       }
 
       this.logger.info(
-        `🌟 User ${userId} prestiged to level ${newPrestigeLevel} with ${bonusXPPercent}% XP bonus`,
+        `🌟 User ${userId} prestiged to level ${newPrestigeLevel} with ${bonusXPPercent}% XP bonus`
       );
 
       return {
@@ -1355,14 +1363,18 @@ export class XPService extends BaseService {
   private async createXPGainAnimation(
     userId: string,
     xpResult: XPGainResult,
-    activityType: string,
+    activityType: string
   ): Promise<void> {
     try {
       const user = await this.client.users.fetch(userId).catch(() => null);
-      if (!user) {return;}
+      if (!user) {
+        return;
+      }
 
       const userXPInfo = await this.getUserXPInfo(userId);
-      if (!userXPInfo) {return;}
+      if (!userXPInfo) {
+        return;
+      }
 
       const animationData: XPAnimationData = {
         userId,
@@ -1383,7 +1395,7 @@ export class XPService extends BaseService {
           user,
           animationData,
           activityType,
-          channel,
+          channel
         );
       }
     } catch (error) {
@@ -1397,11 +1409,13 @@ export class XPService extends BaseService {
   private async createLevelUpAnimation(
     userId: string,
     newLevel: number,
-    xpResult: XPGainResult,
+    xpResult: XPGainResult
   ): Promise<void> {
     try {
       const user = await this.client.users.fetch(userId).catch(() => null);
-      if (!user) {return;}
+      if (!user) {
+        return;
+      }
 
       const levelUpData: LevelUpAnimation = {
         userId,
@@ -1419,13 +1433,13 @@ export class XPService extends BaseService {
       const channel = await this.findNotificationChannel(userId);
       if (channel) {
         await this.animationsService.createCelebrationEffect(user, newLevel, channel);
-        
+
         const embeds = await this.animationsService.createLevelUpAnimation(
           user,
           levelUpData,
-          channel,
+          channel
         );
-        
+
         for (const embed of embeds) {
           await channel.send({ embeds: [embed] });
           await new Promise(resolve => setTimeout(resolve, 1000)); // Delay entre embeds
@@ -1446,32 +1460,34 @@ export class XPService extends BaseService {
         const member = await guild.members.fetch(userId).catch(() => null);
         if (member) {
           // Procurar por canais específicos de XP/level up
-          const xpChannels = guild.channels.cache.filter(channel => 
-            channel.isTextBased() && 
-            (channel.name.includes('xp') || 
-             channel.name.includes('level') || 
-             channel.name.includes('progresso') ||
-             channel.name.includes('conquistas')),
+          const xpChannels = guild.channels.cache.filter(
+            channel =>
+              channel.isTextBased() &&
+              (channel.name.includes('xp') ||
+                channel.name.includes('level') ||
+                channel.name.includes('progresso') ||
+                channel.name.includes('conquistas'))
           );
-          
+
           if (xpChannels.size > 0) {
             return xpChannels.first() as TextChannel;
           }
-          
+
           // Fallback para canal geral
-          const generalChannel = guild.channels.cache.find(channel => 
-            channel.isTextBased() && 
-            (channel.name.includes('geral') || 
-             channel.name.includes('general') ||
-             channel.name.includes('chat')),
+          const generalChannel = guild.channels.cache.find(
+            channel =>
+              channel.isTextBased() &&
+              (channel.name.includes('geral') ||
+                channel.name.includes('general') ||
+                channel.name.includes('chat'))
           );
-          
+
           if (generalChannel) {
             return generalChannel as TextChannel;
           }
         }
       }
-      
+
       return null;
     } catch (error) {
       this.logger.error('Erro ao encontrar canal de notificação:', error);
@@ -1493,19 +1509,27 @@ export class XPService extends BaseService {
    */
   private async getLevelUpBadges(level: number): Promise<string[]> {
     const badges: string[] = [];
-    
+
     // Badges de marcos de nível
     const milestones = [5, 10, 15, 25, 30, 50, 75, 100];
     if (milestones.includes(level)) {
       badges.push(`Nível ${level}`);
     }
-    
+
     // Badges especiais
-    if (level === 10) {badges.push('Veterano');}
-    if (level === 25) {badges.push('Elite');}
-    if (level === 50) {badges.push('Lenda');}
-    if (level === 100) {badges.push('Imortal');}
-    
+    if (level === 10) {
+      badges.push('Veterano');
+    }
+    if (level === 25) {
+      badges.push('Elite');
+    }
+    if (level === 50) {
+      badges.push('Lenda');
+    }
+    if (level === 100) {
+      badges.push('Imortal');
+    }
+
     return badges;
   }
 
@@ -1514,14 +1538,24 @@ export class XPService extends BaseService {
    */
   private async getLevelUpRoles(level: number): Promise<string[]> {
     const roles: string[] = [];
-    
+
     // Cargos baseados em nível
-    if (level === 10) {roles.push('Jogador Experiente');}
-    if (level === 25) {roles.push('Veterano');}
-    if (level === 50) {roles.push('Elite');}
-    if (level === 75) {roles.push('Mestre');}
-    if (level === 100) {roles.push('Lenda');}
-    
+    if (level === 10) {
+      roles.push('Jogador Experiente');
+    }
+    if (level === 25) {
+      roles.push('Veterano');
+    }
+    if (level === 50) {
+      roles.push('Elite');
+    }
+    if (level === 75) {
+      roles.push('Mestre');
+    }
+    if (level === 100) {
+      roles.push('Lenda');
+    }
+
     return roles;
   }
 
@@ -1530,13 +1564,23 @@ export class XPService extends BaseService {
    */
   private async getLevelUpAchievements(level: number): Promise<string[]> {
     const achievements: string[] = [];
-    
-    if (level === 5) {achievements.push('Primeiro Marco Alcançado');}
-    if (level === 10) {achievements.push('Dedicação Comprovada');}
-    if (level === 25) {achievements.push('Jogador Sério');}
-    if (level === 50) {achievements.push('Meio Caminho para a Lenda');}
-    if (level === 100) {achievements.push('Lenda Absoluta');}
-    
+
+    if (level === 5) {
+      achievements.push('Primeiro Marco Alcançado');
+    }
+    if (level === 10) {
+      achievements.push('Dedicação Comprovada');
+    }
+    if (level === 25) {
+      achievements.push('Jogador Sério');
+    }
+    if (level === 50) {
+      achievements.push('Meio Caminho para a Lenda');
+    }
+    if (level === 100) {
+      achievements.push('Lenda Absoluta');
+    }
+
     return achievements;
   }
 

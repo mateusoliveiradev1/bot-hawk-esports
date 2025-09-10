@@ -8,14 +8,14 @@ export const productionConfig = {
   // Environment
   nodeEnv: process.env.NODE_ENV || 'production',
   debug: process.env.DEBUG === 'true',
-  
+
   // Discord
   discord: {
     token: process.env.DISCORD_TOKEN!,
     clientId: process.env.DISCORD_CLIENT_ID!,
     guildId: process.env.DISCORD_GUILD_ID!,
   },
-  
+
   // Database
   database: {
     url: process.env.DATABASE_URL!,
@@ -26,10 +26,10 @@ export const productionConfig = {
     connectionTimeout: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '30000'),
     idleTimeout: parseInt(process.env.DATABASE_IDLE_TIMEOUT || '600000'),
   },
-  
-  // Redis
+
+  // Redis (optional - falls back to memory cache)
   redis: {
-    url: process.env.REDIS_URL!,
+    url: process.env.REDIS_URL || null,
     pool: {
       min: parseInt(process.env.REDIS_POOL_MIN || '5'),
       max: parseInt(process.env.REDIS_POOL_MAX || '20'),
@@ -38,7 +38,7 @@ export const productionConfig = {
     retryAttempts: parseInt(process.env.REDIS_RETRY_ATTEMPTS || '3'),
     retryDelay: parseInt(process.env.REDIS_RETRY_DELAY || '1000'),
   },
-  
+
   // API
   api: {
     port: parseInt(process.env.API_PORT || process.env.PORT || '3001'),
@@ -47,7 +47,7 @@ export const productionConfig = {
     timeout: parseInt(process.env.API_TIMEOUT || '30000'),
     bodyLimit: process.env.API_BODY_LIMIT || '10mb',
   },
-  
+
   // Logging
   logging: {
     level: process.env.LOG_LEVEL || 'warn',
@@ -58,7 +58,7 @@ export const productionConfig = {
     datePattern: process.env.LOG_DATE_PATTERN || 'YYYY-MM-DD',
     compress: process.env.LOG_COMPRESS === 'true',
   },
-  
+
   // Cache
   cache: {
     ttl: parseInt(process.env.CACHE_TTL || '1800'),
@@ -66,7 +66,7 @@ export const productionConfig = {
     checkPeriod: parseInt(process.env.CACHE_CHECK_PERIOD || '600'),
     useClone: process.env.CACHE_USE_CLONE === 'true',
   },
-  
+
   // Rate Limiting
   rateLimit: {
     window: parseInt(process.env.RATE_LIMIT_WINDOW || '60000'),
@@ -75,7 +75,7 @@ export const productionConfig = {
     skipFailedRequests: process.env.RATE_LIMIT_SKIP_FAILED_REQUESTS === 'true',
     store: process.env.RATE_LIMIT_STORE || 'redis',
   },
-  
+
   // Security
   security: {
     jwtSecret: process.env.JWT_SECRET!,
@@ -87,7 +87,7 @@ export const productionConfig = {
     encryptionKey: process.env.ENCRYPTION_KEY!,
     forceHttps: process.env.FORCE_HTTPS === 'true',
   },
-  
+
   // Monitoring
   monitoring: {
     enabled: process.env.MONITORING_ENABLED === 'true',
@@ -97,7 +97,7 @@ export const productionConfig = {
     healthCheckPort: parseInt(process.env.HEALTH_CHECK_PORT || '8080'),
     healthCheckInterval: parseInt(process.env.HEALTH_CHECK_INTERVAL || '30000'),
   },
-  
+
   // Performance
   performance: {
     maxConcurrentCommands: parseInt(process.env.MAX_CONCURRENT_COMMANDS || '100'),
@@ -105,7 +105,7 @@ export const productionConfig = {
     memoryLimit: parseInt(process.env.MEMORY_LIMIT || '512'),
     cpuLimit: parseInt(process.env.CPU_LIMIT || '1'),
   },
-  
+
   // Backup
   backup: {
     interval: parseInt(process.env.BACKUP_INTERVAL || '43200000'),
@@ -116,7 +116,7 @@ export const productionConfig = {
     s3Bucket: process.env.BACKUP_S3_BUCKET,
     s3Region: process.env.BACKUP_S3_REGION,
   },
-  
+
   // Feature Flags
   features: {
     musicEnabled: process.env.FEATURE_MUSIC_ENABLED === 'true',
@@ -126,7 +126,7 @@ export const productionConfig = {
     backupEnabled: process.env.FEATURE_BACKUP_ENABLED === 'true',
     monitoringEnabled: process.env.FEATURE_MONITORING_ENABLED === 'true',
   },
-  
+
   // Graceful Shutdown
   shutdown: {
     timeout: parseInt(process.env.GRACEFUL_SHUTDOWN_TIMEOUT || '30000'),
@@ -139,7 +139,6 @@ const requiredVars = [
   'DISCORD_TOKEN',
   'DISCORD_CLIENT_ID',
   'DATABASE_URL',
-  'REDIS_URL',
   'JWT_SECRET',
   'WEBHOOK_SECRET',
   'SESSION_SECRET',

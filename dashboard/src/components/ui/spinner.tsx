@@ -19,7 +19,7 @@ export const Spinner: React.FC<SpinnerProps> = ({ size = 'md', className }) => {
       className={cn(
         'animate-spin rounded-full border-2 border-muted border-t-primary',
         sizeClasses[size],
-        className,
+        className
       )}
     />
   );
@@ -28,9 +28,9 @@ export const Spinner: React.FC<SpinnerProps> = ({ size = 'md', className }) => {
 export const LoadingDots: React.FC<{ className?: string }> = ({ className }) => {
   return (
     <div className={cn('flex space-x-1', className)}>
-      <div className="h-2 w-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-      <div className="h-2 w-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-      <div className="h-2 w-2 bg-primary rounded-full animate-bounce"></div>
+      <div className='h-2 w-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]'></div>
+      <div className='h-2 w-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]'></div>
+      <div className='h-2 w-2 bg-primary rounded-full animate-bounce'></div>
     </div>
   );
 };
@@ -38,9 +38,9 @@ export const LoadingDots: React.FC<{ className?: string }> = ({ className }) => 
 export const PulseLoader: React.FC<{ className?: string }> = ({ className }) => {
   return (
     <div className={cn('flex space-x-2', className)}>
-      <div className="h-3 w-3 bg-primary rounded-full animate-pulse"></div>
-      <div className="h-3 w-3 bg-primary rounded-full animate-pulse [animation-delay:0.2s]"></div>
-      <div className="h-3 w-3 bg-primary rounded-full animate-pulse [animation-delay:0.4s]"></div>
+      <div className='h-3 w-3 bg-primary rounded-full animate-pulse'></div>
+      <div className='h-3 w-3 bg-primary rounded-full animate-pulse [animation-delay:0.2s]'></div>
+      <div className='h-3 w-3 bg-primary rounded-full animate-pulse [animation-delay:0.4s]'></div>
     </div>
   );
 };

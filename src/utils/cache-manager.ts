@@ -202,9 +202,9 @@ export class CacheManager extends EventEmitter {
         });
 
         // Forward events
-        cache.on('set', (data) => this.emit('cache:set', { cache: name, ...data }));
-        cache.on('delete', (data) => this.emit('cache:delete', { cache: name, ...data }));
-        cache.on('invalidate', (data) => this.emit('cache:invalidate', { cache: name, ...data }));
+        cache.on('set', data => this.emit('cache:set', { cache: name, ...data }));
+        cache.on('delete', data => this.emit('cache:delete', { cache: name, ...data }));
+        cache.on('invalidate', data => this.emit('cache:invalidate', { cache: name, ...data }));
 
         this.caches.set(name.toLowerCase(), cache);
       }
@@ -216,7 +216,6 @@ export class CacheManager extends EventEmitter {
           presets: Object.keys(CACHE_PRESETS),
         },
       });
-
     } catch (error) {
       this.logger.error('Failed to initialize cache manager', { error });
       throw error;
@@ -238,7 +237,11 @@ export class CacheManager extends EventEmitter {
    * User data operations
    */
   readonly user = {
-    get: async <T>(userId: string, type: keyof typeof CACHE_PATTERNS.USER, fallback?: () => Promise<T>) => {
+    get: async <T>(
+      userId: string,
+      type: keyof typeof CACHE_PATTERNS.USER,
+      fallback?: () => Promise<T>
+    ) => {
       const cache = this.getCache('USER_DATA');
       const key = CACHE_PATTERNS.USER[type](userId);
       return cache.get(key, fallback, {
@@ -247,7 +250,12 @@ export class CacheManager extends EventEmitter {
       });
     },
 
-    set: async <T>(userId: string, type: keyof typeof CACHE_PATTERNS.USER, value: T, ttl?: number) => {
+    set: async <T>(
+      userId: string,
+      type: keyof typeof CACHE_PATTERNS.USER,
+      value: T,
+      ttl?: number
+    ) => {
       const cache = this.getCache('USER_DATA');
       const key = CACHE_PATTERNS.USER[type](userId);
       return cache.set(key, value, {
@@ -272,7 +280,11 @@ export class CacheManager extends EventEmitter {
    * Guild data operations
    */
   readonly guild = {
-    get: async <T>(guildId: string, type: keyof typeof CACHE_PATTERNS.GUILD, fallback?: () => Promise<T>) => {
+    get: async <T>(
+      guildId: string,
+      type: keyof typeof CACHE_PATTERNS.GUILD,
+      fallback?: () => Promise<T>
+    ) => {
       const cache = this.getCache('GUILD_CONFIG');
       const key = CACHE_PATTERNS.GUILD[type](guildId);
       return cache.get(key, fallback, {
@@ -281,7 +293,12 @@ export class CacheManager extends EventEmitter {
       });
     },
 
-    set: async <T>(guildId: string, type: keyof typeof CACHE_PATTERNS.GUILD, value: T, ttl?: number) => {
+    set: async <T>(
+      guildId: string,
+      type: keyof typeof CACHE_PATTERNS.GUILD,
+      value: T,
+      ttl?: number
+    ) => {
       const cache = this.getCache('GUILD_CONFIG');
       const key = CACHE_PATTERNS.GUILD[type](guildId);
       return cache.set(key, value, {
@@ -306,7 +323,11 @@ export class CacheManager extends EventEmitter {
    * Leaderboard operations
    */
   readonly leaderboard = {
-    get: async <T>(type: keyof typeof CACHE_PATTERNS.LEADERBOARD, identifier: string, fallback?: () => Promise<T>) => {
+    get: async <T>(
+      type: keyof typeof CACHE_PATTERNS.LEADERBOARD,
+      identifier: string,
+      fallback?: () => Promise<T>
+    ) => {
       const cache = this.getCache('LEADERBOARD');
       const key = CACHE_PATTERNS.LEADERBOARD[type](identifier);
       return cache.get(key, fallback, {
@@ -315,7 +336,12 @@ export class CacheManager extends EventEmitter {
       });
     },
 
-    set: async <T>(type: keyof typeof CACHE_PATTERNS.LEADERBOARD, identifier: string, value: T, ttl?: number) => {
+    set: async <T>(
+      type: keyof typeof CACHE_PATTERNS.LEADERBOARD,
+      identifier: string,
+      value: T,
+      ttl?: number
+    ) => {
       const cache = this.getCache('LEADERBOARD');
       const key = CACHE_PATTERNS.LEADERBOARD[type](identifier);
       return cache.set(key, value, {
@@ -339,10 +365,15 @@ export class CacheManager extends EventEmitter {
    * PUBG data operations
    */
   readonly pubg = {
-    get: async <T>(type: keyof typeof CACHE_PATTERNS.PUBG, playerId: string, season?: string, fallback?: () => Promise<T>) => {
+    get: async <T>(
+      type: keyof typeof CACHE_PATTERNS.PUBG,
+      playerId: string,
+      season?: string,
+      fallback?: () => Promise<T>
+    ) => {
       const cache = this.getCache('GAME_STATS');
       let key: string;
-      
+
       if (type === 'stats') {
         if (!season) {
           throw new Error('Season parameter is required for PUBG stats cache');
@@ -351,17 +382,23 @@ export class CacheManager extends EventEmitter {
       } else {
         key = (CACHE_PATTERNS.PUBG[type] as (playerId: string) => string)(playerId);
       }
-      
+
       return cache.get(key, fallback, {
         dependencies: [`pubg:${playerId}`],
         tags: ['pubg', type],
       });
     },
 
-    set: async <T>(type: keyof typeof CACHE_PATTERNS.PUBG, playerId: string, value: T, season?: string, ttl?: number) => {
+    set: async <T>(
+      type: keyof typeof CACHE_PATTERNS.PUBG,
+      playerId: string,
+      value: T,
+      season?: string,
+      ttl?: number
+    ) => {
       const cache = this.getCache('GAME_STATS');
       let key: string;
-      
+
       if (type === 'stats') {
         if (!season) {
           throw new Error('Season parameter is required for PUBG stats cache');
@@ -370,7 +407,7 @@ export class CacheManager extends EventEmitter {
       } else {
         key = (CACHE_PATTERNS.PUBG[type] as (playerId: string) => string)(playerId);
       }
-      
+
       return cache.set(key, value, {
         ttl,
         dependencies: [`pubg:${playerId}`],
@@ -493,9 +530,7 @@ export class CacheManager extends EventEmitter {
   async invalidateAll(): Promise<void> {
     this.logger.info('Invalidating all caches');
 
-    const promises = Array.from(this.caches.values()).map(cache => 
-      cache.invalidatePattern('*'),
-    );
+    const promises = Array.from(this.caches.values()).map(cache => cache.invalidatePattern('*'));
 
     await Promise.all(promises);
     this.emit('invalidate:all');
@@ -523,9 +558,7 @@ export class CacheManager extends EventEmitter {
   async shutdown(): Promise<void> {
     this.logger.info('Shutting down cache manager');
 
-    const promises = Array.from(this.caches.values()).map(cache => 
-      cache.shutdown(),
-    );
+    const promises = Array.from(this.caches.values()).map(cache => cache.shutdown());
 
     await Promise.all(promises);
     this.caches.clear();
@@ -548,11 +581,11 @@ export function getCacheManager(cacheService?: CacheService): CacheManager {
   if (!globalCacheManager && cacheService) {
     globalCacheManager = new CacheManager(cacheService);
   }
-  
+
   if (!globalCacheManager) {
     throw new Error('Cache manager not initialized. Provide CacheService on first call.');
   }
-  
+
   return globalCacheManager;
 }
 

@@ -1,4 +1,7 @@
-import { AdvancedRateLimitService, AdvancedRateLimitResult } from '../../src/services/advanced-rate-limit.service';
+import {
+  AdvancedRateLimitService,
+  AdvancedRateLimitResult,
+} from '../../src/services/advanced-rate-limit.service';
 import { CacheService } from '../../src/services/cache.service';
 import { StructuredLogger } from '../../src/services/structured-logger.service';
 
@@ -17,8 +20,8 @@ describe('AdvancedRateLimitService', () => {
     path: '/api/test',
     method: 'GET',
     headers: {
-      'user-agent': 'test-agent'
-    }
+      'user-agent': 'test-agent',
+    },
   } as any;
 
   beforeEach(() => {
@@ -28,18 +31,18 @@ describe('AdvancedRateLimitService', () => {
       delete: jest.fn(),
       exists: jest.fn(),
       incr: jest.fn(),
-      expire: jest.fn()
+      expire: jest.fn(),
     } as any;
 
     mockLogger = {
       info: jest.fn(),
       warn: jest.fn(),
       error: jest.fn(),
-      debug: jest.fn()
+      debug: jest.fn(),
     } as any;
 
     service = new AdvancedRateLimitService(mockCache, mockLogger);
-    
+
     // Setup default mocks
     mockRequest.get.mockImplementation((header: string) => {
       if (header === 'User-Agent') return 'test-agent';
@@ -59,7 +62,7 @@ describe('AdvancedRateLimitService', () => {
 
       const result = await service.checkRateLimit('test-user', 'general', {
         ip: '192.168.1.1',
-        userAgent: 'test-agent'
+        userAgent: 'test-agent',
       });
 
       expect(result.allowed).toBe(true);
@@ -72,7 +75,7 @@ describe('AdvancedRateLimitService', () => {
 
       const result = await service.checkRateLimit('test-user', 'general', {
         ip: '192.168.1.1',
-        userAgent: 'test-agent'
+        userAgent: 'test-agent',
       });
 
       expect(result.allowed).toBe(false);
@@ -86,7 +89,7 @@ describe('AdvancedRateLimitService', () => {
         if (key.includes('violations')) {
           return Promise.resolve([
             { timestamp: Date.now() - 1000, violationType: 'hard' },
-            { timestamp: Date.now() - 2000, violationType: 'hard' }
+            { timestamp: Date.now() - 2000, violationType: 'hard' },
           ]);
         }
         return Promise.resolve(6); // Exceeded limit
@@ -94,7 +97,7 @@ describe('AdvancedRateLimitService', () => {
 
       const result = await service.checkRateLimit('suspicious-user', 'auth-login', {
         ip: '192.168.1.1',
-        userAgent: 'test-agent'
+        userAgent: 'test-agent',
       });
 
       expect(result.allowed).toBe(false);
@@ -119,7 +122,7 @@ describe('AdvancedRateLimitService', () => {
   describe('whitelistIP', () => {
     it('should add IP to whitelist', () => {
       service.whitelistIP('192.168.1.1');
-      
+
       // Verify the IP is whitelisted by checking if subsequent requests are allowed
       expect(() => service.whitelistIP('192.168.1.1')).not.toThrow();
     });
@@ -128,7 +131,7 @@ describe('AdvancedRateLimitService', () => {
   describe('blacklistIP', () => {
     it('should add IP to blacklist', () => {
       service.blacklistIP('192.168.1.1');
-      
+
       // Verify the IP is blacklisted by checking if subsequent requests are blocked
       expect(() => service.blacklistIP('192.168.1.1')).not.toThrow();
     });
@@ -143,12 +146,4 @@ describe('AdvancedRateLimitService', () => {
       expect(() => service.resetRateLimit('test-user')).not.toThrow();
     });
   });
-
-
-
-
-
-
-
-
 });

@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
     env_file: .env
     ports:
-      - "${API_PORT:-3001}:3001"
+      - '${API_PORT:-3001}:3001'
     depends_on:
       postgres:
         condition: service_healthy
@@ -20,7 +20,7 @@ services:
     networks:
       - hawk-network
     healthcheck:
-      test: ["CMD", "node", "healthcheck.js"]
+      test: ['CMD', 'node', 'healthcheck.js']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -37,14 +37,15 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - '${POSTGRES_PORT:-5432}:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./prisma/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - hawk-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-hawk_esports_db}"]
+      test:
+        ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-hawk_esports_db}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -56,13 +57,13 @@ services:
     restart: unless-stopped
     command: redis-server --appendonly yes
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - '${REDIS_PORT:-6379}:6379'
     volumes:
       - redis_data:/data
     networks:
       - hawk-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 3s
       retries: 5
@@ -73,8 +74,8 @@ services:
     container_name: hawk-nginx
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - '80:80'
+      - '443:443'
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
@@ -92,7 +93,7 @@ services:
     container_name: hawk-prometheus
     restart: unless-stopped
     ports:
-      - "9090:9090"
+      - '9090:9090'
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
@@ -117,7 +118,7 @@ services:
     container_name: hawk-grafana
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
       - GF_USERS_ALLOW_SIGN_UP=false
@@ -138,7 +139,7 @@ services:
     container_name: hawk-alertmanager
     restart: unless-stopped
     ports:
-      - "9093:9093"
+      - '9093:9093'
     volumes:
       - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertmanager_data:/alertmanager
@@ -157,7 +158,7 @@ services:
     container_name: hawk-node-exporter
     restart: unless-stopped
     ports:
-      - "9100:9100"
+      - '9100:9100'
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -178,9 +179,9 @@ services:
     container_name: hawk-postgres-exporter
     restart: unless-stopped
     ports:
-      - "9187:9187"
+      - '9187:9187'
     environment:
-      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-hawk_esports_db}?sslmode=disable"
+      DATA_SOURCE_NAME: 'postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-hawk_esports_db}?sslmode=disable'
     depends_on:
       - postgres
     networks:
@@ -194,9 +195,9 @@ services:
     container_name: hawk-redis-exporter
     restart: unless-stopped
     ports:
-      - "9121:9121"
+      - '9121:9121'
     environment:
-      REDIS_ADDR: "redis://redis:6379"
+      REDIS_ADDR: 'redis://redis:6379'
     depends_on:
       - redis
     networks:

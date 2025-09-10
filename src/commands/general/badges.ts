@@ -34,8 +34,11 @@ class BadgesCommand extends BaseCommand {
             .setName('minhas')
             .setDescription('Mostra suas badges conquistadas')
             .addUserOption(option =>
-              option.setName('usuario').setDescription('Ver badges de outro usuário').setRequired(false),
-            ),
+              option
+                .setName('usuario')
+                .setDescription('Ver badges de outro usuário')
+                .setRequired(false)
+            )
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -52,8 +55,8 @@ class BadgesCommand extends BaseCommand {
                   { name: `${HAWK_EMOJIS.GAMING.CONTROLLER} Gaming`, value: 'gaming' },
                   { name: `${HAWK_EMOJIS.TIME.CALENDAR} Participação`, value: 'participation' },
                   { name: `${HAWK_EMOJIS.TROPHY} Conquistas`, value: 'achievement' },
-                  { name: `${HAWK_EMOJIS.SYSTEM.STAR} Especiais`, value: 'special' },
-                ),
+                  { name: `${HAWK_EMOJIS.SYSTEM.STAR} Especiais`, value: 'special' }
+                )
             )
             .addStringOption(option =>
               option
@@ -66,9 +69,9 @@ class BadgesCommand extends BaseCommand {
                   { name: `${HAWK_EMOJIS.BADGES.RARITY_RARE} Raro`, value: 'rare' },
                   { name: `${HAWK_EMOJIS.BADGES.RARITY_EPIC} Épico`, value: 'epic' },
                   { name: `${HAWK_EMOJIS.BADGES.RARITY_LEGENDARY} Lendário`, value: 'legendary' },
-                  { name: `${HAWK_EMOJIS.BADGES.RARITY_MYTHIC} Mítico`, value: 'mythic' },
-                ),
-            ),
+                  { name: `${HAWK_EMOJIS.BADGES.RARITY_MYTHIC} Mítico`, value: 'mythic' }
+                )
+            )
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -79,8 +82,8 @@ class BadgesCommand extends BaseCommand {
                 .setName('badge')
                 .setDescription('ID da badge para ver progresso')
                 .setRequired(true)
-                .setAutocomplete(true),
-            ),
+                .setAutocomplete(true)
+            )
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -92,8 +95,8 @@ class BadgesCommand extends BaseCommand {
                 .setDescription('Número de usuários no ranking (padrão: 10)')
                 .setRequired(false)
                 .setMinValue(5)
-                .setMaxValue(25),
-            ),
+                .setMaxValue(25)
+            )
         ),
       category: CommandCategory.BADGES,
       cooldown: 5,
@@ -106,7 +109,7 @@ class BadgesCommand extends BaseCommand {
   private async handleMyBadges(
     interaction: ChatInputCommandInteraction,
     badgeService: BadgeService,
-    database: DatabaseService,
+    database: DatabaseService
   ) {
     const targetUser = interaction.options.getUser('usuario') || interaction.user;
     const userId = targetUser.id;
@@ -125,10 +128,10 @@ class BadgesCommand extends BaseCommand {
       if (userBadges.length === 0) {
         const embed = HawkEmbedBuilder.createWarningEmbed(
           `${HAWK_EMOJIS.BADGES.BADGE} Nenhuma Badge Encontrada`,
-          `${isOwnProfile ? 'Você ainda não conquistou' : `${targetUser.username} ainda não conquistou`} nenhuma badge.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Use \`/badges disponiveis\` para ver as badges disponíveis!`,
+          `${isOwnProfile ? 'Você ainda não conquistou' : `${targetUser.username} ainda não conquistou`} nenhuma badge.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Use \`/badges disponiveis\` para ver as badges disponíveis!`
         )
           .setThumbnail(targetUser.displayAvatarURL({ size: 256 }))
-          .setFooter({ 
+          .setFooter({
             text: `${isOwnProfile ? 'Seu perfil' : `Perfil de ${targetUser.username}`} • Hawk Esports`,
             iconURL: interaction.client.user?.displayAvatarURL(),
           });
@@ -155,7 +158,7 @@ class BadgesCommand extends BaseCommand {
       // Group badges by category and rarity
       const badgesByCategory: Record<string, any[]> = {};
       const rarityCount: Record<string, number> = {};
-      
+
       for (const userBadge of userBadges) {
         const badge = userBadge.badge;
         if (!badgesByCategory[badge.category]) {
@@ -168,10 +171,10 @@ class BadgesCommand extends BaseCommand {
       // Create main embed with enhanced styling
       const embed = HawkEmbedBuilder.createSuccessEmbed(
         `${HAWK_EMOJIS.BADGES.COLLECTION} ${isOwnProfile ? 'Suas Badges' : `Badges de ${targetUser.username}`}`,
-        `${HAWK_EMOJIS.BADGES.TOTAL} Total: **${userBadges.length}** ${userBadges.length === 1 ? 'badge conquistada' : 'badges conquistadas'}`,
+        `${HAWK_EMOJIS.BADGES.TOTAL} Total: **${userBadges.length}** ${userBadges.length === 1 ? 'badge conquistada' : 'badges conquistadas'}`
       )
         .setThumbnail(targetUser.displayAvatarURL({ size: 256 }))
-        .setFooter({ 
+        .setFooter({
           text: `${isOwnProfile ? 'Seu perfil' : `Perfil de ${targetUser.username}`} • Hawk Esports`,
           iconURL: interaction.client.user?.displayAvatarURL(),
         });
@@ -179,10 +182,10 @@ class BadgesCommand extends BaseCommand {
       // Add rarity distribution
       if (Object.keys(rarityCount).length > 1) {
         const rarityText = Object.entries(rarityCount)
-          .sort(([,a], [,b]) => b - a)
+          .sort(([, a], [, b]) => b - a)
           .map(([rarity, count]) => `${this.getRarityEmoji(rarity)} ${count}`)
           .join(' • ');
-        
+
         embed.addFields({
           name: `${HAWK_EMOJIS.BADGES.RARITY} Distribuição por Raridade`,
           value: rarityText,
@@ -211,7 +214,9 @@ class BadgesCommand extends BaseCommand {
           .join('\n\n');
 
         const moreCount = badges.length > 5 ? badges.length - 5 : 0;
-        const fieldValue = badgeList + (moreCount > 0 ? `\n\n${HAWK_EMOJIS.SYSTEM.MORE} +${moreCount} badges...` : '');
+        const fieldValue =
+          badgeList +
+          (moreCount > 0 ? `\n\n${HAWK_EMOJIS.SYSTEM.MORE} +${moreCount} badges...` : '');
 
         embed.addFields({
           name: `${categoryName} (${badges.length})`,
@@ -256,7 +261,7 @@ class BadgesCommand extends BaseCommand {
    */
   private async handleAvailableBadges(
     interaction: ChatInputCommandInteraction,
-    badgeService: BadgeService,
+    badgeService: BadgeService
   ) {
     const category = interaction.options.getString('categoria');
     const rarity = interaction.options.getString('raridade');
@@ -295,12 +300,11 @@ class BadgesCommand extends BaseCommand {
       if (availableBadges.length === 0) {
         const embed = HawkEmbedBuilder.createWarningEmbed(
           `${HAWK_EMOJIS.BADGES.AVAILABLE} Nenhuma Badge Encontrada`,
-          `Nenhuma badge encontrada com os filtros aplicados.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Tente remover alguns filtros ou use \`/badges disponiveis\` sem filtros.`,
-        )
-          .setFooter({ 
-            text: `Filtros: ${filterText.join(' • ') || 'Nenhum'} • Hawk Esports`,
-            iconURL: interaction.client.user?.displayAvatarURL(),
-          });
+          `Nenhuma badge encontrada com os filtros aplicados.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Tente remover alguns filtros ou use \`/badges disponiveis\` sem filtros.`
+        ).setFooter({
+          text: `Filtros: ${filterText.join(' • ') || 'Nenhum'} • Hawk Esports`,
+          iconURL: interaction.client.user?.displayAvatarURL(),
+        });
 
         const components = HawkComponentFactory.createActionButtons([
           {
@@ -324,7 +328,7 @@ class BadgesCommand extends BaseCommand {
       // Group by category and count by rarity
       const badgesByCategory: Record<string, any[]> = {};
       const rarityCount: Record<string, number> = {};
-      
+
       for (const badge of availableBadges) {
         if (!badgesByCategory[badge.category]) {
           badgesByCategory[badge.category] = [];
@@ -336,20 +340,19 @@ class BadgesCommand extends BaseCommand {
       // Create main embed with Hawk styling
       const embed = HawkEmbedBuilder.createInfoEmbed(
         `${HAWK_EMOJIS.BADGES.AVAILABLE} Badges Disponíveis`,
-        `${HAWK_EMOJIS.BADGES.TOTAL} Total: **${availableBadges.length}** badges disponíveis${filterText.length > 0 ? `\n${HAWK_EMOJIS.SYSTEM.FILTER} Filtros: ${filterText.join(' • ')}` : ''}`,
-      )
-        .setFooter({ 
-          text: 'Catálogo de Badges • Hawk Esports',
-          iconURL: interaction.client.user?.displayAvatarURL(),
-        });
+        `${HAWK_EMOJIS.BADGES.TOTAL} Total: **${availableBadges.length}** badges disponíveis${filterText.length > 0 ? `\n${HAWK_EMOJIS.SYSTEM.FILTER} Filtros: ${filterText.join(' • ')}` : ''}`
+      ).setFooter({
+        text: 'Catálogo de Badges • Hawk Esports',
+        iconURL: interaction.client.user?.displayAvatarURL(),
+      });
 
       // Add rarity distribution if no rarity filter is applied
       if (!rarity && Object.keys(rarityCount).length > 1) {
         const rarityText = Object.entries(rarityCount)
-          .sort(([,a], [,b]) => b - a)
+          .sort(([, a], [, b]) => b - a)
           .map(([rarityType, count]) => `${this.getRarityEmoji(rarityType)} ${count}`)
           .join(' • ');
-        
+
         embed.addFields({
           name: `${HAWK_EMOJIS.BADGES.RARITY} Distribuição por Raridade`,
           value: rarityText,
@@ -379,14 +382,17 @@ class BadgesCommand extends BaseCommand {
             if (badge.rewards?.coins) {
               rewards.push(`${HAWK_EMOJIS.ECONOMY.COINS} ${badge.rewards.coins}`);
             }
-            const rewardText = rewards.length > 0 ? `\n${HAWK_EMOJIS.SYSTEM.REWARD} ${rewards.join(' • ')}` : '';
+            const rewardText =
+              rewards.length > 0 ? `\n${HAWK_EMOJIS.SYSTEM.REWARD} ${rewards.join(' • ')}` : '';
 
             return `${badge.icon} **${badge.name}** ${rarityEmoji}\n${HAWK_EMOJIS.SYSTEM.INFO} *${badge.description}*${rewardText}`;
           })
           .join('\n\n');
 
         const moreCount = badges.length > 6 ? badges.length - 6 : 0;
-        const fieldValue = badgeList + (moreCount > 0 ? `\n\n${HAWK_EMOJIS.SYSTEM.MORE} +${moreCount} badges...` : '');
+        const fieldValue =
+          badgeList +
+          (moreCount > 0 ? `\n\n${HAWK_EMOJIS.SYSTEM.MORE} +${moreCount} badges...` : '');
 
         embed.addFields({
           name: `${categoryName} (${badges.length})`,
@@ -396,15 +402,33 @@ class BadgesCommand extends BaseCommand {
       }
 
       // Add filter and navigation components
-      const filterMenu = HawkComponentFactory.createCategoryMenu([
-        { value: 'all', label: 'Todas as Categorias', description: 'Todas as categorias', emoji: '📋' },
-        { value: 'pubg', label: 'PUBG', description: 'Badges do PUBG', emoji: '🎮' },
-        { value: 'social', label: 'Social', description: 'Badges sociais', emoji: '💬' },
-        { value: 'gaming', label: 'Gaming', description: 'Badges de jogos', emoji: '🎮' },
-        { value: 'participation', label: 'Participação', description: 'Badges de participação', emoji: '🎉' },
-        { value: 'achievement', label: 'Conquistas', description: 'Badges de conquistas', emoji: '🎖️' },
-        { value: 'special', label: 'Especiais', description: 'Badges especiais', emoji: '✨' },
-      ], 'badge_category_filter');
+      const filterMenu = HawkComponentFactory.createCategoryMenu(
+        [
+          {
+            value: 'all',
+            label: 'Todas as Categorias',
+            description: 'Todas as categorias',
+            emoji: '📋',
+          },
+          { value: 'pubg', label: 'PUBG', description: 'Badges do PUBG', emoji: '🎮' },
+          { value: 'social', label: 'Social', description: 'Badges sociais', emoji: '💬' },
+          { value: 'gaming', label: 'Gaming', description: 'Badges de jogos', emoji: '🎮' },
+          {
+            value: 'participation',
+            label: 'Participação',
+            description: 'Badges de participação',
+            emoji: '🎉',
+          },
+          {
+            value: 'achievement',
+            label: 'Conquistas',
+            description: 'Badges de conquistas',
+            emoji: '🎖️',
+          },
+          { value: 'special', label: 'Especiais', description: 'Badges especiais', emoji: '✨' },
+        ],
+        'badge_category_filter'
+      );
 
       const actionButtons = HawkComponentFactory.createActionButtons([
         {
@@ -421,9 +445,9 @@ class BadgesCommand extends BaseCommand {
         },
       ]);
 
-      await interaction.editReply({ 
-        embeds: [embed], 
-        components: [filterMenu, actionButtons], 
+      await interaction.editReply({
+        embeds: [embed],
+        components: [filterMenu, actionButtons],
       });
     } catch (error) {
       this.logger.error('Error fetching available badges:', error);
@@ -437,7 +461,7 @@ class BadgesCommand extends BaseCommand {
   private async handleBadgeProgress(
     interaction: ChatInputCommandInteraction,
     badgeService: BadgeService,
-    database: DatabaseService,
+    database: DatabaseService
   ) {
     const badgeId = interaction.options.getString('badge', true);
     const userId = interaction.user.id;
@@ -449,12 +473,11 @@ class BadgesCommand extends BaseCommand {
       if (!badge) {
         const embed = HawkEmbedBuilder.createErrorEmbed(
           `${HAWK_EMOJIS.SYSTEM.ERROR} Badge Não Encontrada`,
-          `A badge especificada não foi encontrada.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Use \`/badges disponiveis\` para ver todas as badges disponíveis.`,
-        )
-          .setFooter({ 
-            text: `Badge ID: ${badgeId} • Hawk Esports`,
-            iconURL: interaction.client.user?.displayAvatarURL(),
-          });
+          `A badge especificada não foi encontrada.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Use \`/badges disponiveis\` para ver todas as badges disponíveis.`
+        ).setFooter({
+          text: `Badge ID: ${badgeId} • Hawk Esports`,
+          iconURL: interaction.client.user?.displayAvatarURL(),
+        });
 
         const components = HawkComponentFactory.createActionButtons([
           {
@@ -473,16 +496,16 @@ class BadgesCommand extends BaseCommand {
       const hasBadge = await database.badges.hasUserBadge(userId, badgeId);
 
       // Create main embed with appropriate styling based on status
-      const embed = hasBadge 
+      const embed = hasBadge
         ? HawkEmbedBuilder.createSuccessEmbed(
             `${badge.icon} ${badge.name}`,
-            `${HAWK_EMOJIS.BADGES.COMPLETED} **Badge Conquistada!**\n\n${badge.description}`,
+            `${HAWK_EMOJIS.BADGES.COMPLETED} **Badge Conquistada!**\n\n${badge.description}`
           )
         : HawkEmbedBuilder.createProgressEmbed(
             `${badge.icon} ${badge.name}`,
             0,
             1,
-            `${HAWK_EMOJIS.SYSTEM.PROGRESS} **Em Progresso**\n\n${badge.description}`,
+            `${HAWK_EMOJIS.SYSTEM.PROGRESS} **Em Progresso**\n\n${badge.description}`
           );
 
       // Get category name with emoji
@@ -497,15 +520,15 @@ class BadgesCommand extends BaseCommand {
 
       const categoryDisplay = categoryNames[badge.category] || badge.category;
       const rarityDisplay = `${this.getRarityEmoji(badge.rarity)} ${badge.rarity.charAt(0).toUpperCase() + badge.rarity.slice(1)}`;
-      const statusDisplay = hasBadge 
-        ? `${HAWK_EMOJIS.BADGES.COMPLETED} Conquistada!` 
+      const statusDisplay = hasBadge
+        ? `${HAWK_EMOJIS.BADGES.COMPLETED} Conquistada!`
         : `${HAWK_EMOJIS.SYSTEM.PROGRESS} Em progresso`;
 
       embed.addFields(
-        { 
-          name: `${HAWK_EMOJIS.SYSTEM.CATEGORY} Categoria`, 
-          value: categoryDisplay, 
-          inline: true, 
+        {
+          name: `${HAWK_EMOJIS.SYSTEM.CATEGORY} Categoria`,
+          value: categoryDisplay,
+          inline: true,
         },
         {
           name: `${HAWK_EMOJIS.BADGES.RARITY} Raridade`,
@@ -516,7 +539,7 @@ class BadgesCommand extends BaseCommand {
           name: `${HAWK_EMOJIS.SYSTEM.STATUS} Status`,
           value: statusDisplay,
           inline: true,
-        },
+        }
       );
 
       // Add requirements with progress tracking
@@ -525,7 +548,9 @@ class BadgesCommand extends BaseCommand {
           .map(req => {
             const operator = this.getOperatorText(req.operator);
             const reqType = this.getRequirementTypeText(req.type);
-            const progressIcon = hasBadge ? HAWK_EMOJIS.SYSTEM.SUCCESS : HAWK_EMOJIS.SYSTEM.PROGRESS;
+            const progressIcon = hasBadge
+              ? HAWK_EMOJIS.SYSTEM.SUCCESS
+              : HAWK_EMOJIS.SYSTEM.PROGRESS;
             return `${progressIcon} ${reqType} ${operator} ${req.value}`;
           })
           .join('\n');
@@ -562,12 +587,12 @@ class BadgesCommand extends BaseCommand {
 
       // Add completion date if badge is earned
       if (hasBadge) {
-        embed.setFooter({ 
+        embed.setFooter({
           text: 'Badge conquistada • Hawk Esports',
           iconURL: interaction.client.user?.displayAvatarURL(),
         });
       } else {
-        embed.setFooter({ 
+        embed.setFooter({
           text: 'Continue progredindo para conquistar esta badge • Hawk Esports',
           iconURL: interaction.client.user?.displayAvatarURL(),
         });
@@ -575,7 +600,7 @@ class BadgesCommand extends BaseCommand {
 
       // Create action buttons
       const actionButtons = [];
-      
+
       if (!hasBadge) {
         actionButtons.push({
           id: 'badge_tips',
@@ -584,7 +609,7 @@ class BadgesCommand extends BaseCommand {
           style: ButtonStyle.Secondary,
         });
       }
-      
+
       actionButtons.push(
         {
           id: 'my_badges',
@@ -597,7 +622,7 @@ class BadgesCommand extends BaseCommand {
           label: 'Ver Outras',
           emoji: '📋',
           style: ButtonStyle.Secondary,
-        },
+        }
       );
 
       const components = HawkComponentFactory.createActionButtons(actionButtons);
@@ -615,7 +640,7 @@ class BadgesCommand extends BaseCommand {
   private async handleBadgeRanking(
     interaction: ChatInputCommandInteraction,
     badgeService: BadgeService,
-    client: ExtendedClient,
+    client: ExtendedClient
   ) {
     const limit = interaction.options.getInteger('limite') || 10;
 
@@ -627,12 +652,11 @@ class BadgesCommand extends BaseCommand {
       if (leaderboard.length === 0) {
         const embed = HawkEmbedBuilder.createWarningEmbed(
           `${HAWK_EMOJIS.TROPHY} Ranking Vazio`,
-          `Nenhum usuário com badges encontrado ainda.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Seja o primeiro a conquistar badges e aparecer no ranking!`,
-        )
-          .setFooter({ 
-            text: 'Ranking de Badges • Hawk Esports',
-            iconURL: interaction.client.user?.displayAvatarURL(),
-          });
+          `Nenhum usuário com badges encontrado ainda.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Seja o primeiro a conquistar badges e aparecer no ranking!`
+        ).setFooter({
+          text: 'Ranking de Badges • Hawk Esports',
+          iconURL: interaction.client.user?.displayAvatarURL(),
+        });
 
         const components = HawkComponentFactory.createActionButtons([
           {
@@ -656,12 +680,11 @@ class BadgesCommand extends BaseCommand {
       // Create main ranking embed with Hawk styling
       const embed = HawkEmbedBuilder.createRankingEmbed(
         `${HAWK_EMOJIS.TROPHY} Ranking de Badges`,
-        `${HAWK_EMOJIS.BADGES.TOTAL} Top **${limit}** usuários com mais badges conquistadas`,
-      )
-        .setFooter({ 
-          text: 'Atualizado • Hawk Esports',
-          iconURL: interaction.client.user?.displayAvatarURL(),
-        });
+        `${HAWK_EMOJIS.BADGES.TOTAL} Top **${limit}** usuários com mais badges conquistadas`
+      ).setFooter({
+        text: 'Atualizado • Hawk Esports',
+        iconURL: interaction.client.user?.displayAvatarURL(),
+      });
 
       // Process leaderboard with enhanced display
       const rankingText = await Promise.all(
@@ -669,7 +692,7 @@ class BadgesCommand extends BaseCommand {
           try {
             const user = await client.users.fetch(entry.userId);
             const position = index + 1;
-            
+
             // Enhanced medal system
             let positionDisplay;
             if (position === 1) {
@@ -685,19 +708,21 @@ class BadgesCommand extends BaseCommand {
             }
 
             const badgeText = entry.badgeCount === 1 ? 'badge' : 'badges';
-            const username = user.username.length > 20 ? user.username.substring(0, 17) + '...' : user.username;
-            
+            const username =
+              user.username.length > 20 ? user.username.substring(0, 17) + '...' : user.username;
+
             return `${positionDisplay} ${username}\n${HAWK_EMOJIS.BADGES.COLLECTION} ${entry.badgeCount} ${badgeText}`;
           } catch {
             const position = index + 1;
-            const positionDisplay = position <= 3 
-              ? ['🥇', '🥈', '🥉'][position - 1] 
-              : `${HAWK_EMOJIS.STAR} **${position}º**`;
+            const positionDisplay =
+              position <= 3
+                ? ['🥇', '🥈', '🥉'][position - 1]
+                : `${HAWK_EMOJIS.STAR} **${position}º**`;
             const badgeText = entry.badgeCount === 1 ? 'badge' : 'badges';
-            
+
             return `${positionDisplay} *Usuário Desconhecido*\n${HAWK_EMOJIS.BADGES.COLLECTION} ${entry.badgeCount} ${badgeText}`;
           }
-        }),
+        })
       );
 
       // Split ranking into chunks for better mobile display
@@ -710,10 +735,11 @@ class BadgesCommand extends BaseCommand {
       chunks.forEach((chunk, index) => {
         const startPos = index * chunkSize + 1;
         const endPos = Math.min(startPos + chunkSize - 1, rankingText.length);
-        const fieldName = index === 0 
-          ? `${HAWK_EMOJIS.TROPHY} Ranking (${startPos}-${endPos})`
-          : `${HAWK_EMOJIS.SYSTEM.CONTINUE} Posições ${startPos}-${endPos}`;
-        
+        const fieldName =
+          index === 0
+            ? `${HAWK_EMOJIS.TROPHY} Ranking (${startPos}-${endPos})`
+            : `${HAWK_EMOJIS.SYSTEM.CONTINUE} Posições ${startPos}-${endPos}`;
+
         embed.addFields({
           name: fieldName,
           value: chunk.join('\n\n'),
@@ -726,7 +752,7 @@ class BadgesCommand extends BaseCommand {
         const totalBadges = leaderboard.reduce((sum, entry) => sum + entry.badgeCount, 0);
         const avgBadges = (totalBadges / leaderboard.length).toFixed(1);
         const topUser = leaderboard[0];
-        
+
         embed.addFields({
           name: `${HAWK_EMOJIS.SYSTEM.STATS} Estatísticas`,
           value: `${HAWK_EMOJIS.BADGES.TOTAL} Total de badges: **${totalBadges}**\n${HAWK_EMOJIS.SYSTEM.AVERAGE} Média por usuário: **${avgBadges}**\n${HAWK_EMOJIS.CROWN} Líder: **${topUser.badgeCount}** badges`,
@@ -862,7 +888,8 @@ class BadgesCommand extends BaseCommand {
           break;
         default:
           await this.safeReply(interaction, {
-            content: '❌ Subcomando não reconhecido. Subcomandos disponíveis: minhas, disponiveis, progresso, ranking',
+            content:
+              '❌ Subcomando não reconhecido. Subcomandos disponíveis: minhas, disponiveis, progresso, ranking',
             flags: MessageFlags.Ephemeral,
           });
       }
@@ -895,7 +922,7 @@ export const command = {
   data: commandInstance.data,
   category: CommandCategory.BADGES,
   cooldown: 5,
-  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) => 
+  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) =>
     commandInstance.execute(interaction, client),
   autocomplete: (interaction: any) => commandInstance.autocomplete(interaction),
 };

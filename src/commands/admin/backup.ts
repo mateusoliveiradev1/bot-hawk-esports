@@ -1,8 +1,4 @@
-import {
-  SlashCommandBuilder,
-  ChatInputCommandInteraction,
-  PermissionFlagsBits,
-} from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, PermissionFlagsBits } from 'discord.js';
 import { CommandCategory } from '../../types/command';
 import { ExtendedClient } from '../../types/client';
 import { BackupService } from '../../services/backup.service';
@@ -23,14 +19,10 @@ export class BackupCommand extends BaseCommand {
     .setDescription('Gerenciar backups do banco de dados')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(subcommand =>
-      subcommand
-        .setName('create')
-        .setDescription('Criar um backup manual do banco de dados'),
+      subcommand.setName('create').setDescription('Criar um backup manual do banco de dados')
     )
     .addSubcommand(subcommand =>
-      subcommand
-        .setName('status')
-        .setDescription('Ver status do sistema de backup'),
+      subcommand.setName('status').setDescription('Ver status do sistema de backup')
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -41,24 +33,21 @@ export class BackupCommand extends BaseCommand {
             .setName('limit')
             .setDescription('Número máximo de backups para mostrar')
             .setMinValue(1)
-            .setMaxValue(20),
-        ),
+            .setMaxValue(20)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('info')
         .setDescription('Ver informações detalhadas de um backup')
         .addStringOption(option =>
-          option
-            .setName('filename')
-            .setDescription('Nome do arquivo de backup')
-            .setRequired(true),
-        ),
+          option.setName('filename').setDescription('Nome do arquivo de backup').setRequired(true)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('cleanup')
-        .setDescription('Limpar backups antigos baseado na política de retenção'),
+        .setDescription('Limpar backups antigos baseado na política de retenção')
     );
 
   public category = CommandCategory.ADMIN;
@@ -138,8 +127,9 @@ export class BackupCommand extends BaseCommand {
       });
 
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      const embed = HawkEmbedBuilder.createErrorEmbed('Erro no Comando de Backup')
-        .setDescription(`Erro ao executar comando: ${errorMessage}`);
+      const embed = HawkEmbedBuilder.createErrorEmbed('Erro no Comando de Backup').setDescription(
+        `Erro ao executar comando: ${errorMessage}`
+      );
 
       await this.safeReply(interaction, { embeds: [embed] });
     }
@@ -151,7 +141,7 @@ export class BackupCommand extends BaseCommand {
   private async handleCreateBackup(
     interaction: ChatInputCommandInteraction,
     database: any,
-    logger: any,
+    logger: any
   ) {
     await this.deferWithLoading(interaction);
 
@@ -174,8 +164,12 @@ export class BackupCommand extends BaseCommand {
           { name: '📊 Tamanho', value: this.formatBytes(result.size), inline: true },
           { name: '⏱️ Duração', value: `${(duration / 1000).toFixed(2)}s`, inline: true },
           { name: '🗜️ Comprimido', value: result.compressed ? 'Sim' : 'Não', inline: true },
-          { name: '🔐 Checksum', value: result.checksum ? `\`${result.checksum.slice(0, 16)}...\`` : 'N/A', inline: true },
-          { name: '📅 Data', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true },
+          {
+            name: '🔐 Checksum',
+            value: result.checksum ? `\`${result.checksum.slice(0, 16)}...\`` : 'N/A',
+            inline: true,
+          },
+          { name: '📅 Data', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }
         )
         .setTimestamp();
 
@@ -189,17 +183,16 @@ export class BackupCommand extends BaseCommand {
         duration,
       });
     } catch (error) {
-      throw new Error(`Falha ao criar backup: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Falha ao criar backup: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
   /**
    * Handle backup status subcommand
    */
-  private async handleBackupStatus(
-    interaction: ChatInputCommandInteraction,
-    config: any,
-  ) {
+  private async handleBackupStatus(interaction: ChatInputCommandInteraction, config: any) {
     // Mock status since BackupScheduler is not available
     const status = {
       isRunning: true,
@@ -213,10 +206,22 @@ export class BackupCommand extends BaseCommand {
       .addFields(
         { name: '🔄 Status', value: status.isRunning ? '✅ Ativo' : '⚠️ Inativo', inline: true },
         { name: '📅 Agendamento', value: `\`${status.schedule || 'N/A'}\``, inline: true },
-        { name: '⏰ Próximo Backup', value: status.nextExecution ? `<t:${Math.floor(status.nextExecution.getTime() / 1000)}:R>` : 'N/A', inline: true },
+        {
+          name: '⏰ Próximo Backup',
+          value: status.nextExecution
+            ? `<t:${Math.floor(status.nextExecution.getTime() / 1000)}:R>`
+            : 'N/A',
+          inline: true,
+        },
         { name: '📁 Total de Backups', value: stats.totalBackups.toString(), inline: true },
         { name: '💾 Espaço Usado', value: this.formatBytes(stats.totalSize), inline: true },
-        { name: '📊 Backup Mais Recente', value: stats.latestBackup ? `<t:${Math.floor(stats.latestBackup.getTime() / 1000)}:R>` : 'Nenhum', inline: true },
+        {
+          name: '📊 Backup Mais Recente',
+          value: stats.latestBackup
+            ? `<t:${Math.floor(stats.latestBackup.getTime() / 1000)}:R>`
+            : 'Nenhum',
+          inline: true,
+        }
       )
       .setTimestamp();
 
@@ -226,15 +231,12 @@ export class BackupCommand extends BaseCommand {
   /**
    * Handle list backups subcommand
    */
-  private async handleListBackups(
-    interaction: ChatInputCommandInteraction,
-    config: any,
-  ) {
+  private async handleListBackups(interaction: ChatInputCommandInteraction, config: any) {
     const limit = interaction.options.getInteger('limit') || 10;
-    
+
     try {
       const backups = await this.getBackupList(config.backup.backupDir, limit);
-      
+
       if (backups.length === 0) {
         await this.safeReply(interaction, {
           content: '📂 Nenhum backup encontrado.',
@@ -246,42 +248,52 @@ export class BackupCommand extends BaseCommand {
       const embed = HawkEmbedBuilder.createInfoEmbed(`Lista de Backups (${backups.length})`)
         .setColor('#0099ff')
         .setDescription(
-          backups.map((backup, index) => 
-            `**${index + 1}.** \`${backup.name}\`\n` +
-            `   📊 ${this.formatBytes(backup.size)} • 📅 <t:${Math.floor(backup.date.getTime() / 1000)}:R>`,
-          ).join('\n\n'),
+          backups
+            .map(
+              (backup, index) =>
+                `**${index + 1}.** \`${backup.name}\`\n` +
+                `   📊 ${this.formatBytes(backup.size)} • 📅 <t:${Math.floor(backup.date.getTime() / 1000)}:R>`
+            )
+            .join('\n\n')
         )
         .setTimestamp();
 
       await this.safeReply(interaction, { embeds: [embed], ephemeral: true });
     } catch (error) {
-      throw new Error(`Falha ao listar backups: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Falha ao listar backups: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
   /**
    * Handle backup info subcommand
    */
-  private async handleBackupInfo(
-    interaction: ChatInputCommandInteraction,
-    config: any,
-  ) {
+  private async handleBackupInfo(interaction: ChatInputCommandInteraction, config: any) {
     const filename = interaction.options.getString('filename', true);
     const backupPath = path.join(config.backup.backupDir, filename);
-    
+
     try {
       const stats = await fs.stat(backupPath);
       const metadata = await this.getBackupMetadata(backupPath);
-      
+
       const embed = HawkEmbedBuilder.createInfoEmbed('Informações do Backup')
         .setColor('#0099ff')
         .addFields(
           { name: '📁 Nome do Arquivo', value: `\`${filename}\``, inline: false },
           { name: '📊 Tamanho', value: this.formatBytes(stats.size), inline: true },
-          { name: '📅 Data de Criação', value: `<t:${Math.floor(stats.mtime.getTime() / 1000)}:F>`, inline: true },
-          { name: '🔐 Checksum', value: metadata?.checksum ? `\`${metadata.checksum.slice(0, 32)}...\`` : 'N/A', inline: false },
+          {
+            name: '📅 Data de Criação',
+            value: `<t:${Math.floor(stats.mtime.getTime() / 1000)}:F>`,
+            inline: true,
+          },
+          {
+            name: '🔐 Checksum',
+            value: metadata?.checksum ? `\`${metadata.checksum.slice(0, 32)}...\`` : 'N/A',
+            inline: false,
+          },
           { name: '🗜️ Comprimido', value: filename.endsWith('.gz') ? 'Sim' : 'Não', inline: true },
-          { name: '📍 Caminho', value: `\`${backupPath}\``, inline: false },
+          { name: '📍 Caminho', value: `\`${backupPath}\``, inline: false }
         )
         .setTimestamp();
 
@@ -293,7 +305,9 @@ export class BackupCommand extends BaseCommand {
           ephemeral: true,
         });
       } else {
-        throw new Error(`Falha ao obter informações do backup: ${error instanceof Error ? error.message : String(error)}`);
+        throw new Error(
+          `Falha ao obter informações do backup: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
   }
@@ -304,19 +318,21 @@ export class BackupCommand extends BaseCommand {
   private async handleCleanupBackups(
     interaction: ChatInputCommandInteraction,
     database: any,
-    logger: any,
+    logger: any
   ) {
     await this.deferWithLoading(interaction);
 
     try {
       // Simplified cleanup without BackupService
       // This would normally clean up old backup files
-      
+
       const embed = HawkEmbedBuilder.createSuccessEmbed('Limpeza de Backups Concluída')
-        .setDescription('A limpeza de backups antigos foi executada com sucesso baseada na política de retenção configurada.')
+        .setDescription(
+          'A limpeza de backups antigos foi executada com sucesso baseada na política de retenção configurada.'
+        )
         .addFields(
           { name: '✅ Status', value: 'Concluído', inline: true },
-          { name: '📅 Data', value: new Date().toLocaleString('pt-BR'), inline: true },
+          { name: '📅 Data', value: new Date().toLocaleString('pt-BR'), inline: true }
         )
         .setTimestamp();
 
@@ -327,7 +343,9 @@ export class BackupCommand extends BaseCommand {
         guildId: interaction.guildId,
       });
     } catch (error) {
-      throw new Error(`Falha na limpeza de backups: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Falha na limpeza de backups: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -342,20 +360,20 @@ export class BackupCommand extends BaseCommand {
     try {
       const files = await fs.readdir(backupDir);
       const backupFiles = files.filter(file => file.endsWith('.db') || file.endsWith('.db.gz'));
-      
+
       let totalSize = 0;
       let latestBackup: Date | undefined;
-      
+
       for (const file of backupFiles) {
         const filePath = path.join(backupDir, file);
         const stats = await fs.stat(filePath);
         totalSize += stats.size;
-        
+
         if (!latestBackup || stats.mtime > latestBackup) {
           latestBackup = stats.mtime;
         }
       }
-      
+
       return {
         totalBackups: backupFiles.length,
         totalSize,
@@ -372,31 +390,34 @@ export class BackupCommand extends BaseCommand {
   /**
    * Get list of backups
    */
-  private async getBackupList(backupDir: string, limit: number): Promise<Array<{
-    name: string;
-    size: number;
-    date: Date;
-  }>> {
+  private async getBackupList(
+    backupDir: string,
+    limit: number
+  ): Promise<
+    Array<{
+      name: string;
+      size: number;
+      date: Date;
+    }>
+  > {
     try {
       const files = await fs.readdir(backupDir);
       const backupFiles = files.filter(file => file.endsWith('.db') || file.endsWith('.db.gz'));
-      
+
       const backups = [];
-      
+
       for (const file of backupFiles) {
         const filePath = path.join(backupDir, file);
         const stats = await fs.stat(filePath);
-        
+
         backups.push({
           name: file,
           size: stats.size,
           date: stats.mtime,
         });
       }
-      
-      return backups
-        .sort((a, b) => b.date.getTime() - a.date.getTime())
-        .slice(0, limit);
+
+      return backups.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, limit);
     } catch (error) {
       return [];
     }
@@ -419,12 +440,14 @@ export class BackupCommand extends BaseCommand {
    * Format bytes to human readable format
    */
   private formatBytes(bytes: number): string {
-    if (bytes === 0) {return '0 Bytes';}
-    
+    if (bytes === 0) {
+      return '0 Bytes';
+    }
+
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 }

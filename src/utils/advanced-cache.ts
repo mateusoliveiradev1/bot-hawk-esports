@@ -11,7 +11,7 @@ export enum CacheStrategy {
   WRITE_BEHIND = 'write_behind',
   WRITE_AROUND = 'write_around',
   READ_THROUGH = 'read_through',
-  REFRESH_AHEAD = 'refresh_ahead'
+  REFRESH_AHEAD = 'refresh_ahead',
 }
 
 /**
@@ -21,7 +21,7 @@ export enum InvalidationPattern {
   TTL = 'ttl',
   LRU = 'lru',
   DEPENDENCY = 'dependency',
-  EVENT_BASED = 'event_based'
+  EVENT_BASED = 'event_based',
 }
 
 /**
@@ -103,7 +103,7 @@ export class AdvancedCache {
 
   constructor(
     private readonly cacheService: CacheService,
-    private readonly config: AdvancedCacheConfig,
+    private readonly config: AdvancedCacheConfig
   ) {
     if (config.rateLimitConfig) {
       this.rateLimiter = new RateLimiter(config.rateLimitConfig);
@@ -126,7 +126,7 @@ export class AdvancedCache {
       dependencies?: string[];
       tags?: string[];
       forceRefresh?: boolean;
-    },
+    }
   ): Promise<CacheOperationResult<T>> {
     const startTime = Date.now();
 
@@ -137,7 +137,7 @@ export class AdvancedCache {
           'Cache operation rate limited',
           ErrorCategory.RATE_LIMIT,
           ErrorSeverity.LOW,
-          { key },
+          { key }
         );
       }
 
@@ -185,7 +185,6 @@ export class AdvancedCache {
         fromCache: false,
         executionTime: Date.now() - startTime,
       };
-
     } catch (error) {
       const enhancedError = this.errorHandler.handleError(error as Error, {
         operation: 'cache_get',
@@ -213,7 +212,7 @@ export class AdvancedCache {
       dependencies?: string[];
       tags?: string[];
       strategy?: CacheStrategy;
-    },
+    }
   ): Promise<CacheOperationResult<T>> {
     const startTime = Date.now();
 
@@ -273,7 +272,6 @@ export class AdvancedCache {
         fromCache: false,
         executionTime: Date.now() - startTime,
       };
-
     } catch (error) {
       const enhancedError = this.errorHandler.handleError(error as Error, {
         operation: 'cache_set',
@@ -413,7 +411,7 @@ export class AdvancedCache {
       ttl?: number;
       dependencies?: string[];
       tags?: string[];
-    },
+    }
   ): Promise<CacheOperationResult<T>> {
     const startTime = Date.now();
 
@@ -461,11 +459,7 @@ export class AdvancedCache {
   /**
    * Schedule background refresh
    */
-  private scheduleRefresh<T>(
-    key: string,
-    fallbackFn: () => Promise<T>,
-    options?: any,
-  ): void {
+  private scheduleRefresh<T>(key: string, fallbackFn: () => Promise<T>, options?: any): void {
     if (this.refreshQueue.has(key)) {
       return; // Already scheduled
     }
@@ -572,8 +566,10 @@ export class AdvancedCache {
     const total = this.metrics.hits + this.metrics.misses;
     this.metrics.hitRate = total > 0 ? (this.metrics.hits / total) * 100 : 0;
     this.metrics.totalKeys = this.metadata.size;
-    this.metrics.totalSize = Array.from(this.metadata.values())
-      .reduce((sum, meta) => sum + meta.size, 0);
+    this.metrics.totalSize = Array.from(this.metadata.values()).reduce(
+      (sum, meta) => sum + meta.size,
+      0
+    );
   }
 
   /**
@@ -582,8 +578,8 @@ export class AdvancedCache {
   private updateAverageAccessTime(executionTime: number): void {
     const currentAvg = this.metrics.averageAccessTime;
     const totalOperations = this.metrics.hits + this.metrics.misses;
-    
-    this.metrics.averageAccessTime = 
+
+    this.metrics.averageAccessTime =
       (currentAvg * (totalOperations - 1) + executionTime) / totalOperations;
   }
 
@@ -604,7 +600,7 @@ export class AdvancedCache {
       // Clean up expired metadata
       const now = Date.now();
       for (const [key, metadata] of this.metadata.entries()) {
-        const expiry = metadata.createdAt.getTime() + (metadata.ttl * 1000);
+        const expiry = metadata.createdAt.getTime() + metadata.ttl * 1000;
         if (now > expiry) {
           this.metadata.delete(key);
           this.removeDependencies(key);
@@ -636,18 +632,18 @@ export function Cacheable(
     keyGenerator?: (...args: any[]) => string;
     dependencies?: string[];
     tags?: string[];
-  } = {},
+  } = {}
 ) {
   return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value;
-    
+
     descriptor.value = async function (...args: any[]) {
       const cache = (this as any).cache as AdvancedCache;
       if (!cache) {
         return method.apply(this, args);
       }
 
-      const key = options.keyGenerator 
+      const key = options.keyGenerator
         ? options.keyGenerator(...args)
         : `${target.constructor.name}.${propertyName}:${JSON.stringify(args)}`;
 
@@ -663,7 +659,7 @@ export function Cacheable(
 
       throw result.error || new Error('Cache operation failed');
     };
-    
+
     return descriptor;
   };
 }
@@ -676,14 +672,14 @@ export function InvalidateCache(
     pattern?: string;
     dependencies?: string[];
     tags?: string[];
-  } = {},
+  } = {}
 ) {
   return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value;
-    
+
     descriptor.value = async function (...args: any[]) {
       const result = await method.apply(this, args);
-      
+
       const cache = (this as any).cache as AdvancedCache;
       if (cache) {
         if (options.pattern) {
@@ -700,10 +696,10 @@ export function InvalidateCache(
           }
         }
       }
-      
+
       return result;
     };
-    
+
     return descriptor;
   };
 }

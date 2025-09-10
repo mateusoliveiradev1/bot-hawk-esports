@@ -30,8 +30,8 @@ class EconomyCommand extends BaseCommand {
               option
                 .setName('usuario')
                 .setDescription('Ver economia de outro usuário')
-                .setRequired(false),
-            ),
+                .setRequired(false)
+            )
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -45,8 +45,8 @@ class EconomyCommand extends BaseCommand {
                 .addChoices(
                   { name: `${HAWK_EMOJIS.SYSTEM.STAR} XP`, value: 'xp' },
                   { name: `${HAWK_EMOJIS.ECONOMY.COIN} Moedas`, value: 'coins' },
-                  { name: `${HAWK_EMOJIS.SYSTEM.LEVEL} Nível`, value: 'level' },
-                ),
+                  { name: `${HAWK_EMOJIS.SYSTEM.LEVEL} Nível`, value: 'level' }
+                )
             )
             .addIntegerOption(option =>
               option
@@ -54,8 +54,8 @@ class EconomyCommand extends BaseCommand {
                 .setDescription('Número de usuários no ranking (padrão: 10)')
                 .setRequired(false)
                 .setMinValue(5)
-                .setMaxValue(25),
-            ),
+                .setMaxValue(25)
+            )
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -67,11 +67,11 @@ class EconomyCommand extends BaseCommand {
                 .setDescription('Número de transações (padrão: 10)')
                 .setRequired(false)
                 .setMinValue(5)
-                .setMaxValue(50),
-            ),
+                .setMaxValue(50)
+            )
         )
         .addSubcommand(subcommand =>
-          subcommand.setName('daily').setDescription('Resgatar recompensa diária'),
+          subcommand.setName('daily').setDescription('Resgatar recompensa diária')
         ) as SlashCommandBuilder,
       category: CommandCategory.ECONOMY,
       cooldown: 5,
@@ -118,81 +118,92 @@ class EconomyCommand extends BaseCommand {
   /**
    * Handle "perfil" subcommand - Show user's economy profile
    */
-  private async handleEconomyProfile(interaction: ChatInputCommandInteraction, database: DatabaseService) {
-  const targetUser = interaction.options.getUser('usuario') || interaction.user;
-  const userId = targetUser.id;
+  private async handleEconomyProfile(
+    interaction: ChatInputCommandInteraction,
+    database: DatabaseService
+  ) {
+    const targetUser = interaction.options.getUser('usuario') || interaction.user;
+    const userId = targetUser.id;
 
-  await interaction.deferReply();
+    await interaction.deferReply();
 
-  try {
-    // Get user data
-    const userData = await database.users.findById(userId);
+    try {
+      // Get user data
+      const userData = await database.users.findById(userId);
 
-    if (!userData) {
-      const embed = HawkEmbedBuilder.createError(
-        `${HAWK_EMOJIS.ERROR} Usuário não encontrado`,
-        'Este usuário não está registrado no sistema.',
-      );
+      if (!userData) {
+        const embed = HawkEmbedBuilder.createError(
+          `${HAWK_EMOJIS.ERROR} Usuário não encontrado`,
+          'Este usuário não está registrado no sistema.'
+        );
+
+        await interaction.editReply({ embeds: [embed] });
+        return;
+      }
+
+      // Calculate level from XP
+      const level = this.calculateLevel(userData.xp || 0);
+      const currentLevelXP = this.calculateXPForLevel(level);
+      const nextLevelXP = this.calculateXPForLevel(level + 1);
+      const progressXP = (userData.xp || 0) - currentLevelXP;
+      const neededXP = nextLevelXP - currentLevelXP;
+      const progressPercentage = Math.floor((progressXP / neededXP) * 100);
+
+      // Create progress bar
+      const progressBar = this.createProgressBar(progressPercentage);
+
+      const embed = HawkEmbedBuilder.createSuccess(
+        `${HAWK_EMOJIS.ECONOMY.MONEY} Economia de ${targetUser.username}`,
+        ''
+      )
+        .setThumbnail(targetUser.displayAvatarURL())
+        .addFields(
+          { name: `${HAWK_EMOJIS.SYSTEM.LEVEL} Nível`, value: `**${level}**`, inline: true },
+          {
+            name: `${HAWK_EMOJIS.SYSTEM.STAR} XP Total`,
+            value: `**${userData.xp || 0}**`,
+            inline: true,
+          },
+          {
+            name: `${HAWK_EMOJIS.ECONOMY.COIN} Moedas`,
+            value: `**${userData.coins || 0}**`,
+            inline: true,
+          },
+          {
+            name: `${HAWK_EMOJIS.SYSTEM.PROGRESS} Progresso para o próximo nível`,
+            value: `${progressBar}\n**${progressXP}**/${neededXP} XP (${progressPercentage}%)`,
+            inline: false,
+          }
+        );
+
+      // Add recent activity if available
+      const recentTransactions = await database.client.transaction.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 3,
+      });
+
+      if (recentTransactions.length > 0) {
+        const activityText = recentTransactions
+          .map(tx => {
+            const sign = tx.amount >= 0 ? '+' : '';
+            const emoji = tx.type === 'xp' ? HAWK_EMOJIS.SYSTEM.STAR : HAWK_EMOJIS.ECONOMY.COIN;
+            return `${emoji} ${sign}${tx.amount} - ${tx.reason}`;
+          })
+          .join('\n');
+
+        embed.addFields({
+          name: `${HAWK_EMOJIS.SYSTEM.ACTIVITY} Atividade Recente`,
+          value: activityText,
+          inline: false,
+        });
+      }
 
       await interaction.editReply({ embeds: [embed] });
-      return;
+    } catch (error) {
+      this.logger.error('Error fetching economy profile:', error);
+      throw error;
     }
-
-    // Calculate level from XP
-    const level = this.calculateLevel(userData.xp || 0);
-    const currentLevelXP = this.calculateXPForLevel(level);
-    const nextLevelXP = this.calculateXPForLevel(level + 1);
-    const progressXP = (userData.xp || 0) - currentLevelXP;
-    const neededXP = nextLevelXP - currentLevelXP;
-    const progressPercentage = Math.floor((progressXP / neededXP) * 100);
-
-    // Create progress bar
-    const progressBar = this.createProgressBar(progressPercentage);
-
-    const embed = HawkEmbedBuilder.createSuccess(
-      `${HAWK_EMOJIS.ECONOMY.MONEY} Economia de ${targetUser.username}`,
-      '',
-    )
-      .setThumbnail(targetUser.displayAvatarURL())
-      .addFields(
-        { name: `${HAWK_EMOJIS.SYSTEM.LEVEL} Nível`, value: `**${level}**`, inline: true },
-        { name: `${HAWK_EMOJIS.SYSTEM.STAR} XP Total`, value: `**${userData.xp || 0}**`, inline: true },
-        { name: `${HAWK_EMOJIS.ECONOMY.COIN} Moedas`, value: `**${userData.coins || 0}**`, inline: true },
-        {
-          name: `${HAWK_EMOJIS.SYSTEM.PROGRESS} Progresso para o próximo nível`,
-          value: `${progressBar}\n**${progressXP}**/${neededXP} XP (${progressPercentage}%)`,
-          inline: false,
-        },
-      );
-
-    // Add recent activity if available
-    const recentTransactions = await database.client.transaction.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: 3,
-    });
-
-    if (recentTransactions.length > 0) {
-      const activityText = recentTransactions
-        .map(tx => {
-          const sign = tx.amount >= 0 ? '+' : '';
-          const emoji = tx.type === 'xp' ? HAWK_EMOJIS.SYSTEM.STAR : HAWK_EMOJIS.ECONOMY.COIN;
-          return `${emoji} ${sign}${tx.amount} - ${tx.reason}`;
-        })
-        .join('\n');
-
-      embed.addFields({
-        name: `${HAWK_EMOJIS.SYSTEM.ACTIVITY} Atividade Recente`,
-        value: activityText,
-        inline: false,
-      });
-    }
-
-    await interaction.editReply({ embeds: [embed] });
-  } catch (error) {
-    this.logger.error('Error fetching economy profile:', error);
-    throw error;
-  }
   }
 
   /**
@@ -201,103 +212,105 @@ class EconomyCommand extends BaseCommand {
   private async handleEconomyRanking(
     interaction: ChatInputCommandInteraction,
     database: DatabaseService,
-    client: ExtendedClient,
+    client: ExtendedClient
   ) {
-  const type = interaction.options.getString('tipo');
-  const limit = interaction.options.getInteger('limite') || 10;
+    const type = interaction.options.getString('tipo');
+    const limit = interaction.options.getInteger('limite') || 10;
 
-  await interaction.deferReply();
+    await interaction.deferReply();
 
-  try {
-    let orderBy: any;
-    let title: string;
-    let emoji: string;
+    try {
+      let orderBy: any;
+      let title: string;
+      let emoji: string;
 
-    switch (type) {
-      case 'xp':
-        orderBy = { xp: 'desc' };
-        title = `${HAWK_EMOJIS.SYSTEM.STAR} Ranking de XP`;
-        emoji = HAWK_EMOJIS.SYSTEM.STAR;
-        break;
-      case 'coins':
-        orderBy = { coins: 'desc' };
-        title = `${HAWK_EMOJIS.ECONOMY.COIN} Ranking de Moedas`;
-        emoji = HAWK_EMOJIS.ECONOMY.COIN;
-        break;
-      case 'level':
-        orderBy = { xp: 'desc' }; // Level is calculated from XP
-        title = `${HAWK_EMOJIS.SYSTEM.LEVEL} Ranking de Nível`;
-        emoji = HAWK_EMOJIS.SYSTEM.LEVEL;
-        break;
-      default:
-        throw new Error('Invalid ranking type');
-    }
+      switch (type) {
+        case 'xp':
+          orderBy = { xp: 'desc' };
+          title = `${HAWK_EMOJIS.SYSTEM.STAR} Ranking de XP`;
+          emoji = HAWK_EMOJIS.SYSTEM.STAR;
+          break;
+        case 'coins':
+          orderBy = { coins: 'desc' };
+          title = `${HAWK_EMOJIS.ECONOMY.COIN} Ranking de Moedas`;
+          emoji = HAWK_EMOJIS.ECONOMY.COIN;
+          break;
+        case 'level':
+          orderBy = { xp: 'desc' }; // Level is calculated from XP
+          title = `${HAWK_EMOJIS.SYSTEM.LEVEL} Ranking de Nível`;
+          emoji = HAWK_EMOJIS.SYSTEM.LEVEL;
+          break;
+        default:
+          throw new Error('Invalid ranking type');
+      }
 
-    const users = await database.client.user.findMany({
-      orderBy,
-      take: limit,
-      select: {
-        id: true,
-        xp: true,
-        coins: true,
-      },
-    });
+      const users = await database.client.user.findMany({
+        orderBy,
+        take: limit,
+        select: {
+          id: true,
+          xp: true,
+          coins: true,
+        },
+      });
 
-    if (users.length === 0) {
-      const embed = HawkEmbedBuilder.createWarning(
-        title,
-        'Nenhum usuário encontrado no ranking.',
+      if (users.length === 0) {
+        const embed = HawkEmbedBuilder.createWarning(
+          title,
+          'Nenhum usuário encontrado no ranking.'
+        );
+
+        await interaction.editReply({ embeds: [embed] });
+        return;
+      }
+
+      const embed = HawkEmbedBuilder.createInfo(title, `Top ${limit} usuários`);
+
+      const rankingText = await Promise.all(
+        users.map(async (user, index) => {
+          try {
+            const discordUser = await client.users.fetch(user.id);
+            const medal =
+              index < 3
+                ? [HAWK_EMOJIS.FIRST_PLACE, HAWK_EMOJIS.SECOND_PLACE, HAWK_EMOJIS.THIRD_PLACE][
+                    index
+                  ]
+                : `${index + 1}º`;
+
+            let value: string;
+            switch (type) {
+              case 'xp':
+                value = `${user.xp || 0} XP`;
+                break;
+              case 'coins':
+                value = `${user.coins || 0} moedas`;
+                break;
+              case 'level':
+                const level = this.calculateLevel(user.xp || 0);
+                value = `Nível ${level} (${user.xp || 0} XP)`;
+                break;
+              default:
+                value = '0';
+            }
+
+            return `${medal} **${discordUser.username}** - ${value}`;
+          } catch {
+            return `${index + 1}º **Usuário Desconhecido** - 0`;
+          }
+        })
       );
 
+      embed.addFields({
+        name: `${HAWK_EMOJIS.SYSTEM.RANKING} Ranking`,
+        value: rankingText.join('\n'),
+        inline: false,
+      });
+
       await interaction.editReply({ embeds: [embed] });
-      return;
+    } catch (error) {
+      this.logger.error('Error fetching economy ranking:', error);
+      throw error;
     }
-
-    const embed = HawkEmbedBuilder.createInfo(
-      title,
-      `Top ${limit} usuários`,
-    );
-
-    const rankingText = await Promise.all(
-      users.map(async (user, index) => {
-        try {
-          const discordUser = await client.users.fetch(user.id);
-          const medal = index < 3 ? [HAWK_EMOJIS.FIRST_PLACE, HAWK_EMOJIS.SECOND_PLACE, HAWK_EMOJIS.THIRD_PLACE][index] : `${index + 1}º`;
-
-          let value: string;
-          switch (type) {
-            case 'xp':
-              value = `${user.xp || 0} XP`;
-              break;
-            case 'coins':
-              value = `${user.coins || 0} moedas`;
-              break;
-            case 'level':
-              const level = this.calculateLevel(user.xp || 0);
-              value = `Nível ${level} (${user.xp || 0} XP)`;
-              break;
-            default:
-              value = '0';
-          }
-
-          return `${medal} **${discordUser.username}** - ${value}`;
-        } catch {
-          return `${index + 1}º **Usuário Desconhecido** - 0`;
-        }
-      }),
-    );
-
-    embed.addFields({
-      name: `${HAWK_EMOJIS.SYSTEM.RANKING} Ranking`,
-      value: rankingText.join('\n'),
-      inline: false,
-    });
-
-    await interaction.editReply({ embeds: [embed] });
-  } catch (error) {
-    this.logger.error('Error fetching economy ranking:', error);
-    throw error;
-  }
   }
 
   /**
@@ -305,182 +318,193 @@ class EconomyCommand extends BaseCommand {
    */
   private async handleTransactionHistory(
     interaction: ChatInputCommandInteraction,
-    database: DatabaseService,
+    database: DatabaseService
   ) {
-  const limit = interaction.options.getInteger('limite') || 10;
-  const userId = interaction.user.id;
+    const limit = interaction.options.getInteger('limite') || 10;
+    const userId = interaction.user.id;
 
-  await interaction.deferReply();
+    await interaction.deferReply();
 
-  try {
-    const transactions = await database.client.transaction.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    });
+    try {
+      const transactions = await database.client.transaction.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+      });
 
-    if (transactions.length === 0) {
-      const embed = HawkEmbedBuilder.createWarning(
+      if (transactions.length === 0) {
+        const embed = HawkEmbedBuilder.createWarning(
+          `${HAWK_EMOJIS.SYSTEM.ACTIVITY} Histórico de Transações`,
+          'Você ainda não possui transações registradas.'
+        );
+
+        await interaction.editReply({ embeds: [embed] });
+        return;
+      }
+
+      const embed = HawkEmbedBuilder.createInfo(
         `${HAWK_EMOJIS.SYSTEM.ACTIVITY} Histórico de Transações`,
-        'Você ainda não possui transações registradas.',
+        `Últimas ${transactions.length} transações`
       );
 
-      await interaction.editReply({ embeds: [embed] });
-      return;
-    }
+      const transactionText = transactions
+        .map(tx => {
+          const date = new Date(tx.createdAt).toLocaleDateString('pt-BR');
+          const sign = tx.amount >= 0 ? '+' : '';
+          const emoji = tx.type === 'xp' ? HAWK_EMOJIS.SYSTEM.STAR : HAWK_EMOJIS.ECONOMY.COIN;
+          const typeText = tx.type === 'xp' ? 'XP' : 'Moedas';
 
-    const embed = HawkEmbedBuilder.createInfo(
-      `${HAWK_EMOJIS.SYSTEM.ACTIVITY} Histórico de Transações`,
-      `Últimas ${transactions.length} transações`,
-    );
+          return `${emoji} **${sign}${tx.amount}** ${typeText}\n*${tx.reason}* • ${date}`;
+        })
+        .join('\n\n');
 
-    const transactionText = transactions
-      .map(tx => {
-        const date = new Date(tx.createdAt).toLocaleDateString('pt-BR');
-        const sign = tx.amount >= 0 ? '+' : '';
-        const emoji = tx.type === 'xp' ? HAWK_EMOJIS.SYSTEM.STAR : HAWK_EMOJIS.ECONOMY.COIN;
-        const typeText = tx.type === 'xp' ? 'XP' : 'Moedas';
-
-        return `${emoji} **${sign}${tx.amount}** ${typeText}\n*${tx.reason}* • ${date}`;
-      })
-      .join('\n\n');
-
-    // Split into multiple fields if too long
-    if (transactionText.length > 1024) {
-      const chunks = transactionText.match(/[\s\S]{1,1024}/g) || [];
-      chunks.forEach((chunk, index) => {
+      // Split into multiple fields if too long
+      if (transactionText.length > 1024) {
+        const chunks = transactionText.match(/[\s\S]{1,1024}/g) || [];
+        chunks.forEach((chunk, index) => {
+          embed.addFields({
+            name: index === 0 ? `${HAWK_EMOJIS.ECONOMY.TRANSACTION} Transações` : '\u200b',
+            value: chunk,
+            inline: false,
+          });
+        });
+      } else {
         embed.addFields({
-          name: index === 0 ? `${HAWK_EMOJIS.ECONOMY.TRANSACTION} Transações` : '\u200b',
-          value: chunk,
+          name: `${HAWK_EMOJIS.ECONOMY.TRANSACTION} Transações`,
+          value: transactionText,
           inline: false,
         });
-      });
-    } else {
-      embed.addFields({
-        name: `${HAWK_EMOJIS.ECONOMY.TRANSACTION} Transações`,
-        value: transactionText,
-        inline: false,
-      });
-    }
+      }
 
-    await interaction.editReply({ embeds: [embed] });
-  } catch (error) {
-    this.logger.error('Error fetching transaction history:', error);
-    throw error;
-  }
+      await interaction.editReply({ embeds: [embed] });
+    } catch (error) {
+      this.logger.error('Error fetching transaction history:', error);
+      throw error;
+    }
   }
 
   /**
    * Handle "daily" subcommand - Claim daily reward
    */
-  private async handleDailyReward(interaction: ChatInputCommandInteraction, database: DatabaseService) {
-  const userId = interaction.user.id;
+  private async handleDailyReward(
+    interaction: ChatInputCommandInteraction,
+    database: DatabaseService
+  ) {
+    const userId = interaction.user.id;
 
-  await interaction.deferReply();
+    await interaction.deferReply();
 
-  try {
-    // Check if user already claimed today
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    try {
+      // Check if user already claimed today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-    const existingClaim = await database.client.transaction.findFirst({
-      where: {
-        userId,
-        reason: 'Daily reward',
-        createdAt: {
-          gte: today,
+      const existingClaim = await database.client.transaction.findFirst({
+        where: {
+          userId,
+          reason: 'Daily reward',
+          createdAt: {
+            gte: today,
+          },
         },
-      },
-    });
+      });
 
-    if (existingClaim) {
-      const embed = HawkEmbedBuilder.createWarning(
-        `${HAWK_EMOJIS.SYSTEM.TIME} Recompensa Diária`,
-        'Você já resgatou sua recompensa diária hoje!\n\nVolte amanhã para resgatar novamente.',
-      );
+      if (existingClaim) {
+        const embed = HawkEmbedBuilder.createWarning(
+          `${HAWK_EMOJIS.SYSTEM.TIME} Recompensa Diária`,
+          'Você já resgatou sua recompensa diária hoje!\n\nVolte amanhã para resgatar novamente.'
+        );
+
+        await interaction.editReply({ embeds: [embed] });
+        return;
+      }
+
+      // Calculate streak
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      const yesterdayClaim = await database.client.transaction.findFirst({
+        where: {
+          userId,
+          reason: 'Daily reward',
+          createdAt: {
+            gte: yesterday,
+            lt: today,
+          },
+        },
+      });
+
+      // Get current streak from user data or calculate
+      const userData = await database.users.findById(userId);
+      let currentStreak = 1;
+
+      if (yesterdayClaim && userData?.dailyStreak) {
+        currentStreak = userData.dailyStreak + 1;
+      }
+
+      // Calculate rewards based on streak
+      const baseXP = 50;
+      const baseCoins = 25;
+      const streakMultiplier = Math.min(currentStreak * 0.1, 2); // Max 2x multiplier
+
+      const xpReward = Math.floor(baseXP * (1 + streakMultiplier));
+      const coinReward = Math.floor(baseCoins * (1 + streakMultiplier));
+
+      // Award rewards
+      await database.users.updateXP(userId, xpReward);
+      await database.users.updateCoins(userId, coinReward, 'Daily reward');
+
+      // Update streak in user data
+      await database.client.user.update({
+        where: { id: userId },
+        data: {
+          dailyStreak: currentStreak,
+          lastDaily: new Date(),
+        },
+      });
+
+      // Update coins using the database service method (handles transaction creation)
+      await database.users.updateCoins(userId, coinReward, 'Daily reward');
+
+      // Update XP using the database service method
+      await database.users.updateXP(userId, xpReward);
+
+      const embed = HawkEmbedBuilder.createSuccess(
+        `${HAWK_EMOJIS.ECONOMY.REWARD} Recompensa Diária Resgatada!`,
+        'Parabéns! Você resgatou sua recompensa diária.'
+      )
+        .addFields(
+          { name: `${HAWK_EMOJIS.SYSTEM.STAR} XP Ganho`, value: `+${xpReward} XP`, inline: true },
+          {
+            name: `${HAWK_EMOJIS.ECONOMY.COIN} Moedas Ganhas`,
+            value: `+${coinReward} moedas`,
+            inline: true,
+          },
+          {
+            name: `${HAWK_EMOJIS.SYSTEM.STREAK} Sequência`,
+            value: `${currentStreak} dias`,
+            inline: true,
+          }
+        )
+        .setFooter({ text: 'Volte amanhã para continuar sua sequência!' });
+
+      if (currentStreak > 1) {
+        embed.addFields({
+          name: `${HAWK_EMOJIS.SYSTEM.BOOST} Bônus de Sequência`,
+          value: `+${Math.floor(streakMultiplier * 100)}% de bônus por ${currentStreak} dias consecutivos!`,
+          inline: false,
+        });
+      }
 
       await interaction.editReply({ embeds: [embed] });
-      return;
+
+      this.logger.info(
+        `Daily reward claimed by user ${userId}: ${xpReward} XP, ${coinReward} coins (streak: ${currentStreak})`
+      );
+    } catch (error) {
+      this.logger.error('Error claiming daily reward:', error);
+      throw error;
     }
-
-    // Calculate streak
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    const yesterdayClaim = await database.client.transaction.findFirst({
-      where: {
-        userId,
-        reason: 'Daily reward',
-        createdAt: {
-          gte: yesterday,
-          lt: today,
-        },
-      },
-    });
-
-    // Get current streak from user data or calculate
-    const userData = await database.users.findById(userId);
-    let currentStreak = 1;
-
-    if (yesterdayClaim && userData?.dailyStreak) {
-      currentStreak = userData.dailyStreak + 1;
-    }
-
-    // Calculate rewards based on streak
-    const baseXP = 50;
-    const baseCoins = 25;
-    const streakMultiplier = Math.min(currentStreak * 0.1, 2); // Max 2x multiplier
-
-    const xpReward = Math.floor(baseXP * (1 + streakMultiplier));
-    const coinReward = Math.floor(baseCoins * (1 + streakMultiplier));
-
-    // Award rewards
-    await database.users.updateXP(userId, xpReward);
-    await database.users.updateCoins(userId, coinReward, 'Daily reward');
-
-    // Update streak in user data
-    await database.client.user.update({
-      where: { id: userId },
-      data: {
-        dailyStreak: currentStreak,
-        lastDaily: new Date(),
-      },
-    });
-
-    // Update coins using the database service method (handles transaction creation)
-    await database.users.updateCoins(userId, coinReward, 'Daily reward');
-
-    // Update XP using the database service method
-    await database.users.updateXP(userId, xpReward);
-
-    const embed = HawkEmbedBuilder.createSuccess(
-      `${HAWK_EMOJIS.ECONOMY.REWARD} Recompensa Diária Resgatada!`,
-      'Parabéns! Você resgatou sua recompensa diária.',
-    )
-      .addFields(
-        { name: `${HAWK_EMOJIS.SYSTEM.STAR} XP Ganho`, value: `+${xpReward} XP`, inline: true },
-        { name: `${HAWK_EMOJIS.ECONOMY.COIN} Moedas Ganhas`, value: `+${coinReward} moedas`, inline: true },
-        { name: `${HAWK_EMOJIS.SYSTEM.STREAK} Sequência`, value: `${currentStreak} dias`, inline: true },
-      )
-      .setFooter({ text: 'Volte amanhã para continuar sua sequência!' });
-
-    if (currentStreak > 1) {
-      embed.addFields({
-        name: `${HAWK_EMOJIS.SYSTEM.BOOST} Bônus de Sequência`,
-        value: `+${Math.floor(streakMultiplier * 100)}% de bônus por ${currentStreak} dias consecutivos!`,
-        inline: false,
-      });
-    }
-
-    await interaction.editReply({ embeds: [embed] });
-
-    this.logger.info(
-      `Daily reward claimed by user ${userId}: ${xpReward} XP, ${coinReward} coins (streak: ${currentStreak})`,
-    );
-  } catch (error) {
-    this.logger.error('Error claiming daily reward:', error);
-    throw error;
-  }
   }
 
   /**
@@ -518,7 +542,7 @@ export const command = {
   data: commandInstance.data,
   category: commandInstance.category,
   cooldown: commandInstance.cooldown,
-  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) => 
+  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) =>
     commandInstance.execute(interaction, client),
 };
 

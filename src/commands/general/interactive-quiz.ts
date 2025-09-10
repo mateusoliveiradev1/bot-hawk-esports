@@ -1,6 +1,23 @@
-import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, ComponentType, ChatInputCommandInteraction, User, TextChannel } from 'discord.js';
+import {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  StringSelectMenuBuilder,
+  ComponentType,
+  ChatInputCommandInteraction,
+  User,
+  TextChannel,
+} from 'discord.js';
 import { ExtendedClient } from '../../types/client';
-import { InteractiveQuizService, QuizSession, QuizSettings, QuizCategory, QuizQuestion } from '../../services/interactive-quiz.service';
+import {
+  InteractiveQuizService,
+  QuizSession,
+  QuizSettings,
+  QuizCategory,
+  QuizQuestion,
+} from '../../services/interactive-quiz.service';
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -21,8 +38,8 @@ module.exports = {
               { name: '🏆 PUBG - Esports & Competitivo', value: 'pubg_esports' },
               { name: '⚙️ PUBG - Mecânicas & Sistema', value: 'pubg_mechanics' },
               { name: '🎮 Gaming Geral', value: 'gaming_general' },
-              { name: '🎯 Esports Geral', value: 'esports_general' },
-            ),
+              { name: '🎯 Esports Geral', value: 'esports_general' }
+            )
         )
         .addStringOption(option =>
           option
@@ -34,8 +51,8 @@ module.exports = {
               { name: '🟡 Médio', value: 'medium' },
               { name: '🔴 Difícil', value: 'hard' },
               { name: '🌈 Misto', value: 'mixed' },
-              { name: '🧠 Adaptativo', value: 'adaptive' },
-            ),
+              { name: '🧠 Adaptativo', value: 'adaptive' }
+            )
         )
         .addIntegerOption(option =>
           option
@@ -43,7 +60,7 @@ module.exports = {
             .setDescription('Número de perguntas (5-50)')
             .setRequired(false)
             .setMinValue(5)
-            .setMaxValue(50),
+            .setMaxValue(50)
         )
         .addIntegerOption(option =>
           option
@@ -51,7 +68,7 @@ module.exports = {
             .setDescription('Tempo por pergunta em segundos (10-120)')
             .setRequired(false)
             .setMinValue(10)
-            .setMaxValue(120),
+            .setMaxValue(120)
         )
         .addIntegerOption(option =>
           option
@@ -59,59 +76,47 @@ module.exports = {
             .setDescription('Máximo de participantes (2-20)')
             .setRequired(false)
             .setMinValue(2)
-            .setMaxValue(20),
+            .setMaxValue(20)
         )
         .addBooleanOption(option =>
-          option
-            .setName('dicas')
-            .setDescription('Permitir dicas durante o quiz')
-            .setRequired(false),
+          option.setName('dicas').setDescription('Permitir dicas durante o quiz').setRequired(false)
         )
         .addBooleanOption(option =>
           option
             .setName('explicacoes')
             .setDescription('Mostrar explicações após cada pergunta')
-            .setRequired(false),
+            .setRequired(false)
         )
         .addBooleanOption(option =>
           option
             .setName('power-ups')
             .setDescription('Habilitar power-ups durante o quiz')
-            .setRequired(false),
-        ),
+            .setRequired(false)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('participar')
         .setDescription('Participar de uma sessão de quiz ativa')
         .addStringOption(option =>
-          option
-            .setName('sessao')
-            .setDescription('ID da sessão de quiz')
-            .setRequired(true),
-        ),
+          option.setName('sessao').setDescription('ID da sessão de quiz').setRequired(true)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('iniciar')
         .setDescription('Iniciar uma sessão de quiz criada')
         .addStringOption(option =>
-          option
-            .setName('sessao')
-            .setDescription('ID da sessão de quiz')
-            .setRequired(true),
-        ),
+          option.setName('sessao').setDescription('ID da sessão de quiz').setRequired(true)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('status')
         .setDescription('Ver status de uma sessão de quiz')
         .addStringOption(option =>
-          option
-            .setName('sessao')
-            .setDescription('ID da sessão de quiz')
-            .setRequired(true),
-        ),
+          option.setName('sessao').setDescription('ID da sessão de quiz').setRequired(true)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -121,8 +126,8 @@ module.exports = {
           option
             .setName('usuario')
             .setDescription('Usuário para ver estatísticas (deixe vazio para suas próprias)')
-            .setRequired(false),
-        ),
+            .setRequired(false)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -139,30 +144,25 @@ module.exports = {
               { name: '🏆 PUBG - Esports & Competitivo', value: 'pubg_esports' },
               { name: '⚙️ PUBG - Mecânicas & Sistema', value: 'pubg_mechanics' },
               { name: '🎮 Gaming Geral', value: 'gaming_general' },
-              { name: '🎯 Esports Geral', value: 'esports_general' },
-            ),
-        ),
+              { name: '🎯 Esports Geral', value: 'esports_general' }
+            )
+        )
     )
     .addSubcommand(subcommand =>
-      subcommand
-        .setName('categorias')
-        .setDescription('Ver todas as categorias disponíveis'),
+      subcommand.setName('categorias').setDescription('Ver todas as categorias disponíveis')
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('adicionar-pergunta')
         .setDescription('Adicionar uma pergunta personalizada (Admin apenas)')
         .addStringOption(option =>
-          option
-            .setName('pergunta')
-            .setDescription('Texto da pergunta')
-            .setRequired(true),
+          option.setName('pergunta').setDescription('Texto da pergunta').setRequired(true)
         )
         .addStringOption(option =>
           option
             .setName('opcoes')
             .setDescription('Opções separadas por | (ex: Opção1|Opção2|Opção3|Opção4)')
-            .setRequired(true),
+            .setRequired(true)
         )
         .addIntegerOption(option =>
           option
@@ -170,7 +170,7 @@ module.exports = {
             .setDescription('Índice da resposta correta (1-4)')
             .setRequired(true)
             .setMinValue(1)
-            .setMaxValue(4),
+            .setMaxValue(4)
         )
         .addStringOption(option =>
           option
@@ -183,8 +183,8 @@ module.exports = {
               { name: '🏆 PUBG - Esports & Competitivo', value: 'pubg_esports' },
               { name: '⚙️ PUBG - Mecânicas & Sistema', value: 'pubg_mechanics' },
               { name: '🎮 Gaming Geral', value: 'gaming_general' },
-              { name: '🎯 Esports Geral', value: 'esports_general' },
-            ),
+              { name: '🎯 Esports Geral', value: 'esports_general' }
+            )
         )
         .addStringOption(option =>
           option
@@ -195,14 +195,14 @@ module.exports = {
               { name: '🟢 Fácil', value: 'easy' },
               { name: '🟡 Médio', value: 'medium' },
               { name: '🔴 Difícil', value: 'hard' },
-              { name: '⚫ Expert', value: 'expert' },
-            ),
+              { name: '⚫ Expert', value: 'expert' }
+            )
         )
         .addStringOption(option =>
           option
             .setName('explicacao')
             .setDescription('Explicação da resposta correta')
-            .setRequired(false),
+            .setRequired(false)
         )
         .addIntegerOption(option =>
           option
@@ -210,7 +210,7 @@ module.exports = {
             .setDescription('Pontos da pergunta (5-50)')
             .setRequired(false)
             .setMinValue(5)
-            .setMaxValue(50),
+            .setMaxValue(50)
         )
         .addIntegerOption(option =>
           option
@@ -218,8 +218,8 @@ module.exports = {
             .setDescription('Tempo limite em segundos (10-120)')
             .setRequired(false)
             .setMinValue(10)
-            .setMaxValue(120),
-        ),
+            .setMaxValue(120)
+        )
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
@@ -269,9 +269,9 @@ module.exports = {
       }
     } catch (error: any) {
       console.error('Error in interactive quiz command:', error);
-      
+
       const errorMessage = error.message || 'Ocorreu um erro inesperado.';
-      
+
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp({
           content: `❌ ${errorMessage}`,
@@ -286,7 +286,10 @@ module.exports = {
     }
   },
 
-  async handleCreateQuiz(interaction: ChatInputCommandInteraction, quizService: InteractiveQuizService) {
+  async handleCreateQuiz(
+    interaction: ChatInputCommandInteraction,
+    quizService: InteractiveQuizService
+  ) {
     const category = interaction.options.getString('categoria', true);
     const difficulty = interaction.options.getString('dificuldade') || 'mixed';
     const questionCount = interaction.options.getInteger('perguntas') || 10;
@@ -312,17 +315,17 @@ module.exports = {
       interaction.user.id,
       interaction.channelId,
       interaction.guildId!,
-      settings,
+      settings
     );
 
     const categoryInfo = quizService.getCategories().find(c => c.id === category);
     const difficultyEmoji = {
-      'easy': '🟢',
-      'medium': '🟡',
-      'hard': '🔴',
-      'expert': '⚫',
-      'mixed': '🌈',
-      'adaptive': '🧠',
+      easy: '🟢',
+      medium: '🟡',
+      hard: '🔴',
+      expert: '⚫',
+      mixed: '🌈',
+      adaptive: '🧠',
     };
 
     const embed = new EmbedBuilder()
@@ -367,9 +370,9 @@ module.exports = {
             enablePowerUps ? '⚡ Power-ups habilitados' : '🚫 Power-ups desabilitados',
           ].join('\n'),
           inline: false,
-        },
+        }
       )
-      .setColor(categoryInfo?.color || 0x00AE86)
+      .setColor(categoryInfo?.color || 0x00ae86)
       .setFooter({ text: 'Use /quiz-interativo participar para entrar na sessão!' })
       .setTimestamp();
 
@@ -388,8 +391,11 @@ module.exports = {
       .setLabel('📊 Status')
       .setStyle(ButtonStyle.Secondary);
 
-    const row = new ActionRowBuilder<ButtonBuilder>()
-      .addComponents(joinButton, startButton, statusButton);
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      joinButton,
+      startButton,
+      statusButton
+    );
 
     await interaction.reply({
       embeds: [embed],
@@ -402,7 +408,7 @@ module.exports = {
       time: 600000, // 10 minutes
     });
 
-    collector?.on('collect', async (buttonInteraction) => {
+    collector?.on('collect', async buttonInteraction => {
       if (buttonInteraction.customId.startsWith('quiz_join_')) {
         await this.handleJoinButton(buttonInteraction, quizService, session.id);
       } else if (buttonInteraction.customId.startsWith('quiz_start_')) {
@@ -413,11 +419,14 @@ module.exports = {
     });
   },
 
-  async handleJoinQuiz(interaction: ChatInputCommandInteraction, quizService: InteractiveQuizService) {
+  async handleJoinQuiz(
+    interaction: ChatInputCommandInteraction,
+    quizService: InteractiveQuizService
+  ) {
     const sessionId = interaction.options.getString('sessao', true);
-    
+
     const joined = await quizService.joinQuizSession(sessionId, interaction.user);
-    
+
     if (joined) {
       await interaction.reply({
         content: '✅ Você entrou na sessão de quiz com sucesso!',
@@ -431,10 +440,13 @@ module.exports = {
     }
   },
 
-  async handleStartQuiz(interaction: ChatInputCommandInteraction, quizService: InteractiveQuizService) {
+  async handleStartQuiz(
+    interaction: ChatInputCommandInteraction,
+    quizService: InteractiveQuizService
+  ) {
     const sessionId = interaction.options.getString('sessao', true);
     const session = quizService.getQuizSession(sessionId);
-    
+
     if (!session) {
       return interaction.reply({
         content: '❌ Sessão de quiz não encontrada.',
@@ -450,7 +462,7 @@ module.exports = {
     }
 
     await quizService.startQuizSession(sessionId);
-    
+
     await interaction.reply({
       content: '🚀 Quiz iniciado! A primeira pergunta será enviada em breve.',
       ephemeral: true,
@@ -460,10 +472,13 @@ module.exports = {
     await this.runQuizLoop(interaction.channel as TextChannel, quizService, sessionId);
   },
 
-  async handleQuizStatus(interaction: ChatInputCommandInteraction, quizService: InteractiveQuizService) {
+  async handleQuizStatus(
+    interaction: ChatInputCommandInteraction,
+    quizService: InteractiveQuizService
+  ) {
     const sessionId = interaction.options.getString('sessao', true);
     const session = quizService.getQuizSession(sessionId);
-    
+
     if (!session) {
       return interaction.reply({
         content: '❌ Sessão de quiz não encontrada.',
@@ -472,10 +487,10 @@ module.exports = {
     }
 
     const statusEmoji = {
-      'waiting': '⏳',
-      'active': '🔴',
-      'paused': '⏸️',
-      'finished': '✅',
+      waiting: '⏳',
+      active: '🔴',
+      paused: '⏸️',
+      finished: '✅',
     };
 
     const embed = new EmbedBuilder()
@@ -496,9 +511,9 @@ module.exports = {
           name: '❓ Progresso',
           value: `${session.currentQuestionIndex}/${session.questions.length}`,
           inline: true,
-        },
+        }
       )
-      .setColor(0x00AE86)
+      .setColor(0x00ae86)
       .setTimestamp();
 
     if (session.participants.size > 0) {
@@ -506,7 +521,7 @@ module.exports = {
         .map(p => `• ${p.username} - ${p.score} pts`)
         .slice(0, 10)
         .join('\n');
-      
+
       embed.addFields({
         name: '🏆 Participantes',
         value: participantsList || 'Nenhum participante',
@@ -520,7 +535,10 @@ module.exports = {
     });
   },
 
-  async handleUserStats(interaction: ChatInputCommandInteraction, quizService: InteractiveQuizService) {
+  async handleUserStats(
+    interaction: ChatInputCommandInteraction,
+    quizService: InteractiveQuizService
+  ) {
     const targetUser = interaction.options.getUser('usuario') || interaction.user;
     const stats = await quizService.getUserStats(targetUser.id);
 
@@ -557,9 +575,9 @@ module.exports = {
           name: '⏱️ Tempo Total',
           value: `${Math.round(stats.totalTimeSpent / 60)} min`,
           inline: true,
-        },
+        }
       )
-      .setColor(0x00AE86)
+      .setColor(0x00ae86)
       .setTimestamp();
 
     if (stats.achievements.length > 0) {
@@ -567,7 +585,7 @@ module.exports = {
         .slice(0, 5)
         .map(a => `${a.icon} ${a.name}`)
         .join('\n');
-      
+
       embed.addFields({
         name: '🏆 Conquistas Recentes',
         value: achievementsList,
@@ -581,7 +599,10 @@ module.exports = {
     });
   },
 
-  async handleLeaderboard(interaction: ChatInputCommandInteraction, quizService: InteractiveQuizService) {
+  async handleLeaderboard(
+    interaction: ChatInputCommandInteraction,
+    quizService: InteractiveQuizService
+  ) {
     const category = interaction.options.getString('categoria', true);
     const leaderboard = await quizService.getCategoryLeaderboard(category, 10);
 
@@ -590,7 +611,7 @@ module.exports = {
     const embed = new EmbedBuilder()
       .setTitle(`🏆 Ranking - ${categoryInfo?.name}`)
       .setDescription('Top 10 jogadores nesta categoria')
-      .setColor(categoryInfo?.color || 0x00AE86)
+      .setColor(categoryInfo?.color || 0x00ae86)
       .setTimestamp();
 
     if (leaderboard.length === 0) {
@@ -620,21 +641,24 @@ module.exports = {
     });
   },
 
-  async handleCategories(interaction: ChatInputCommandInteraction, quizService: InteractiveQuizService) {
+  async handleCategories(
+    interaction: ChatInputCommandInteraction,
+    quizService: InteractiveQuizService
+  ) {
     const categories = quizService.getCategories();
 
     const embed = new EmbedBuilder()
       .setTitle('📚 Categorias de Quiz Disponíveis')
       .setDescription('Escolha uma categoria para seus quizzes!')
-      .setColor(0x00AE86)
+      .setColor(0x00ae86)
       .setTimestamp();
 
     for (const category of categories) {
       const difficultyText = {
-        'easy': '🟢 Fácil',
-        'medium': '🟡 Médio',
-        'hard': '🔴 Difícil',
-        'mixed': '🌈 Misto',
+        easy: '🟢 Fácil',
+        medium: '🟡 Médio',
+        hard: '🔴 Difícil',
+        mixed: '🌈 Misto',
       };
 
       embed.addFields({
@@ -655,7 +679,10 @@ module.exports = {
     });
   },
 
-  async handleAddQuestion(interaction: ChatInputCommandInteraction, quizService: InteractiveQuizService) {
+  async handleAddQuestion(
+    interaction: ChatInputCommandInteraction,
+    quizService: InteractiveQuizService
+  ) {
     // Check if user has admin permissions
     if (!interaction.memberPermissions?.has('Administrator')) {
       return interaction.reply({
@@ -674,7 +701,7 @@ module.exports = {
     const timeLimit = interaction.options.getInteger('tempo') || 30;
 
     const options = optionsStr.split('|').map(opt => opt.trim());
-    
+
     if (options.length < 2 || options.length > 4) {
       return interaction.reply({
         content: '❌ Você deve fornecer entre 2 e 4 opções separadas por |',
@@ -730,9 +757,9 @@ module.exports = {
             name: '⚡ Dificuldade',
             value: difficulty,
             inline: true,
-          },
+          }
         )
-        .setColor(0x00FF00)
+        .setColor(0x00ff00)
         .setTimestamp();
 
       if (explanation) {
@@ -755,10 +782,14 @@ module.exports = {
     }
   },
 
-  async handleJoinButton(buttonInteraction: any, quizService: InteractiveQuizService, sessionId: string) {
+  async handleJoinButton(
+    buttonInteraction: any,
+    quizService: InteractiveQuizService,
+    sessionId: string
+  ) {
     try {
       const joined = await quizService.joinQuizSession(sessionId, buttonInteraction.user);
-      
+
       if (joined) {
         await buttonInteraction.reply({
           content: '✅ Você entrou na sessão de quiz com sucesso!',
@@ -778,9 +809,13 @@ module.exports = {
     }
   },
 
-  async handleStartButton(buttonInteraction: any, quizService: InteractiveQuizService, sessionId: string) {
+  async handleStartButton(
+    buttonInteraction: any,
+    quizService: InteractiveQuizService,
+    sessionId: string
+  ) {
     const session = quizService.getQuizSession(sessionId);
-    
+
     if (!session) {
       return buttonInteraction.reply({
         content: '❌ Sessão de quiz não encontrada.',
@@ -797,7 +832,7 @@ module.exports = {
 
     try {
       await quizService.startQuizSession(sessionId);
-      
+
       await buttonInteraction.reply({
         content: '🚀 Quiz iniciado! A primeira pergunta será enviada em breve.',
         ephemeral: true,
@@ -813,9 +848,13 @@ module.exports = {
     }
   },
 
-  async handleStatusButton(buttonInteraction: any, quizService: InteractiveQuizService, sessionId: string) {
+  async handleStatusButton(
+    buttonInteraction: any,
+    quizService: InteractiveQuizService,
+    sessionId: string
+  ) {
     const session = quizService.getQuizSession(sessionId);
-    
+
     if (!session) {
       return buttonInteraction.reply({
         content: '❌ Sessão de quiz não encontrada.',
@@ -824,10 +863,10 @@ module.exports = {
     }
 
     const statusEmoji = {
-      'waiting': '⏳',
-      'active': '🔴',
-      'paused': '⏸️',
-      'finished': '✅',
+      waiting: '⏳',
+      active: '🔴',
+      paused: '⏸️',
+      finished: '✅',
     };
 
     const embed = new EmbedBuilder()
@@ -848,9 +887,9 @@ module.exports = {
           name: '❓ Progresso',
           value: `${session.currentQuestionIndex}/${session.questions.length}`,
           inline: true,
-        },
+        }
       )
-      .setColor(0x00AE86)
+      .setColor(0x00ae86)
       .setTimestamp();
 
     if (session.participants.size > 0) {
@@ -858,7 +897,7 @@ module.exports = {
         .map(p => `• ${p.username} - ${p.score} pts`)
         .slice(0, 10)
         .join('\n');
-      
+
       embed.addFields({
         name: '🏆 Participantes',
         value: participantsList || 'Nenhum participante',
@@ -874,11 +913,15 @@ module.exports = {
 
   async runQuizLoop(channel: TextChannel, quizService: InteractiveQuizService, sessionId: string) {
     const session = quizService.getQuizSession(sessionId);
-    if (!session) {return;}
+    if (!session) {
+      return;
+    }
 
     while (session.status === 'active') {
       const currentQuestion = quizService.getCurrentQuestion(sessionId);
-      if (!currentQuestion) {break;}
+      if (!currentQuestion) {
+        break;
+      }
 
       // Send question
       const questionEmbed = new EmbedBuilder()
@@ -889,26 +932,30 @@ module.exports = {
             name: `${String.fromCharCode(65 + index)}. ${option}`,
             value: '\u200b',
             inline: false,
-          })),
+          }))
         )
-        .setColor(0x00AE86)
-        .setFooter({ text: `⏱️ ${currentQuestion.timeLimit} segundos | 💎 ${currentQuestion.points} pontos` })
+        .setColor(0x00ae86)
+        .setFooter({
+          text: `⏱️ ${currentQuestion.timeLimit} segundos | 💎 ${currentQuestion.points} pontos`,
+        })
         .setTimestamp();
 
       if (currentQuestion.imageUrl) {
         questionEmbed.setImage(currentQuestion.imageUrl);
       }
 
-      const answerButtons = currentQuestion.options.map((_, index) => 
+      const answerButtons = currentQuestion.options.map((_, index) =>
         new ButtonBuilder()
           .setCustomId(`answer_${sessionId}_${index}`)
           .setLabel(String.fromCharCode(65 + index))
-          .setStyle(ButtonStyle.Primary),
+          .setStyle(ButtonStyle.Primary)
       );
 
       const rows = [];
       for (let i = 0; i < answerButtons.length; i += 5) {
-        rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(answerButtons.slice(i, i + 5)));
+        rows.push(
+          new ActionRowBuilder<ButtonBuilder>().addComponents(answerButtons.slice(i, i + 5))
+        );
       }
 
       const questionMessage = await channel.send({
@@ -924,8 +971,10 @@ module.exports = {
 
       const answeredUsers = new Set<string>();
 
-      answerCollector.on('collect', async (answerInteraction) => {
-        if (!answerInteraction.customId.startsWith(`answer_${sessionId}_`)) {return;}
+      answerCollector.on('collect', async answerInteraction => {
+        if (!answerInteraction.customId.startsWith(`answer_${sessionId}_`)) {
+          return;
+        }
         if (answeredUsers.has(answerInteraction.user.id)) {
           return answerInteraction.reply({
             content: '⚠️ Você já respondeu esta pergunta!',
@@ -937,12 +986,17 @@ module.exports = {
         const responseTime = (Date.now() - questionMessage.createdTimestamp) / 1000;
 
         try {
-          const result = await quizService.submitAnswer(sessionId, answerInteraction.user.id, answerIndex, responseTime);
+          const result = await quizService.submitAnswer(
+            sessionId,
+            answerInteraction.user.id,
+            answerIndex,
+            responseTime
+          );
           answeredUsers.add(answerInteraction.user.id);
 
           const resultEmoji = result.correct ? '✅' : '❌';
-          const responseText = result.correct 
-            ? `${resultEmoji} Correto! +${result.points} pontos` 
+          const responseText = result.correct
+            ? `${resultEmoji} Correto! +${result.points} pontos`
             : `${resultEmoji} Incorreto!`;
 
           await answerInteraction.reply({
@@ -965,8 +1019,10 @@ module.exports = {
       const correctOption = currentQuestion.options[currentQuestion.correctAnswer];
       const resultEmbed = new EmbedBuilder()
         .setTitle('📊 Resultado da Pergunta')
-        .setDescription(`**Resposta Correta:** ${String.fromCharCode(65 + currentQuestion.correctAnswer)}. ${correctOption}`)
-        .setColor(0x00FF00)
+        .setDescription(
+          `**Resposta Correta:** ${String.fromCharCode(65 + currentQuestion.correctAnswer)}. ${correctOption}`
+        )
+        .setColor(0x00ff00)
         .setTimestamp();
 
       if (currentQuestion.explanation) {
@@ -998,7 +1054,9 @@ module.exports = {
 
       // Move to next question
       const hasNext = await quizService.nextQuestion(sessionId);
-      if (!hasNext) {break;}
+      if (!hasNext) {
+        break;
+      }
 
       // Wait before next question
       await new Promise(resolve => setTimeout(resolve, 3000));
@@ -1008,14 +1066,20 @@ module.exports = {
     await this.showFinalResults(channel, quizService, sessionId);
   },
 
-  async showFinalResults(channel: TextChannel, quizService: InteractiveQuizService, sessionId: string) {
+  async showFinalResults(
+    channel: TextChannel,
+    quizService: InteractiveQuizService,
+    sessionId: string
+  ) {
     const session = quizService.getQuizSession(sessionId);
-    if (!session) {return;}
+    if (!session) {
+      return;
+    }
 
     const finalEmbed = new EmbedBuilder()
       .setTitle('🏁 Quiz Finalizado!')
       .setDescription('Parabéns a todos os participantes!')
-      .setColor(0xFFD700)
+      .setColor(0xffd700)
       .setTimestamp();
 
     if (session.leaderboard.length > 0) {
@@ -1034,7 +1098,8 @@ module.exports = {
       });
 
       if (session.leaderboard.length > 3) {
-        const others = session.leaderboard.slice(3, 10)
+        const others = session.leaderboard
+          .slice(3, 10)
           .map((p, i) => `${i + 4}. ${p.username} - ${p.score} pts`)
           .join('\n');
 
@@ -1048,21 +1113,20 @@ module.exports = {
       }
     }
 
-    const duration = session.endTime ? 
-      Math.round((session.endTime.getTime() - session.startTime.getTime()) / 1000 / 60) : 0;
+    const duration = session.endTime
+      ? Math.round((session.endTime.getTime() - session.startTime.getTime()) / 1000 / 60)
+      : 0;
 
-    finalEmbed.addFields(
-      {
-        name: '📈 Estatísticas da Sessão',
-        value: [
-          `⏱️ Duração: ${duration} minutos`,
-          `👥 Participantes: ${session.participants.size}`,
-          `❓ Perguntas: ${session.questions.length}`,
-          `🎁 Prêmio Total: ${session.totalPrizePool} moedas`,
-        ].join('\n'),
-        inline: false,
-      },
-    );
+    finalEmbed.addFields({
+      name: '📈 Estatísticas da Sessão',
+      value: [
+        `⏱️ Duração: ${duration} minutos`,
+        `👥 Participantes: ${session.participants.size}`,
+        `❓ Perguntas: ${session.questions.length}`,
+        `🎁 Prêmio Total: ${session.totalPrizePool} moedas`,
+      ].join('\n'),
+      inline: false,
+    });
 
     await channel.send({ embeds: [finalEmbed] });
   },

@@ -86,10 +86,17 @@ const mockStructuredLogger = {
 const mockClient = {
   isReady: jest.fn().mockReturnValue(true),
   guilds: {
-    cache: new Map([['guild1', {}], ['guild2', {}]]),
+    cache: new Map([
+      ['guild1', {}],
+      ['guild2', {}],
+    ]),
   },
   users: {
-    cache: new Map([['user1', {}], ['user2', {}], ['user3', {}]]),
+    cache: new Map([
+      ['user1', {}],
+      ['user2', {}],
+      ['user3', {}],
+    ]),
   },
   ws: {
     ping: 50,
@@ -128,7 +135,7 @@ describe('HealthService', () => {
   beforeEach(() => {
     // Reset all mocks
     jest.clearAllMocks();
-    
+
     // Reset mock implementations
     mockDatabaseService.healthCheck.mockResolvedValue(true);
     mockCacheService.get.mockResolvedValue('test-123');
@@ -137,10 +144,10 @@ describe('HealthService', () => {
       api: true,
       cache: true,
     });
-    
+
     // Reset HealthService singleton
     (HealthService as any).instance = null;
-    
+
     healthService = HealthService.getInstance(
       mockClient,
       mockDatabaseService,
@@ -165,7 +172,7 @@ describe('HealthService', () => {
         mockAlertConfig,
         mockLoggerConfig
       );
-      
+
       const instance2 = HealthService.getInstance(
         mockClient,
         mockDatabaseService,
@@ -192,7 +199,7 @@ describe('HealthService', () => {
       });
 
       healthService.registerService('test-service', mockHealthChecker);
-      
+
       const availableServices = healthService.getAvailableServices();
       expect(availableServices).toContain('test-service');
     });
@@ -207,9 +214,9 @@ describe('HealthService', () => {
       });
 
       healthService.registerService('test-service', mockHealthChecker);
-      
+
       healthService.unregisterService('test-service');
-      
+
       const availableServices = healthService.getAvailableServices();
       expect(availableServices).not.toContain('test-service');
     });
@@ -219,7 +226,7 @@ describe('HealthService', () => {
     it('should perform comprehensive health check with all services healthy', async () => {
       // Mock all services as healthy
       mockCacheService.get.mockResolvedValue('test-123');
-      
+
       const healthStatus = await healthService.performHealthCheck();
 
       expect(healthStatus.overall).toBe('healthy');
@@ -233,7 +240,7 @@ describe('HealthService', () => {
     it('should detect degraded status when some services fail', async () => {
       // Make one service unhealthy
       mockDatabaseService.healthCheck.mockResolvedValue(false);
-      
+
       const healthStatus = await healthService.performHealthCheck();
       expect(healthStatus.overall).toBe('degraded');
       expect(healthStatus.services.some(s => s.status === 'unhealthy')).toBe(true);
@@ -243,7 +250,7 @@ describe('HealthService', () => {
       // Make multiple services fail
       mockDatabaseService.healthCheck.mockResolvedValue(false);
       mockCacheService.get.mockRejectedValue(new Error('Cache error'));
-      
+
       const healthStatus = await healthService.performHealthCheck();
 
       expect(healthStatus.overall).toBe('unhealthy');
@@ -253,7 +260,7 @@ describe('HealthService', () => {
     it('should handle service health check errors gracefully', async () => {
       // Make a service throw an error
       mockDatabaseService.healthCheck.mockRejectedValue(new Error('Connection timeout'));
-      
+
       const healthStatus = await healthService.performHealthCheck();
 
       const databaseService = healthStatus.services.find(s => s.name === 'Database');
@@ -265,7 +272,7 @@ describe('HealthService', () => {
   describe('Individual Service Health Checks', () => {
     it('should check database service health', async () => {
       mockDatabaseService.healthCheck.mockResolvedValue(true);
-      
+
       const serviceHealth = await healthService.getServiceHealth('database');
       expect(serviceHealth).toBeDefined();
       expect(serviceHealth?.status).toBe('healthy');
@@ -275,7 +282,7 @@ describe('HealthService', () => {
 
     it('should check cache service health', async () => {
       mockCacheService.get.mockResolvedValue('test-value');
-      
+
       const serviceHealth = await healthService.getServiceHealth('cache');
       expect(serviceHealth).toBeDefined();
       expect(serviceHealth?.name).toBe('Cache');
@@ -285,7 +292,7 @@ describe('HealthService', () => {
 
     it('should return null for non-existent service', async () => {
       const serviceHealth = await healthService.getServiceHealth('non-existent');
-      
+
       expect(serviceHealth).toBeNull();
     });
   });
@@ -293,9 +300,9 @@ describe('HealthService', () => {
   describe('System Health Status', () => {
     it('should return true when system is healthy', async () => {
       await healthService.performHealthCheck();
-      
+
       const isHealthy = healthService.isSystemHealthy();
-      
+
       expect(isHealthy).toBe(true);
     });
 
@@ -303,11 +310,11 @@ describe('HealthService', () => {
       // Make services fail
       mockDatabaseService.healthCheck.mockResolvedValue(false);
       mockCacheService.get.mockRejectedValue(new Error('Cache error'));
-      
+
       await healthService.performHealthCheck();
-      
+
       const isHealthy = healthService.isSystemHealthy();
-      
+
       expect(isHealthy).toBe(false);
     });
   });
@@ -316,7 +323,7 @@ describe('HealthService', () => {
     it('should record health check metrics', async () => {
       const MockedMetricsService = require('../../src/services/metrics.service').MetricsService;
       const mockInstance = MockedMetricsService.mock.results[0]?.value;
-      
+
       await healthService.performHealthCheck();
 
       expect(mockInstance?.recordMetric).toHaveBeenCalled();

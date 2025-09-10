@@ -72,7 +72,7 @@ export class MemberEvents {
       if (this.client.services?.onboarding) {
         const stats = await this.client.services.onboarding.getWelcomeStats(member.guild.id);
         this.logger.info(
-          `Guild ${member.guild.name} stats - Total: ${stats.totalMembers}, Verified: ${stats.verifiedMembers}`,
+          `Guild ${member.guild.name} stats - Total: ${stats.totalMembers}, Verified: ${stats.verifiedMembers}`
         );
       }
     } catch (error) {
@@ -85,7 +85,7 @@ export class MemberEvents {
    */
   private async handleMemberUpdate(
     oldMember: GuildMember | PartialGuildMember,
-    newMember: GuildMember,
+    newMember: GuildMember
   ): Promise<void> {
     try {
       // Detect changes
@@ -155,7 +155,7 @@ export class MemberEvents {
         // If member lost verification
         if (wasVerified && !isVerified) {
           this.logger.info(
-            `❌ Member unverified: ${newMember.user.tag} in ${newMember.guild.name}`,
+            `❌ Member unverified: ${newMember.user.tag} in ${newMember.guild.name}`
           );
 
           // Update verification status in database

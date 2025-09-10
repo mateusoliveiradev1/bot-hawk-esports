@@ -161,7 +161,7 @@ export class LoggingService {
 
   constructor(
     private client: ExtendedClient,
-    private database: DatabaseService,
+    private database: DatabaseService
   ) {
     // Validate dependencies
     if (!client) {
@@ -397,7 +397,7 @@ export class LoggingService {
             this.logger.error(`Failed to process log entry ${entry.id}:`, error);
             return { success: false, entry, error };
           }
-        }),
+        })
       );
 
       const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
@@ -405,7 +405,7 @@ export class LoggingService {
 
       if (failureCount > 0) {
         this.logger.warn(
-          `Processed ${processedCount} log entries: ${successCount} successful, ${failureCount} failed`,
+          `Processed ${processedCount} log entries: ${successCount} successful, ${failureCount} failed`
         );
       }
     } catch (error) {
@@ -448,7 +448,7 @@ export class LoggingService {
 
       if (!channelId) {
         this.logger.debug(
-          `No log channel configured for type ${entry.type} in guild ${entry.guildId}`,
+          `No log channel configured for type ${entry.type} in guild ${entry.guildId}`
         );
         return;
       }
@@ -542,285 +542,495 @@ export class LoggingService {
 
     switch (entry.type) {
       case LogType.MESSAGE_DELETE:
-        return HawkEmbedBuilder.createError(
-          'Mensagem Deletada',
-          entry.content,
-        )
-        .addFields(
-          { name: `${HAWK_EMOJIS.USER} Autor`, value: entry.metadata?.author || 'Desconhecido', inline: true },
-          { name: `${HAWK_EMOJIS.CHANNEL} Canal`, value: entry.metadata?.channel || 'Desconhecido', inline: true },
-        )
-        .setTimestamp(entry.timestamp)
-        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
+        return HawkEmbedBuilder.createError('Mensagem Deletada', entry.content)
+          .addFields(
+            {
+              name: `${HAWK_EMOJIS.USER} Autor`,
+              value: entry.metadata?.author || 'Desconhecido',
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.CHANNEL} Canal`,
+              value: entry.metadata?.channel || 'Desconhecido',
+              inline: true,
+            }
+          )
+          .setTimestamp(entry.timestamp)
+          .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       case LogType.MESSAGE_EDIT:
         return HawkEmbedBuilder.createWarning(
           'Mensagem Editada',
-          `${HAWK_EMOJIS.EDIT} Uma mensagem foi modificada`,
+          `${HAWK_EMOJIS.EDIT} Uma mensagem foi modificada`
         )
-        .addFields(
-          { name: `${HAWK_EMOJIS.USER} Autor`, value: entry.metadata?.author || 'Desconhecido', inline: true },
-          { name: `${HAWK_EMOJIS.CHANNEL} Canal`, value: entry.metadata?.channel || 'Desconhecido', inline: true },
-          {
-            name: `${HAWK_EMOJIS.LOG} Antes`,
-            value: entry.metadata?.oldContent?.substring(0, 1024) || 'Sem conteúdo',
-            inline: false,
-          },
-          {
-            name: `${HAWK_EMOJIS.LOG} Depois`,
-            value: entry.metadata?.newContent?.substring(0, 1024) || 'Sem conteúdo',
-            inline: false,
-          },
-        )
-        .setTimestamp(entry.timestamp)
-        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
+          .addFields(
+            {
+              name: `${HAWK_EMOJIS.USER} Autor`,
+              value: entry.metadata?.author || 'Desconhecido',
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.CHANNEL} Canal`,
+              value: entry.metadata?.channel || 'Desconhecido',
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.LOG} Antes`,
+              value: entry.metadata?.oldContent?.substring(0, 1024) || 'Sem conteúdo',
+              inline: false,
+            },
+            {
+              name: `${HAWK_EMOJIS.LOG} Depois`,
+              value: entry.metadata?.newContent?.substring(0, 1024) || 'Sem conteúdo',
+              inline: false,
+            }
+          )
+          .setTimestamp(entry.timestamp)
+          .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       case LogType.MEMBER_JOIN:
         return HawkEmbedBuilder.createSuccess(
           'Membro Entrou',
-          `${HAWK_EMOJIS.ADD} ${entry.content}`,
+          `${HAWK_EMOJIS.ADD} ${entry.content}`
         )
-        .addFields(
-          { name: `${HAWK_EMOJIS.USER} Usuário`, value: entry.metadata?.user || 'Desconhecido', inline: true },
-          {
-            name: `${HAWK_EMOJIS.TIMER} Conta Criada`,
-            value: entry.metadata?.accountAge || 'Desconhecido',
-            inline: true,
-          },
-          {
-            name: `${HAWK_EMOJIS.STATS} Total de Membros`,
-            value: entry.metadata?.memberCount?.toString() || '0',
-            inline: true,
-          },
-        )
-        .setTimestamp(entry.timestamp)
-        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
+          .addFields(
+            {
+              name: `${HAWK_EMOJIS.USER} Usuário`,
+              value: entry.metadata?.user || 'Desconhecido',
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.TIMER} Conta Criada`,
+              value: entry.metadata?.accountAge || 'Desconhecido',
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.STATS} Total de Membros`,
+              value: entry.metadata?.memberCount?.toString() || '0',
+              inline: true,
+            }
+          )
+          .setTimestamp(entry.timestamp)
+          .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       case LogType.MEMBER_LEAVE:
         return HawkEmbedBuilder.createWarning(
           'Membro Saiu',
-          `${HAWK_EMOJIS.REMOVE} ${entry.content}`,
+          `${HAWK_EMOJIS.REMOVE} ${entry.content}`
         )
-        .addFields(
-          { name: `${HAWK_EMOJIS.USER} Usuário`, value: entry.metadata?.user || 'Desconhecido', inline: true },
-          {
-            name: `${HAWK_EMOJIS.TIMER} Tempo no Servidor`,
-            value: entry.metadata?.timeInServer || 'Desconhecido',
-            inline: true,
-          },
-          {
-            name: `${HAWK_EMOJIS.STATS} Total de Membros`,
-            value: entry.metadata?.memberCount?.toString() || '0',
-            inline: true,
-          },
-        )
-        .setTimestamp(entry.timestamp)
-        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
+          .addFields(
+            {
+              name: `${HAWK_EMOJIS.USER} Usuário`,
+              value: entry.metadata?.user || 'Desconhecido',
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.TIMER} Tempo no Servidor`,
+              value: entry.metadata?.timeInServer || 'Desconhecido',
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.STATS} Total de Membros`,
+              value: entry.metadata?.memberCount?.toString() || '0',
+              inline: true,
+            }
+          )
+          .setTimestamp(entry.timestamp)
+          .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       case LogType.MODERATION_WARN:
       case LogType.MODERATION_MUTE:
       case LogType.MODERATION_KICK:
       case LogType.MODERATION_BAN:
         const moderationAction = entry.type.split('_')[1]?.toUpperCase() || 'MODERAÇÃO';
-        const moderationEmoji = {
-          'WARN': HAWK_EMOJIS.WARNING,
-        'MUTE': HAWK_EMOJIS.MUTE,
-        'KICK': HAWK_EMOJIS.REMOVE,
-        'BAN': HAWK_EMOJIS.BANNED,
-      }[moderationAction] || HAWK_EMOJIS.WARNING;
-        
+        const moderationEmoji =
+          {
+            WARN: HAWK_EMOJIS.WARNING,
+            MUTE: HAWK_EMOJIS.MUTE,
+            KICK: HAWK_EMOJIS.REMOVE,
+            BAN: HAWK_EMOJIS.BANNED,
+          }[moderationAction] || HAWK_EMOJIS.WARNING;
+
         return HawkEmbedBuilder.createError(
           `${moderationAction} Aplicado`,
-          `${moderationEmoji} ${entry.content}`,
+          `${moderationEmoji} ${entry.content}`
         )
-        .addFields(
-          { name: `${HAWK_EMOJIS.USER} Usuário`, value: entry.metadata?.target || 'Desconhecido', inline: true },
-          {
-            name: `${HAWK_EMOJIS.MODERATOR} Moderador`,
-            value: entry.metadata?.moderator || 'Desconhecido',
-            inline: true,
-          },
-          {
-            name: `${HAWK_EMOJIS.LOG} Motivo`,
-            value: entry.metadata?.reason || 'Não especificado',
-            inline: false,
-          },
-        )
-        .setTimestamp(entry.timestamp)
-        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
+          .addFields(
+            {
+              name: `${HAWK_EMOJIS.USER} Usuário`,
+              value: entry.metadata?.target || 'Desconhecido',
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.MODERATOR} Moderador`,
+              value: entry.metadata?.moderator || 'Desconhecido',
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.LOG} Motivo`,
+              value: entry.metadata?.reason || 'Não especificado',
+              inline: false,
+            }
+          )
+          .setTimestamp(entry.timestamp)
+          .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       case LogType.TICKET_CREATE:
         return HawkEmbedBuilder.createSuccess(
           'Ticket Criado',
-          `${HAWK_EMOJIS.TICKET} ${entry.content}`,
+          `${HAWK_EMOJIS.TICKET} ${entry.content}`
         )
-        .addFields(
-          { name: `${HAWK_EMOJIS.USER} Usuário`, value: entry.metadata?.user || 'Desconhecido', inline: true },
-          { name: `${HAWK_EMOJIS.CHANNEL} Canal`, value: entry.metadata?.channel || 'Desconhecido', inline: true },
-          { name: `${HAWK_EMOJIS.TICKET} Título`, value: entry.metadata?.title || 'Sem título', inline: false },
-          {
-            name: `${HAWK_EMOJIS.TICKET} Descrição`,
-            value: entry.metadata?.description?.substring(0, 1024) || 'Sem descrição',
-            inline: false,
-          },
-          { name: `${HAWK_EMOJIS.STAR} Prioridade`, value: entry.metadata?.priority || 'Baixa', inline: true },
-        )
-        .setTimestamp(entry.timestamp)
-        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
+          .addFields(
+            {
+              name: `${HAWK_EMOJIS.USER} Usuário`,
+              value: entry.metadata?.user || 'Desconhecido',
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.CHANNEL} Canal`,
+              value: entry.metadata?.channel || 'Desconhecido',
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.TICKET} Título`,
+              value: entry.metadata?.title || 'Sem título',
+              inline: false,
+            },
+            {
+              name: `${HAWK_EMOJIS.TICKET} Descrição`,
+              value: entry.metadata?.description?.substring(0, 1024) || 'Sem descrição',
+              inline: false,
+            },
+            {
+              name: `${HAWK_EMOJIS.STAR} Prioridade`,
+              value: entry.metadata?.priority || 'Baixa',
+              inline: true,
+            }
+          )
+          .setTimestamp(entry.timestamp)
+          .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       case LogType.TICKET_CLOSE:
         return HawkEmbedBuilder.createWarning(
           'Ticket Fechado',
-          `${HAWK_EMOJIS.TICKET} ${entry.content}`,
+          `${HAWK_EMOJIS.TICKET} ${entry.content}`
         )
-        .addFields(
-          { name: `${HAWK_EMOJIS.USER} Usuário`, value: entry.metadata?.user || 'Desconhecido', inline: true },
-          { name: `${HAWK_EMOJIS.MODERATOR} Fechado por`, value: entry.metadata?.closedBy || 'Sistema', inline: true },
-          { name: `${HAWK_EMOJIS.CHANNEL} Canal`, value: entry.metadata?.channel || 'Desconhecido', inline: true },
-          {
-            name: `${HAWK_EMOJIS.LOG} Motivo`,
-            value: entry.metadata?.reason || 'Não especificado',
-            inline: false,
-          },
-          { name: `${HAWK_EMOJIS.TIMER} Duração`, value: entry.metadata?.duration || 'Desconhecido', inline: true },
-        )
-        .setTimestamp(entry.timestamp)
-        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
+          .addFields(
+            {
+              name: `${HAWK_EMOJIS.USER} Usuário`,
+              value: entry.metadata?.user || 'Desconhecido',
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.MODERATOR} Fechado por`,
+              value: entry.metadata?.closedBy || 'Sistema',
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.CHANNEL} Canal`,
+              value: entry.metadata?.channel || 'Desconhecido',
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.LOG} Motivo`,
+              value: entry.metadata?.reason || 'Não especificado',
+              inline: false,
+            },
+            {
+              name: `${HAWK_EMOJIS.TIMER} Duração`,
+              value: entry.metadata?.duration || 'Desconhecido',
+              inline: true,
+            }
+          )
+          .setTimestamp(entry.timestamp)
+          .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       case LogType.CHANGELOG:
-        return HawkEmbedBuilder.createInfo(
-          'Changelog',
-          `${HAWK_EMOJIS.LOG} ${entry.content}`,
-        )
-        .addFields(
-          { name: `${HAWK_EMOJIS.LOG} Versão`, value: entry.metadata?.version || 'N/A', inline: true },
-          { name: `${HAWK_EMOJIS.LOG} Tipo`, value: entry.metadata?.type || 'N/A', inline: true },
-          { name: `${HAWK_EMOJIS.ADMIN} Autor`, value: entry.metadata?.author || 'Sistema', inline: true },
-        )
-        .setTimestamp(entry.timestamp)
-        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
+        return HawkEmbedBuilder.createInfo('Changelog', `${HAWK_EMOJIS.LOG} ${entry.content}`)
+          .addFields(
+            {
+              name: `${HAWK_EMOJIS.LOG} Versão`,
+              value: entry.metadata?.version || 'N/A',
+              inline: true,
+            },
+            { name: `${HAWK_EMOJIS.LOG} Tipo`, value: entry.metadata?.type || 'N/A', inline: true },
+            {
+              name: `${HAWK_EMOJIS.ADMIN} Autor`,
+              value: entry.metadata?.author || 'Sistema',
+              inline: true,
+            }
+          )
+          .setTimestamp(entry.timestamp)
+          .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       case LogType.API_SUCCESS:
         return HawkEmbedBuilder.createSuccess(
           'API Success',
-          `${HAWK_EMOJIS.SUCCESS} ${entry.content}`,
+          `${HAWK_EMOJIS.SUCCESS} ${entry.content}`
         )
-        .addFields(
-          { name: `${HAWK_EMOJIS.SETTINGS} Serviço`, value: entry.metadata?.service || 'API', inline: true },
-          { name: `${HAWK_EMOJIS.SETTINGS} Operação`, value: entry.metadata?.operation || 'N/A', inline: true },
-          { name: `${HAWK_EMOJIS.SUCCESS} Status`, value: entry.metadata?.status || 'Success', inline: true },
-          ...(entry.metadata?.method
-            ? [{ name: `${HAWK_EMOJIS.SETTINGS} Método`, value: entry.metadata.method, inline: true }]
-            : []),
-          ...(entry.metadata?.endpoint
-            ? [{ name: `${HAWK_EMOJIS.LINK} Endpoint`, value: entry.metadata.endpoint, inline: true }]
-            : []),
-          ...(entry.metadata?.statusCode
-            ? [{ name: `${HAWK_EMOJIS.INFO} Código`, value: entry.metadata.statusCode.toString(), inline: true }]
-            : []),
-          ...(entry.metadata?.responseTime
-            ? [{ name: `${HAWK_EMOJIS.TIMER} Tempo`, value: `${entry.metadata.responseTime}ms`, inline: true }]
-            : []),
-          ...(entry.metadata?.playerId
-            ? [{ name: `${HAWK_EMOJIS.USER} Player ID`, value: entry.metadata.playerId, inline: true }]
-            : []),
-          ...(entry.metadata?.playerName
-            ? [{ name: `${HAWK_EMOJIS.PROFILE} Nome`, value: entry.metadata.playerName, inline: true }]
-            : []),
-          ...(entry.metadata?.platform
-            ? [{ name: `${HAWK_EMOJIS.GAME} Plataforma`, value: entry.metadata.platform, inline: true }]
-            : []),
-          ...(entry.metadata?.badgeType
-            ? [{ name: `${HAWK_EMOJIS.BADGE} Badge`, value: entry.metadata.badgeType, inline: true }]
-            : []),
-          ...(entry.metadata?.weaponName
-            ? [{ name: `${HAWK_EMOJIS.WEAPON} Arma`, value: entry.metadata.weaponName, inline: true }]
-            : []),
-        )
-        .setTimestamp(entry.timestamp)
-        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
+          .addFields(
+            {
+              name: `${HAWK_EMOJIS.SETTINGS} Serviço`,
+              value: entry.metadata?.service || 'API',
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.SETTINGS} Operação`,
+              value: entry.metadata?.operation || 'N/A',
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.SUCCESS} Status`,
+              value: entry.metadata?.status || 'Success',
+              inline: true,
+            },
+            ...(entry.metadata?.method
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.SETTINGS} Método`,
+                    value: entry.metadata.method,
+                    inline: true,
+                  },
+                ]
+              : []),
+            ...(entry.metadata?.endpoint
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.LINK} Endpoint`,
+                    value: entry.metadata.endpoint,
+                    inline: true,
+                  },
+                ]
+              : []),
+            ...(entry.metadata?.statusCode
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.INFO} Código`,
+                    value: entry.metadata.statusCode.toString(),
+                    inline: true,
+                  },
+                ]
+              : []),
+            ...(entry.metadata?.responseTime
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.TIMER} Tempo`,
+                    value: `${entry.metadata.responseTime}ms`,
+                    inline: true,
+                  },
+                ]
+              : []),
+            ...(entry.metadata?.playerId
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.USER} Player ID`,
+                    value: entry.metadata.playerId,
+                    inline: true,
+                  },
+                ]
+              : []),
+            ...(entry.metadata?.playerName
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.PROFILE} Nome`,
+                    value: entry.metadata.playerName,
+                    inline: true,
+                  },
+                ]
+              : []),
+            ...(entry.metadata?.platform
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.GAME} Plataforma`,
+                    value: entry.metadata.platform,
+                    inline: true,
+                  },
+                ]
+              : []),
+            ...(entry.metadata?.badgeType
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.BADGE} Badge`,
+                    value: entry.metadata.badgeType,
+                    inline: true,
+                  },
+                ]
+              : []),
+            ...(entry.metadata?.weaponName
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.WEAPON} Arma`,
+                    value: entry.metadata.weaponName,
+                    inline: true,
+                  },
+                ]
+              : [])
+          )
+          .setTimestamp(entry.timestamp)
+          .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       case LogType.API_ERROR:
-        return HawkEmbedBuilder.createError(
-          `${HAWK_EMOJIS.LOG} API Error`,
-          entry.content,
-        )
-        .addFields(
-          { name: `${HAWK_EMOJIS.LOG} Serviço`, value: entry.metadata?.service || 'API', inline: true },
-          { name: `${HAWK_EMOJIS.LOG} Operação`, value: entry.metadata?.operation || 'N/A', inline: true },
-          { name: `${HAWK_EMOJIS.LOG} Status`, value: entry.metadata?.status || 'Error', inline: true },
-          ...(entry.metadata?.method
-            ? [{ name: `${HAWK_EMOJIS.LOG} Método`, value: entry.metadata.method, inline: true }]
-            : []),
-          ...(entry.metadata?.endpoint
-            ? [{ name: `${HAWK_EMOJIS.LOG} Endpoint`, value: entry.metadata.endpoint, inline: true }]
-            : []),
-          ...(entry.metadata?.statusCode
-            ? [{ name: `${HAWK_EMOJIS.LOG} Código`, value: entry.metadata.statusCode.toString(), inline: true }]
-            : []),
-          ...(entry.metadata?.responseTime
-            ? [{ name: `${HAWK_EMOJIS.LOG} Tempo`, value: `${entry.metadata.responseTime}ms`, inline: true }]
-            : []),
-          ...(entry.metadata?.playerId
-            ? [{ name: `${HAWK_EMOJIS.LOG} Player ID`, value: entry.metadata.playerId, inline: true }]
-            : []),
-          ...(entry.metadata?.playerName
-            ? [{ name: `${HAWK_EMOJIS.LOG} Nome`, value: entry.metadata.playerName, inline: true }]
-            : []),
-          ...(entry.metadata?.platform
-            ? [{ name: `${HAWK_EMOJIS.LOG} Plataforma`, value: entry.metadata.platform, inline: true }]
-            : []),
-          ...(entry.metadata?.badgeType
-            ? [{ name: `${HAWK_EMOJIS.LOG} Badge`, value: entry.metadata.badgeType, inline: true }]
-            : []),
-          ...(entry.metadata?.weaponName
-            ? [{ name: `${HAWK_EMOJIS.LOG} Arma`, value: entry.metadata.weaponName, inline: true }]
-            : []),
-          ...(entry.metadata?.error
-            ? [
-                {
-                  name: `${HAWK_EMOJIS.LOG} Erro`,
-                  value: `\`\`\`${entry.metadata.error.substring(0, 1000)}\`\`\``,
-                  inline: false,
-                },
-              ]
-            : []),
-        )
-        .setTimestamp(entry.timestamp)
-        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
+        return HawkEmbedBuilder.createError(`${HAWK_EMOJIS.LOG} API Error`, entry.content)
+          .addFields(
+            {
+              name: `${HAWK_EMOJIS.LOG} Serviço`,
+              value: entry.metadata?.service || 'API',
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.LOG} Operação`,
+              value: entry.metadata?.operation || 'N/A',
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.LOG} Status`,
+              value: entry.metadata?.status || 'Error',
+              inline: true,
+            },
+            ...(entry.metadata?.method
+              ? [{ name: `${HAWK_EMOJIS.LOG} Método`, value: entry.metadata.method, inline: true }]
+              : []),
+            ...(entry.metadata?.endpoint
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.LOG} Endpoint`,
+                    value: entry.metadata.endpoint,
+                    inline: true,
+                  },
+                ]
+              : []),
+            ...(entry.metadata?.statusCode
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.LOG} Código`,
+                    value: entry.metadata.statusCode.toString(),
+                    inline: true,
+                  },
+                ]
+              : []),
+            ...(entry.metadata?.responseTime
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.LOG} Tempo`,
+                    value: `${entry.metadata.responseTime}ms`,
+                    inline: true,
+                  },
+                ]
+              : []),
+            ...(entry.metadata?.playerId
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.LOG} Player ID`,
+                    value: entry.metadata.playerId,
+                    inline: true,
+                  },
+                ]
+              : []),
+            ...(entry.metadata?.playerName
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.LOG} Nome`,
+                    value: entry.metadata.playerName,
+                    inline: true,
+                  },
+                ]
+              : []),
+            ...(entry.metadata?.platform
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.LOG} Plataforma`,
+                    value: entry.metadata.platform,
+                    inline: true,
+                  },
+                ]
+              : []),
+            ...(entry.metadata?.badgeType
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.LOG} Badge`,
+                    value: entry.metadata.badgeType,
+                    inline: true,
+                  },
+                ]
+              : []),
+            ...(entry.metadata?.weaponName
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.LOG} Arma`,
+                    value: entry.metadata.weaponName,
+                    inline: true,
+                  },
+                ]
+              : []),
+            ...(entry.metadata?.error
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.LOG} Erro`,
+                    value: `\`\`\`${entry.metadata.error.substring(0, 1000)}\`\`\``,
+                    inline: false,
+                  },
+                ]
+              : [])
+          )
+          .setTimestamp(entry.timestamp)
+          .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       case LogType.API_REQUEST:
-        return HawkEmbedBuilder.createInfo(
-          `${HAWK_EMOJIS.LOG} API Request`,
-          entry.content,
-        )
-        .addFields(
-          { name: `${HAWK_EMOJIS.LOG} Serviço`, value: entry.metadata?.service || 'API', inline: true },
-          { name: `${HAWK_EMOJIS.LOG} Operação`, value: entry.metadata?.operation || 'N/A', inline: true },
-          { name: `${HAWK_EMOJIS.LOG} Status`, value: entry.metadata?.status || 'Processing', inline: true },
-          ...(entry.metadata?.method
-            ? [{ name: `${HAWK_EMOJIS.LOG} Método`, value: entry.metadata.method, inline: true }]
-            : []),
-          ...(entry.metadata?.endpoint
-            ? [{ name: `${HAWK_EMOJIS.LOG} Endpoint`, value: entry.metadata.endpoint, inline: true }]
-            : []),
-          ...(entry.metadata?.statusCode
-            ? [{ name: `${HAWK_EMOJIS.LOG} Código`, value: entry.metadata.statusCode.toString(), inline: true }]
-            : []),
-          ...(entry.metadata?.responseTime
-            ? [{ name: `${HAWK_EMOJIS.LOG} Tempo`, value: `${entry.metadata.responseTime}ms`, inline: true }]
-            : []),
-        )
-        .setTimestamp(entry.timestamp)
-        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
+        return HawkEmbedBuilder.createInfo(`${HAWK_EMOJIS.LOG} API Request`, entry.content)
+          .addFields(
+            {
+              name: `${HAWK_EMOJIS.LOG} Serviço`,
+              value: entry.metadata?.service || 'API',
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.LOG} Operação`,
+              value: entry.metadata?.operation || 'N/A',
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.LOG} Status`,
+              value: entry.metadata?.status || 'Processing',
+              inline: true,
+            },
+            ...(entry.metadata?.method
+              ? [{ name: `${HAWK_EMOJIS.LOG} Método`, value: entry.metadata.method, inline: true }]
+              : []),
+            ...(entry.metadata?.endpoint
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.LOG} Endpoint`,
+                    value: entry.metadata.endpoint,
+                    inline: true,
+                  },
+                ]
+              : []),
+            ...(entry.metadata?.statusCode
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.LOG} Código`,
+                    value: entry.metadata.statusCode.toString(),
+                    inline: true,
+                  },
+                ]
+              : []),
+            ...(entry.metadata?.responseTime
+              ? [
+                  {
+                    name: `${HAWK_EMOJIS.LOG} Tempo`,
+                    value: `${entry.metadata.responseTime}ms`,
+                    inline: true,
+                  },
+                ]
+              : [])
+          )
+          .setTimestamp(entry.timestamp)
+          .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
 
       default:
-        return HawkEmbedBuilder.createInfo(
-          `${HAWK_EMOJIS.LOG} Log do Servidor`,
-          entry.content,
-        )
-        .setTimestamp(entry.timestamp)
-        .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
+        return HawkEmbedBuilder.createInfo(`${HAWK_EMOJIS.LOG} Log do Servidor`, entry.content)
+          .setTimestamp(entry.timestamp)
+          .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
     }
   }
 
@@ -877,7 +1087,7 @@ export class LoggingService {
         message.guild.id,
         LogType.MESSAGE_DELETE,
         message.author?.id,
-        message.channel.id,
+        message.channel.id
       )
     ) {
       return;
@@ -905,7 +1115,7 @@ export class LoggingService {
 
   private async handleMessageUpdate(
     oldMessage: Message | PartialMessage,
-    newMessage: Message | PartialMessage,
+    newMessage: Message | PartialMessage
   ): Promise<void> {
     if (oldMessage.partial || newMessage.partial || !newMessage.guild) {
       return;
@@ -918,7 +1128,7 @@ export class LoggingService {
         newMessage.guild.id,
         LogType.MESSAGE_EDIT,
         newMessage.author?.id,
-        newMessage.channel.id,
+        newMessage.channel.id
       )
     ) {
       return;
@@ -968,7 +1178,7 @@ export class LoggingService {
     }
 
     const accountAge = Math.floor(
-      (Date.now() - member.user.createdTimestamp) / (1000 * 60 * 60 * 24),
+      (Date.now() - member.user.createdTimestamp) / (1000 * 60 * 60 * 24)
     );
 
     await this.queueLog({
@@ -1011,7 +1221,7 @@ export class LoggingService {
 
   private async handleMemberUpdate(
     oldMember: GuildMember | PartialGuildMember,
-    newMember: GuildMember,
+    newMember: GuildMember
   ): Promise<void> {
     if (!this.shouldLog(newMember.guild.id, LogType.MEMBER_UPDATE, newMember.id)) {
       return;
@@ -1021,14 +1231,14 @@ export class LoggingService {
 
     if (oldMember.nickname !== newMember.nickname) {
       changes.push(
-        `Apelido: ${oldMember.nickname || 'Nenhum'} → ${newMember.nickname || 'Nenhum'}`,
+        `Apelido: ${oldMember.nickname || 'Nenhum'} → ${newMember.nickname || 'Nenhum'}`
       );
     }
 
     if (oldMember.roles.cache.size !== newMember.roles.cache.size) {
       const addedRoles = newMember.roles.cache.filter(role => !oldMember.roles.cache.has(role.id));
       const removedRoles = oldMember.roles.cache.filter(
-        role => !newMember.roles.cache.has(role.id),
+        role => !newMember.roles.cache.has(role.id)
       );
 
       if (addedRoles.size > 0) {
@@ -1370,7 +1580,7 @@ export class LoggingService {
     userId: string,
     action: string,
     reason: string,
-    metadata?: any,
+    metadata?: any
   ): Promise<void> {
     await this.queueLog({
       guildId,
@@ -1495,7 +1705,7 @@ export class LoggingService {
     statusCode: number,
     responseTime: number,
     userId?: string,
-    additionalData?: any,
+    additionalData?: any
   ): Promise<void> {
     const logType = statusCode >= 400 ? LogType.API_ERROR : LogType.API_SUCCESS;
     const status = statusCode >= 400 ? 'Error' : 'Success';
@@ -1529,7 +1739,7 @@ export class LoggingService {
     success: boolean = true,
     responseTime?: number,
     error?: string,
-    additionalData?: any,
+    additionalData?: any
   ): Promise<void> {
     const logType = success ? LogType.API_SUCCESS : LogType.API_ERROR;
     const status = success ? 'Success' : 'Error';
@@ -1563,7 +1773,7 @@ export class LoggingService {
     badgeType?: string,
     success: boolean = true,
     error?: string,
-    additionalData?: any,
+    additionalData?: any
   ): Promise<void> {
     const logType = success ? LogType.API_SUCCESS : LogType.API_ERROR;
     const status = success ? 'Success' : 'Error';
@@ -1595,7 +1805,7 @@ export class LoggingService {
     weaponName?: string,
     success: boolean = true,
     error?: string,
-    additionalData?: any,
+    additionalData?: any
   ): Promise<void> {
     const logType = success ? LogType.API_SUCCESS : LogType.API_ERROR;
     const status = success ? 'Success' : 'Error';
@@ -1627,7 +1837,7 @@ export class LoggingService {
     success: boolean = true,
     userId?: string,
     error?: string,
-    additionalData?: any,
+    additionalData?: any
   ): Promise<void> {
     const logType = success ? LogType.API_SUCCESS : LogType.API_ERROR;
     const status = success ? 'Success' : 'Error';
@@ -1666,7 +1876,7 @@ export class LoggingService {
       duration?: number;
       xpAwarded?: number;
       coinsAwarded?: number;
-    },
+    }
   ): Promise<void> {
     const logTypes = {
       start: LogType.QUIZ_START,
@@ -1709,7 +1919,7 @@ export class LoggingService {
       xpAwarded?: number;
       coinsAwarded?: number;
       difficulty?: string;
-    },
+    }
   ): Promise<void> {
     const logTypes = {
       start: LogType.MINIGAME_START,
@@ -1751,7 +1961,7 @@ export class LoggingService {
       source?: string;
       reason?: string;
       multiplier?: number;
-    },
+    }
   ): Promise<void> {
     const logTypes = {
       xp: LogType.XP_AWARDED,
@@ -1794,7 +2004,7 @@ export class LoggingService {
       totalUsers?: number;
       topUsers?: string[];
       snapshotId?: string;
-    },
+    }
   ): Promise<void> {
     const logTypes = {
       update: LogType.RANKING_UPDATE,
@@ -1803,7 +2013,7 @@ export class LoggingService {
     };
 
     const content = {
-      update: data.userId 
+      update: data.userId
         ? `Ranking atualizado para <@${data.userId}> (${data.oldRank || 0} → ${data.newRank || 0})`
         : `Rankings atualizados para ${data.totalUsers || 0} usuários`,
       snapshot: `Snapshot de estatísticas criado (${data.period || 'período desconhecido'})`,
@@ -1834,7 +2044,7 @@ export class LoggingService {
       newValue: number;
       change?: number;
       source?: string;
-    },
+    }
   ): Promise<void> {
     await this.queueLog({
       guildId,
@@ -1864,7 +2074,7 @@ export class LoggingService {
       threshold?: number;
       status?: 'normal' | 'warning' | 'critical';
       details?: any;
-    },
+    }
   ): Promise<void> {
     const status = metric.status || 'normal';
     const content = `Métrica ${metric.name}: ${metric.value}${metric.unit || ''} (${status})`;
@@ -1898,7 +2108,7 @@ export class LoggingService {
       cpuUsage?: number;
       activeConnections?: number;
       queueSizes?: { [key: string]: number };
-    },
+    }
   ): Promise<void> {
     const content = `Status do sistema: ${healthData.status.toUpperCase()}`;
 
@@ -1927,7 +2137,7 @@ export class LoggingService {
       // Process remaining queue items before shutdown
       if (this.logQueue.length > 0) {
         this.logger.info(
-          `Processing ${this.logQueue.length} remaining log entries before shutdown`,
+          `Processing ${this.logQueue.length} remaining log entries before shutdown`
         );
         this.processLogQueue().catch(error => {
           this.logger.error('Error processing final queue batch:', error);

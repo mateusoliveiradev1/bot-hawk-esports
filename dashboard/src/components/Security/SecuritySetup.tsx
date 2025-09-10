@@ -35,7 +35,7 @@ const SecuritySetup: React.FC = () => {
     try {
       const response = await fetch('/api/auth/captcha');
       const data = await response.json();
-      
+
       if (data.success) {
         setCaptcha(data.data);
         setCaptchaVerified(false);
@@ -48,8 +48,10 @@ const SecuritySetup: React.FC = () => {
   };
 
   const verifyCaptcha = async () => {
-    if (!captcha || !captchaAnswer) {return;}
-    
+    if (!captcha || !captchaAnswer) {
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await fetch('/api/auth/captcha/verify', {
@@ -62,9 +64,9 @@ const SecuritySetup: React.FC = () => {
           answer: captchaAnswer,
         }),
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success && data.data.valid) {
         setCaptchaVerified(true);
         setSuccess('CAPTCHA verificado com sucesso!');
@@ -93,13 +95,13 @@ const SecuritySetup: React.FC = () => {
       const response = await fetch('/api/auth/2fa/setup', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setTwoFASetup(data.data);
         setSuccess('2FA configurado! Escaneie o QR Code com seu app autenticador.');
@@ -120,21 +122,21 @@ const SecuritySetup: React.FC = () => {
       setError('Digite o código do seu app autenticador');
       return;
     }
-    
+
     setLoading(true);
     try {
       const token = localStorage.getItem('accessToken');
       const response = await fetch('/api/auth/2fa/enable', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ token: twoFAToken }),
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setTwoFAEnabled(true);
         setSuccess('2FA ativado com sucesso!');
@@ -159,13 +161,13 @@ const SecuritySetup: React.FC = () => {
       const response = await fetch('/api/auth/2fa/disable', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setTwoFAEnabled(false);
         setSuccess('2FA desativado com sucesso!');
@@ -190,43 +192,45 @@ const SecuritySetup: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className='space-y-6'>
       {/* CAPTCHA Verification */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
+          <CardTitle className='flex items-center gap-2'>
+            <Shield className='h-5 w-5' />
             Verificação Anti-Bot
           </CardTitle>
           <CardDescription>
             Complete a verificação CAPTCHA para provar que você é humano
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className='space-y-4'>
           {captcha && (
-            <div className="flex flex-col items-center space-y-4">
-              <div 
-                className="border rounded-lg p-4 bg-white"
+            <div className='flex flex-col items-center space-y-4'>
+              <div
+                className='border rounded-lg p-4 bg-white'
                 dangerouslySetInnerHTML={{ __html: captcha.svg }}
               />
-              <div className="flex gap-2 w-full max-w-sm">
+              <div className='flex gap-2 w-full max-w-sm'>
                 <input
-                  type="text"
-                  placeholder="Digite o código do CAPTCHA"
+                  type='text'
+                  placeholder='Digite o código do CAPTCHA'
                   value={captchaAnswer}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCaptchaAnswer(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setCaptchaAnswer(e.target.value)
+                  }
                   disabled={captchaVerified}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className='flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                 />
-                <Button 
-                  onClick={verifyCaptcha} 
+                <Button
+                  onClick={verifyCaptcha}
                   disabled={loading || captchaVerified || !captchaAnswer}
                 >
-                  {captchaVerified ? <Check className="h-4 w-4" /> : 'Verificar'}
+                  {captchaVerified ? <Check className='h-4 w-4' /> : 'Verificar'}
                 </Button>
               </div>
               {!captchaVerified && (
-                <Button variant="outline" onClick={generateCaptcha}>
+                <Button variant='outline' onClick={generateCaptcha}>
                   Gerar Novo CAPTCHA
                 </Button>
               )}
@@ -238,15 +242,13 @@ const SecuritySetup: React.FC = () => {
       {/* Two-Factor Authentication */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Key className="h-5 w-5" />
+          <CardTitle className='flex items-center gap-2'>
+            <Key className='h-5 w-5' />
             Autenticação de Dois Fatores (2FA)
           </CardTitle>
-          <CardDescription>
-            Adicione uma camada extra de segurança à sua conta
-          </CardDescription>
+          <CardDescription>Adicione uma camada extra de segurança à sua conta</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className='space-y-4'>
           {!twoFAEnabled && !twoFASetup && (
             <Button onClick={setup2FA} disabled={loading || !captchaVerified}>
               Configurar 2FA
@@ -254,33 +256,31 @@ const SecuritySetup: React.FC = () => {
           )}
 
           {twoFASetup && (
-            <div className="space-y-4">
-              <div className="text-center">
-                <QrCode className="h-8 w-8 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground mb-4">
+            <div className='space-y-4'>
+              <div className='text-center'>
+                <QrCode className='h-8 w-8 mx-auto mb-2' />
+                <p className='text-sm text-muted-foreground mb-4'>
                   Escaneie este QR Code com seu app autenticador
                 </p>
-                <img 
-                  src={twoFASetup.qrCode} 
-                  alt="QR Code para 2FA" 
-                  className="mx-auto border rounded-lg"
+                <img
+                  src={twoFASetup.qrCode}
+                  alt='QR Code para 2FA'
+                  className='mx-auto border rounded-lg'
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-medium mb-2">Códigos de Backup</label>
-                <div className="bg-muted p-3 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">Salve estes códigos em local seguro:</span>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={copyBackupCodes}
-                    >
-                      {copiedCodes ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              <div className='space-y-2'>
+                <label className='block text-sm font-medium mb-2'>Códigos de Backup</label>
+                <div className='bg-muted p-3 rounded-lg'>
+                  <div className='flex justify-between items-center mb-2'>
+                    <span className='text-sm font-medium'>
+                      Salve estes códigos em local seguro:
+                    </span>
+                    <Button variant='outline' size='sm' onClick={copyBackupCodes}>
+                      {copiedCodes ? <Check className='h-4 w-4' /> : <Copy className='h-4 w-4' />}
                     </Button>
                   </div>
-                  <div className="grid grid-cols-2 gap-1 text-sm font-mono">
+                  <div className='grid grid-cols-2 gap-1 text-sm font-mono'>
                     {twoFASetup.backupCodes.map((code, index) => (
                       <div key={index}>{code}</div>
                     ))}
@@ -288,16 +288,18 @@ const SecuritySetup: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-medium mb-2">Código do App Autenticador</label>
-                <div className="flex gap-2">
+              <div className='space-y-2'>
+                <label className='block text-sm font-medium mb-2'>Código do App Autenticador</label>
+                <div className='flex gap-2'>
                   <input
-                    type="text"
-                    placeholder="000000"
+                    type='text'
+                    placeholder='000000'
                     value={twoFAToken}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTwoFAToken(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setTwoFAToken(e.target.value)
+                    }
                     maxLength={6}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className='flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                   />
                   <Button onClick={enable2FA} disabled={loading || !twoFAToken}>
                     Ativar 2FA
@@ -308,14 +310,14 @@ const SecuritySetup: React.FC = () => {
           )}
 
           {twoFAEnabled && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <Shield className="h-4 w-4 text-green-600" />
-                <span className="text-green-800">
+            <div className='space-y-4'>
+              <div className='flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg'>
+                <Shield className='h-4 w-4 text-green-600' />
+                <span className='text-green-800'>
                   2FA está ativo em sua conta. Sua conta está protegida!
                 </span>
               </div>
-              <Button variant="destructive" onClick={disable2FA} disabled={loading}>
+              <Button variant='destructive' onClick={disable2FA} disabled={loading}>
                 Desativar 2FA
               </Button>
             </div>
@@ -325,14 +327,14 @@ const SecuritySetup: React.FC = () => {
 
       {/* Status Messages */}
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <span className="text-red-800">{error}</span>
+        <div className='p-4 bg-red-50 border border-red-200 rounded-lg'>
+          <span className='text-red-800'>{error}</span>
         </div>
       )}
-      
+
       {success && (
-        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-          <span className="text-green-800">{success}</span>
+        <div className='p-4 bg-green-50 border border-green-200 rounded-lg'>
+          <span className='text-green-800'>{success}</span>
         </div>
       )}
     </div>

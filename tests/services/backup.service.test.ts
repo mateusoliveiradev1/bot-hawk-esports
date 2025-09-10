@@ -26,17 +26,17 @@ const mockLogger = {
 const mockHealthService = {
   registerService: jest.fn(),
   performHealthCheck: jest.fn().mockResolvedValue({
-      overall: 'healthy',
-      timestamp: new Date(),
-      uptime: 3600,
-      services: [],
-      system: {
-        memory: { used: 100, total: 1000, percentage: 10 },
-        cpu: { usage: 5, loadAverage: [0.1, 0.2, 0.3] },
-        disk: { available: 900, total: 1000, percentage: 10 }
-      },
-      discord: { connected: true, guilds: 1, users: 100, ping: 50 }
-    }),
+    overall: 'healthy',
+    timestamp: new Date(),
+    uptime: 3600,
+    services: [],
+    system: {
+      memory: { used: 100, total: 1000, percentage: 10 },
+      cpu: { usage: 5, loadAverage: [0.1, 0.2, 0.3] },
+      disk: { available: 900, total: 1000, percentage: 10 },
+    },
+    discord: { connected: true, guilds: 1, users: 100, ping: 50 },
+  }),
 } as unknown as HealthService;
 
 const mockMetricsService = {
@@ -111,9 +111,7 @@ describe('BackupService', () => {
         'backup',
         expect.any(Function)
       );
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'BackupService initialized successfully'
-      );
+      expect(mockLogger.info).toHaveBeenCalledWith('BackupService initialized successfully');
     });
 
     it('should create backup directory if it does not exist', async () => {
@@ -124,9 +122,7 @@ describe('BackupService', () => {
       await backupService.initialize();
 
       expect(mockFs.mkdir).toHaveBeenCalledWith('./test-backups', { recursive: true });
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Created backup directory: ./test-backups'
-      );
+      expect(mockLogger.info).toHaveBeenCalledWith('Created backup directory: ./test-backups');
     });
 
     it('should throw error if backup directory creation fails', async () => {
@@ -158,11 +154,7 @@ describe('BackupService', () => {
       expect(result.success).toBe(true);
       expect(result.filePath).toContain('backup_');
       expect(result.filePath).toContain('.db.gz');
-      expect(mockMetricsService.recordMetric).toHaveBeenCalledWith(
-        'backup_created',
-        1,
-        'counter'
-      );
+      expect(mockMetricsService.recordMetric).toHaveBeenCalledWith('backup_created', 1, 'counter');
     });
 
     it('should handle backup creation failure', async () => {
@@ -172,10 +164,7 @@ describe('BackupService', () => {
 
       expect(result.status).toBe('failed');
       expect(result.error).toContain('Database error');
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Backup creation failed:',
-        expect.any(Error)
-      );
+      expect(mockLogger.error).toHaveBeenCalledWith('Backup creation failed:', expect.any(Error));
     });
   });
 
@@ -236,7 +225,7 @@ describe('BackupService', () => {
         'backup_2024-01-05_10-00-00.db.gz', // Old file
       ];
       mockFs.readdir.mockResolvedValue(mockFiles as any);
-      mockFs.stat.mockImplementation((filePath) => {
+      mockFs.stat.mockImplementation(filePath => {
         const isOld = (filePath as string).includes('2024-01-05');
         return Promise.resolve({
           size: 1000,
@@ -248,9 +237,7 @@ describe('BackupService', () => {
       await backupService.cleanupOldBackups();
 
       // Verify that unlink was called for the old file
-      expect(mockFs.unlink).toHaveBeenCalledWith(
-        expect.stringContaining('2024-01-05')
-      );
+      expect(mockFs.unlink).toHaveBeenCalledWith(expect.stringContaining('2024-01-05'));
     });
   });
 

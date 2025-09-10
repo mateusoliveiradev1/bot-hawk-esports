@@ -33,11 +33,15 @@ export class QueueCommand extends BaseCommand {
                 .setDescription('Página da fila (padrão: 1)')
                 .setRequired(false)
                 .setMinValue(1)
-                .setMaxValue(50),
-            ),
+                .setMaxValue(50)
+            )
         )
-        .addSubcommand(subcommand => subcommand.setName('clear').setDescription('Limpa toda a fila'))
-        .addSubcommand(subcommand => subcommand.setName('shuffle').setDescription('Embaralha a fila'))
+        .addSubcommand(subcommand =>
+          subcommand.setName('clear').setDescription('Limpa toda a fila')
+        )
+        .addSubcommand(subcommand =>
+          subcommand.setName('shuffle').setDescription('Embaralha a fila')
+        )
         .addSubcommand(subcommand =>
           subcommand
             .setName('loop')
@@ -50,9 +54,9 @@ export class QueueCommand extends BaseCommand {
                 .addChoices(
                   { name: '🔁 Repetir Fila', value: 'queue' },
                   { name: '🔂 Repetir Música', value: 'track' },
-                  { name: '❌ Desativar', value: 'off' },
-                ),
-            ),
+                  { name: '❌ Desativar', value: 'off' }
+                )
+            )
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -63,8 +67,8 @@ export class QueueCommand extends BaseCommand {
                 .setName('position')
                 .setDescription('Posição da música na fila')
                 .setRequired(true)
-                .setMinValue(1),
-            ),
+                .setMinValue(1)
+            )
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -75,23 +79,23 @@ export class QueueCommand extends BaseCommand {
                 .setName('from')
                 .setDescription('Posição atual da música')
                 .setRequired(true)
-                .setMinValue(1),
+                .setMinValue(1)
             )
             .addIntegerOption(option =>
               option
                 .setName('to')
                 .setDescription('Nova posição da música')
                 .setRequired(true)
-                .setMinValue(1),
-            ),
+                .setMinValue(1)
+            )
         )
         .addSubcommand(subcommand =>
           subcommand
             .setName('save')
             .setDescription('Salva a fila atual como playlist')
             .addStringOption(option =>
-              option.setName('name').setDescription('Nome da playlist').setRequired(true),
-            ),
+              option.setName('name').setDescription('Nome da playlist').setRequired(true)
+            )
         ) as SlashCommandBuilder,
       category: CommandCategory.MUSIC,
       cooldown: 5,
@@ -153,9 +157,9 @@ export class QueueCommand extends BaseCommand {
           break;
         default:
           await interaction.reply({
-        content: '❌ Subcomando não reconhecido.',
-        flags: MessageFlags.Ephemeral,
-      });
+            content: '❌ Subcomando não reconhecido.',
+            flags: MessageFlags.Ephemeral,
+          });
       }
     } catch (error) {
       logger.error('Queue command error:', error);
@@ -170,7 +174,9 @@ export class QueueCommand extends BaseCommand {
   /**
    * Validate voice channel access for queue management
    */
-  private async validateVoiceChannelAccess(interaction: ChatInputCommandInteraction): Promise<boolean> {
+  private async validateVoiceChannelAccess(
+    interaction: ChatInputCommandInteraction
+  ): Promise<boolean> {
     const member = interaction.member as any;
     const memberVoice = member?.voice?.channel;
     const botVoice = interaction.guild?.members?.me?.voice?.channel;
@@ -196,7 +202,10 @@ export class QueueCommand extends BaseCommand {
   /**
    * Handle show queue subcommand
    */
-  private async handleShowQueue(interaction: ChatInputCommandInteraction, musicService: MusicService): Promise<void> {
+  private async handleShowQueue(
+    interaction: ChatInputCommandInteraction,
+    musicService: MusicService
+  ): Promise<void> {
     const page = interaction.options.getInteger('page') || 1;
     const queue = await musicService.getQueue(interaction.guildId!);
 
@@ -225,7 +234,10 @@ export class QueueCommand extends BaseCommand {
   /**
    * Handle clear queue subcommand
    */
-  private async handleClearQueue(interaction: ChatInputCommandInteraction, musicService: MusicService): Promise<void> {
+  private async handleClearQueue(
+    interaction: ChatInputCommandInteraction,
+    musicService: MusicService
+  ): Promise<void> {
     const queue = await musicService.getQueue(interaction.guildId!);
 
     if (!queue || !queue.tracks || queue.tracks.length === 0) {
@@ -249,7 +261,10 @@ export class QueueCommand extends BaseCommand {
   /**
    * Handle shuffle queue subcommand
    */
-  private async handleShuffleQueue(interaction: ChatInputCommandInteraction, musicService: MusicService): Promise<void> {
+  private async handleShuffleQueue(
+    interaction: ChatInputCommandInteraction,
+    musicService: MusicService
+  ): Promise<void> {
     const queue = await musicService.getQueue(interaction.guildId!);
 
     if (!queue || !queue.tracks || queue.tracks.length < 2) {
@@ -267,7 +282,7 @@ export class QueueCommand extends BaseCommand {
       .setDescription(
         shuffled
           ? 'A ordem das músicas na fila foi embaralhada.'
-          : 'Não foi possível embaralhar a fila.',
+          : 'Não foi possível embaralhar a fila.'
       )
       .setColor(shuffled ? '#00FF00' : '#FF0000');
 
@@ -277,7 +292,10 @@ export class QueueCommand extends BaseCommand {
   /**
    * Handle loop queue subcommand
    */
-  private async handleLoopQueue(interaction: ChatInputCommandInteraction, musicService: MusicService): Promise<void> {
+  private async handleLoopQueue(
+    interaction: ChatInputCommandInteraction,
+    musicService: MusicService
+  ): Promise<void> {
     const mode = interaction.options.getString('mode', true) as 'off' | 'track' | 'queue';
     const loopMode = mode === 'off' ? 'none' : mode;
     await musicService.setLoop(interaction.guildId!, loopMode);
@@ -299,7 +317,10 @@ export class QueueCommand extends BaseCommand {
   /**
    * Handle remove track subcommand
    */
-  private async handleRemoveTrack(interaction: ChatInputCommandInteraction, musicService: MusicService): Promise<void> {
+  private async handleRemoveTrack(
+    interaction: ChatInputCommandInteraction,
+    musicService: MusicService
+  ): Promise<void> {
     const position = interaction.options.getInteger('position', true);
     const queue = await musicService.getQueue(interaction.guildId!);
 
@@ -327,7 +348,7 @@ export class QueueCommand extends BaseCommand {
       .setDescription(
         removed
           ? `**${trackToRemove.title}** foi removida da posição #${position}.`
-          : 'Não foi possível remover a música.',
+          : 'Não foi possível remover a música.'
       )
       .setColor(removed ? '#00FF00' : '#FF0000');
 
@@ -337,7 +358,10 @@ export class QueueCommand extends BaseCommand {
   /**
    * Handle move track subcommand
    */
-  private async handleMoveTrack(interaction: ChatInputCommandInteraction, musicService: MusicService): Promise<void> {
+  private async handleMoveTrack(
+    interaction: ChatInputCommandInteraction,
+    musicService: MusicService
+  ): Promise<void> {
     const from = interaction.options.getInteger('from', true);
     const to = interaction.options.getInteger('to', true);
     const queue = await musicService.getQueue(interaction.guildId!);
@@ -374,7 +398,7 @@ export class QueueCommand extends BaseCommand {
       .setDescription(
         moved
           ? `**${trackToMove.title}** foi movida da posição #${from} para #${to}.`
-          : 'Não foi possível mover a música.',
+          : 'Não foi possível mover a música.'
       )
       .setColor(moved ? '#00FF00' : '#FF0000');
 
@@ -384,7 +408,10 @@ export class QueueCommand extends BaseCommand {
   /**
    * Handle save playlist subcommand
    */
-  private async handleSavePlaylist(interaction: ChatInputCommandInteraction, musicService: MusicService): Promise<void> {
+  private async handleSavePlaylist(
+    interaction: ChatInputCommandInteraction,
+    musicService: MusicService
+  ): Promise<void> {
     const name = interaction.options.getString('name', true);
     const queue = await musicService.getQueue(interaction.guildId!);
 
@@ -403,7 +430,7 @@ export class QueueCommand extends BaseCommand {
       .setDescription(
         saved
           ? `Playlist **${name}** foi salva com ${queue.tracks.length} música${queue.tracks.length !== 1 ? 's' : ''}.`
-          : 'Não foi possível salvar a playlist.',
+          : 'Não foi possível salvar a playlist.'
       )
       .setColor(saved ? '#00FF00' : '#FF0000');
 
@@ -426,7 +453,7 @@ export class QueueCommand extends BaseCommand {
     interaction: ChatInputCommandInteraction,
     musicService: MusicService,
     page: number,
-    queue: any,
+    queue: any
   ): Promise<void> {
     const collector = response.createMessageComponentCollector({
       time: 300000, // 5 minutes
@@ -472,7 +499,7 @@ export class QueueCommand extends BaseCommand {
     interaction: ChatInputCommandInteraction,
     musicService: MusicService,
     page: number,
-    queue: any,
+    queue: any
   ): Promise<void> {
     const [action, value] = i.customId.split('_');
 
@@ -529,15 +556,21 @@ export class QueueCommand extends BaseCommand {
   private async handleRemoveSelectInteraction(
     i: any,
     interaction: ChatInputCommandInteraction,
-    musicService: MusicService,
+    musicService: MusicService
   ): Promise<void> {
     const position = parseInt(i.values[0]);
     const removed = await musicService.removeFromQueue(interaction.guildId!, position - 1);
 
     if (removed) {
-      await i.reply({ content: `🗑️ Música removida da posição #${position}!`, flags: MessageFlags.Ephemeral });
+      await i.reply({
+        content: `🗑️ Música removida da posição #${position}!`,
+        flags: MessageFlags.Ephemeral,
+      });
     } else {
-      await i.reply({ content: '❌ Não foi possível remover a música!', flags: MessageFlags.Ephemeral });
+      await i.reply({
+        content: '❌ Não foi possível remover a música!',
+        flags: MessageFlags.Ephemeral,
+      });
     }
   }
 
@@ -563,7 +596,10 @@ export class QueueCommand extends BaseCommand {
    * Create queue embed
    */
   private async createQueueEmbed(queue: any, page: number = 1): Promise<EmbedBuilder> {
-    const embed = new EmbedBuilder().setTitle('📋 Fila de Música').setColor('#0099FF').setTimestamp();
+    const embed = new EmbedBuilder()
+      .setTitle('📋 Fila de Música')
+      .setColor('#0099FF')
+      .setTimestamp();
 
     // Current track
     if (queue.currentTrack) {
@@ -599,7 +635,7 @@ export class QueueCommand extends BaseCommand {
       // Queue info
       const totalDuration = queue.tracks.reduce(
         (total: number, track: any) => total + track.duration,
-        0,
+        0
       );
       embed.addFields({
         name: '📊 Informações da Fila',
@@ -644,7 +680,7 @@ export class QueueCommand extends BaseCommand {
         .setCustomId('music_clear')
         .setLabel('Limpar')
         .setStyle(ButtonStyle.Danger)
-        .setEmoji('🗑️'),
+        .setEmoji('🗑️')
     );
 
     components.push(controlsRow);
@@ -659,7 +695,7 @@ export class QueueCommand extends BaseCommand {
           new ButtonBuilder()
             .setCustomId('queue_prev')
             .setLabel('◀️ Anterior')
-            .setStyle(ButtonStyle.Primary),
+            .setStyle(ButtonStyle.Primary)
         );
       }
 
@@ -668,7 +704,7 @@ export class QueueCommand extends BaseCommand {
           new ButtonBuilder()
             .setCustomId('queue_next')
             .setLabel('Próxima ▶️')
-            .setStyle(ButtonStyle.Primary),
+            .setStyle(ButtonStyle.Primary)
         );
       }
 
@@ -688,7 +724,7 @@ export class QueueCommand extends BaseCommand {
             label: `${index + 1}. ${track.title.substring(0, 90)}`,
             description: `${track.author.substring(0, 90)} • ${this.formatDuration(track.duration)}`,
             value: (index + 1).toString(),
-          })),
+          }))
         );
 
       const selectRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(removeSelect);
@@ -734,7 +770,7 @@ export const command = {
   data: commandInstance.data,
   category: CommandCategory.MUSIC,
   cooldown: 3,
-  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) => 
+  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) =>
     commandInstance.execute(interaction, client),
 };
 

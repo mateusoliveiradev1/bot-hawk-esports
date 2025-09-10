@@ -60,7 +60,7 @@ export class AlertService {
   constructor(
     private config: AlertConfig,
     private databaseService?: DatabaseService,
-    private discordClient?: ExtendedClient,
+    private discordClient?: ExtendedClient
   ) {
     this.logger = new Logger();
     this.setupEmailTransporter();
@@ -94,7 +94,11 @@ export class AlertService {
         enabled: true,
         cooldownMs: 300000, // 5 minutes
         channels: [
-          { type: 'discord', target: this.config.discordChannelId || '', enabled: !!this.config.discordChannelId },
+          {
+            type: 'discord',
+            target: this.config.discordChannelId || '',
+            enabled: !!this.config.discordChannelId,
+          },
         ],
       },
       {
@@ -105,7 +109,11 @@ export class AlertService {
         enabled: true,
         cooldownMs: 600000, // 10 minutes
         channels: [
-          { type: 'discord', target: this.config.discordChannelId || '', enabled: !!this.config.discordChannelId },
+          {
+            type: 'discord',
+            target: this.config.discordChannelId || '',
+            enabled: !!this.config.discordChannelId,
+          },
         ],
       },
       {
@@ -116,7 +124,11 @@ export class AlertService {
         enabled: true,
         cooldownMs: 180000, // 3 minutes
         channels: [
-          { type: 'discord', target: this.config.discordChannelId || '', enabled: !!this.config.discordChannelId },
+          {
+            type: 'discord',
+            target: this.config.discordChannelId || '',
+            enabled: !!this.config.discordChannelId,
+          },
           { type: 'email', target: 'admin', enabled: !!this.config.emailConfig },
         ],
       },
@@ -127,9 +139,7 @@ export class AlertService {
         threshold: 1,
         enabled: true,
         cooldownMs: 120000, // 2 minutes
-        channels: [
-          { type: 'email', target: 'admin', enabled: !!this.config.emailConfig },
-        ],
+        channels: [{ type: 'email', target: 'admin', enabled: !!this.config.emailConfig }],
       },
       {
         id: 'high_response_time',
@@ -139,7 +149,71 @@ export class AlertService {
         enabled: true,
         cooldownMs: 900000, // 15 minutes
         channels: [
-          { type: 'discord', target: this.config.discordChannelId || '', enabled: !!this.config.discordChannelId },
+          {
+            type: 'discord',
+            target: this.config.discordChannelId || '',
+            enabled: !!this.config.discordChannelId,
+          },
+        ],
+      },
+      {
+        id: 'pubg_api_circuit_breaker_open',
+        name: 'PUBG API Circuit Breaker Open',
+        condition: 'pubg_circuit_breaker_state == "OPEN"',
+        threshold: 1,
+        enabled: true,
+        cooldownMs: 300000, // 5 minutes
+        channels: [
+          {
+            type: 'discord',
+            target: this.config.discordChannelId || '',
+            enabled: !!this.config.discordChannelId,
+          },
+        ],
+      },
+      {
+        id: 'redis_connection_failed',
+        name: 'Redis Connection Failed',
+        condition: 'redis_status == "unhealthy"',
+        threshold: 1,
+        enabled: true,
+        cooldownMs: 180000, // 3 minutes
+        channels: [
+          {
+            type: 'discord',
+            target: this.config.discordChannelId || '',
+            enabled: !!this.config.discordChannelId,
+          },
+        ],
+      },
+      {
+        id: 'spotify_api_unavailable',
+        name: 'Spotify API Unavailable',
+        condition: 'spotify_status == "unavailable"',
+        threshold: 1,
+        enabled: true,
+        cooldownMs: 600000, // 10 minutes
+        channels: [
+          {
+            type: 'discord',
+            target: this.config.discordChannelId || '',
+            enabled: !!this.config.discordChannelId,
+          },
+        ],
+      },
+      {
+        id: 'high_cpu_usage',
+        name: 'High CPU Usage',
+        condition: 'cpu_percentage > threshold',
+        threshold: 80,
+        enabled: true,
+        cooldownMs: 300000, // 5 minutes
+        channels: [
+          {
+            type: 'discord',
+            target: this.config.discordChannelId || '',
+            enabled: !!this.config.discordChannelId,
+          },
         ],
       },
     ];
@@ -159,10 +233,10 @@ export class AlertService {
     title: string,
     message: string,
     source: string,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, any>
   ): Promise<string> {
     const alertId = `${source}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     const alert: Alert = {
       id: alertId,
       type,
@@ -201,7 +275,9 @@ export class AlertService {
    */
   async checkAlertRules(metrics: Record<string, any>): Promise<void> {
     for (const [ruleId, rule] of this.rules) {
-      if (!rule.enabled) {continue;}
+      if (!rule.enabled) {
+        continue;
+      }
 
       // Check cooldown
       const lastTriggered = this.cooldowns.get(ruleId);
@@ -211,7 +287,7 @@ export class AlertService {
 
       try {
         const shouldTrigger = this.evaluateCondition(rule, metrics);
-        
+
         if (shouldTrigger) {
           await this.triggerAlert(rule, metrics);
           this.cooldowns.set(ruleId, Date.now());
@@ -230,8 +306,12 @@ export class AlertService {
       // Simple condition evaluation - in production, use a proper expression evaluator
       const condition = rule.condition
         .replace(/memory_percentage/g, metrics.memory_percentage || 0)
+        .replace(/cpu_percentage/g, metrics.cpu_percentage || 0)
         .replace(/error_rate/g, metrics.error_rate || 0)
         .replace(/database_status/g, `"${metrics.database_status || 'unknown'}"`)
+        .replace(/redis_status/g, `"${metrics.redis_status || 'unknown'}"`)
+        .replace(/spotify_status/g, `"${metrics.spotify_status || 'unknown'}"`)
+        .replace(/pubg_circuit_breaker_state/g, `"${metrics.pubg_circuit_breaker_state || 'CLOSED'}"`)
         .replace(/discord_connected/g, metrics.discord_connected || false)
         .replace(/api_response_time/g, metrics.api_response_time || 0)
         .replace(/threshold/g, rule.threshold.toString());
@@ -249,25 +329,20 @@ export class AlertService {
    * Trigger an alert based on a rule
    */
   private async triggerAlert(rule: AlertRule, metrics: Record<string, any>): Promise<void> {
-    const type: Alert['type'] = rule.threshold > 90 ? 'critical' : rule.threshold > 70 ? 'warning' : 'info';
-    
+    const type: Alert['type'] =
+      rule.threshold > 90 ? 'critical' : rule.threshold > 70 ? 'warning' : 'info';
+
     let message = `Alert rule "${rule.name}" has been triggered.\n`;
     message += `Condition: ${rule.condition}\n`;
     message += `Threshold: ${rule.threshold}\n`;
     message += `Current metrics: ${JSON.stringify(metrics, null, 2)}`;
 
-    await this.createAlert(
-      type,
-      rule.name,
-      message,
-      'alert_rule',
-      {
-        ruleId: rule.id,
-        condition: rule.condition,
-        threshold: rule.threshold,
-        metrics,
-      },
-    );
+    await this.createAlert(type, rule.name, message, 'alert_rule', {
+      ruleId: rule.id,
+      condition: rule.condition,
+      threshold: rule.threshold,
+      metrics,
+    });
   }
 
   /**
@@ -312,7 +387,7 @@ export class AlertService {
         .addFields(
           { name: 'Source', value: alert.source, inline: true },
           { name: 'Type', value: alert.type.toUpperCase(), inline: true },
-          { name: 'Time', value: alert.timestamp.toISOString(), inline: true },
+          { name: 'Time', value: alert.timestamp.toISOString(), inline: true }
         )
         .setTimestamp(alert.timestamp);
 
@@ -407,10 +482,14 @@ export class AlertService {
    */
   private getAlertColor(type: Alert['type']): number {
     switch (type) {
-      case 'critical': return 0xFF0000; // Red
-      case 'warning': return 0xFFA500;  // Orange
-      case 'info': return 0x0099FF;     // Blue
-      default: return 0x808080;         // Gray
+      case 'critical':
+        return 0xff0000; // Red
+      case 'warning':
+        return 0xffa500; // Orange
+      case 'info':
+        return 0x0099ff; // Blue
+      default:
+        return 0x808080; // Gray
     }
   }
 
@@ -418,7 +497,9 @@ export class AlertService {
    * Store alert in database
    */
   private async storeAlertInDatabase(alert: Alert): Promise<void> {
-    if (!this.databaseService) {return;}
+    if (!this.databaseService) {
+      return;
+    }
 
     try {
       // This would need to be implemented based on your database schema
@@ -498,7 +579,10 @@ export class AlertService {
   /**
    * Start monitoring (integrate with metrics service)
    */
-  startMonitoring(metricsCallback: () => Promise<Record<string, any>>, intervalMs: number = 60000): void {
+  startMonitoring(
+    metricsCallback: () => Promise<Record<string, any>>,
+    intervalMs: number = 60000
+  ): void {
     setInterval(async () => {
       try {
         const metrics = await metricsCallback();
@@ -514,7 +598,8 @@ export class AlertService {
   /**
    * Cleanup old alerts
    */
-  cleanupOldAlerts(maxAgeMs: number = 7 * 24 * 60 * 60 * 1000): void { // 7 days default
+  cleanupOldAlerts(maxAgeMs: number = 7 * 24 * 60 * 60 * 1000): void {
+    // 7 days default
     const cutoff = Date.now() - maxAgeMs;
     let cleaned = 0;
 

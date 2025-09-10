@@ -31,11 +31,11 @@ class WeaponMasteryCommand extends BaseCommand {
               option
                 .setName('user')
                 .setDescription('Usuário para visualizar (opcional)')
-                .setRequired(false),
-            ),
+                .setRequired(false)
+            )
         )
         .addSubcommand(subcommand =>
-          subcommand.setName('sync').setDescription('Sincronizar maestria de armas com a API PUBG'),
+          subcommand.setName('sync').setDescription('Sincronizar maestria de armas com a API PUBG')
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -47,11 +47,11 @@ class WeaponMasteryCommand extends BaseCommand {
                 .setDescription('Número de jogadores no ranking (1-20)')
                 .setMinValue(1)
                 .setMaxValue(20)
-                .setRequired(false),
-            ),
+                .setRequired(false)
+            )
         )
         .addSubcommand(subcommand =>
-          subcommand.setName('stats').setDescription('Ver estatísticas gerais de maestria de armas'),
+          subcommand.setName('stats').setDescription('Ver estatísticas gerais de maestria de armas')
         ),
       category: CommandCategory.PUBG,
       cooldown: 15,
@@ -60,7 +60,7 @@ class WeaponMasteryCommand extends BaseCommand {
 
   async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
     const subcommand = interaction.options.getSubcommand();
-    
+
     switch (subcommand) {
       case 'view':
         await this.handleView(interaction, client);
@@ -82,16 +82,19 @@ class WeaponMasteryCommand extends BaseCommand {
     }
   }
 
-  async handleView(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+  async handleView(
+    interaction: ChatInputCommandInteraction,
+    client: ExtendedClient
+  ): Promise<void> {
     this.validateService(client.services?.weaponMastery, 'WeaponMastery');
-    
+
     const targetUser = interaction.options.getUser('user') || interaction.user;
     ServiceValidator.validateDiscordId(targetUser.id, 'user ID');
-    
+
     await this.deferWithLoading(interaction);
-    
+
     const masteryData = await client.services.weaponMastery.getUserWeaponMastery(targetUser.id);
-    
+
     if (!masteryData || masteryData.weapons.length === 0) {
       await this.safeReply(interaction, {
         content: `❌ ${targetUser.id === interaction.user.id ? 'Você não possui' : `${targetUser.username} não possui`} dados de maestria de armas. Use \`/weapon-mastery sync\` para sincronizar.`,
@@ -99,20 +102,23 @@ class WeaponMasteryCommand extends BaseCommand {
       });
       return;
     }
-    
+
     await displayWeaponMastery(interaction, masteryData, targetUser);
   }
-  
-  async handleSync(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+
+  async handleSync(
+    interaction: ChatInputCommandInteraction,
+    client: ExtendedClient
+  ): Promise<void> {
     this.validateService(client.services?.weaponMastery, 'WeaponMastery');
-    
+
     await this.deferWithLoading(interaction);
-    
+
     // Get user's PUBG name from database first
     const pubgStats = await client.database.client.pUBGStats.findFirst({
       where: { userId: interaction.user.id },
     });
-    
+
     if (!pubgStats?.playerName) {
       await this.safeReply(interaction, {
         content: '❌ Você precisa registrar seu nome PUBG primeiro usando `/pubg register`',
@@ -120,9 +126,12 @@ class WeaponMasteryCommand extends BaseCommand {
       });
       return;
     }
-    
-    const syncResult = await client.services.weaponMastery.syncUserWeaponMastery(interaction.user.id, pubgStats.playerName);
-    
+
+    const syncResult = await client.services.weaponMastery.syncUserWeaponMastery(
+      interaction.user.id,
+      pubgStats.playerName
+    );
+
     if (!syncResult) {
       await this.safeReply(interaction, {
         content: '❌ Falha na sincronização. Verifique se seu nome PUBG está correto.',
@@ -130,19 +139,22 @@ class WeaponMasteryCommand extends BaseCommand {
       });
       return;
     }
-    
+
     const embed = new EmbedBuilder()
       .setTitle('✅ Sincronização Concluída')
       .setDescription('Maestria de armas sincronizada com sucesso!')
       .setColor('#00FF00')
       .setTimestamp();
-    
+
     await this.safeReply(interaction, { embeds: [embed] });
   }
-  
-  async handleLeaderboard(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+
+  async handleLeaderboard(
+    interaction: ChatInputCommandInteraction,
+    client: ExtendedClient
+  ): Promise<void> {
     this.validateService(client.services?.weaponMastery, 'WeaponMastery');
-    
+
     const limit = interaction.options.getInteger('limit') || 10;
     if (limit < 1 || limit > 20) {
       await this.safeReply(interaction, {
@@ -151,11 +163,11 @@ class WeaponMasteryCommand extends BaseCommand {
       });
       return;
     }
-    
+
     await this.deferWithLoading(interaction);
-    
+
     const leaderboard = await client.services.weaponMastery.getWeaponMasteryLeaderboard(limit);
-    
+
     if (!leaderboard || leaderboard.length === 0) {
       await this.safeReply(interaction, {
         content: '❌ Nenhum dado de maestria de armas encontrado.',
@@ -163,42 +175,57 @@ class WeaponMasteryCommand extends BaseCommand {
       });
       return;
     }
-    
+
     const embed = new EmbedBuilder()
       .setTitle('🏆 Ranking de Maestria de Armas')
       .setColor('#FFD700')
       .setTimestamp();
-    
+
     let description = '';
     for (let i = 0; i < leaderboard.length; i++) {
       const entry = leaderboard[i];
       const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}º`;
       description += `${medal} **${entry.pubgName}** - Level ${entry.totalLevel} (${entry.weaponCount} weapons)\n`;
     }
-    
+
     embed.setDescription(description);
     await this.safeReply(interaction, { embeds: [embed] });
   }
-  
-  async handleStats(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
+
+  async handleStats(
+    interaction: ChatInputCommandInteraction,
+    client: ExtendedClient
+  ): Promise<void> {
     this.validateService(client.services?.weaponMastery, 'WeaponMastery');
-    
+
     await this.deferWithLoading(interaction);
-    
+
     const stats = await client.services.weaponMastery.getWeaponMasteryStats();
-    
+
     const embed = new EmbedBuilder()
       .setTitle('📊 Estatísticas de Maestria de Armas')
       .addFields(
-        { name: '👥 Jogadores Registrados', value: stats.totalPlayers.toLocaleString(), inline: true },
+        {
+          name: '👥 Jogadores Registrados',
+          value: stats.totalPlayers.toLocaleString(),
+          inline: true,
+        },
         { name: '🔫 Total de Kills', value: stats.totalKills.toLocaleString(), inline: true },
         { name: '🎯 Arma Mais Popular', value: stats.mostPopularWeapon || 'N/A', inline: true },
-        { name: '📈 Média de Kills/Jogador', value: stats.averageKillsPerPlayer.toFixed(1), inline: true },
-        { name: '🏆 Maior Maestria', value: `${stats.highestMastery?.weapon || 'N/A'} (${stats.highestMastery?.kills || 0} kills)`, inline: true },
+        {
+          name: '📈 Média de Kills/Jogador',
+          value: stats.averageKillsPerPlayer.toFixed(1),
+          inline: true,
+        },
+        {
+          name: '🏆 Maior Maestria',
+          value: `${stats.highestMastery?.weapon || 'N/A'} (${stats.highestMastery?.kills || 0} kills)`,
+          inline: true,
+        }
       )
       .setColor('#4A90E2')
       .setTimestamp();
-    
+
     await this.safeReply(interaction, { embeds: [embed] });
   }
 }
@@ -209,19 +236,11 @@ export const command = {
   data: commandInstance.data,
   category: CommandCategory.PUBG,
   cooldown: 15,
-  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) => 
+  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) =>
     commandInstance.execute(interaction, client),
 };
 
 export default command;
-
-
-
-
-
-
-
-
 
 /**
  * Display weapon mastery with pagination
@@ -229,7 +248,7 @@ export default command;
 async function displayWeaponMastery(
   interaction: ChatInputCommandInteraction,
   masteryData: UserWeaponMastery,
-  targetUser: any,
+  targetUser: any
 ): Promise<void> {
   const weaponsPerPage = 5;
   const totalPages = Math.ceil(masteryData.weapons.length / weaponsPerPage);
@@ -293,7 +312,7 @@ async function displayWeaponMastery(
         .setCustomId('weapon_mastery_sync')
         .setLabel('🔄 Sincronizar')
         .setStyle(ButtonStyle.Primary)
-        .setDisabled(targetUser.id !== interaction.user.id),
+        .setDisabled(targetUser.id !== interaction.user.id)
     );
   };
 
@@ -351,7 +370,7 @@ async function displayWeaponMastery(
   collector.on('end', async () => {
     try {
       const disabledButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        ...buttons.components.map(button => ButtonBuilder.from(button).setDisabled(true)),
+        ...buttons.components.map(button => ButtonBuilder.from(button).setDisabled(true))
       );
 
       await interaction.editReply({
@@ -368,7 +387,7 @@ async function displayWeaponMastery(
  */
 async function handleSyncFromButton(
   buttonInteraction: ButtonInteraction,
-  client: ExtendedClient,
+  client: ExtendedClient
 ): Promise<void> {
   const userId = buttonInteraction.user.id;
 
@@ -394,7 +413,7 @@ async function handleSyncFromButton(
     // Force sync weapon mastery
     const synced = await (client as any).weaponMasteryService.forceSyncUserWeaponMastery(
       userId,
-      user.pubgUsername,
+      user.pubgUsername
     );
 
     if (synced) {
@@ -452,7 +471,7 @@ function getWeaponEmoji(weaponName: string): string {
     G36C: '🔫',
     ACE32: '🔫',
     FAMAS: '🔫',
-    
+
     // SMGs
     UMP45: '🔫',
     Vector: '🔫',
@@ -462,7 +481,7 @@ function getWeaponEmoji(weaponName: string): string {
     Bizon: '🔫',
     P90: '🔫',
     JS9: '🔫',
-    
+
     // Sniper Rifles
     Kar98k: '🎯',
     M24: '🎯',
@@ -470,7 +489,7 @@ function getWeaponEmoji(weaponName: string): string {
     Win94: '🎯',
     'Mosin-Nagant': '🎯',
     'Lynx AMR': '🎯',
-    
+
     // DMRs
     SKS: '🎯',
     Mini14: '🎯',
@@ -479,7 +498,7 @@ function getWeaponEmoji(weaponName: string): string {
     SLR: '🎯',
     VSS: '🎯',
     Mk12: '🎯',
-    
+
     // Shotguns
     S1897: '💥',
     S686: '💥',
@@ -487,12 +506,12 @@ function getWeaponEmoji(weaponName: string): string {
     DBS: '💥',
     'Sawed-off': '💥',
     O12: '💥',
-    
+
     // LMGs
     M249: '💪',
     'DP-27': '💪',
     MG3: '💪',
-    
+
     // Pistols
     P1911: '🔫',
     P92: '🔫',
@@ -501,16 +520,16 @@ function getWeaponEmoji(weaponName: string): string {
     R45: '🔫',
     Deagle: '🔫',
     Skorpion: '🔫',
-    
+
     // Crossbows
     Crossbow: '🏹',
-    
+
     // Throwables
     'Frag Grenade': '💣',
     'Smoke Grenade': '💨',
     'Stun Grenade': '⚡',
     'Molotov Cocktail': '🔥',
-    
+
     // Melee
     Pan: '🍳',
     Crowbar: '🔧',
@@ -542,13 +561,13 @@ function createMasteryEmbed(weaponMasteryData: any[], targetUser: User): EmbedBu
   const maxLevelWeapons = weaponMasteryData.filter(weapon => weapon.level >= 100).length;
 
   // Encontrar arma favorita (maior nível)
-  const favoriteWeapon = weaponMasteryData.reduce((prev, current) => 
-    (prev.level || 0) > (current.level || 0) ? prev : current,
+  const favoriteWeapon = weaponMasteryData.reduce((prev, current) =>
+    (prev.level || 0) > (current.level || 0) ? prev : current
   );
 
   embed.addFields({
     name: '📊 Resumo Geral',
-    value: 
+    value:
       `**Nível Total:** ${totalLevel}\n` +
       `**XP Total:** ${totalXP.toLocaleString()}\n` +
       `**Armas Registradas:** ${weaponMasteryData.length}\n` +
@@ -558,15 +577,13 @@ function createMasteryEmbed(weaponMasteryData: any[], targetUser: User): EmbedBu
   });
 
   // Mostrar top 10 armas
-  const topWeapons = weaponMasteryData
-    .sort((a, b) => (b.level || 0) - (a.level || 0))
-    .slice(0, 10);
+  const topWeapons = weaponMasteryData.sort((a, b) => (b.level || 0) - (a.level || 0)).slice(0, 10);
 
   let weaponsText = '';
   topWeapons.forEach((weapon, index) => {
     const emoji = getWeaponEmoji(weapon.weaponName);
     const progressBar = createProgressBar(weapon.level || 0, 100, 8);
-    
+
     weaponsText += `**${index + 1}.** ${emoji} ${weapon.weaponName}\n`;
     weaponsText += `├ Nível: **${weapon.level || 0}** ${progressBar}\n`;
     weaponsText += `├ XP: **${(weapon.xp || 0).toLocaleString()}**\n`;
@@ -581,8 +598,8 @@ function createMasteryEmbed(weaponMasteryData: any[], targetUser: User): EmbedBu
     });
   }
 
-  embed.setFooter({ 
-    text: `Total de ${weaponMasteryData.length} armas registradas`, 
+  embed.setFooter({
+    text: `Total de ${weaponMasteryData.length} armas registradas`,
   });
 
   return embed;

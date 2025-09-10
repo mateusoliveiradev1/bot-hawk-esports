@@ -10,50 +10,50 @@ const mockTicketMethods = {
   findMany: jest.fn() as jest.MockedFunction<any>,
   create: jest.fn() as jest.MockedFunction<any>,
   update: jest.fn() as jest.MockedFunction<any>,
-  delete: jest.fn() as jest.MockedFunction<any>
+  delete: jest.fn() as jest.MockedFunction<any>,
 };
 
 const mockUserMethods = {
   findUnique: jest.fn() as jest.MockedFunction<any>,
   create: jest.fn() as jest.MockedFunction<any>,
-  update: jest.fn() as jest.MockedFunction<any>
+  update: jest.fn() as jest.MockedFunction<any>,
 };
 
 const mockXpTransactionMethods = {
-  create: jest.fn() as jest.MockedFunction<any>
+  create: jest.fn() as jest.MockedFunction<any>,
 };
 
 const mockDatabaseService = {
-    client: {
-      ticket: mockTicketMethods,
-      user: mockUserMethods,
-      xpTransaction: mockXpTransactionMethods
-    }
-  } as unknown as DatabaseService;
+  client: {
+    ticket: mockTicketMethods,
+    user: mockUserMethods,
+    xpTransaction: mockXpTransactionMethods,
+  },
+} as unknown as DatabaseService;
 
 const mockCacheService = {
   get: jest.fn(),
   set: jest.fn(),
   del: jest.fn(),
-  clearPattern: jest.fn()
+  clearPattern: jest.fn(),
 } as any;
 
 const mockClient = {
   user: { id: '123456789' },
   guilds: {
     cache: new Map(),
-    fetch: jest.fn()
+    fetch: jest.fn(),
   },
   channels: {
     cache: new Map(),
     fetch: jest.fn(),
-    create: jest.fn()
+    create: jest.fn(),
   },
   database: mockDatabaseService,
   cache: mockCacheService,
   on: jest.fn(),
   off: jest.fn(),
-  emit: jest.fn()
+  emit: jest.fn(),
 } as unknown as ExtendedClient;
 
 describe('Ticket Flow Integration', () => {
@@ -82,7 +82,7 @@ describe('Ticket Flow Integration', () => {
         xp: 100,
         level: 1,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       // Mock do ticket criado
@@ -94,7 +94,7 @@ describe('Ticket Flow Integration', () => {
         status: 'open',
         createdAt: new Date(),
         updatedAt: new Date(),
-        messages: []
+        messages: [],
       };
 
       // Mock do ticket fechado
@@ -103,14 +103,14 @@ describe('Ticket Flow Integration', () => {
         status: 'closed',
         closedBy: staffId,
         closedAt: new Date(),
-        resolution: 'Problema resolvido com sucesso'
+        resolution: 'Problema resolvido com sucesso',
       };
 
       // Mock do usuário com XP atualizado
       const mockUpdatedUser = {
         ...mockUser,
         xp: 150, // +50 XP por ticket resolvido
-        level: 1
+        level: 1,
       };
 
       // Configurar mocks
@@ -124,7 +124,7 @@ describe('Ticket Flow Integration', () => {
         userId: 'user123',
         amount: 50,
         reason: 'ticket_resolved',
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
       // Passo 1: Criar ticket
@@ -147,7 +147,7 @@ describe('Ticket Flow Integration', () => {
       // Passo 3: Simular atribuição do ticket ao staff
       mockTicketMethods.update.mockResolvedValue({
         ...mockTicket,
-        assignedTo: staffId
+        assignedTo: staffId,
       });
 
       const assignResult = await ticketService.assignTicket('guild123', mockTicket.id, staffId);
@@ -155,7 +155,11 @@ describe('Ticket Flow Integration', () => {
       expect(assignResult.message).toContain('atribuído');
 
       // Passo 4: Fechar ticket
-      const closedTicket = await ticketService.closeTicket(mockTicket.id, staffId, 'Problema resolvido com sucesso');
+      const closedTicket = await ticketService.closeTicket(
+        mockTicket.id,
+        staffId,
+        'Problema resolvido com sucesso'
+      );
       expect(closedTicket).toEqual(mockClosedTicket);
       expect(mockTicketMethods.update).toHaveBeenCalledWith({
         where: { id: mockTicket.id },
@@ -163,8 +167,8 @@ describe('Ticket Flow Integration', () => {
           status: 'closed',
           closedBy: staffId,
           closedAt: expect.any(Date),
-          resolution: 'Problema resolvido com sucesso'
-        }
+          resolution: 'Problema resolvido com sucesso',
+        },
       });
 
       // Passo 5: Recompensar usuário com XP
@@ -176,8 +180,8 @@ describe('Ticket Flow Integration', () => {
           userId: 'user123',
           amount: 50,
           reason: 'ticket_resolved',
-          metadata: expect.any(Object)
-        }
+          metadata: expect.any(Object),
+        },
       });
     });
 
@@ -186,12 +190,11 @@ describe('Ticket Flow Integration', () => {
       const channelId = 'channel123';
 
       // Simular erro no banco de dados
-      mockTicketMethods.create.mockRejectedValue(
-        new Error('Database connection failed')
-      );
+      mockTicketMethods.create.mockRejectedValue(new Error('Database connection failed'));
 
-      await expect(ticketService.createTicket('guild123', userId, 'Support Ticket', 'Need help', 'medium'))
-        .rejects.toThrow('Database connection failed');
+      await expect(
+        ticketService.createTicket('guild123', userId, 'Support Ticket', 'Need help', 'medium')
+      ).rejects.toThrow('Database connection failed');
     });
 
     it('deve prevenir fechamento de ticket já fechado', async () => {
@@ -204,13 +207,14 @@ describe('Ticket Flow Integration', () => {
         userId: 'user123',
         status: 'closed',
         closedAt: new Date(),
-        closedBy: 'staff123'
+        closedBy: 'staff123',
       };
 
       mockTicketMethods.findUnique.mockResolvedValue(closedTicket);
 
-      await expect(ticketService.closeTicket('guild123', ticketId, staffId))
-        .rejects.toThrow('Ticket já está fechado');
+      await expect(ticketService.closeTicket('guild123', ticketId, staffId)).rejects.toThrow(
+        'Ticket já está fechado'
+      );
     });
 
     it('deve calcular estatísticas de tickets corretamente', async () => {
@@ -221,7 +225,7 @@ describe('Ticket Flow Integration', () => {
           category: 'support',
           createdAt: new Date('2023-12-01'),
           closedAt: null,
-          responseTime: null
+          responseTime: null,
         },
         {
           id: '2',
@@ -229,7 +233,7 @@ describe('Ticket Flow Integration', () => {
           category: 'bug',
           createdAt: new Date('2023-12-01'),
           closedAt: new Date('2023-12-02'),
-          responseTime: 3600 // 1 hora
+          responseTime: 3600, // 1 hora
         },
         {
           id: '3',
@@ -237,8 +241,8 @@ describe('Ticket Flow Integration', () => {
           category: 'support',
           createdAt: new Date('2023-12-01'),
           closedAt: new Date('2023-12-01'),
-          responseTime: 1800 // 30 minutos
-        }
+          responseTime: 1800, // 30 minutos
+        },
       ];
 
       mockTicketMethods.findMany.mockResolvedValue(mockTickets);
@@ -251,10 +255,10 @@ describe('Ticket Flow Integration', () => {
         closed: 2,
         byCategory: {
           support: 2,
-          bug: 1
+          bug: 1,
         },
         averageResponseTime: 2700, // (3600 + 1800) / 2
-        resolutionRate: 66.67 // 2/3 * 100
+        resolutionRate: 66.67, // 2/3 * 100
       });
     });
 
@@ -266,22 +270,22 @@ describe('Ticket Flow Integration', () => {
           userId,
           status: 'open',
           category: 'support',
-          createdAt: new Date('2023-12-03')
+          createdAt: new Date('2023-12-03'),
         },
         {
           id: '1',
           userId,
           status: 'closed',
           category: 'bug',
-          createdAt: new Date('2023-12-01')
+          createdAt: new Date('2023-12-01'),
         },
         {
           id: '2',
           userId,
           status: 'closed',
           category: 'support',
-          createdAt: new Date('2023-12-02')
-        }
+          createdAt: new Date('2023-12-02'),
+        },
       ];
 
       mockTicketMethods.findMany.mockResolvedValue(mockUserTickets);
@@ -294,8 +298,8 @@ describe('Ticket Flow Integration', () => {
         orderBy: { createdAt: 'desc' },
         include: {
           messages: true,
-          assignedStaff: true
-        }
+          assignedStaff: true,
+        },
       });
     });
 
@@ -306,14 +310,15 @@ describe('Ticket Flow Integration', () => {
       const mockTicket = {
         id: ticketId,
         userId: 'user123', // Ticket pertence a outro usuário
-        status: 'open'
+        status: 'open',
       };
 
       mockTicketMethods.findUnique.mockResolvedValue(mockTicket);
 
       // Usuário não autorizado tentando fechar ticket de outro usuário
-      await expect(ticketService.closeTicket('guild123', ticketId, unauthorizedUserId))
-        .rejects.toThrow('Não autorizado a fechar este ticket');
+      await expect(
+        ticketService.closeTicket('guild123', ticketId, unauthorizedUserId)
+      ).rejects.toThrow('Não autorizado a fechar este ticket');
     });
   });
 
@@ -321,11 +326,11 @@ describe('Ticket Flow Integration', () => {
     it('deve enviar notificações durante o ciclo de vida do ticket', async () => {
       // Mock do canal de log para notificações
       const mockLogChannel = {
-        send: jest.fn().mockResolvedValue({} as any)
+        send: jest.fn().mockResolvedValue({} as any),
       };
-      
+
       mockClient.channels.cache.set('log123', mockLogChannel as any);
-      
+
       // Mock das configurações do ticket com canal de log
       const mockSettings = {
         guildId: 'guild123',
@@ -340,17 +345,17 @@ describe('Ticket Flow Integration', () => {
           onCreate: true,
           onAssign: true,
           onClose: true,
-          onReopen: true
-        }
+          onReopen: true,
+        },
       };
-      
+
       // Mock do método getTicketSettings
       jest.spyOn(ticketService, 'getTicketSettings').mockReturnValue(mockSettings);
-      
+
       const ticketData = {
         userId: 'user123',
         channelId: 'channel123',
-        category: 'support'
+        category: 'support',
       };
 
       const mockTicket = {
@@ -363,13 +368,19 @@ describe('Ticket Flow Integration', () => {
         status: 'open',
         createdAt: new Date(),
         updatedAt: new Date(),
-        metadata: '{}'
+        metadata: '{}',
       };
 
       mockTicketMethods.create.mockResolvedValue(mockTicket);
       mockTicketMethods.update.mockResolvedValue({ ...mockTicket, channelId: 'channel123' });
 
-      await ticketService.createTicket('guild123', 'user123', 'Test Ticket', 'Test Description', 'medium');
+      await ticketService.createTicket(
+        'guild123',
+        'user123',
+        'Test Ticket',
+        'Test Description',
+        'medium'
+      );
 
       // Verificar se a notificação foi enviada para o canal de log
       expect(mockLogChannel.send).toHaveBeenCalled();

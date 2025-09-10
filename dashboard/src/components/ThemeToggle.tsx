@@ -14,7 +14,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ variant = 'button', className
   if (variant === 'dropdown') {
     return (
       <div className={`relative ${className}`}>
-        <div className="space-y-1">
+        <div className='space-y-1'>
           <button
             onClick={() => setTheme('light')}
             className={`w-full flex items-center space-x-3 px-3 py-2 text-sm rounded-lg transition-colors ${
@@ -23,7 +23,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ variant = 'button', className
                 : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
             }`}
           >
-            <Sun className="w-4 h-4" />
+            <Sun className='w-4 h-4' />
             <span>Claro</span>
           </button>
           <button
@@ -34,7 +34,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ variant = 'button', className
                 : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
             }`}
           >
-            <Moon className="w-4 h-4" />
+            <Moon className='w-4 h-4' />
             <span>Escuro</span>
           </button>
           <button
@@ -45,7 +45,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ variant = 'button', className
                 : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
             }`}
           >
-            <Monitor className="w-4 h-4" />
+            <Monitor className='w-4 h-4' />
             <span>Sistema</span>
           </button>
         </div>
@@ -55,9 +55,9 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ variant = 'button', className
 
   const getIcon = () => {
     if (theme === 'system') {
-      return <Monitor className="w-4 h-4" />;
+      return <Monitor className='w-4 h-4' />;
     }
-    return actualTheme === 'light' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />;
+    return actualTheme === 'light' ? <Sun className='w-4 h-4' /> : <Moon className='w-4 h-4' />;
   };
 
   return (

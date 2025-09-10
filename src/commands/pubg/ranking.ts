@@ -39,8 +39,8 @@ class RankingCommand extends BaseCommand {
               { name: '🏅 Interno - Badges', value: 'internal_badges' },
               { name: '⏰ Presença', value: 'presence' },
               { name: '🎵 Música', value: 'music' },
-              { name: '🎯 Jogos', value: 'games' },
-            ),
+              { name: '🎯 Jogos', value: 'games' }
+            )
         )
         .addIntegerOption(option =>
           option
@@ -48,13 +48,13 @@ class RankingCommand extends BaseCommand {
             .setDescription('Página do ranking (padrão: 1)')
             .setRequired(false)
             .setMinValue(1)
-            .setMaxValue(50),
+            .setMaxValue(50)
         )
         .addBooleanOption(option =>
           option
             .setName('public')
             .setDescription('Tornar a resposta pública (padrão: privado)')
-            .setRequired(false),
+            .setRequired(false)
         ) as SlashCommandBuilder,
       category: CommandCategory.PUBG,
       cooldown: 15,
@@ -67,11 +67,11 @@ class RankingCommand extends BaseCommand {
     const databaseService = client.database;
     try {
       try {
-      this.validateGuildContext(interaction);
-    } catch (error) {
-      await this.sendGuildOnlyError(interaction);
-      return;
-    }
+        this.validateGuildContext(interaction);
+      } catch (error) {
+        await this.sendGuildOnlyError(interaction);
+        return;
+      }
 
       const rankingType = interaction.options.getString('type', true);
       const page = interaction.options.getInteger('page') || 1;
@@ -79,7 +79,13 @@ class RankingCommand extends BaseCommand {
 
       await interaction.deferReply({ ephemeral: !isPublic });
 
-      const embed = await this.getRankingEmbed(rankingType, page, interaction.guildId!, interaction.user.id, client);
+      const embed = await this.getRankingEmbed(
+        rankingType,
+        page,
+        interaction.guildId!,
+        interaction.user.id,
+        client
+      );
       const components = this.createRankingComponents(rankingType, page, embed);
 
       const response = await interaction.editReply({
@@ -89,7 +95,12 @@ class RankingCommand extends BaseCommand {
 
       await this.handleRankingInteractions(response, interaction, client, rankingType);
     } catch (error) {
-      await this.handleRankingError(error, interaction, client, interaction.options.getString('type', true));
+      await this.handleRankingError(
+        error,
+        interaction,
+        client,
+        interaction.options.getString('type', true)
+      );
     }
   }
 
@@ -98,7 +109,7 @@ class RankingCommand extends BaseCommand {
     page: number,
     guildId: string,
     userId: string,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<EmbedBuilder> {
     const limit = 10;
     const offset = (page - 1) * limit;
@@ -114,10 +125,23 @@ class RankingCommand extends BaseCommand {
         try {
           const periodObj = {
             type: period,
-            startDate: new Date(Date.now() - (period === 'daily' ? 24 * 60 * 60 * 1000 : period === 'weekly' ? 7 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000)),
+            startDate: new Date(
+              Date.now() -
+                (period === 'daily'
+                  ? 24 * 60 * 60 * 1000
+                  : period === 'weekly'
+                    ? 7 * 24 * 60 * 60 * 1000
+                    : 30 * 24 * 60 * 60 * 1000)
+            ),
             endDate: new Date(),
           } as any;
-          const pubgRanking = this.rankingService.getPUBGRanking(guildId, periodObj, undefined, 'rankPoints', limit);
+          const pubgRanking = this.rankingService.getPUBGRanking(
+            guildId,
+            periodObj,
+            undefined,
+            'rankPoints',
+            limit
+          );
           rankingData = pubgRanking;
           totalCount = pubgRanking.length;
           embed = await this.createPUBGRankingEmbed(rankingData, period, page, totalCount, userId);
@@ -134,10 +158,22 @@ class RankingCommand extends BaseCommand {
             startDate: new Date(0),
             endDate: new Date(),
           } as any;
-          const xpRanking = this.rankingService.getInternalRanking(guildId, allTimePeriod, 'xp', limit);
+          const xpRanking = this.rankingService.getInternalRanking(
+            guildId,
+            allTimePeriod,
+            'xp',
+            limit
+          );
           rankingData = xpRanking;
           totalCount = xpRanking.length;
-          embed = await this.createInternalRankingEmbed(rankingData, 'XP', page, totalCount, userId, client);
+          embed = await this.createInternalRankingEmbed(
+            rankingData,
+            'XP',
+            page,
+            totalCount,
+            userId,
+            client
+          );
         } catch (error) {
           logger.error('Error fetching XP ranking:', error);
           throw new Error('Erro ao buscar ranking de XP. Tente novamente mais tarde.');
@@ -151,10 +187,22 @@ class RankingCommand extends BaseCommand {
             startDate: new Date(0),
             endDate: new Date(),
           } as any;
-          const coinsRanking = this.rankingService.getInternalRanking(guildId, allTimePeriod, 'coins', limit);
+          const coinsRanking = this.rankingService.getInternalRanking(
+            guildId,
+            allTimePeriod,
+            'coins',
+            limit
+          );
           rankingData = coinsRanking;
           totalCount = coinsRanking.length;
-          embed = await this.createInternalRankingEmbed(rankingData, 'Moedas', page, totalCount, userId, client);
+          embed = await this.createInternalRankingEmbed(
+            rankingData,
+            'Moedas',
+            page,
+            totalCount,
+            userId,
+            client
+          );
         } catch (error) {
           logger.error('Error fetching coins ranking:', error);
           throw new Error('Erro ao buscar ranking de moedas. Tente novamente mais tarde.');
@@ -168,10 +216,22 @@ class RankingCommand extends BaseCommand {
             startDate: new Date(0),
             endDate: new Date(),
           } as any;
-          const badgesRanking = this.rankingService.getInternalRanking(guildId, allTimePeriod, 'badgeCount', limit);
+          const badgesRanking = this.rankingService.getInternalRanking(
+            guildId,
+            allTimePeriod,
+            'badgeCount',
+            limit
+          );
           rankingData = badgesRanking;
           totalCount = badgesRanking.length;
-          embed = await this.createInternalRankingEmbed(rankingData, 'Badges', page, totalCount, userId, client);
+          embed = await this.createInternalRankingEmbed(
+            rankingData,
+            'Badges',
+            page,
+            totalCount,
+            userId,
+            client
+          );
         } catch (error) {
           logger.error('Error fetching badges ranking:', error);
           throw new Error('Erro ao buscar ranking de badges. Tente novamente mais tarde.');
@@ -182,21 +242,43 @@ class RankingCommand extends BaseCommand {
         const presenceRanking = await this.getPresenceRanking(guildId, limit, offset);
         rankingData = (presenceRanking as any).rankings || [];
         totalCount = (presenceRanking as any).total || 0;
-        embed = await this.createPresenceRankingEmbed(rankingData, page, totalCount, userId, client);
+        embed = await this.createPresenceRankingEmbed(
+          rankingData,
+          page,
+          totalCount,
+          userId,
+          client
+        );
         break;
 
       case 'music':
         const musicRanking = await this.getMusicRanking(guildId, limit, offset);
         rankingData = musicRanking.rankings;
         totalCount = musicRanking.total;
-        embed = await this.createActivityRankingEmbed(rankingData, 'Música', page, totalCount, userId, client, '🎵');
+        embed = await this.createActivityRankingEmbed(
+          rankingData,
+          'Música',
+          page,
+          totalCount,
+          userId,
+          client,
+          '🎵'
+        );
         break;
 
       case 'games':
         const gamesRanking = await this.getGamesRanking(guildId, limit, offset);
         rankingData = gamesRanking.rankings;
         totalCount = gamesRanking.total;
-        embed = await this.createActivityRankingEmbed(rankingData, 'Jogos', page, totalCount, userId, client, '🎯');
+        embed = await this.createActivityRankingEmbed(
+          rankingData,
+          'Jogos',
+          page,
+          totalCount,
+          userId,
+          client,
+          '🎯'
+        );
         break;
 
       default:
@@ -217,7 +299,7 @@ class RankingCommand extends BaseCommand {
         new ButtonBuilder()
           .setCustomId(`ranking_${rankingType}_${page - 1}`)
           .setLabel('◀️ Anterior')
-          .setStyle(ButtonStyle.Primary),
+          .setStyle(ButtonStyle.Primary)
       );
     }
 
@@ -225,7 +307,7 @@ class RankingCommand extends BaseCommand {
       new ButtonBuilder()
         .setCustomId(`ranking_${rankingType}_refresh`)
         .setLabel('🔄 Atualizar')
-        .setStyle(ButtonStyle.Secondary),
+        .setStyle(ButtonStyle.Secondary)
     );
 
     if (offset + limit < totalCount) {
@@ -233,7 +315,7 @@ class RankingCommand extends BaseCommand {
         new ButtonBuilder()
           .setCustomId(`ranking_${rankingType}_${page + 1}`)
           .setLabel('Próxima ▶️')
-          .setStyle(ButtonStyle.Primary),
+          .setStyle(ButtonStyle.Primary)
       );
     }
 
@@ -251,7 +333,7 @@ class RankingCommand extends BaseCommand {
           { label: '⏰ Presença', value: 'presence', emoji: '⏰' },
           { label: '🎵 Música', value: 'music', emoji: '🎵' },
           { label: '🎯 Jogos', value: 'games', emoji: '🎯' },
-        ]),
+        ])
     );
 
     return [selectRow, buttonsRow];
@@ -261,7 +343,7 @@ class RankingCommand extends BaseCommand {
     response: any,
     interaction: ChatInputCommandInteraction,
     client: ExtendedClient,
-    rankingType: string,
+    rankingType: string
   ): Promise<void> {
     const collector = response.createMessageComponentCollector({ time: 300000 });
 
@@ -277,7 +359,13 @@ class RankingCommand extends BaseCommand {
       if (i.isStringSelectMenu() && i.customId === 'ranking_quick_nav') {
         const newType = i.values[0];
         await i.deferUpdate();
-        const newEmbed = await this.getRankingEmbed(newType, 1, interaction.guildId!, interaction.user.id, client);
+        const newEmbed = await this.getRankingEmbed(
+          newType,
+          1,
+          interaction.guildId!,
+          interaction.user.id,
+          client
+        );
         const newComponents = this.createRankingComponents(newType, 1, newEmbed);
         await i.editReply({ embeds: [newEmbed], components: newComponents });
       }
@@ -288,12 +376,28 @@ class RankingCommand extends BaseCommand {
 
         if (action === 'refresh') {
           const currentPage = this.extractPageFromComponents(i.message.components);
-          const refreshedEmbed = await this.getRankingEmbed(type, currentPage, interaction.guildId!, interaction.user.id, client);
-          const refreshedComponents = this.createRankingComponents(type, currentPage, refreshedEmbed);
+          const refreshedEmbed = await this.getRankingEmbed(
+            type,
+            currentPage,
+            interaction.guildId!,
+            interaction.user.id,
+            client
+          );
+          const refreshedComponents = this.createRankingComponents(
+            type,
+            currentPage,
+            refreshedEmbed
+          );
           await i.editReply({ embeds: [refreshedEmbed], components: refreshedComponents });
         } else {
           const newPage = parseInt(action || '1');
-          const newEmbed = await this.getRankingEmbed(type, newPage, interaction.guildId!, interaction.user.id, client);
+          const newEmbed = await this.getRankingEmbed(
+            type,
+            newPage,
+            interaction.guildId!,
+            interaction.user.id,
+            client
+          );
           const newComponents = this.createRankingComponents(type, newPage, newEmbed);
           await i.editReply({ embeds: [newEmbed], components: newComponents });
         }
@@ -309,7 +413,7 @@ class RankingCommand extends BaseCommand {
     error: any,
     interaction: ChatInputCommandInteraction,
     client: ExtendedClient,
-    rankingType: string,
+    rankingType: string
   ): Promise<void> {
     logger.error('Ranking command error:', error);
 
@@ -325,7 +429,7 @@ class RankingCommand extends BaseCommand {
           userId: interaction.user.id,
           rankingType,
           command: 'ranking',
-        },
+        }
       );
     }
 
@@ -358,7 +462,7 @@ class RankingCommand extends BaseCommand {
     period: 'daily' | 'weekly' | 'monthly',
     page: number,
     total: number,
-    userId: string,
+    userId: string
   ): Promise<EmbedBuilder> {
     const periodNames = {
       daily: 'Diário',
@@ -418,7 +522,7 @@ class RankingCommand extends BaseCommand {
     page: number,
     total: number,
     userId: string,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<EmbedBuilder> {
     const typeEmojis = {
       XP: '⭐',
@@ -489,7 +593,7 @@ class RankingCommand extends BaseCommand {
     page: number,
     total: number,
     userId: string,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<EmbedBuilder> {
     const embed = new EmbedBuilder()
       .setTitle('⏰ Ranking de Presença')
@@ -543,7 +647,7 @@ class RankingCommand extends BaseCommand {
     total: number,
     userId: string,
     client: ExtendedClient,
-    emoji: string,
+    emoji: string
   ): Promise<EmbedBuilder> {
     const embed = new EmbedBuilder()
       .setTitle(`${emoji} Ranking de ${type}`)
@@ -635,7 +739,7 @@ export const command = {
   data: commandInstance.data,
   category: CommandCategory.PUBG,
   cooldown: 5,
-  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) => 
+  execute: (interaction: ChatInputCommandInteraction, client: ExtendedClient) =>
     commandInstance.execute(interaction, client),
 };
 
@@ -647,7 +751,7 @@ async function createPUBGRankingEmbed(
   period: 'daily' | 'weekly' | 'monthly',
   page: number,
   total: number,
-  userId: string,
+  userId: string
 ): Promise<EmbedBuilder> {
   return (commandInstance as any).createPUBGRankingEmbed(rankings, period, page, total, userId);
 }
@@ -658,9 +762,16 @@ async function createInternalRankingEmbed(
   page: number,
   total: number,
   userId: string,
-  client: ExtendedClient,
+  client: ExtendedClient
 ): Promise<EmbedBuilder> {
-  return (commandInstance as any).createInternalRankingEmbed(rankings, type, page, total, userId, client);
+  return (commandInstance as any).createInternalRankingEmbed(
+    rankings,
+    type,
+    page,
+    total,
+    userId,
+    client
+  );
 }
 
 async function createPresenceRankingEmbed(
@@ -668,7 +779,7 @@ async function createPresenceRankingEmbed(
   page: number,
   total: number,
   userId: string,
-  client: ExtendedClient,
+  client: ExtendedClient
 ): Promise<EmbedBuilder> {
   return (commandInstance as any).createPresenceRankingEmbed(rankings, page, total, userId, client);
 }
@@ -680,9 +791,17 @@ async function createActivityRankingEmbed(
   total: number,
   userId: string,
   client: ExtendedClient,
-  emoji: string,
+  emoji: string
 ): Promise<EmbedBuilder> {
-  return (commandInstance as any).createActivityRankingEmbed(rankings, type, page, total, userId, client, emoji);
+  return (commandInstance as any).createActivityRankingEmbed(
+    rankings,
+    type,
+    page,
+    total,
+    userId,
+    client,
+    emoji
+  );
 }
 
 function getMedalEmoji(position: number): string {
@@ -706,7 +825,7 @@ async function getRankingEmbed(
   page: number,
   guildId: string,
   userId: string,
-  client: ExtendedClient,
+  client: ExtendedClient
 ): Promise<EmbedBuilder> {
   return (commandInstance as any).getRankingEmbed(type, page, guildId, userId, client);
 }

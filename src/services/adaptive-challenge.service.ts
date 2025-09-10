@@ -237,13 +237,17 @@ export class AdaptiveChallengeService {
    */
   private scheduleAdaptiveGeneration(): void {
     // Gerar desafios adaptativos às 6:00 AM todos os dias
-    this.adaptationJob = cron.schedule('0 6 * * *', async () => {
-      this.logger.info('Starting adaptive challenge generation...');
-      await this.generateAdaptiveChallenges();
-    }, {
-      scheduled: true,
-      timezone: 'America/Sao_Paulo',
-    });
+    this.adaptationJob = cron.schedule(
+      '0 6 * * *',
+      async () => {
+        this.logger.info('Starting adaptive challenge generation...');
+        await this.generateAdaptiveChallenges();
+      },
+      {
+        scheduled: true,
+        timezone: 'America/Sao_Paulo',
+      }
+    );
 
     this.logger.info('Adaptive challenge generation scheduled for 6:00 AM daily');
   }
@@ -288,7 +292,9 @@ export class AdaptiveChallengeService {
       // Salvar desafios no banco de dados
       await this.saveAdaptiveChallenges(userId, adaptiveChallenges);
 
-      this.logger.info(`Generated ${adaptiveChallenges.length} adaptive challenges for user ${userId}`);
+      this.logger.info(
+        `Generated ${adaptiveChallenges.length} adaptive challenges for user ${userId}`
+      );
       return adaptiveChallenges;
     } catch (error) {
       this.logger.error(`Failed to generate adaptive challenges for user ${userId}:`, error);
@@ -389,12 +395,20 @@ export class AdaptiveChallengeService {
     const winRate = pubgStats.wins / Math.max(pubgStats.gamesPlayed, 1);
     const avgDamage = pubgStats.totalDamage / Math.max(pubgStats.gamesPlayed, 1);
 
-    const score = (kd * 30) + (winRate * 40) + (avgDamage / 50);
+    const score = kd * 30 + winRate * 40 + avgDamage / 50;
 
-    if (score >= 80) {return 'master';}
-    if (score >= 60) {return 'expert';}
-    if (score >= 40) {return 'advanced';}
-    if (score >= 20) {return 'intermediate';}
+    if (score >= 80) {
+      return 'master';
+    }
+    if (score >= 60) {
+      return 'expert';
+    }
+    if (score >= 40) {
+      return 'advanced';
+    }
+    if (score >= 20) {
+      return 'intermediate';
+    }
     return 'beginner';
   }
 
@@ -424,8 +438,12 @@ export class AdaptiveChallengeService {
       return daysDiff <= 7; // Últimos 7 dias
     });
 
-    if (recentGames.length >= 15) {return 'high';}
-    if (recentGames.length >= 5) {return 'medium';}
+    if (recentGames.length >= 15) {
+      return 'high';
+    }
+    if (recentGames.length >= 5) {
+      return 'medium';
+    }
     return 'low';
   }
 
@@ -436,11 +454,16 @@ export class AdaptiveChallengeService {
     let baseCount = 2;
 
     // Mais desafios para jogadores mais ativos
-    if (stats.activityLevel === 'high') {baseCount += 2;}
-    else if (stats.activityLevel === 'medium') {baseCount += 1;}
+    if (stats.activityLevel === 'high') {
+      baseCount += 2;
+    } else if (stats.activityLevel === 'medium') {
+      baseCount += 1;
+    }
 
     // Mais desafios para jogadores mais experientes
-    if (stats.skillLevel === 'expert' || stats.skillLevel === 'master') {baseCount += 1;}
+    if (stats.skillLevel === 'expert' || stats.skillLevel === 'master') {
+      baseCount += 1;
+    }
 
     return Math.min(baseCount, 5); // Máximo 5 desafios
   }
@@ -449,8 +472,9 @@ export class AdaptiveChallengeService {
    * Select templates for player
    */
   private selectTemplatesForPlayer(stats: PlayerStats, count: number): ChallengeTemplate[] {
-    const availableTemplates = Array.from(this.adaptiveTemplates.values())
-      .filter(template => template.skillRequirement.includes(stats.skillLevel));
+    const availableTemplates = Array.from(this.adaptiveTemplates.values()).filter(template =>
+      template.skillRequirement.includes(stats.skillLevel)
+    );
 
     // Priorizar tipos de desafio baseados no perfil do jogador
     const prioritizedTemplates = this.prioritizeTemplates(availableTemplates, stats);
@@ -460,7 +484,9 @@ export class AdaptiveChallengeService {
     const usedTypes = new Set<string>();
 
     for (const template of prioritizedTemplates) {
-      if (selected.length >= count) {break;}
+      if (selected.length >= count) {
+        break;
+      }
       if (!usedTypes.has(template.type)) {
         selected.push(template);
         usedTypes.add(template.type);
@@ -479,26 +505,49 @@ export class AdaptiveChallengeService {
   /**
    * Prioritize templates based on player stats
    */
-  private prioritizeTemplates(templates: ChallengeTemplate[], stats: PlayerStats): ChallengeTemplate[] {
+  private prioritizeTemplates(
+    templates: ChallengeTemplate[],
+    stats: PlayerStats
+  ): ChallengeTemplate[] {
     return templates.sort((a, b) => {
       let scoreA = 0;
       let scoreB = 0;
 
       // Priorizar baseado nas forças do jogador
-      if (a.type === 'kills' && stats.averageKills > 5) {scoreA += 10;}
-      if (b.type === 'kills' && stats.averageKills > 5) {scoreB += 10;}
+      if (a.type === 'kills' && stats.averageKills > 5) {
+        scoreA += 10;
+      }
+      if (b.type === 'kills' && stats.averageKills > 5) {
+        scoreB += 10;
+      }
 
-      if (a.type === 'damage' && stats.averageDamage > 1500) {scoreA += 10;}
-      if (b.type === 'damage' && stats.averageDamage > 1500) {scoreB += 10;}
+      if (a.type === 'damage' && stats.averageDamage > 1500) {
+        scoreA += 10;
+      }
+      if (b.type === 'damage' && stats.averageDamage > 1500) {
+        scoreB += 10;
+      }
 
-      if (a.type === 'wins' && stats.winRate > 0.1) {scoreA += 15;}
-      if (b.type === 'wins' && stats.winRate > 0.1) {scoreB += 15;}
+      if (a.type === 'wins' && stats.winRate > 0.1) {
+        scoreA += 15;
+      }
+      if (b.type === 'wins' && stats.winRate > 0.1) {
+        scoreB += 15;
+      }
 
-      if (a.type === 'headshots' && stats.headShotRate > 0.2) {scoreA += 12;}
-      if (b.type === 'headshots' && stats.headShotRate > 0.2) {scoreB += 12;}
+      if (a.type === 'headshots' && stats.headShotRate > 0.2) {
+        scoreA += 12;
+      }
+      if (b.type === 'headshots' && stats.headShotRate > 0.2) {
+        scoreB += 12;
+      }
 
-      if (a.type === 'survival_time' && stats.averageSurvivalTime > 600) {scoreA += 8;}
-      if (b.type === 'survival_time' && stats.averageSurvivalTime > 600) {scoreB += 8;}
+      if (a.type === 'survival_time' && stats.averageSurvivalTime > 600) {
+        scoreA += 8;
+      }
+      if (b.type === 'survival_time' && stats.averageSurvivalTime > 600) {
+        scoreB += 8;
+      }
 
       // Adicionar aleatoriedade para variedade
       scoreA += Math.random() * 5;
@@ -514,13 +563,14 @@ export class AdaptiveChallengeService {
   private async createAdaptiveChallenge(
     userId: string,
     template: ChallengeTemplate,
-    stats: PlayerStats,
+    stats: PlayerStats
   ): Promise<AdaptiveChallenge> {
     const adaptationRule = template.adaptationRules[stats.skillLevel];
     const personalizedTarget = this.calculatePersonalizedTarget(template, stats);
-    const motivationalMessage = template.motivationalMessages[
-      Math.floor(Math.random() * template.motivationalMessages.length)
-    ]!;
+    const motivationalMessage =
+      template.motivationalMessages[
+        Math.floor(Math.random() * template.motivationalMessages.length)
+      ]!;
 
     const baseRewards = this.calculateBaseRewards(template, stats.skillLevel);
     const adaptedRewards = {
@@ -559,30 +609,46 @@ export class AdaptiveChallengeService {
     switch (template.type) {
       case 'kills':
         if (stats.averageKills > 0) {
-          target = Math.max(template.minTarget, Math.min(template.maxTarget, 
-            Math.floor(stats.averageKills * template.scalingFactor)));
+          target = Math.max(
+            template.minTarget,
+            Math.min(template.maxTarget, Math.floor(stats.averageKills * template.scalingFactor))
+          );
         }
         break;
       case 'damage':
         if (stats.averageDamage > 0) {
-          target = Math.max(template.minTarget, Math.min(template.maxTarget, 
-            Math.floor(stats.averageDamage * template.scalingFactor)));
+          target = Math.max(
+            template.minTarget,
+            Math.min(template.maxTarget, Math.floor(stats.averageDamage * template.scalingFactor))
+          );
         }
         break;
       case 'survival_time':
         if (stats.averageSurvivalTime > 0) {
-          target = Math.max(template.minTarget, Math.min(template.maxTarget, 
-            Math.floor(stats.averageSurvivalTime * template.scalingFactor)));
+          target = Math.max(
+            template.minTarget,
+            Math.min(
+              template.maxTarget,
+              Math.floor(stats.averageSurvivalTime * template.scalingFactor)
+            )
+          );
         }
         break;
       case 'wins':
-        target = Math.max(template.minTarget, Math.min(template.maxTarget, 
-          Math.ceil(template.baseTarget * (stats.winRate > 0.05 ? 1.2 : 0.8))));
+        target = Math.max(
+          template.minTarget,
+          Math.min(
+            template.maxTarget,
+            Math.ceil(template.baseTarget * (stats.winRate > 0.05 ? 1.2 : 0.8))
+          )
+        );
         break;
       case 'headshots':
         if (stats.headShotRate > 0) {
-          target = Math.max(template.minTarget, Math.min(template.maxTarget, 
-            Math.ceil(template.baseTarget * (1 + stats.headShotRate))));
+          target = Math.max(
+            template.minTarget,
+            Math.min(template.maxTarget, Math.ceil(template.baseTarget * (1 + stats.headShotRate)))
+          );
         }
         break;
       default:
@@ -599,7 +665,10 @@ export class AdaptiveChallengeService {
   /**
    * Calculate base rewards
    */
-  private calculateBaseRewards(template: ChallengeTemplate, skillLevel: string): { xp: number; coins: number } {
+  private calculateBaseRewards(
+    template: ChallengeTemplate,
+    skillLevel: string
+  ): { xp: number; coins: number } {
     const baseXP = 150;
     const baseCoins = 75;
 
@@ -611,7 +680,8 @@ export class AdaptiveChallengeService {
       master: 2.0,
     };
 
-    const multiplier = difficultyMultipliers[skillLevel as keyof typeof difficultyMultipliers] || 1.0;
+    const multiplier =
+      difficultyMultipliers[skillLevel as keyof typeof difficultyMultipliers] || 1.0;
 
     return {
       xp: Math.floor(baseXP * multiplier),
@@ -624,12 +694,17 @@ export class AdaptiveChallengeService {
    */
   private mapSkillToDifficulty(skillLevel: string): 'easy' | 'medium' | 'hard' | 'extreme' {
     switch (skillLevel) {
-      case 'beginner': return 'easy';
-      case 'intermediate': return 'medium';
-      case 'advanced': return 'hard';
+      case 'beginner':
+        return 'easy';
+      case 'intermediate':
+        return 'medium';
+      case 'advanced':
+        return 'hard';
       case 'expert':
-      case 'master': return 'extreme';
-      default: return 'easy';
+      case 'master':
+        return 'extreme';
+      default:
+        return 'easy';
     }
   }
 
@@ -652,21 +727,32 @@ export class AdaptiveChallengeService {
   /**
    * Get rarity for skill level
    */
-  private getRarityForSkill(skillLevel: string): 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' {
+  private getRarityForSkill(
+    skillLevel: string
+  ): 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' {
     switch (skillLevel) {
-      case 'beginner': return 'common';
-      case 'intermediate': return 'uncommon';
-      case 'advanced': return 'rare';
-      case 'expert': return 'epic';
-      case 'master': return 'legendary';
-      default: return 'common';
+      case 'beginner':
+        return 'common';
+      case 'intermediate':
+        return 'uncommon';
+      case 'advanced':
+        return 'rare';
+      case 'expert':
+        return 'epic';
+      case 'master':
+        return 'legendary';
+      default:
+        return 'common';
     }
   }
 
   /**
    * Save adaptive challenges
    */
-  private async saveAdaptiveChallenges(userId: string, challenges: AdaptiveChallenge[]): Promise<void> {
+  private async saveAdaptiveChallenges(
+    userId: string,
+    challenges: AdaptiveChallenge[]
+  ): Promise<void> {
     try {
       const today = new Date().toISOString().split('T')[0]!;
 
@@ -741,7 +827,7 @@ export class AdaptiveChallengeService {
   private async getActiveUsers(): Promise<string[]> {
     try {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      
+
       const activeUsers = await this.database.client.userStats.findMany({
         where: {
           updatedAt: {
@@ -766,7 +852,7 @@ export class AdaptiveChallengeService {
   public async getUserAdaptiveChallenges(userId: string): Promise<AdaptiveChallenge[]> {
     try {
       const today = new Date().toISOString().split('T')[0]!;
-      
+
       const userChallenges = await this.database.client.userChallenge.findMany({
         where: {
           userId,
@@ -787,14 +873,17 @@ export class AdaptiveChallengeService {
         const adaptationData = JSON.parse(uc.challenge?.metadata || '{}');
         const typeMatch = uc.challengeId.match(/adaptive_(\w+)_/);
         const challengeType = typeMatch ? typeMatch[1] : 'kills';
-        
+
         return {
           id: uc.challengeId,
           name: adaptationData.name || 'Desafio Adaptativo',
-          description: adaptationData.description || 'Desafio personalizado baseado no seu desempenho',
+          description:
+            adaptationData.description || 'Desafio personalizado baseado no seu desempenho',
           type: challengeType as any,
           target: uc.target,
-          difficulty: this.mapSkillToDifficulty(adaptationData.originalDifficulty || 'intermediate'),
+          difficulty: this.mapSkillToDifficulty(
+            adaptationData.originalDifficulty || 'intermediate'
+          ),
           rewards: JSON.parse(uc.challenge?.rewards || '{}'),
           icon: this.getIconForType(challengeType),
           rarity: this.getRarityForSkill(adaptationData.originalDifficulty || 'intermediate'),
@@ -804,7 +893,8 @@ export class AdaptiveChallengeService {
           originalDifficulty: adaptationData.originalDifficulty || 'intermediate',
           adaptationReason: adaptationData.adaptationReason || 'Personalizado para você',
           personalizedTarget: uc.target,
-          motivationalMessage: adaptationData.motivationalMessage || 'Você consegue superar este desafio!',
+          motivationalMessage:
+            adaptationData.motivationalMessage || 'Você consegue superar este desafio!',
         };
       });
     } catch (error) {
@@ -832,7 +922,7 @@ export class AdaptiveChallengeService {
   }> {
     try {
       const today = new Date().toISOString().split('T')[0]!;
-      
+
       const adaptiveChallenges = await this.database.client.userChallenge.findMany({
         where: {
           createdAt: {
@@ -859,23 +949,23 @@ export class AdaptiveChallengeService {
       for (const challenge of adaptiveChallenges) {
         const adaptationData = JSON.parse(challenge.challenge?.metadata || '{}');
         const skill = adaptationData.originalDifficulty || 'intermediate';
-        
+
         // Inicializar contadores de skill
         if (!skillCounts[skill]) {
           skillCounts[skill] = { total: 0, completed: 0 };
         }
-        
+
         skillCounts[skill].total++;
         if (challenge.completed) {
           skillCounts[skill].completed++;
         }
-        
+
         // Extrair tipo do desafio do ID
         const typeMatch = challenge.challengeId.match(/adaptive_(\w+)_/);
         if (typeMatch) {
           challengeTypes.push(typeMatch[1]!);
         }
-        
+
         // Calcular ajuste de target (comparado com base)
         const template = this.adaptiveTemplates.get(`adaptive_${typeMatch?.[1]}`);
         if (template) {
@@ -892,17 +982,21 @@ export class AdaptiveChallengeService {
       });
 
       // Tipos mais populares
-      const typeCount = challengeTypes.reduce((acc, type) => {
-        acc[type] = (acc[type] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const typeCount = challengeTypes.reduce(
+        (acc, type) => {
+          acc[type] = (acc[type] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       const mostPopularChallengeTypes = Object.entries(typeCount)
-        .sort(([,a], [,b]) => b - a)
+        .sort(([, a], [, b]) => b - a)
         .slice(0, 5)
         .map(([type]) => type);
 
-      const averageTargetAdjustment = adjustmentCount > 0 ? totalTargetAdjustment / adjustmentCount : 1.0;
+      const averageTargetAdjustment =
+        adjustmentCount > 0 ? totalTargetAdjustment / adjustmentCount : 1.0;
 
       return {
         totalAdaptiveChallenges,
@@ -927,11 +1021,11 @@ export class AdaptiveChallengeService {
   public async updateAdaptiveChallengeProgress(
     userId: string,
     challengeType: string,
-    progress: number,
+    progress: number
   ): Promise<boolean> {
     try {
       const today = new Date().toISOString().split('T')[0]!;
-      
+
       const challenge = await this.database.client.userChallenge.findFirst({
         where: {
           userId,
@@ -969,7 +1063,7 @@ export class AdaptiveChallengeService {
         const challengeData = await this.database.client.challenge.findUnique({
           where: { id: challenge.challengeId },
         });
-        
+
         if (challengeData?.rewards) {
           const rewards = JSON.parse(challengeData.rewards);
           if (rewards.xp || rewards.coins) {

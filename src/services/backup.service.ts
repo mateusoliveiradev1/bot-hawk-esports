@@ -19,9 +19,9 @@ export interface BackupConfig {
     customCron?: string;
   };
   retention: {
-    daily: number;    // days
-    weekly: number;   // weeks
-    monthly: number;  // months
+    daily: number; // days
+    weekly: number; // weeks
+    monthly: number; // months
   };
   compression: {
     enabled: boolean;
@@ -97,7 +97,7 @@ export class BackupService {
     logger: StructuredLogger,
     healthService: HealthService,
     metricsService: MetricsService,
-    config: BackupConfig,
+    config: BackupConfig
   ) {
     this.prisma = prisma;
     this.logger = logger;
@@ -148,10 +148,12 @@ export class BackupService {
   /**
    * Cria um backup manual
    */
-  async createBackup(type: 'manual' | 'daily' | 'weekly' | 'monthly' = 'manual'): Promise<BackupMetadata> {
+  async createBackup(
+    type: 'manual' | 'daily' | 'weekly' | 'monthly' = 'manual'
+  ): Promise<BackupMetadata> {
     const startTime = Date.now();
     const backupId = `${type}_${Date.now()}`;
-    
+
     // Gerar nome do arquivo
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const filename = `backup_${timestamp}.db${this.config.compression.enabled ? '.gz' : ''}`;
@@ -285,7 +287,7 @@ export class BackupService {
       this.logger.info('Starting backup restoration', { metadata: { backupId } });
 
       // Verificar se o arquivo existe
-      if (!await this.fileExists(backup.filePath)) {
+      if (!(await this.fileExists(backup.filePath))) {
         throw new Error(`Backup file not found: ${backup.filePath}`);
       }
 
@@ -337,23 +339,22 @@ export class BackupService {
   getBackupStats(): BackupStats {
     const completedBackups = this.backupHistory.filter(b => b.status === 'completed');
     const totalSize = completedBackups.reduce((sum, b) => sum + b.size, 0);
-    const successRate = this.backupHistory.length > 0 
-      ? (completedBackups.length / this.backupHistory.length) * 100 
-      : 0;
-    
-    const durations = completedBackups
-      .filter(b => b.duration)
-      .map(b => b.duration!);
-    const averageDuration = durations.length > 0 
-      ? durations.reduce((sum, d) => sum + d, 0) / durations.length 
-      : 0;
+    const successRate =
+      this.backupHistory.length > 0
+        ? (completedBackups.length / this.backupHistory.length) * 100
+        : 0;
+
+    const durations = completedBackups.filter(b => b.duration).map(b => b.duration!);
+    const averageDuration =
+      durations.length > 0 ? durations.reduce((sum, d) => sum + d, 0) / durations.length : 0;
 
     return {
       totalBackups: this.backupHistory.length,
       totalSize,
-      lastBackup: completedBackups.length > 0 
-        ? completedBackups[completedBackups.length - 1].timestamp 
-        : undefined,
+      lastBackup:
+        completedBackups.length > 0
+          ? completedBackups[completedBackups.length - 1].timestamp
+          : undefined,
       successRate,
       averageDuration,
       storageUsage: {
@@ -371,9 +372,7 @@ export class BackupService {
       const toDelete: BackupMetadata[] = [];
 
       // Filtrar backups por tipo se especificado
-      const backups = type 
-        ? this.backupHistory.filter(b => b.type === type)
-        : this.backupHistory;
+      const backups = type ? this.backupHistory.filter(b => b.type === type) : this.backupHistory;
 
       for (const backup of backups) {
         let shouldDelete = false;
@@ -381,13 +380,13 @@ export class BackupService {
 
         switch (backup.type) {
           case 'daily':
-            shouldDelete = age > (this.config.retention.daily * 24 * 60 * 60 * 1000);
+            shouldDelete = age > this.config.retention.daily * 24 * 60 * 60 * 1000;
             break;
           case 'weekly':
-            shouldDelete = age > (this.config.retention.weekly * 7 * 24 * 60 * 60 * 1000);
+            shouldDelete = age > this.config.retention.weekly * 7 * 24 * 60 * 60 * 1000;
             break;
           case 'monthly':
-            shouldDelete = age > (this.config.retention.monthly * 30 * 24 * 60 * 60 * 1000);
+            shouldDelete = age > this.config.retention.monthly * 30 * 24 * 60 * 60 * 1000;
             break;
         }
 
@@ -402,13 +401,15 @@ export class BackupService {
           if (await this.fileExists(backup.filePath)) {
             await fs.promises.unlink(backup.filePath);
           }
-          
+
           const index = this.backupHistory.indexOf(backup);
           if (index > -1) {
             this.backupHistory.splice(index, 1);
           }
 
-          const ageInDays = Math.floor((now.getTime() - backup.timestamp.getTime()) / (24 * 60 * 60 * 1000));
+          const ageInDays = Math.floor(
+            (now.getTime() - backup.timestamp.getTime()) / (24 * 60 * 60 * 1000)
+          );
           this.logger.debug('Deleted old backup', {
             metadata: {
               backupId: backup.id,
@@ -418,12 +419,12 @@ export class BackupService {
           });
         } catch (error) {
           this.logger.warn('Failed to delete backup file', {
-          metadata: {
-            backupId: backup.id,
-            filePath: backup.filePath,
-            error: error instanceof Error ? error.message : String(error),
-          },
-        });
+            metadata: {
+              backupId: backup.id,
+              filePath: backup.filePath,
+              error: error instanceof Error ? error.message : String(error),
+            },
+          });
         }
       }
 
@@ -462,9 +463,9 @@ export class BackupService {
 
   private async ensureDirectories(): Promise<void> {
     const dirs = [this.config.storage.local.path];
-    
+
     for (const dir of dirs) {
-      if (!await this.directoryExists(dir)) {
+      if (!(await this.directoryExists(dir))) {
         await fs.promises.mkdir(dir, { recursive: true });
         this.logger.debug(`Created backup directory: ${dir}`);
       }
@@ -474,22 +475,30 @@ export class BackupService {
   private setupSchedules(): void {
     // Daily backup
     if (this.config.schedule.daily) {
-      this.scheduleJob('daily', '0 2 * * *', async () => { await this.createBackup('daily'); });
+      this.scheduleJob('daily', '0 2 * * *', async () => {
+        await this.createBackup('daily');
+      });
     }
 
     // Weekly backup (Sundays at 3 AM)
     if (this.config.schedule.weekly) {
-      this.scheduleJob('weekly', '0 3 * * 0', async () => { await this.createBackup('weekly'); });
+      this.scheduleJob('weekly', '0 3 * * 0', async () => {
+        await this.createBackup('weekly');
+      });
     }
 
     // Monthly backup (1st day at 4 AM)
     if (this.config.schedule.monthly) {
-      this.scheduleJob('monthly', '0 4 1 * *', async () => { await this.createBackup('monthly'); });
+      this.scheduleJob('monthly', '0 4 1 * *', async () => {
+        await this.createBackup('monthly');
+      });
     }
 
     // Custom cron
     if (this.config.schedule.customCron) {
-      this.scheduleJob('custom', this.config.schedule.customCron, async () => { await this.createBackup('manual'); });
+      this.scheduleJob('custom', this.config.schedule.customCron, async () => {
+        await this.createBackup('manual');
+      });
     }
   }
 
@@ -506,7 +515,7 @@ export class BackupService {
         // Reagendar
         this.scheduleJob(name, cron, callback);
       }, interval);
-      
+
       this.scheduledJobs.set(name, timeout);
       this.logger.debug(`Scheduled backup job: ${name}`);
     }
@@ -515,9 +524,15 @@ export class BackupService {
   private parseCronToInterval(cron: string): number {
     // Implementação simplificada para demonstração
     // Em produção, usar biblioteca como node-cron ou cron-parser
-    if (cron === '0 2 * * *') {return 24 * 60 * 60 * 1000;} // Daily
-    if (cron === '0 3 * * 0') {return 7 * 24 * 60 * 60 * 1000;} // Weekly
-    if (cron === '0 4 1 * *') {return 30 * 24 * 60 * 60 * 1000;} // Monthly
+    if (cron === '0 2 * * *') {
+      return 24 * 60 * 60 * 1000;
+    } // Daily
+    if (cron === '0 3 * * 0') {
+      return 7 * 24 * 60 * 60 * 1000;
+    } // Weekly
+    if (cron === '0 4 1 * *') {
+      return 30 * 24 * 60 * 60 * 1000;
+    } // Monthly
     return 0;
   }
 
@@ -530,7 +545,7 @@ export class BackupService {
   private async createSQLiteBackup(backupPath: string): Promise<void> {
     // Para SQLite, podemos usar VACUUM INTO ou copiar o arquivo
     const dbPath = process.env.DATABASE_URL?.replace('file:', '') || './prisma/dev.db';
-    
+
     if (await this.fileExists(dbPath)) {
       await fs.promises.copyFile(dbPath, backupPath);
     } else {
@@ -540,7 +555,7 @@ export class BackupService {
 
   private async restoreSQLiteBackup(backupPath: string): Promise<void> {
     const dbPath = process.env.DATABASE_URL?.replace('file:', '') || './prisma/dev.db';
-    
+
     // Fazer backup do arquivo atual
     const currentBackup = `${dbPath}.restore-backup-${Date.now()}`;
     if (await this.fileExists(dbPath)) {
@@ -550,10 +565,10 @@ export class BackupService {
     try {
       // Restaurar backup
       await fs.promises.copyFile(backupPath, dbPath);
-      
+
       // Verificar se a restauração funcionou
       await this.prisma.$queryRaw`SELECT 1`;
-      
+
       // Remover backup temporário
       if (await this.fileExists(currentBackup)) {
         await fs.promises.unlink(currentBackup);
@@ -591,7 +606,7 @@ export class BackupService {
 
   private async verifyBackupIntegrity(metadata: BackupMetadata): Promise<void> {
     // Verificar se o arquivo pode ser lido
-    if (!await this.fileExists(metadata.filePath)) {
+    if (!(await this.fileExists(metadata.filePath))) {
       throw new Error('Backup file not found after creation');
     }
 
@@ -608,7 +623,7 @@ export class BackupService {
 
   private async loadBackupHistory(): Promise<void> {
     const historyPath = path.join(this.config.storage.local.path, 'backup-history.json');
-    
+
     try {
       if (await this.fileExists(historyPath)) {
         const data = await fs.promises.readFile(historyPath, 'utf8');
@@ -626,13 +641,9 @@ export class BackupService {
 
   private async saveBackupHistory(): Promise<void> {
     const historyPath = path.join(this.config.storage.local.path, 'backup-history.json');
-    
+
     try {
-      await fs.promises.writeFile(
-        historyPath,
-        JSON.stringify(this.backupHistory, null, 2),
-        'utf8',
-      );
+      await fs.promises.writeFile(historyPath, JSON.stringify(this.backupHistory, null, 2), 'utf8');
     } catch (error) {
       this.logger.error('Failed to save backup history', error);
     }
@@ -641,22 +652,20 @@ export class BackupService {
   private async notifyBackupResult(metadata: BackupMetadata, success: boolean): Promise<void> {
     // Implementar notificações Discord aqui
     // Por enquanto apenas log
-    const message = success 
+    const message = success
       ? `✅ Backup ${metadata.type} concluído com sucesso (${this.formatBytes(metadata.size)})`
       : `❌ Backup ${metadata.type} falhou: ${metadata.error}`;
-    
+
     this.logger.info('Backup notification', { metadata: { message, ...metadata } });
   }
 
   private async healthCheck(): Promise<{ healthy: boolean; details: any }> {
     try {
       const stats = this.getBackupStats();
-      const lastBackupAge = stats.lastBackup 
-        ? Date.now() - stats.lastBackup.getTime()
-        : null;
-      
-      const healthy = this.isInitialized && 
-        (lastBackupAge === null || lastBackupAge < 25 * 60 * 60 * 1000); // 25 hours
+      const lastBackupAge = stats.lastBackup ? Date.now() - stats.lastBackup.getTime() : null;
+
+      const healthy =
+        this.isInitialized && (lastBackupAge === null || lastBackupAge < 25 * 60 * 60 * 1000); // 25 hours
 
       return {
         healthy,
@@ -695,7 +704,9 @@ export class BackupService {
   }
 
   private formatBytes(bytes: number): string {
-    if (bytes === 0) {return '0 Bytes';}
+    if (bytes === 0) {
+      return '0 Bytes';
+    }
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));

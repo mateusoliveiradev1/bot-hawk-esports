@@ -80,11 +80,14 @@ export class StructuredLogger {
   private hostname: string;
   private pid: number;
 
-  constructor(config: LoggerConfig, private serviceName: string = 'bot-hawk-esports') {
+  constructor(
+    config: LoggerConfig,
+    private serviceName: string = 'bot-hawk-esports'
+  ) {
     this.config = config;
     this.hostname = require('os').hostname();
     this.pid = process.pid;
-    
+
     this.ensureLogDirectory();
     this.setupLogger();
   }
@@ -114,67 +117,100 @@ export class StructuredLogger {
             winston.format.printf(({ timestamp, level, message, service, context }) => {
               const contextStr = context ? ` [${JSON.stringify(context)}]` : '';
               return `${timestamp} [${service}] ${level}: ${message}${contextStr}`;
-            }),
+            })
           ),
-        }),
+        })
       );
     }
 
-    // File transport - Combined logs
+    // File transport - Combined logs (Production optimized)
     if (this.config.enableFile) {
+      const fileFormat = winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.errors({ stack: true }),
+        winston.format.json(),
+        winston.format.prettyPrint({ depth: 3 })
+      );
+
       transports.push(
         new winston.transports.File({
           filename: path.join(this.config.logDir, 'combined.log'),
-          format: winston.format.combine(
-            winston.format.timestamp(),
-            winston.format.json(),
-          ),
+          format: fileFormat,
           maxsize: this.parseSize(this.config.maxSize),
           maxFiles: this.config.maxFiles,
-        }),
+          tailable: true,
+          zippedArchive: true, // Compress old log files
+        })
       );
 
-      // Error logs separate file
+      // Error logs separate file with enhanced format
       transports.push(
         new winston.transports.File({
           filename: path.join(this.config.logDir, 'error.log'),
           level: 'error',
           format: winston.format.combine(
             winston.format.timestamp(),
+            winston.format.errors({ stack: true }),
             winston.format.json(),
+            winston.format.prettyPrint({ depth: 5 }) // More detail for errors
           ),
           maxsize: this.parseSize(this.config.maxSize),
           maxFiles: this.config.maxFiles,
-        }),
+          tailable: true,
+          zippedArchive: true,
+        })
       );
 
-      // Application logs (info and above)
+      // Application logs (info and above) - Production ready
       transports.push(
         new winston.transports.File({
           filename: path.join(this.config.logDir, 'app.log'),
           level: 'info',
-          format: winston.format.combine(
-            winston.format.timestamp(),
-            winston.format.json(),
-          ),
+          format: fileFormat,
           maxsize: this.parseSize(this.config.maxSize),
           maxFiles: this.config.maxFiles,
-        }),
+          tailable: true,
+          zippedArchive: true,
+        })
       );
 
-      // Debug logs separate file
+      // Performance logs for monitoring
       transports.push(
         new winston.transports.File({
-          filename: path.join(this.config.logDir, 'debug.log'),
-          level: 'debug',
+          filename: path.join(this.config.logDir, 'performance.log'),
+          level: 'info',
           format: winston.format.combine(
             winston.format.timestamp(),
             winston.format.json(),
+            winston.format((info) => {
+              // Only log performance-related entries
+              if ((info.context && typeof info.context === 'object' && 'duration' in info.context) || (typeof info.message === 'string' && (info.message.includes('performance') || info.message.includes('initialized in')))) {
+                return info;
+              }
+              return false;
+            })()
           ),
           maxsize: this.parseSize(this.config.maxSize),
           maxFiles: this.config.maxFiles,
-        }),
+          tailable: true,
+          zippedArchive: true,
+        })
       );
+
+      // Debug logs separate file (only in development)
+      if (this.config.environment === 'development') {
+        transports.push(
+          new winston.transports.File({
+            filename: path.join(this.config.logDir, 'debug.log'),
+            level: 'debug',
+            format: fileFormat,
+            maxsize: this.parseSize(this.config.maxSize),
+            maxFiles: Math.min(this.config.maxFiles, 3), // Limit debug files
+            tailable: true,
+            zippedArchive: true,
+          })
+        );
+      }
     }
 
     // Elasticsearch transport (if configured)
@@ -193,7 +229,7 @@ export class StructuredLogger {
       format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.errors({ stack: true }),
-        winston.format.json(),
+        winston.format.json()
       ),
       defaultMeta: {
         service: this.serviceName,
@@ -209,21 +245,15 @@ export class StructuredLogger {
     this.logger.exceptions.handle(
       new winston.transports.File({
         filename: path.join(this.config.logDir, 'exceptions.log'),
-        format: winston.format.combine(
-          winston.format.timestamp(),
-          winston.format.json(),
-        ),
-      }),
+        format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+      })
     );
 
     this.logger.rejections.handle(
       new winston.transports.File({
         filename: path.join(this.config.logDir, 'rejections.log'),
-        format: winston.format.combine(
-          winston.format.timestamp(),
-          winston.format.json(),
-        ),
-      }),
+        format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+      })
     );
   }
 
@@ -238,12 +268,12 @@ export class StructuredLogger {
         write: async (message: string) => {
           try {
             const logEntry = JSON.parse(message);
-            
+
             // Only send logs at or above the minimum level
             const levels = ['error', 'warn', 'info', 'debug'];
             const currentLevelIndex = levels.indexOf(logEntry.level);
             const minLevelIndex = levels.indexOf(minLevel);
-            
+
             if (currentLevelIndex > minLevelIndex) {
               return;
             }
@@ -312,11 +342,16 @@ export class StructuredLogger {
    */
   private getLogLevelColor(level: string): number {
     switch (level) {
-      case 'error': return 0xFF0000;   // Red
-      case 'warn': return 0xFFA500;    // Orange
-      case 'info': return 0x0099FF;    // Blue
-      case 'debug': return 0x808080;   // Gray
-      default: return 0x000000;        // Black
+      case 'error':
+        return 0xff0000; // Red
+      case 'warn':
+        return 0xffa500; // Orange
+      case 'info':
+        return 0x0099ff; // Blue
+      case 'debug':
+        return 0x808080; // Gray
+      default:
+        return 0x000000; // Black
     }
   }
 
@@ -325,10 +360,10 @@ export class StructuredLogger {
    */
   private parseSize(size: string): number {
     const units: Record<string, number> = {
-      'b': 1,
-      'kb': 1024,
-      'mb': 1024 * 1024,
-      'gb': 1024 * 1024 * 1024,
+      b: 1,
+      kb: 1024,
+      mb: 1024 * 1024,
+      gb: 1024 * 1024 * 1024,
     };
 
     const match = size.toLowerCase().match(/^(\d+)(\w+)$/);
@@ -436,7 +471,14 @@ export class StructuredLogger {
   /**
    * Log Discord command execution
    */
-  logCommand(commandName: string, userId: string, guildId: string, success: boolean, duration: number, error?: Error): void {
+  logCommand(
+    commandName: string,
+    userId: string,
+    guildId: string,
+    success: boolean,
+    duration: number,
+    error?: Error
+  ): void {
     const context: LogContext = {
       userId,
       guildId,
@@ -465,7 +507,13 @@ export class StructuredLogger {
   /**
    * Log database operation
    */
-  logDatabase(operation: string, table: string, duration: number, success: boolean, error?: Error): void {
+  logDatabase(
+    operation: string,
+    table: string,
+    duration: number,
+    success: boolean,
+    error?: Error
+  ): void {
     const context: LogContext = {
       duration,
       metadata: {
@@ -492,7 +540,14 @@ export class StructuredLogger {
   /**
    * Log API call to external service
    */
-  logApiCall(service: string, endpoint: string, method: string, statusCode: number, duration: number, error?: Error): void {
+  logApiCall(
+    service: string,
+    endpoint: string,
+    method: string,
+    statusCode: number,
+    duration: number,
+    error?: Error
+  ): void {
     const context: LogContext = {
       duration,
       statusCode,
@@ -541,7 +596,12 @@ export class StructuredLogger {
   /**
    * Log security event
    */
-  logSecurity(event: string, userId?: string, ipAddress?: string, metadata?: Record<string, any>): void {
+  logSecurity(
+    event: string,
+    userId?: string,
+    ipAddress?: string,
+    metadata?: Record<string, any>
+  ): void {
     const context: LogContext = {
       userId,
       ipAddress,
@@ -590,7 +650,11 @@ export class StructuredLogger {
   /**
    * Export logs for analysis
    */
-  async exportLogs(startDate: Date, endDate: Date, format: 'json' | 'csv' = 'json'): Promise<string> {
+  async exportLogs(
+    startDate: Date,
+    endDate: Date,
+    format: 'json' | 'csv' = 'json'
+  ): Promise<string> {
     // This would require implementing log export functionality
     // For now, return empty string
     return '';
@@ -621,7 +685,7 @@ export class StructuredLogger {
    * Close logger and flush all transports
    */
   async close(): Promise<void> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       this.logger.end(() => {
         resolve();
       });

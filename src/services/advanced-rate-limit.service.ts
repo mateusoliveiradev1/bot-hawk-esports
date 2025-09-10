@@ -63,18 +63,23 @@ export class AdvancedRateLimitService {
 
   constructor(
     private readonly cacheService: CacheService,
-    structuredLogger?: StructuredLogger,
+    structuredLogger?: StructuredLogger
   ) {
-    this.structuredLogger = structuredLogger || new StructuredLogger({
-      level: 'info',
-      version: '1.0.0',
-      environment: process.env.NODE_ENV || 'development',
-      logDir: './logs',
-      maxFiles: 14,
-      maxSize: '20m',
-      enableConsole: true,
-      enableFile: true,
-    }, 'AdvancedRateLimitService');
+    this.structuredLogger =
+      structuredLogger ||
+      new StructuredLogger(
+        {
+          level: 'info',
+          version: '1.0.0',
+          environment: process.env.NODE_ENV || 'development',
+          logDir: './logs',
+          maxFiles: 14,
+          maxSize: '20m',
+          enableConsole: true,
+          enableFile: true,
+        },
+        'AdvancedRateLimitService'
+      );
 
     this.initializeRateLimiters();
     this.loadWhitelistedIPs();
@@ -86,8 +91,14 @@ export class AdvancedRateLimitService {
    */
   private initializeRateLimiters(): void {
     const endpointTypes = [
-      'general', 'auth-login', 'auth-register', 'upload-general',
-      'api-pubg', 'api-stats', 'admin-general', 'security-captcha',
+      'general',
+      'auth-login',
+      'auth-register',
+      'upload-general',
+      'api-pubg',
+      'api-stats',
+      'admin-general',
+      'security-captcha',
     ];
 
     endpointTypes.forEach(type => {
@@ -121,7 +132,7 @@ export class AdvancedRateLimitService {
       userAgent?: string;
       userId?: string;
       endpoint?: string;
-    } = {},
+    } = {}
   ): Promise<AdvancedRateLimitResult> {
     // Check if IP is blacklisted
     if (metadata.ip && this.blacklistedIPs.has(metadata.ip)) {
@@ -141,25 +152,25 @@ export class AdvancedRateLimitService {
 
     // Get basic rate limit result
     const basicResult = rateLimiter.checkLimit(identifier);
-    
+
     // Calculate trust score
     const trustScore = await this.calculateTrustScore(identifier, metadata);
-    
+
     // Analyze user behavior
     const behaviorAnalysis = await this.analyzeUserBehavior(identifier, metadata);
-    
+
     // Determine violation level
     const violationLevel = this.determineViolationLevel(basicResult, trustScore, behaviorAnalysis);
-    
+
     // Get previous violations
     const previousViolations = this.getViolationCount(identifier);
-    
+
     // Determine recommended action
     const recommendedAction = this.determineRecommendedAction(
       basicResult,
       violationLevel,
       trustScore,
-      behaviorAnalysis,
+      behaviorAnalysis
     );
 
     const result: AdvancedRateLimitResult = {
@@ -192,11 +203,11 @@ export class AdvancedRateLimitService {
    */
   private async calculateTrustScore(
     identifier: string,
-    metadata: { userId?: string; ip?: string },
+    metadata: { userId?: string; ip?: string }
   ): Promise<number> {
     const cacheKey = `trust_score:${identifier}`;
     const cached = await this.cacheService.get(cacheKey);
-    
+
     if (cached && typeof cached === 'string') {
       return parseFloat(cached);
     }
@@ -254,9 +265,13 @@ export class AdvancedRateLimitService {
     let score = 0.5; // Base score
 
     // Account age factor (newer accounts are less trusted)
-    if (factors.accountAge > 365) {score += 0.2;}
-    else if (factors.accountAge > 90) {score += 0.1;}
-    else if (factors.accountAge < 7) {score -= 0.2;}
+    if (factors.accountAge > 365) {
+      score += 0.2;
+    } else if (factors.accountAge > 90) {
+      score += 0.1;
+    } else if (factors.accountAge < 7) {
+      score -= 0.2;
+    }
 
     // Success rate factor
     const totalRequests = factors.successfulRequests + factors.failedRequests;
@@ -269,9 +284,15 @@ export class AdvancedRateLimitService {
     score -= factors.violationHistory * 0.1;
 
     // Security features bonus
-    if (factors.verifiedEmail) {score += 0.1;}
-    if (factors.twoFactorEnabled) {score += 0.15;}
-    if (factors.premiumUser) {score += 0.1;}
+    if (factors.verifiedEmail) {
+      score += 0.1;
+    }
+    if (factors.twoFactorEnabled) {
+      score += 0.15;
+    }
+    if (factors.premiumUser) {
+      score += 0.1;
+    }
 
     return Math.max(0, Math.min(1, score));
   }
@@ -281,7 +302,7 @@ export class AdvancedRateLimitService {
    */
   private async analyzeUserBehavior(
     identifier: string,
-    metadata: { userAgent?: string; ip?: string },
+    metadata: { userAgent?: string; ip?: string }
   ): Promise<{ suspicious: boolean; patterns: string[] }> {
     const patterns: string[] = [];
     let suspicious = false;
@@ -297,7 +318,8 @@ export class AdvancedRateLimitService {
 
     // Check request frequency patterns
     const recentRequests = await this.getRecentRequestCount(identifier);
-    if (recentRequests > 50) { // More than 50 requests in the last minute
+    if (recentRequests > 50) {
+      // More than 50 requests in the last minute
       patterns.push('high-frequency-requests');
       suspicious = true;
     }
@@ -326,7 +348,7 @@ export class AdvancedRateLimitService {
   private determineViolationLevel(
     basicResult: RateLimitResult,
     trustScore: number,
-    behaviorAnalysis: { suspicious: boolean; patterns: string[] },
+    behaviorAnalysis: { suspicious: boolean; patterns: string[] }
   ): 'none' | 'warning' | 'critical' {
     if (!basicResult.allowed) {
       return trustScore < 0.3 || behaviorAnalysis.suspicious ? 'critical' : 'warning';
@@ -346,7 +368,7 @@ export class AdvancedRateLimitService {
     basicResult: RateLimitResult,
     violationLevel: 'none' | 'warning' | 'critical',
     trustScore: number,
-    behaviorAnalysis: { suspicious: boolean; patterns: string[] },
+    behaviorAnalysis: { suspicious: boolean; patterns: string[] }
   ): 'allow' | 'throttle' | 'block' | 'captcha' {
     if (violationLevel === 'critical') {
       return trustScore < 0.2 ? 'block' : 'captcha';
@@ -375,7 +397,7 @@ export class AdvancedRateLimitService {
       userAgent?: string;
       userId?: string;
       endpoint?: string;
-    } = {},
+    } = {}
   ): Promise<void> {
     const violation: RateLimitViolation = {
       identifier,
@@ -473,7 +495,7 @@ export class AdvancedRateLimitService {
     identifier: string,
     endpointType: string,
     result: AdvancedRateLimitResult,
-    metadata: any,
+    metadata: any
   ): Promise<void> {
     if (result.violationLevel !== 'none' || result.suspiciousActivity) {
       await this.structuredLogger.info('Rate limit check completed', {
@@ -512,14 +534,20 @@ export class AdvancedRateLimitService {
    */
   private startCleanupTasks(): void {
     // Clean up old violations every hour
-    setInterval(() => {
-      this.cleanupOldViolations();
-    }, 60 * 60 * 1000);
+    setInterval(
+      () => {
+        this.cleanupOldViolations();
+      },
+      60 * 60 * 1000
+    );
 
     // Clean up suspicious IPs every 24 hours
-    setInterval(() => {
-      this.cleanupSuspiciousIPs();
-    }, 24 * 60 * 60 * 1000);
+    setInterval(
+      () => {
+        this.cleanupSuspiciousIPs();
+      },
+      24 * 60 * 60 * 1000
+    );
   }
 
   /**
@@ -527,10 +555,10 @@ export class AdvancedRateLimitService {
    */
   private cleanupOldViolations(): void {
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    
+
     for (const [identifier, violations] of this.violationHistory.entries()) {
       const recentViolations = violations.filter(v => v.timestamp > oneDayAgo);
-      
+
       if (recentViolations.length === 0) {
         this.violationHistory.delete(identifier);
       } else {
@@ -545,18 +573,18 @@ export class AdvancedRateLimitService {
   private cleanupSuspiciousIPs(): void {
     // This is a simplified cleanup - in production, you'd want more sophisticated logic
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    
+
     for (const ip of this.suspiciousIPs) {
       // Check if IP has recent violations
       let hasRecentViolations = false;
-      
+
       for (const violations of this.violationHistory.values()) {
         if (violations.some(v => v.ip === ip && v.timestamp > oneWeekAgo)) {
           hasRecentViolations = true;
           break;
         }
       }
-      
+
       if (!hasRecentViolations) {
         this.suspiciousIPs.delete(ip);
       }

@@ -41,9 +41,12 @@ export class RateLimiter {
 
   constructor(private readonly config: RateLimitConfig) {
     // Cleanup expired entries every 5 minutes
-    this.cleanupInterval = setInterval(() => {
-      this.cleanup();
-    }, 5 * 60 * 1000);
+    this.cleanupInterval = setInterval(
+      () => {
+        this.cleanup();
+      },
+      5 * 60 * 1000
+    );
   }
 
   /**
@@ -242,7 +245,7 @@ export class RateLimitUtils {
   static createDelayedExecutor(rateLimiter: RateLimiter, identifier: string) {
     return async <T>(fn: () => Promise<T>): Promise<T> => {
       const result = rateLimiter.checkLimit(identifier);
-      
+
       if (!result.allowed) {
         const waitTime = result.resetTime.getTime() - Date.now();
         if (waitTime > 0) {
@@ -261,13 +264,19 @@ export class RateLimitUtils {
    */
   static createMiddleware(rateLimiter: RateLimiter) {
     return (identifier: string) => {
-      return <T>(target: any, propertyName: string, descriptor: TypedPropertyDescriptor<(...args: any[]) => Promise<T>>) => {
+      return <T>(
+        target: any,
+        propertyName: string,
+        descriptor: TypedPropertyDescriptor<(...args: any[]) => Promise<T>>
+      ) => {
         const method = descriptor.value!;
         descriptor.value = async function (...args: any[]): Promise<T> {
           const result = rateLimiter.checkLimit(identifier);
-          
+
           if (!result.allowed) {
-            throw new Error(`Rate limit exceeded. Try again after ${result.resetTime.toISOString()}`);
+            throw new Error(
+              `Rate limit exceeded. Try again after ${result.resetTime.toISOString()}`
+            );
           }
 
           return method.apply(this, args);

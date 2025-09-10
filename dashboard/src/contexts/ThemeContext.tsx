@@ -38,15 +38,15 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // Update actual theme based on theme setting
   const updateActualTheme = (newTheme: Theme) => {
     let resolvedTheme: 'light' | 'dark';
-    
+
     if (newTheme === 'system') {
       resolvedTheme = getSystemTheme();
     } else {
       resolvedTheme = newTheme;
     }
-    
+
     setActualTheme(resolvedTheme);
-    
+
     // Update document class
     if (typeof document !== 'undefined') {
       document.documentElement.classList.remove('light', 'dark');
@@ -77,7 +77,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as Theme;
     const initialTheme = savedTheme || 'system';
-    
+
     setThemeState(initialTheme);
     updateActualTheme(initialTheme);
 
@@ -105,9 +105,5 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     toggleTheme,
   };
 
-  return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 };

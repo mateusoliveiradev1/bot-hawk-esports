@@ -41,8 +41,13 @@ const mockCacheService = {
   cleanup: jest.fn(),
   getStats: jest.fn().mockReturnValue({ hits: 0, misses: 0, keys: 0 }),
   keyGenerators: {
-    pubgPlayer: jest.fn((playerName: string, platform: string) => `pubg:player:${playerName}:${platform}`),
-    pubgStats: jest.fn((playerId: string, seasonId: string, gameMode: string) => `pubg:stats:${playerId}:${seasonId}:${gameMode}`),
+    pubgPlayer: jest.fn(
+      (playerName: string, platform: string) => `pubg:player:${playerName}:${platform}`
+    ),
+    pubgStats: jest.fn(
+      (playerId: string, seasonId: string, gameMode: string) =>
+        `pubg:stats:${playerId}:${seasonId}:${gameMode}`
+    ),
     pubgMatches: jest.fn((playerId: string) => `pubg:matches:${playerId}`),
     pubgSeason: jest.fn((platform: string) => `pubg:season:current:${platform}`),
   },
@@ -52,7 +57,7 @@ const mockLoggingService = {
   logApiOperation: jest.fn(),
   logApiRequest: jest.fn(),
   logWarning: jest.fn(),
-  logInfo: jest.fn()
+  logInfo: jest.fn(),
 } as unknown as LoggingService;
 
 // Mock das variáveis de ambiente
@@ -64,16 +69,16 @@ describe('PUBGService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Reset cache service mocks
     (mockCacheService.get as jest.Mock).mockReset();
     (mockCacheService.set as jest.Mock).mockReset();
     (mockCacheService.del as jest.Mock).mockReset();
-    
+
     // Reset logging service mocks
     (mockLoggingService.logApiOperation as jest.Mock).mockReset();
     (mockLoggingService.logApiRequest as jest.Mock).mockReset();
-    
+
     // Setup axios mock to return our mock instance
     const mockAxiosInstance: MockAxiosInstance = {
       get: jest.fn(),
@@ -89,17 +94,14 @@ describe('PUBGService', () => {
         },
       },
     };
-    
+
     // Configure axios.create to return our mock instance
     const axios = require('axios');
     axios.create.mockReturnValue(mockAxiosInstance);
     axios.default.create.mockReturnValue(mockAxiosInstance);
-    
+
     // Create PUBGService with mocked dependencies
-    pubgService = new PUBGService(
-      mockCacheService as any,
-      mockLoggingService as any
-    );
+    pubgService = new PUBGService(mockCacheService as any, mockLoggingService as any);
   });
 
   describe('getPlayerByName', () => {
@@ -115,7 +117,7 @@ describe('PUBGService', () => {
     it('deve retornar jogador mock quando não existir', async () => {
       // Since no API key is configured, should return mock player
       const result = await pubgService.getPlayerByName('Player456', PUBGPlatform.STEAM);
-      
+
       expect(result).not.toBeNull();
       expect(result?.name).toBe('Player456');
       expect(result?.platform).toBe(PUBGPlatform.STEAM);
@@ -135,7 +137,11 @@ describe('PUBGService', () => {
   describe('getPlayerStats', () => {
     it('deve buscar estatísticas do jogador com sucesso', async () => {
       // When API key is not available, getPlayerStats returns null
-      const result = await pubgService.getPlayerStats('account.player123', PUBGPlatform.STEAM, '2023-12');
+      const result = await pubgService.getPlayerStats(
+        'account.player123',
+        PUBGPlatform.STEAM,
+        '2023-12'
+      );
 
       expect(result).toBeNull();
     });
@@ -150,16 +156,16 @@ describe('PUBGService', () => {
               data: [
                 {
                   type: 'match',
-                  id: 'match123'
+                  id: 'match123',
                 },
                 {
                   type: 'match',
-                  id: 'match456'
-                }
-              ]
-            }
-          }
-        }
+                  id: 'match456',
+                },
+              ],
+            },
+          },
+        },
       };
 
       // Setup the get method mock for this test
@@ -231,18 +237,18 @@ describe('PUBGService', () => {
             id: '2023-12',
             attributes: {
               isCurrentSeason: true,
-              isOffseason: false
-            }
+              isOffseason: false,
+            },
           },
           {
             type: 'season',
             id: '2023-11',
             attributes: {
               isCurrentSeason: false,
-              isOffseason: false
-            }
-          }
-        ]
+              isOffseason: false,
+            },
+          },
+        ],
       };
 
       // Setup the get method mock for this test

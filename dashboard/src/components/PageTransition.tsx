@@ -2,8 +2,8 @@ import { ReactNode, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
 interface PageTransitionProps {
-  children: ReactNode
-  className?: string
+  children: ReactNode;
+  className?: string;
 }
 
 export function PageTransition({ children, className = '' }: PageTransitionProps) {
@@ -20,7 +20,9 @@ export function PageTransition({ children, className = '' }: PageTransitionProps
   return (
     <div
       className={`transition-all duration-300 ease-in-out ${
-        transitionStage === 'fadeOut' ? 'opacity-0 transform translate-y-2' : 'opacity-100 transform translate-y-0'
+        transitionStage === 'fadeOut'
+          ? 'opacity-0 transform translate-y-2'
+          : 'opacity-100 transform translate-y-0'
       } ${className}`}
       onTransitionEnd={() => {
         if (transitionStage === 'fadeOut') {
@@ -49,8 +51,8 @@ export function SlideTransition({ children, className = '' }: PageTransitionProp
   return (
     <div
       className={`transition-all duration-500 ease-in-out ${
-        transitionStage === 'slideOut' 
-          ? 'opacity-0 transform -translate-x-full' 
+        transitionStage === 'slideOut'
+          ? 'opacity-0 transform -translate-x-full'
           : 'opacity-100 transform translate-x-0'
       } ${className}`}
       onTransitionEnd={() => {
@@ -80,8 +82,8 @@ export function ScaleTransition({ children, className = '' }: PageTransitionProp
   return (
     <div
       className={`transition-all duration-400 ease-in-out ${
-        transitionStage === 'scaleOut' 
-          ? 'opacity-0 transform scale-95' 
+        transitionStage === 'scaleOut'
+          ? 'opacity-0 transform scale-95'
           : 'opacity-100 transform scale-100'
       } ${className}`}
       onTransitionEnd={() => {
@@ -106,12 +108,12 @@ export function useRouteTransition() {
     if (location.pathname !== previousLocation.pathname) {
       setIsTransitioning(true);
       setPreviousLocation(location);
-      
+
       // Reset transition state after animation
       const timer = setTimeout(() => {
         setIsTransitioning(false);
       }, 300);
-      
+
       return () => clearTimeout(timer);
     }
   }, [location, previousLocation]);
@@ -122,16 +124,19 @@ export function useRouteTransition() {
 // Componente de loading para transições
 export function TransitionLoader() {
   return (
-    <div className="fixed top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-primary/50 to-transparent z-50">
-      <div className="h-full bg-primary animate-pulse" />
+    <div className='fixed top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-primary/50 to-transparent z-50'>
+      <div className='h-full bg-primary animate-pulse' />
     </div>
   );
 }
 
 // Componente wrapper para páginas com animação
-export function AnimatedPage({ children, animation = 'fade' }: {
-  children: ReactNode
-  animation?: 'fade' | 'slide' | 'scale'
+export function AnimatedPage({
+  children,
+  animation = 'fade',
+}: {
+  children: ReactNode;
+  animation?: 'fade' | 'slide' | 'scale';
 }) {
   const TransitionComponent = {
     fade: PageTransition,
@@ -139,11 +144,7 @@ export function AnimatedPage({ children, animation = 'fade' }: {
     scale: ScaleTransition,
   }[animation];
 
-  return (
-    <TransitionComponent className="min-h-screen">
-      {children}
-    </TransitionComponent>
-  );
+  return <TransitionComponent className='min-h-screen'>{children}</TransitionComponent>;
 }
 
 // Componente para animações de navegação
@@ -151,11 +152,13 @@ export function NavigationTransition({ children }: { children: ReactNode }) {
   const { isTransitioning } = useRouteTransition();
 
   return (
-    <div className="relative">
+    <div className='relative'>
       {isTransitioning && <TransitionLoader />}
-      <div className={`transition-opacity duration-200 ${
-        isTransitioning ? 'opacity-75' : 'opacity-100'
-      }`}>
+      <div
+        className={`transition-opacity duration-200 ${
+          isTransitioning ? 'opacity-75' : 'opacity-100'
+        }`}
+      >
         {children}
       </div>
     </div>

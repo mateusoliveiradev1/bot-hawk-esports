@@ -6,7 +6,7 @@ import { ExtendedClient } from '../../src/types/client';
 // Mock das dependências
 const mockDatabaseService = {
   client: jest.fn(),
-  $transaction: jest.fn()
+  $transaction: jest.fn(),
 } as unknown as DatabaseService;
 
 // Mock específicos para user e xpTransaction
@@ -14,12 +14,12 @@ const mockUserMethods = {
   findUnique: jest.fn() as jest.MockedFunction<any>,
   create: jest.fn() as jest.MockedFunction<any>,
   update: jest.fn() as jest.MockedFunction<any>,
-  findMany: jest.fn() as jest.MockedFunction<any>
+  findMany: jest.fn() as jest.MockedFunction<any>,
 };
 
 const mockXpTransactionMethods = {
   create: jest.fn() as jest.MockedFunction<any>,
-  findMany: jest.fn() as jest.MockedFunction<any>
+  findMany: jest.fn() as jest.MockedFunction<any>,
 };
 
 // Configurar mocks do client
@@ -31,25 +31,25 @@ const mockXpTransactionMethods = {
       user: mockUserMethods,
       xpTransaction: mockXpTransactionMethods,
       auditLog: {
-        create: jest.fn()
-      }
+        create: jest.fn(),
+      },
     });
-  })
+  }),
 };
 
 const mockClient = {
   user: { id: '123456789' },
   guilds: {
     cache: new Map(),
-    fetch: jest.fn()
+    fetch: jest.fn(),
   },
   database: mockDatabaseService,
   cache: {
     get: jest.fn(),
     set: jest.fn(),
     del: jest.fn(),
-    clearPattern: jest.fn()
-  }
+    clearPattern: jest.fn(),
+  },
 } as unknown as ExtendedClient;
 
 describe('XPService', () => {
@@ -73,13 +73,13 @@ describe('XPService', () => {
         xp: 100,
         level: 1,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       const mockUpdatedUser = {
         ...mockUser,
         xp: 150,
-        level: 1
+        level: 1,
       };
 
       mockUserMethods.findUnique.mockResolvedValue({
@@ -87,7 +87,7 @@ describe('XPService', () => {
         xp: 50,
         totalXp: 50,
         level: 1,
-        prestigeLevel: 0
+        prestigeLevel: 0,
       });
       mockUserMethods.update.mockResolvedValue(mockUpdatedUser);
 
@@ -96,14 +96,14 @@ describe('XPService', () => {
       expect(result.totalXP).toBe(35);
       expect(result.leveledUp).toBe(false);
       expect(mockUserMethods.update).toHaveBeenCalledWith({
-         where: { id: 'user123' },
-         data: {
-           xp: 85,
-           totalXp: 85,
-           level: 1,
-           updatedAt: expect.any(Date)
-         }
-       });
+        where: { id: 'user123' },
+        data: {
+          xp: 85,
+          totalXp: 85,
+          level: 1,
+          updatedAt: expect.any(Date),
+        },
+      });
     });
 
     it('deve detectar level up corretamente', async () => {
@@ -143,13 +143,13 @@ describe('XPService', () => {
         loginAttempts: 0,
         lockedUntil: null,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       const mockUpdatedUser = {
         ...mockUser,
         xp: 140,
-        level: 2
+        level: 2,
       };
 
       mockUserMethods.findUnique.mockResolvedValue({
@@ -157,7 +157,7 @@ describe('XPService', () => {
         xp: 50,
         totalXp: 50,
         level: 1,
-        prestigeLevel: 0
+        prestigeLevel: 0,
       });
       mockUserMethods.update.mockResolvedValue(mockUpdatedUser);
 
@@ -233,7 +233,7 @@ describe('XPService', () => {
         loginAttempts: 0,
         lockedUntil: null,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       mockUserMethods.findUnique.mockResolvedValue(mockUser);
@@ -251,7 +251,7 @@ describe('XPService', () => {
         isMaxLevel: false,
         prestigeLevel: 0,
         rankingPosition: expect.any(Number),
-        accountAge: expect.any(Number)
+        accountAge: expect.any(Number),
       });
     });
 
@@ -273,7 +273,7 @@ describe('XPService', () => {
           level: 10,
           totalXp: 1000,
           prestigeLevel: 0,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
         {
           id: 'user2',
@@ -281,8 +281,8 @@ describe('XPService', () => {
           level: 8,
           totalXp: 800,
           prestigeLevel: 0,
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       ];
 
       mockUserMethods.findMany.mockResolvedValue(mockUsers);
@@ -298,7 +298,7 @@ describe('XPService', () => {
           rank: 1,
           prestigeLevel: 0,
           progressPercent: expect.any(Number),
-          isMaxLevel: false
+          isMaxLevel: false,
         },
         {
           userId: 'user2',
@@ -308,20 +308,16 @@ describe('XPService', () => {
           rank: 2,
           prestigeLevel: 0,
           progressPercent: expect.any(Number),
-          isMaxLevel: false
-        }
+          isMaxLevel: false,
+        },
       ]);
       expect(mockUserMethods.findMany).toHaveBeenCalledWith({
         where: {
           totalXp: {
-            gt: 0
-          }
+            gt: 0,
+          },
         },
-        orderBy: [
-          { totalXp: 'desc' },
-          { level: 'desc' },
-          { updatedAt: 'asc' }
-        ],
+        orderBy: [{ totalXp: 'desc' }, { level: 'desc' }, { updatedAt: 'asc' }],
         take: 10,
         select: {
           id: true,
@@ -329,8 +325,8 @@ describe('XPService', () => {
           level: true,
           totalXp: true,
           prestigeLevel: true,
-          updatedAt: true
-        }
+          updatedAt: true,
+        },
       });
     });
   });
@@ -374,7 +370,7 @@ describe('XPService', () => {
         loginAttempts: 0,
         lockedUntil: null,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       const mockTransactions = [
@@ -383,15 +379,15 @@ describe('XPService', () => {
           userId: 'user123',
           amount: 50,
           reason: 'message',
-          createdAt: new Date()
+          createdAt: new Date(),
         },
         {
           id: '2',
           userId: 'user123',
           amount: 25,
           reason: 'reaction',
-          createdAt: new Date()
-        }
+          createdAt: new Date(),
+        },
       ];
 
       mockUserMethods.findUnique.mockResolvedValue(mockUser);
@@ -410,7 +406,7 @@ describe('XPService', () => {
         prestigeLevel: 0,
         isMaxLevel: false,
         rankingPosition: 0,
-        accountAge: 0
+        accountAge: 0,
       });
       // O método getUserXPInfo não chama findMany para transações
       // expect(mockXpTransactionMethods.findMany).toHaveBeenCalledWith({
@@ -468,7 +464,7 @@ describe('XPService', () => {
         loginAttempts: 0,
         lockedUntil: null,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       mockUserMethods.findUnique.mockResolvedValue(mockUser);
@@ -476,7 +472,7 @@ describe('XPService', () => {
         ...mockUser,
         prestigeLevel: 1,
         level: 1,
-        xp: 0
+        xp: 0,
       });
 
       const result = await xpService.prestigeUser('discord123');
@@ -495,7 +491,7 @@ describe('XPService', () => {
         level: 50,
         prestigeLevel: 0,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       mockUserMethods.findUnique.mockResolvedValue(mockUser);
@@ -516,7 +512,7 @@ describe('XPService', () => {
         totalPrestigeUsers: 5,
         averagePrestigeLevel: 2.2,
         topLevel: 100,
-        topPrestige: 5
+        topPrestige: 5,
       };
 
       jest.spyOn(xpService, 'getXPSystemStats').mockResolvedValue(mockStats);

@@ -69,7 +69,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       const data = await response.json();
-      
+
       if (data.success) {
         localStorage.setItem('auth_token', data.data.token);
         apiService.setToken(data.data.token);
@@ -79,7 +79,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
         return true;
       }
-      
+
       return false;
     } catch (error) {
       console.error('Token refresh error:', error);
@@ -164,7 +164,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (code: string, guildId: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      
+
       // Exchange code for tokens
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002/api';
       const response = await fetch(`${apiUrl}/auth/discord`, {
@@ -180,7 +180,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       const data = await response.json();
-      
+
       if (data.success) {
         // Store tokens
         localStorage.setItem('auth_token', data.data.token);
@@ -205,10 +205,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           };
           setUser(completeUserData);
         }
-        
+
         return true;
       }
-      
+
       return false;
     } catch (error) {
       console.error('Login error:', error);
@@ -218,21 +218,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-
   // Validate current session
   const validateSession = async (): Promise<boolean> => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) {return false;}
+      if (!token) {
+        return false;
+      }
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3002/api'}/auth/validate`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3002/api'}/auth/validate`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -241,7 +245,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           return true;
         }
       }
-      
+
       // Session invalid, clear local data
       logout();
       return false;
@@ -257,14 +261,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const token = localStorage.getItem('token');
       if (token) {
-        await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3002/api'}/auth/clear-sessions`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-        });
+        await fetch(
+          `${import.meta.env.VITE_API_URL || 'http://localhost:3002/api'}/auth/clear-sessions`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+          }
+        );
       }
     } catch (error) {
       console.error('Clear sessions error:', error);
@@ -287,11 +294,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Periodic session validation
   useEffect(() => {
-    if (!isAuthenticated) {return;}
+    if (!isAuthenticated) {
+      return;
+    }
 
-    const interval = setInterval(() => {
-      validateSession();
-    }, 5 * 60 * 1000); // Check every 5 minutes
+    const interval = setInterval(
+      () => {
+        validateSession();
+      },
+      5 * 60 * 1000
+    ); // Check every 5 minutes
 
     return () => clearInterval(interval);
   }, [isAuthenticated]);
@@ -307,9 +319,5 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     clearAllSessions,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

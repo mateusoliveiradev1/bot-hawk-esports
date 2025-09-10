@@ -10,20 +10,20 @@ const mockDatabaseService = {
       findUnique: jest.fn(),
       update: jest.fn(),
       findMany: jest.fn(),
-      count: jest.fn()
-    }
-  }
+      count: jest.fn(),
+    },
+  },
 } as any;
 
 const mockPubgService = {
   getPlayerStats: jest.fn(),
-  isServiceAvailable: jest.fn().mockReturnValue(true)
+  isServiceAvailable: jest.fn().mockReturnValue(true),
 } as any;
 
 const mockCacheService = {
   get: jest.fn(),
   set: jest.fn(),
-  delete: jest.fn()
+  delete: jest.fn(),
 } as any;
 
 const mockClient = {
@@ -31,14 +31,14 @@ const mockClient = {
     info: jest.fn(),
     error: jest.fn(),
     warn: jest.fn(),
-    debug: jest.fn()
+    debug: jest.fn(),
   },
   database: mockDatabaseService,
   cache: mockCacheService,
   pubg: mockPubgService,
   guilds: {
-    cache: new Map()
-  }
+    cache: new Map(),
+  },
 } as any;
 
 describe('RankService', () => {
@@ -46,13 +46,13 @@ describe('RankService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Reset mocks
     mockDatabaseService.client.user.findUnique.mockReset();
     mockDatabaseService.client.user.update.mockReset();
     mockDatabaseService.client.user.findMany.mockReset();
     mockDatabaseService.client.user.count.mockReset();
-    
+
     rankService = new RankService(mockClient);
   });
 
@@ -95,15 +95,15 @@ describe('RankService', () => {
         lockedUntil: null,
         createdAt: new Date(),
         updatedAt: new Date(),
-        rankPoints: 2500
+        rankPoints: 2500,
       };
 
       mockDatabaseService.client.user.findUnique.mockResolvedValue(mockUser);
       mockPubgService.getPlayerStats.mockResolvedValue({
         rankedStats: {
           currentRankPoint: 3000,
-          currentTier: { tier: 'Gold', subTier: 'V' }
-        }
+          currentTier: { tier: 'Gold', subTier: 'V' },
+        },
       });
       mockDatabaseService.client.user.update.mockResolvedValue({ ...mockUser, rankPoints: 3000 });
 
@@ -159,7 +159,7 @@ describe('RankService', () => {
         lockedUntil: null,
         createdAt: new Date(),
         updatedAt: new Date(),
-        rankPoints: 2500
+        rankPoints: 2500,
       };
 
       mockDatabaseService.client.user.findUnique.mockResolvedValue(mockUser);
@@ -213,7 +213,7 @@ describe('RankService', () => {
         pubgUsername: 'testplayer',
         rankPoints: 2500,
         currentRank: 'Gold',
-        lastRankUpdate: new Date()
+        lastRankUpdate: new Date(),
       };
 
       mockDatabaseService.client.user.findUnique.mockResolvedValue(mockUser);
@@ -236,9 +236,30 @@ describe('RankService', () => {
   describe('getRankLeaderboard', () => {
     it('deve retornar leaderboard ordenado por RP', async () => {
       const mockUsers = [
-        { userId: 'discord1', pubgName: 'player1', currentRP: 8000, currentTier: 'Master', currentSubTier: 'I', lastUpdated: new Date() },
-        { userId: 'discord2', pubgName: 'player2', currentRP: 6000, currentTier: 'Diamond', currentSubTier: 'III', lastUpdated: new Date() },
-        { userId: 'discord3', pubgName: 'player3', currentRP: 4500, currentTier: 'Platinum', currentSubTier: 'II', lastUpdated: new Date() }
+        {
+          userId: 'discord1',
+          pubgName: 'player1',
+          currentRP: 8000,
+          currentTier: 'Master',
+          currentSubTier: 'I',
+          lastUpdated: new Date(),
+        },
+        {
+          userId: 'discord2',
+          pubgName: 'player2',
+          currentRP: 6000,
+          currentTier: 'Diamond',
+          currentSubTier: 'III',
+          lastUpdated: new Date(),
+        },
+        {
+          userId: 'discord3',
+          pubgName: 'player3',
+          currentRP: 4500,
+          currentTier: 'Platinum',
+          currentSubTier: 'II',
+          lastUpdated: new Date(),
+        },
       ];
 
       mockDatabaseService.client.user.findMany.mockResolvedValue(mockUsers);
@@ -269,8 +290,8 @@ describe('RankService', () => {
         roles: {
           add: jest.fn(),
           remove: jest.fn(),
-          cache: new Map()
-        }
+          cache: new Map(),
+        },
       };
 
       // Mock básico para testar se o método existe
@@ -290,17 +311,17 @@ describe('RankService', () => {
       const mockAggregate = {
         _count: { userId: 100 },
         _avg: { currentRankPoint: 5000 },
-        _max: { currentRankPoint: 8000, updatedAt: new Date() }
+        _max: { currentRankPoint: 8000, updatedAt: new Date() },
       };
-      
+
       // Mock para user count
-       (mockDatabaseService.client.user.count as jest.MockedFunction<any>).mockResolvedValue(150);
-       
-       // Mock para PUBGStats aggregate e count
-       (mockDatabaseService.client as any).pUBGStats = {
-         aggregate: jest.fn().mockResolvedValue(mockAggregate as any),
-         count: jest.fn().mockResolvedValue(10 as any)
-       };
+      (mockDatabaseService.client.user.count as jest.MockedFunction<any>).mockResolvedValue(150);
+
+      // Mock para PUBGStats aggregate e count
+      (mockDatabaseService.client as any).pUBGStats = {
+        aggregate: jest.fn().mockResolvedValue(mockAggregate as any),
+        count: jest.fn().mockResolvedValue(10 as any),
+      };
 
       const result = await rankService.getRankStatistics();
 

@@ -39,14 +39,14 @@ export class PUBGMonitorService {
   private readonly pubgService: PUBGService;
   private readonly cache: CacheService;
   private readonly loggingService: LoggingService | null;
-  
+
   private readonly config: PUBGMonitorConfig;
   private status: PUBGMonitorStatus;
-  
+
   private healthCheckTimer?: NodeJS.Timeout;
   private apiTestTimer?: NodeJS.Timeout;
   private recoveryTimer?: NodeJS.Timeout;
-  
+
   private startTime: Date;
   private isRunning: boolean = false;
 
@@ -54,13 +54,13 @@ export class PUBGMonitorService {
     pubgService: PUBGService,
     cache: CacheService,
     loggingService?: LoggingService,
-    config?: Partial<PUBGMonitorConfig>,
+    config?: Partial<PUBGMonitorConfig>
   ) {
     this.logger = new Logger();
     this.pubgService = pubgService;
     this.cache = cache;
     this.loggingService = loggingService || null;
-    
+
     this.config = {
       healthCheckInterval: 5 * 60 * 1000, // 5 minutes
       apiTestInterval: 2 * 60 * 1000, // 2 minutes
@@ -69,7 +69,7 @@ export class PUBGMonitorService {
       recoveryInterval: 10 * 60 * 1000, // 10 minutes
       ...config,
     };
-    
+
     this.startTime = new Date();
     this.status = {
       isHealthy: true,
@@ -110,13 +110,10 @@ export class PUBGMonitorService {
     // Schedule periodic checks
     this.healthCheckTimer = setInterval(
       () => this.performHealthCheck(),
-      this.config.healthCheckInterval,
+      this.config.healthCheckInterval
     );
 
-    this.apiTestTimer = setInterval(
-      () => this.performApiTest(),
-      this.config.apiTestInterval,
-    );
+    this.apiTestTimer = setInterval(() => this.performApiTest(), this.config.apiTestInterval);
 
     // Log monitoring start
     if (this.loggingService) {
@@ -131,7 +128,7 @@ export class PUBGMonitorService {
           healthCheckInterval: this.config.healthCheckInterval,
           apiTestInterval: this.config.apiTestInterval,
           maxConsecutiveFailures: this.config.maxConsecutiveFailures,
-        },
+        }
       );
     }
   }
@@ -177,7 +174,7 @@ export class PUBGMonitorService {
           totalFailures: this.status.totalFailures,
           totalSuccesses: this.status.totalSuccesses,
           uptime: Date.now() - this.startTime.getTime(),
-        },
+        }
       );
     }
   }
@@ -199,20 +196,19 @@ export class PUBGMonitorService {
     try {
       this.logger.info('Performing PUBG API health check...');
       const startTime = Date.now();
-      
+
       const health = await this.pubgService.healthCheck();
       const responseTime = Date.now() - startTime;
-      
+
       this.status.lastHealthCheck = new Date();
       this.status.apiResponseTime = responseTime;
       this.status.circuitBreakerStatus = health.circuitBreaker;
-      
+
       if (health.status === 'healthy') {
         await this.handleHealthyStatus();
       } else {
         await this.handleUnhealthyStatus(health.status, `API status: ${health.status}`);
       }
-      
     } catch (error: any) {
       this.logger.error('Health check failed:', error);
       await this.handleUnhealthyStatus('error', error.message);
@@ -226,19 +222,18 @@ export class PUBGMonitorService {
     try {
       this.logger.info('Testing PUBG API availability...');
       const startTime = Date.now();
-      
+
       const isAvailable = await this.pubgService.isAPIAvailable();
       const responseTime = Date.now() - startTime;
-      
+
       this.status.lastApiTest = new Date();
       this.status.apiResponseTime = Math.min(this.status.apiResponseTime, responseTime);
-      
+
       if (isAvailable) {
         await this.handleHealthyStatus();
       } else {
         await this.handleUnhealthyStatus('unavailable', 'API is not available');
       }
-      
     } catch (error: any) {
       this.logger.error('API test failed:', error);
       await this.handleUnhealthyStatus('error', error.message);
@@ -250,33 +245,33 @@ export class PUBGMonitorService {
    */
   private async handleHealthyStatus(): Promise<void> {
     const wasUnhealthy = !this.status.isHealthy;
-    
+
     this.status.isHealthy = true;
     this.status.consecutiveFailures = 0;
     this.status.totalSuccesses++;
     delete this.status.lastError;
-    
+
     // Clear recovery timer if running
     if (this.recoveryTimer) {
       clearInterval(this.recoveryTimer);
       this.recoveryTimer = undefined;
     }
-    
+
     // Log recovery if API was previously unhealthy
     if (wasUnhealthy && this.loggingService) {
       await this.loggingService.logApiOperation(
-          'global',
-          'PUBG API',
-          'API Recovered',
-          true,
-          undefined,
-          undefined,
-          {
-            responseTime: this.status.apiResponseTime,
-            totalFailures: this.status.totalFailures,
-            totalSuccesses: this.status.totalSuccesses,
-          },
-        );
+        'global',
+        'PUBG API',
+        'API Recovered',
+        true,
+        undefined,
+        undefined,
+        {
+          responseTime: this.status.apiResponseTime,
+          totalFailures: this.status.totalFailures,
+          totalSuccesses: this.status.totalSuccesses,
+        }
+      );
     }
   }
 
@@ -285,16 +280,18 @@ export class PUBGMonitorService {
    */
   private async handleUnhealthyStatus(status: string, error: string): Promise<void> {
     const wasHealthy = this.status.isHealthy;
-    
+
     this.status.isHealthy = false;
     this.status.consecutiveFailures++;
     this.status.totalFailures++;
     this.status.lastError = error;
-    
+
     // Log critical failure
     if (this.status.consecutiveFailures >= this.config.maxConsecutiveFailures) {
-      this.logger.error(`PUBG API critical failure: ${this.status.consecutiveFailures} consecutive failures`);
-      
+      this.logger.error(
+        `PUBG API critical failure: ${this.status.consecutiveFailures} consecutive failures`
+      );
+
       if (this.loggingService) {
         await this.loggingService.logApiOperation(
           'global',
@@ -307,10 +304,10 @@ export class PUBGMonitorService {
             status,
             consecutiveFailures: this.status.consecutiveFailures,
             lastHealthCheck: this.status.lastHealthCheck,
-          },
+          }
         );
       }
-      
+
       // Start recovery attempts if enabled
       if (this.config.enableAutoRecovery && !this.recoveryTimer) {
         this.startRecoveryAttempts();
@@ -327,7 +324,7 @@ export class PUBGMonitorService {
         {
           status,
           consecutiveFailures: this.status.consecutiveFailures,
-        },
+        }
       );
     }
   }
@@ -337,24 +334,23 @@ export class PUBGMonitorService {
    */
   private startRecoveryAttempts(): void {
     this.logger.info('Starting automatic recovery attempts...');
-    
+
     this.recoveryTimer = setInterval(async () => {
       try {
         this.logger.info('Attempting PUBG API recovery...');
-        
+
         // Clear cache to force fresh requests
         await this.pubgService.clearCache();
-        
+
         // Test API availability
         const isAvailable = await this.pubgService.isAPIAvailable();
-        
+
         if (isAvailable) {
           this.logger.info('PUBG API recovery successful');
           await this.handleHealthyStatus();
         } else {
           this.logger.warn('PUBG API recovery attempt failed');
         }
-        
       } catch (error: any) {
         this.logger.error('Recovery attempt failed:', error);
       }
@@ -367,13 +363,13 @@ export class PUBGMonitorService {
   public async forceRecovery(): Promise<boolean> {
     try {
       this.logger.info('Forcing PUBG API recovery attempt...');
-      
+
       // Clear all caches
       await this.pubgService.clearCache();
-      
+
       // Perform health check
       await this.performHealthCheck();
-      
+
       return this.status.isHealthy;
     } catch (error: any) {
       this.logger.error('Forced recovery failed:', error);
@@ -393,7 +389,7 @@ export class PUBGMonitorService {
   } {
     const totalChecks = this.status.totalSuccesses + this.status.totalFailures;
     const successRate = totalChecks > 0 ? (this.status.totalSuccesses / totalChecks) * 100 : 0;
-    
+
     return {
       uptime: Date.now() - this.startTime.getTime(),
       totalChecks,

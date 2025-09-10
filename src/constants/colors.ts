@@ -5,48 +5,48 @@
 
 export const THEME_COLORS = {
   // 🦅 Cores da Marca Hawk Esports
-  HAWK_PRIMARY: 0x9B59B6,    // Roxo Hawk - Cor principal da marca
-  HAWK_SECONDARY: 0x3498DB,  // Azul Hawk - Cor secundária
-  HAWK_ACCENT: 0x00D4AA,     // Verde Hawk - Destaque e sucesso
-  
+  HAWK_PRIMARY: 0x9b59b6, // Roxo Hawk - Cor principal da marca
+  HAWK_SECONDARY: 0x3498db, // Azul Hawk - Cor secundária
+  HAWK_ACCENT: 0x00d4aa, // Verde Hawk - Destaque e sucesso
+
   // Estados do sistema
-  ERROR: 0xE74C3C,           // Vermelho - Erros, falhas
-  SUCCESS: 0x2ECC71,         // Verde - Sucessos, confirmações
-  WARNING: 0xF39C12,         // Laranja - Avisos, atenção
-  INFO: 0x3498DB,            // Azul - Informações gerais
-  PRIMARY: 0x9B59B6,         // Roxo Hawk - Ações primárias
-  
+  ERROR: 0xe74c3c, // Vermelho - Erros, falhas
+  SUCCESS: 0x2ecc71, // Verde - Sucessos, confirmações
+  WARNING: 0xf39c12, // Laranja - Avisos, atenção
+  INFO: 0x3498db, // Azul - Informações gerais
+  PRIMARY: 0x9b59b6, // Roxo Hawk - Ações primárias
+
   // Categorias funcionais
-  PUBG: 0x9B59B6,            // Roxo - Sistema PUBG (Hawk Primary)
-  MUSIC: 0x1DB954,           // Verde Spotify - Sistema de música
-  ECONOMY: 0xF39C12,         // Dourado - Economia e moedas
-  ADMIN: 0xE74C3C,           // Vermelho - Comandos administrativos
-  PROFILE: 0x3498DB,         // Azul - Perfis e estatísticas
-  GENERAL: 0x9B59B6,         // Roxo Hawk - Comandos gerais
-  GAMES: 0xFF6B35,           // Laranja - Mini-games
-  TICKETS: 0x2ECC71,         // Verde - Sistema de tickets
-  BADGES: 0xF1C40F,          // Ouro - Badges e conquistas
-  RANKING: 0x8E44AD,         // Roxo escuro - Rankings
+  PUBG: 0x9b59b6, // Roxo - Sistema PUBG (Hawk Primary)
+  MUSIC: 0x1db954, // Verde Spotify - Sistema de música
+  ECONOMY: 0xf39c12, // Dourado - Economia e moedas
+  ADMIN: 0xe74c3c, // Vermelho - Comandos administrativos
+  PROFILE: 0x3498db, // Azul - Perfis e estatísticas
+  GENERAL: 0x9b59b6, // Roxo Hawk - Comandos gerais
+  GAMES: 0xff6b35, // Laranja - Mini-games
+  TICKETS: 0x2ecc71, // Verde - Sistema de tickets
+  BADGES: 0xf1c40f, // Ouro - Badges e conquistas
+  RANKING: 0x8e44ad, // Roxo escuro - Rankings
 
   // Raridades (Badges/Items)
-  COMMON: 0x95A5A6,          // Cinza - Comum
-  UNCOMMON: 0x2ECC71,        // Verde - Incomum
-  RARE: 0x3498DB,            // Azul - Raro
-  EPIC: 0x9B59B6,            // Roxo - Épico (Hawk Primary)
-  LEGENDARY: 0xF39C12,       // Dourado - Lendário
-  MYTHIC: 0xE74C3C,          // Vermelho - Mítico
+  COMMON: 0x95a5a6, // Cinza - Comum
+  UNCOMMON: 0x2ecc71, // Verde - Incomum
+  RARE: 0x3498db, // Azul - Raro
+  EPIC: 0x9b59b6, // Roxo - Épico (Hawk Primary)
+  LEGENDARY: 0xf39c12, // Dourado - Lendário
+  MYTHIC: 0xe74c3c, // Vermelho - Mítico
 
   // Estados de usuário
-  ONLINE: 0x2ECC71,          // Verde - Online
-  OFFLINE: 0x95A5A6,         // Cinza - Offline
-  IDLE: 0xF39C12,            // Laranja - Ausente
-  DND: 0xE74C3C,             // Vermelho - Não perturbe
+  ONLINE: 0x2ecc71, // Verde - Online
+  OFFLINE: 0x95a5a6, // Cinza - Offline
+  IDLE: 0xf39c12, // Laranja - Ausente
+  DND: 0xe74c3c, // Vermelho - Não perturbe
 
   // Cores especiais
-  PREMIUM: 0xF1C40F,         // Ouro - Recursos premium
-  BOOST: 0xFF69B4,           // Rosa - Boosts do servidor
-  EVENT: 0x9B59B6,           // Roxo - Eventos especiais
-  MAINTENANCE: 0x95A5A6,     // Cinza - Modo manutenção
+  PREMIUM: 0xf1c40f, // Ouro - Recursos premium
+  BOOST: 0xff69b4, // Rosa - Boosts do servidor
+  EVENT: 0x9b59b6, // Roxo - Eventos especiais
+  MAINTENANCE: 0x95a5a6, // Cinza - Modo manutenção
 } as const;
 
 /**
@@ -58,16 +58,16 @@ export class ColorUtils {
    */
   static getCategoryColor(category: string): number {
     const categoryMap: Record<string, number> = {
-      'PUBG': THEME_COLORS.PUBG,
-      'MUSIC': THEME_COLORS.MUSIC,
-      'ECONOMY': THEME_COLORS.ECONOMY,
-      'ADMIN': THEME_COLORS.ADMIN,
-      'PROFILE': THEME_COLORS.PROFILE,
-      'GENERAL': THEME_COLORS.GENERAL,
-      'GAMES': THEME_COLORS.GAMES,
-      'TICKETS': THEME_COLORS.TICKETS,
-      'BADGES': THEME_COLORS.BADGES,
-      'RANKING': THEME_COLORS.RANKING,
+      PUBG: THEME_COLORS.PUBG,
+      MUSIC: THEME_COLORS.MUSIC,
+      ECONOMY: THEME_COLORS.ECONOMY,
+      ADMIN: THEME_COLORS.ADMIN,
+      PROFILE: THEME_COLORS.PROFILE,
+      GENERAL: THEME_COLORS.GENERAL,
+      GAMES: THEME_COLORS.GAMES,
+      TICKETS: THEME_COLORS.TICKETS,
+      BADGES: THEME_COLORS.BADGES,
+      RANKING: THEME_COLORS.RANKING,
     };
 
     return categoryMap[category.toUpperCase()] || THEME_COLORS.INFO;
@@ -78,12 +78,12 @@ export class ColorUtils {
    */
   static getRarityColor(rarity: string): number {
     const rarityMap: Record<string, number> = {
-      'COMMON': THEME_COLORS.COMMON,
-      'UNCOMMON': THEME_COLORS.UNCOMMON,
-      'RARE': THEME_COLORS.RARE,
-      'EPIC': THEME_COLORS.EPIC,
-      'LEGENDARY': THEME_COLORS.LEGENDARY,
-      'MYTHIC': THEME_COLORS.MYTHIC,
+      COMMON: THEME_COLORS.COMMON,
+      UNCOMMON: THEME_COLORS.UNCOMMON,
+      RARE: THEME_COLORS.RARE,
+      EPIC: THEME_COLORS.EPIC,
+      LEGENDARY: THEME_COLORS.LEGENDARY,
+      MYTHIC: THEME_COLORS.MYTHIC,
     };
 
     return rarityMap[rarity.toUpperCase()] || THEME_COLORS.COMMON;
@@ -94,14 +94,14 @@ export class ColorUtils {
    */
   static getStatusColor(status: string): number {
     const statusMap: Record<string, number> = {
-      'ONLINE': THEME_COLORS.ONLINE,
-      'OFFLINE': THEME_COLORS.OFFLINE,
-      'IDLE': THEME_COLORS.IDLE,
-      'DND': THEME_COLORS.DND,
-      'AVAILABLE': THEME_COLORS.ONLINE,
-      'UNAVAILABLE': THEME_COLORS.OFFLINE,
-      'ACTIVE': THEME_COLORS.ONLINE,
-      'INACTIVE': THEME_COLORS.OFFLINE,
+      ONLINE: THEME_COLORS.ONLINE,
+      OFFLINE: THEME_COLORS.OFFLINE,
+      IDLE: THEME_COLORS.IDLE,
+      DND: THEME_COLORS.DND,
+      AVAILABLE: THEME_COLORS.ONLINE,
+      UNAVAILABLE: THEME_COLORS.OFFLINE,
+      ACTIVE: THEME_COLORS.ONLINE,
+      INACTIVE: THEME_COLORS.OFFLINE,
     };
 
     return statusMap[status.toUpperCase()] || THEME_COLORS.INFO;
@@ -135,12 +135,7 @@ export class ColorUtils {
         ];
         break;
       case 'status':
-        colors = [
-          THEME_COLORS.ONLINE,
-          THEME_COLORS.OFFLINE,
-          THEME_COLORS.IDLE,
-          THEME_COLORS.DND,
-        ];
+        colors = [THEME_COLORS.ONLINE, THEME_COLORS.OFFLINE, THEME_COLORS.IDLE, THEME_COLORS.DND];
         break;
       default:
         colors = [THEME_COLORS.INFO];
@@ -185,7 +180,7 @@ export const COLOR_SCHEMES = {
     secondary: THEME_COLORS.HAWK_SECONDARY,
     accent: THEME_COLORS.HAWK_ACCENT,
   },
-  
+
   // Esquemas Funcionais
   DEFAULT: {
     primary: THEME_COLORS.HAWK_PRIMARY,

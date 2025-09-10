@@ -2,7 +2,14 @@ import { ExtendedClient } from '../types/client';
 import { DatabaseService } from '../database/database.service';
 import { CacheService } from './cache.service';
 import { Logger } from '../utils/logger';
-import { EmbedBuilder, User, TextChannel, ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
+import {
+  EmbedBuilder,
+  User,
+  TextChannel,
+  ButtonBuilder,
+  ButtonStyle,
+  ActionRowBuilder,
+} from 'discord.js';
 
 // Enhanced Quiz Types
 export interface QuizQuestion {
@@ -134,7 +141,7 @@ export class InteractiveQuizService {
     this.database = client.database;
     this.cache = client.cache;
     this.logger = client.logger;
-    
+
     this.initializeQuizData();
     this.setupEventHandlers();
   }
@@ -148,7 +155,7 @@ export class InteractiveQuizService {
       await this.loadQuestions();
       await this.loadAchievements();
       await this.loadPowerUps();
-      
+
       this.logger.info('Interactive Quiz Service initialized successfully');
     } catch (error: any) {
       this.logger.error('Failed to initialize Interactive Quiz Service:', error);
@@ -165,7 +172,7 @@ export class InteractiveQuizService {
         name: '🗺️ PUBG - Mapas & Localizações',
         description: 'Teste seus conhecimentos sobre todos os mapas do PUBG',
         icon: '🗺️',
-        color: 0x4CAF50,
+        color: 0x4caf50,
         totalQuestions: 150,
         difficulty: 'mixed',
         subcategories: [
@@ -184,17 +191,47 @@ export class InteractiveQuizService {
         name: '🔫 PUBG - Armas & Equipamentos',
         description: 'Domine o conhecimento sobre armamentos e equipamentos',
         icon: '🔫',
-        color: 0xFF5722,
+        color: 0xff5722,
         totalQuestions: 200,
         difficulty: 'mixed',
         subcategories: [
-          { id: 'assault_rifles', name: 'Rifles de Assalto', description: 'ARs e suas características', questionCount: 35 },
-          { id: 'sniper_rifles', name: 'Rifles de Precisão', description: 'Snipers e DMRs', questionCount: 30 },
-          { id: 'smgs', name: 'Submetralhadoras', description: 'SMGs para combate próximo', questionCount: 25 },
-          { id: 'shotguns', name: 'Espingardas', description: 'Shotguns e suas munições', questionCount: 20 },
+          {
+            id: 'assault_rifles',
+            name: 'Rifles de Assalto',
+            description: 'ARs e suas características',
+            questionCount: 35,
+          },
+          {
+            id: 'sniper_rifles',
+            name: 'Rifles de Precisão',
+            description: 'Snipers e DMRs',
+            questionCount: 30,
+          },
+          {
+            id: 'smgs',
+            name: 'Submetralhadoras',
+            description: 'SMGs para combate próximo',
+            questionCount: 25,
+          },
+          {
+            id: 'shotguns',
+            name: 'Espingardas',
+            description: 'Shotguns e suas munições',
+            questionCount: 20,
+          },
           { id: 'pistols', name: 'Pistolas', description: 'Armas secundárias', questionCount: 15 },
-          { id: 'throwables', name: 'Granadas', description: 'Explosivos e utilitários', questionCount: 20 },
-          { id: 'attachments', name: 'Acessórios', description: 'Miras, canos e grips', questionCount: 30 },
+          {
+            id: 'throwables',
+            name: 'Granadas',
+            description: 'Explosivos e utilitários',
+            questionCount: 20,
+          },
+          {
+            id: 'attachments',
+            name: 'Acessórios',
+            description: 'Miras, canos e grips',
+            questionCount: 30,
+          },
           { id: 'armor', name: 'Proteção', description: 'Coletes e capacetes', questionCount: 25 },
         ],
       },
@@ -203,14 +240,34 @@ export class InteractiveQuizService {
         name: '🏆 PUBG - Esports & Competitivo',
         description: 'Cenário competitivo, times e torneios',
         icon: '🏆',
-        color: 0xFFD700,
+        color: 0xffd700,
         totalQuestions: 120,
         difficulty: 'hard',
         subcategories: [
-          { id: 'tournaments', name: 'Torneios', description: 'PGI, PCS, PMCO e outros', questionCount: 40 },
-          { id: 'teams', name: 'Times Profissionais', description: 'Equipes e jogadores famosos', questionCount: 35 },
-          { id: 'strategies', name: 'Estratégias Pro', description: 'Táticas competitivas', questionCount: 25 },
-          { id: 'meta', name: 'Meta Game', description: 'Tendências e mudanças', questionCount: 20 },
+          {
+            id: 'tournaments',
+            name: 'Torneios',
+            description: 'PGI, PCS, PMCO e outros',
+            questionCount: 40,
+          },
+          {
+            id: 'teams',
+            name: 'Times Profissionais',
+            description: 'Equipes e jogadores famosos',
+            questionCount: 35,
+          },
+          {
+            id: 'strategies',
+            name: 'Estratégias Pro',
+            description: 'Táticas competitivas',
+            questionCount: 25,
+          },
+          {
+            id: 'meta',
+            name: 'Meta Game',
+            description: 'Tendências e mudanças',
+            questionCount: 20,
+          },
         ],
       },
       {
@@ -218,15 +275,35 @@ export class InteractiveQuizService {
         name: '⚙️ PUBG - Mecânicas & Sistema',
         description: 'Mecânicas do jogo, física e sistemas internos',
         icon: '⚙️',
-        color: 0x9C27B0,
+        color: 0x9c27b0,
         totalQuestions: 100,
         difficulty: 'medium',
         subcategories: [
-          { id: 'ballistics', name: 'Balística', description: 'Física dos projéteis', questionCount: 25 },
-          { id: 'vehicles', name: 'Veículos', description: 'Carros, motos e barcos', questionCount: 20 },
+          {
+            id: 'ballistics',
+            name: 'Balística',
+            description: 'Física dos projéteis',
+            questionCount: 25,
+          },
+          {
+            id: 'vehicles',
+            name: 'Veículos',
+            description: 'Carros, motos e barcos',
+            questionCount: 20,
+          },
           { id: 'zone', name: 'Zona Azul', description: 'Mecânicas da zona', questionCount: 15 },
-          { id: 'loot', name: 'Sistema de Loot', description: 'Spawn rates e raridade', questionCount: 20 },
-          { id: 'ranking', name: 'Sistema de Rank', description: 'RP, tiers e seasons', questionCount: 20 },
+          {
+            id: 'loot',
+            name: 'Sistema de Loot',
+            description: 'Spawn rates e raridade',
+            questionCount: 20,
+          },
+          {
+            id: 'ranking',
+            name: 'Sistema de Rank',
+            description: 'RP, tiers e seasons',
+            questionCount: 20,
+          },
         ],
       },
       {
@@ -234,15 +311,35 @@ export class InteractiveQuizService {
         name: '🎮 Gaming Geral',
         description: 'Conhecimentos gerais sobre jogos e indústria',
         icon: '🎮',
-        color: 0x2196F3,
+        color: 0x2196f3,
         totalQuestions: 180,
         difficulty: 'mixed',
         subcategories: [
-          { id: 'history', name: 'História dos Games', description: 'Evolução da indústria', questionCount: 40 },
+          {
+            id: 'history',
+            name: 'História dos Games',
+            description: 'Evolução da indústria',
+            questionCount: 40,
+          },
           { id: 'genres', name: 'Gêneros', description: 'FPS, RPG, MOBA, etc.', questionCount: 30 },
-          { id: 'companies', name: 'Empresas', description: 'Desenvolvedoras e publishers', questionCount: 35 },
-          { id: 'hardware', name: 'Hardware', description: 'PCs, consoles e periféricos', questionCount: 40 },
-          { id: 'streaming', name: 'Streaming & Content', description: 'Twitch, YouTube e criadores', questionCount: 35 },
+          {
+            id: 'companies',
+            name: 'Empresas',
+            description: 'Desenvolvedoras e publishers',
+            questionCount: 35,
+          },
+          {
+            id: 'hardware',
+            name: 'Hardware',
+            description: 'PCs, consoles e periféricos',
+            questionCount: 40,
+          },
+          {
+            id: 'streaming',
+            name: 'Streaming & Content',
+            description: 'Twitch, YouTube e criadores',
+            questionCount: 35,
+          },
         ],
       },
       {
@@ -250,16 +347,41 @@ export class InteractiveQuizService {
         name: '🎯 Esports Geral',
         description: 'Cenário competitivo de diversos jogos',
         icon: '🎯',
-        color: 0xFF9800,
+        color: 0xff9800,
         totalQuestions: 140,
         difficulty: 'hard',
         subcategories: [
-          { id: 'lol', name: 'League of Legends', description: 'Worlds, LCS, LEC, etc.', questionCount: 35 },
-          { id: 'csgo', name: 'Counter-Strike', description: 'Majors e cena competitiva', questionCount: 30 },
+          {
+            id: 'lol',
+            name: 'League of Legends',
+            description: 'Worlds, LCS, LEC, etc.',
+            questionCount: 35,
+          },
+          {
+            id: 'csgo',
+            name: 'Counter-Strike',
+            description: 'Majors e cena competitiva',
+            questionCount: 30,
+          },
           { id: 'valorant', name: 'Valorant', description: 'VCT e Masters', questionCount: 25 },
-          { id: 'dota2', name: 'Dota 2', description: 'The International e DPC', questionCount: 20 },
-          { id: 'overwatch', name: 'Overwatch', description: 'OWL e competições', questionCount: 15 },
-          { id: 'mobile', name: 'Mobile Esports', description: 'PUBG Mobile, Free Fire, etc.', questionCount: 15 },
+          {
+            id: 'dota2',
+            name: 'Dota 2',
+            description: 'The International e DPC',
+            questionCount: 20,
+          },
+          {
+            id: 'overwatch',
+            name: 'Overwatch',
+            description: 'OWL e competições',
+            questionCount: 15,
+          },
+          {
+            id: 'mobile',
+            name: 'Mobile Esports',
+            description: 'PUBG Mobile, Free Fire, etc.',
+            questionCount: 15,
+          },
         ],
       },
     ];
@@ -272,7 +394,7 @@ export class InteractiveQuizService {
     try {
       // Load existing questions from database
       const existingQuestions = await this.database.query(
-        'SELECT * FROM quiz_questions ORDER BY category, difficulty, created_at DESC',
+        'SELECT * FROM quiz_questions ORDER BY category, difficulty, created_at DESC'
       );
 
       // Organize questions by category
@@ -305,7 +427,10 @@ export class InteractiveQuizService {
         await this.generateDefaultQuestions();
       }
     } catch (error) {
-      this.logger.warn('Quiz questions table not found or database error, generating default questions:', error);
+      this.logger.warn(
+        'Quiz questions table not found or database error, generating default questions:',
+        error
+      );
       // Generate default questions if database query fails
       await this.generateDefaultQuestions();
     }
@@ -338,7 +463,8 @@ export class InteractiveQuizService {
         subcategory: 'erangel',
         points: 15,
         timeLimit: 45,
-        explanation: 'Existem duas pontes principais conectando a ilha militar: uma ao norte e outra ao sul.',
+        explanation:
+          'Existem duas pontes principais conectando a ilha militar: uma ao norte e outra ao sul.',
         tags: ['erangel', 'pontes', 'militar'],
       },
       // PUBG Weapons - Assault Rifles
@@ -351,7 +477,8 @@ export class InteractiveQuizService {
         subcategory: 'assault_rifles',
         points: 15,
         timeLimit: 30,
-        explanation: 'A Groza tem a maior taxa de tiro entre os rifles de assalto, sendo exclusiva de airdrops.',
+        explanation:
+          'A Groza tem a maior taxa de tiro entre os rifles de assalto, sendo exclusiva de airdrops.',
         tags: ['groza', 'taxa-de-tiro', 'airdrop'],
       },
       {
@@ -369,7 +496,12 @@ export class InteractiveQuizService {
       // PUBG Esports
       {
         question: 'Qual foi o primeiro campeonato mundial oficial do PUBG?',
-        options: ['PGI 2018', 'PUBG Global Championship 2017', 'IEM Katowice 2018', 'Gamescom 2017'],
+        options: [
+          'PGI 2018',
+          'PUBG Global Championship 2017',
+          'IEM Katowice 2018',
+          'Gamescom 2017',
+        ],
         correctAnswer: 0,
         difficulty: 'hard',
         category: 'pubg_esports',
@@ -397,7 +529,7 @@ export class InteractiveQuizService {
     // Save default questions to database (if possible) and add to memory
     for (const question of defaultQuestions) {
       const id = `quiz_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       // Try to save to database, but continue if it fails
       try {
         await this.database.query(
@@ -416,10 +548,13 @@ export class InteractiveQuizService {
             question.timeLimit,
             question.explanation,
             JSON.stringify(question.tags || []),
-          ],
+          ]
         );
       } catch (dbError) {
-        this.logger.warn(`Failed to save question ${id} to database, keeping in memory only:`, dbError);
+        this.logger.warn(
+          `Failed to save question ${id} to database, keeping in memory only:`,
+          dbError
+        );
       }
 
       // Add to memory pool (always do this)
@@ -548,13 +683,13 @@ export class InteractiveQuizService {
     hostId: string,
     channelId: string,
     guildId: string,
-    settings: QuizSettings,
+    settings: QuizSettings
   ): Promise<QuizSession> {
     const sessionId = `quiz_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     // Get questions for the session
     const questions = await this.getQuestionsForSession(settings);
-    
+
     if (questions.length === 0) {
       throw new Error('Nenhuma pergunta encontrada para as configurações especificadas');
     }
@@ -575,12 +710,12 @@ export class InteractiveQuizService {
     };
 
     this.activeSessions.set(sessionId, session);
-    
+
     // Cache session for 1 hour
     await this.cache.set(`quiz:session:${sessionId}`, session, 3600);
-    
+
     this.logger.info(`Created quiz session ${sessionId} in channel ${channelId}`);
-    
+
     return session;
   }
 
@@ -613,7 +748,10 @@ export class InteractiveQuizService {
     // Shuffle questions
     for (let i = availableQuestions.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [availableQuestions[i], availableQuestions[j]] = [availableQuestions[j], availableQuestions[i]];
+      [availableQuestions[i], availableQuestions[j]] = [
+        availableQuestions[j],
+        availableQuestions[i],
+      ];
     }
 
     return availableQuestions;
@@ -625,14 +763,14 @@ export class InteractiveQuizService {
   private calculatePrizePool(settings: QuizSettings): number {
     const basePool = settings.questionCount * 10;
     const difficultyMultiplier = {
-      'easy': 1,
-      'medium': 1.5,
-      'hard': 2,
-      'expert': 2.5,
-      'mixed': 1.8,
-      'adaptive': 2.2,
+      easy: 1,
+      medium: 1.5,
+      hard: 2,
+      expert: 2.5,
+      mixed: 1.8,
+      adaptive: 2.2,
     };
-    
+
     return Math.floor(basePool * difficultyMultiplier[settings.difficulty]);
   }
 
@@ -641,7 +779,7 @@ export class InteractiveQuizService {
    */
   public async joinQuizSession(sessionId: string, user: User): Promise<boolean> {
     const session = this.activeSessions.get(sessionId);
-    
+
     if (!session) {
       throw new Error('Sessão de quiz não encontrada');
     }
@@ -672,12 +810,12 @@ export class InteractiveQuizService {
     };
 
     session.participants.set(user.id, participant);
-    
+
     // Update cache
     await this.cache.set(`quiz:session:${sessionId}`, session, 3600);
-    
+
     this.logger.info(`User ${user.username} joined quiz session ${sessionId}`);
-    
+
     return true;
   }
 
@@ -686,7 +824,7 @@ export class InteractiveQuizService {
    */
   public async startQuizSession(sessionId: string): Promise<void> {
     const session = this.activeSessions.get(sessionId);
-    
+
     if (!session) {
       throw new Error('Sessão de quiz não encontrada');
     }
@@ -701,11 +839,13 @@ export class InteractiveQuizService {
 
     session.status = 'active';
     session.startTime = new Date();
-    
+
     // Update cache
     await this.cache.set(`quiz:session:${sessionId}`, session, 3600);
-    
-    this.logger.info(`Started quiz session ${sessionId} with ${session.participants.size} participants`);
+
+    this.logger.info(
+      `Started quiz session ${sessionId} with ${session.participants.size} participants`
+    );
   }
 
   /**
@@ -713,7 +853,7 @@ export class InteractiveQuizService {
    */
   public getCurrentQuestion(sessionId: string): QuizQuestion | null {
     const session = this.activeSessions.get(sessionId);
-    
+
     if (!session || session.status !== 'active') {
       return null;
     }
@@ -732,10 +872,10 @@ export class InteractiveQuizService {
     sessionId: string,
     userId: string,
     answerIndex: number,
-    responseTime: number,
+    responseTime: number
   ): Promise<{ correct: boolean; points: number; explanation?: string }> {
     const session = this.activeSessions.get(sessionId);
-    
+
     if (!session || session.status !== 'active') {
       throw new Error('Sessão de quiz não encontrada ou não ativa');
     }
@@ -756,15 +896,18 @@ export class InteractiveQuizService {
     if (isCorrect) {
       // Base points
       points = currentQuestion.points;
-      
+
       // Time bonus (up to 25% extra for fast answers)
-      const timeBonus = Math.max(0, (currentQuestion.timeLimit - responseTime) / currentQuestion.timeLimit * 0.25);
+      const timeBonus = Math.max(
+        0,
+        ((currentQuestion.timeLimit - responseTime) / currentQuestion.timeLimit) * 0.25
+      );
       points += Math.floor(points * timeBonus);
-      
+
       // Streak bonus (10% per consecutive correct answer)
       const streakBonus = participant.streak * 0.1;
       points += Math.floor(points * streakBonus);
-      
+
       participant.correctAnswers++;
       participant.streak++;
       participant.maxStreak = Math.max(participant.maxStreak, participant.streak);
@@ -775,14 +918,15 @@ export class InteractiveQuizService {
     participant.totalAnswers++;
     participant.score += points;
     participant.lastAnswerTime = new Date();
-    
+
     // Update average response time
-    participant.averageResponseTime = 
-      (participant.averageResponseTime * (participant.totalAnswers - 1) + responseTime) / participant.totalAnswers;
+    participant.averageResponseTime =
+      (participant.averageResponseTime * (participant.totalAnswers - 1) + responseTime) /
+      participant.totalAnswers;
 
     // Update cache
     await this.cache.set(`quiz:session:${sessionId}`, session, 3600);
-    
+
     return {
       correct: isCorrect,
       points,
@@ -795,13 +939,13 @@ export class InteractiveQuizService {
    */
   public async nextQuestion(sessionId: string): Promise<boolean> {
     const session = this.activeSessions.get(sessionId);
-    
+
     if (!session || session.status !== 'active') {
       return false;
     }
 
     session.currentQuestionIndex++;
-    
+
     // Check if quiz is finished
     if (session.currentQuestionIndex >= session.questions.length) {
       await this.finishQuizSession(sessionId);
@@ -810,7 +954,7 @@ export class InteractiveQuizService {
 
     // Update cache
     await this.cache.set(`quiz:session:${sessionId}`, session, 3600);
-    
+
     return true;
   }
 
@@ -819,28 +963,31 @@ export class InteractiveQuizService {
    */
   public async finishQuizSession(sessionId: string): Promise<void> {
     const session = this.activeSessions.get(sessionId);
-    
+
     if (!session) {
       return;
     }
 
     session.status = 'finished';
     session.endTime = new Date();
-    
+
     // Calculate final leaderboard
-    session.leaderboard = Array.from(session.participants.values())
-      .sort((a, b) => {
-        if (b.score !== a.score) {return b.score - a.score;}
-        if (b.correctAnswers !== a.correctAnswers) {return b.correctAnswers - a.correctAnswers;}
-        return a.averageResponseTime - b.averageResponseTime;
-      });
+    session.leaderboard = Array.from(session.participants.values()).sort((a, b) => {
+      if (b.score !== a.score) {
+        return b.score - a.score;
+      }
+      if (b.correctAnswers !== a.correctAnswers) {
+        return b.correctAnswers - a.correctAnswers;
+      }
+      return a.averageResponseTime - b.averageResponseTime;
+    });
 
     // Award achievements and save stats
     await this.processQuizResults(session);
-    
+
     // Update cache
     await this.cache.set(`quiz:session:${sessionId}`, session, 3600);
-    
+
     this.logger.info(`Finished quiz session ${sessionId}`);
   }
 
@@ -863,15 +1010,14 @@ export class InteractiveQuizService {
             participant.totalAnswers,
             participant.maxStreak,
             participant.averageResponseTime,
-          ],
+          ]
         );
 
         // Check for achievements
         await this.checkAchievements(participant.userId, participant, session);
-        
+
         // Award XP and coins based on performance
         await this.awardRewards(participant.userId, participant, session);
-        
       } catch (error: any) {
         this.logger.error(`Failed to process results for user ${participant.userId}:`, error);
       }
@@ -882,9 +1028,9 @@ export class InteractiveQuizService {
    * Check and award achievements
    */
   private async checkAchievements(
-    userId: string, 
-    participant: QuizParticipant, 
-    session: QuizSession,
+    userId: string,
+    participant: QuizParticipant,
+    session: QuizSession
   ): Promise<void> {
     const newAchievements: string[] = [];
 
@@ -913,7 +1059,7 @@ export class InteractiveQuizService {
     for (const achievementId of newAchievements) {
       await this.database.query(
         'INSERT IGNORE INTO user_achievements (user_id, achievement_id, unlocked_at) VALUES (?, ?, NOW())',
-        [userId, achievementId],
+        [userId, achievementId]
       );
     }
   }
@@ -924,7 +1070,7 @@ export class InteractiveQuizService {
   private async awardRewards(
     userId: string,
     participant: QuizParticipant,
-    session: QuizSession,
+    session: QuizSession
   ): Promise<void> {
     // Calculate XP reward
     const baseXP = participant.score * 2;
@@ -942,10 +1088,10 @@ export class InteractiveQuizService {
     }
 
     // Save coin reward to database
-    await this.database.query(
-      'UPDATE users SET coins = coins + ? WHERE user_id = ?',
-      [totalCoins, userId],
-    );
+    await this.database.query('UPDATE users SET coins = coins + ? WHERE user_id = ?', [
+      totalCoins,
+      userId,
+    ]);
   }
 
   /**
@@ -954,7 +1100,7 @@ export class InteractiveQuizService {
   private async getUserQuizCount(userId: string): Promise<number> {
     const result = await this.database.query(
       'SELECT COUNT(*) as count FROM quiz_stats WHERE user_id = ?',
-      [userId],
+      [userId]
     );
     return result[0]?.count || 0;
   }
@@ -986,12 +1132,12 @@ export class InteractiveQuizService {
          AVG(average_response_time) as avg_response_time
        FROM quiz_stats 
        WHERE user_id = ?`,
-      [userId],
+      [userId]
     );
 
     const achievements = await this.database.query(
       'SELECT achievement_id, unlocked_at FROM user_achievements WHERE user_id = ?',
-      [userId],
+      [userId]
     );
 
     return {
@@ -1034,9 +1180,11 @@ export class InteractiveQuizService {
   /**
    * Add custom question to database
    */
-  public async addCustomQuestion(question: Omit<QuizQuestion, 'id' | 'lastUpdated'>): Promise<string> {
+  public async addCustomQuestion(
+    question: Omit<QuizQuestion, 'id' | 'lastUpdated'>
+  ): Promise<string> {
     const id = `custom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     await this.database.query(
       `INSERT INTO quiz_questions 
        (id, question, options, correct_answer, difficulty, category, subcategory, points, time_limit, explanation, image_url, video_url, tags, source, created_at, updated_at) 
@@ -1056,14 +1204,14 @@ export class InteractiveQuizService {
         question.videoUrl,
         JSON.stringify(question.tags),
         question.source,
-      ],
+      ]
     );
 
     // Add to memory pool
     if (!this.questionPool.has(question.category)) {
       this.questionPool.set(question.category, []);
     }
-    
+
     this.questionPool.get(question.category)!.push({
       ...question,
       id,
@@ -1092,7 +1240,7 @@ export class InteractiveQuizService {
        GROUP BY u.user_id, u.username
        ORDER BY total_score DESC
        LIMIT ?`,
-      [category, limit],
+      [category, limit]
     );
   }
 }

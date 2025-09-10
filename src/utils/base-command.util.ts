@@ -29,19 +29,19 @@ export abstract class BaseCommand {
     interaction: ChatInputCommandInteraction,
     client: ExtendedClient,
     operation: () => Promise<void>,
-    operationName: string,
+    operationName: string
   ): Promise<void> {
     return ErrorHandler.executeWithLogging(
       async () => {
         // Validate basic requirements
         this.validateInteraction(interaction);
         this.validateClient(client);
-        
+
         await operation();
       },
       this.logger,
       `${operationName} for user ${interaction.user.id}`,
-      `Guild: ${interaction.guild?.id}, Command: ${interaction.commandName}`,
+      `Guild: ${interaction.guild?.id}, Command: ${interaction.commandName}`
     );
   }
 
@@ -49,8 +49,12 @@ export abstract class BaseCommand {
    * Validate interaction requirements
    */
   protected validateInteraction(interaction: ChatInputCommandInteraction): void {
-    ServiceValidator.validateObjectProperties({ interaction }, ['interaction'], 'interaction validation');
-    
+    ServiceValidator.validateObjectProperties(
+      { interaction },
+      ['interaction'],
+      'interaction validation'
+    );
+
     if (!interaction.isCommand()) {
       throw new Error('Invalid interaction type');
     }
@@ -66,10 +70,7 @@ export abstract class BaseCommand {
   /**
    * Validate required service availability
    */
-  protected validateService<T>(
-    service: T | undefined,
-    serviceName: string,
-  ): asserts service is T {
+  protected validateService<T>(service: T | undefined, serviceName: string): asserts service is T {
     if (!service) {
       throw new Error(`${serviceName} service is not available`);
     }
@@ -80,7 +81,7 @@ export abstract class BaseCommand {
    */
   protected async sendServiceUnavailableError(
     interaction: ChatInputCommandInteraction,
-    serviceName: string,
+    serviceName: string
   ): Promise<void> {
     await interaction.reply({
       content: `❌ O serviço ${serviceName} está temporariamente indisponível. Tente novamente mais tarde.`,
@@ -91,9 +92,7 @@ export abstract class BaseCommand {
   /**
    * Send permission error message
    */
-  protected async sendPermissionError(
-    interaction: ChatInputCommandInteraction,
-  ): Promise<void> {
+  protected async sendPermissionError(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.reply({
       content: '❌ Você não tem permissão para executar este comando.',
       flags: MessageFlags.Ephemeral,
@@ -103,9 +102,7 @@ export abstract class BaseCommand {
   /**
    * Send guild only error message
    */
-  protected async sendGuildOnlyError(
-    interaction: ChatInputCommandInteraction,
-  ): Promise<void> {
+  protected async sendGuildOnlyError(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.reply({
       content: '❌ Este comando só pode ser usado em servidores.',
       flags: MessageFlags.Ephemeral,
@@ -126,7 +123,7 @@ export abstract class BaseCommand {
    */
   protected validateUserPermissions(
     interaction: ChatInputCommandInteraction,
-    requiredPermissions: bigint[],
+    requiredPermissions: bigint[]
   ): void {
     if (!interaction.guild || !interaction.member) {
       throw new Error('Cannot validate permissions outside guild context');
@@ -136,21 +133,18 @@ export abstract class BaseCommand {
     const memberPermissions = interaction.member.permissions as any;
     const userPermissionStrings = requiredPermissions.map(perm => perm.toString());
     const memberPermissionStrings = memberPermissions ? [memberPermissions.toString()] : [];
-    
+
     ServiceValidator.validatePermissions(
       memberPermissionStrings,
       userPermissionStrings,
-      'Required permissions not met',
+      'Required permissions not met'
     );
   }
 
   /**
    * Safe reply to interaction (handles already replied scenarios)
    */
-  protected async safeReply(
-    interaction: ChatInputCommandInteraction,
-    options: any,
-  ): Promise<void> {
+  protected async safeReply(interaction: ChatInputCommandInteraction, options: any): Promise<void> {
     try {
       if (interaction.replied || interaction.deferred) {
         await interaction.editReply(options);
@@ -176,7 +170,7 @@ export abstract class BaseCommand {
    */
   protected async deferWithLoading(
     interaction: ChatInputCommandInteraction,
-    ephemeral: boolean = false,
+    ephemeral: boolean = false
   ): Promise<void> {
     await interaction.deferReply({ ephemeral });
   }
@@ -190,19 +184,22 @@ export class CommandHandlerFactory {
    * Create a command handler with error handling
    */
   static createHandler(
-    handler: (interaction: ChatInputCommandInteraction, client: ExtendedClient) => Promise<void>,
+    handler: (interaction: ChatInputCommandInteraction, client: ExtendedClient) => Promise<void>
   ) {
     return async (interaction: ChatInputCommandInteraction, client: ExtendedClient) => {
       const logger = new Logger();
-      
+
       try {
         await handler(interaction, client);
       } catch (error) {
-        logger.error('Command execution failed:', { error: error instanceof Error ? error : new Error(String(error)) });
+        logger.error('Command execution failed:', {
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
 
         // Send error message to user if not already replied
         try {
-          const errorContent = '❌ Ocorreu um erro ao executar este comando. Tente novamente mais tarde.';
+          const errorContent =
+            '❌ Ocorreu um erro ao executar este comando. Tente novamente mais tarde.';
 
           if (interaction.replied || interaction.deferred) {
             await interaction.editReply({ content: errorContent });
@@ -220,16 +217,19 @@ export class CommandHandlerFactory {
    * Create a subcommand router with error handling
    */
   static createSubcommandRouter(
-    handlers: Record<string, (interaction: ChatInputCommandInteraction, client: ExtendedClient) => Promise<void>>,
+    handlers: Record<
+      string,
+      (interaction: ChatInputCommandInteraction, client: ExtendedClient) => Promise<void>
+    >
   ) {
     return CommandHandlerFactory.createHandler(async (interaction, client) => {
       const subcommand = interaction.options.getSubcommand();
       const handler = handlers[subcommand];
-      
+
       if (!handler) {
         throw new Error(`Unknown subcommand: ${subcommand}`);
       }
-      
+
       await handler(interaction, client);
     });
   }

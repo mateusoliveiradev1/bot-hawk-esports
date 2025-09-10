@@ -33,13 +33,13 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       is_prerelease: ${{ steps.version.outputs.is_prerelease }}
       changelog: ${{ steps.changelog.outputs.changelog }}
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          
+
       - name: 📋 Extract version info
         id: version
         run: |
@@ -55,20 +55,20 @@ jobs:
               IS_PRERELEASE="false"
             fi
           fi
-          
+
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
           echo "Pre-release: $IS_PRERELEASE"
-          
+
       - name: 📝 Generate changelog
         id: changelog
         run: |
           echo "Generating changelog for ${{ steps.version.outputs.version }}..."
-          
+
           # Get the previous tag
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-          
+
           if [[ -n "$PREVIOUS_TAG" ]]; then
             echo "Previous tag: $PREVIOUS_TAG"
             CHANGELOG=$(git log --pretty=format:"- %s" $PREVIOUS_TAG..HEAD)
@@ -76,13 +76,13 @@ jobs:
             echo "No previous tag found, using all commits"
             CHANGELOG=$(git log --pretty=format:"- %s")
           fi
-          
+
           # Save changelog to file and output
           echo "$CHANGELOG" > changelog.md
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-          
+
       - name: 📤 Upload changelog
         uses: actions/upload-artifact@v4
         with:
@@ -101,28 +101,28 @@ jobs:
     name: 🏗️ Build Release Assets
     runs-on: ubuntu-latest
     needs: [validate, test]
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-        
+
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          
+
       - name: 📥 Install dependencies
         run: npm ci
-        
+
       - name: 🏗️ Build project
         run: npm run build
-        
+
       - name: 📦 Create release archives
         run: |
           # Create source archive
           git archive --format=zip --prefix=hawk-esports-bot-${{ needs.validate.outputs.version }}/ HEAD > hawk-esports-bot-${{ needs.validate.outputs.version }}-source.zip
-          
+
           # Create binary archive
           zip -r hawk-esports-bot-${{ needs.validate.outputs.version }}-binary.zip \
             dist/ \
@@ -137,10 +137,10 @@ jobs:
             .env.example \
             README.md \
             LICENSE
-          
+
           # Create checksums
           sha256sum hawk-esports-bot-${{ needs.validate.outputs.version }}-*.zip > checksums.txt
-          
+
       - name: 📤 Upload release assets
         uses: actions/upload-artifact@v4
         with:
@@ -158,96 +158,96 @@ jobs:
     outputs:
       release_id: ${{ steps.create_release.outputs.id }}
       release_url: ${{ steps.create_release.outputs.html_url }}
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-        
+
       - name: 📥 Download changelog
         uses: actions/download-artifact@v4
         with:
           name: changelog
-          
+
       - name: 📥 Download release assets
         uses: actions/download-artifact@v4
         with:
           name: release-assets
-          
+
       - name: 📝 Prepare release notes
         id: release_notes
         run: |
           VERSION="${{ needs.validate.outputs.version }}"
           IS_PRERELEASE="${{ needs.validate.outputs.is_prerelease }}"
-          
+
           # Read changelog
           CHANGELOG=$(cat changelog.md)
-          
+
           # Create release notes
           cat > release_notes.md << EOF
           ## 🚀 Hawk Esports Bot $VERSION
-          
+
           ### 📋 What's Changed
           $CHANGELOG
-          
+
           ### 🐳 Docker Image
           \`\`\`bash
           docker pull ghcr.io/${{ github.repository }}:$VERSION
           \`\`\`
-          
+
           ### 📦 Installation
-          
+
           #### Using Docker Compose
           \`\`\`bash
           # Download the release
           wget https://github.com/${{ github.repository }}/releases/download/$VERSION/hawk-esports-bot-$VERSION-binary.zip
           unzip hawk-esports-bot-$VERSION-binary.zip
           cd hawk-esports-bot-$VERSION
-          
+
           # Configure environment
           cp .env.example .env
           # Edit .env with your configuration
-          
+
           # Start the bot
           docker-compose up -d
           \`\`\`
-          
+
           #### Manual Installation
           \`\`\`bash
           # Download and extract
           wget https://github.com/${{ github.repository }}/releases/download/$VERSION/hawk-esports-bot-$VERSION-binary.zip
           unzip hawk-esports-bot-$VERSION-binary.zip
           cd hawk-esports-bot-$VERSION
-          
+
           # Install dependencies
           npm install --production
-          
+
           # Configure environment
           cp .env.example .env
           # Edit .env with your configuration
-          
+
           # Start the bot
           npm start
           \`\`\`
-          
+
           ### 🔍 Verification
           Verify the integrity of downloaded files:
           \`\`\`bash
           sha256sum -c checksums.txt
           \`\`\`
-          
+
           ### 📊 Monitoring
           Access the monitoring dashboard at: http://localhost:3000 (Grafana)
-          
+
           ### 🆘 Support
           - [Documentation](https://github.com/${{ github.repository }}/tree/main/docs)
           - [Issues](https://github.com/${{ github.repository }}/issues)
           - [Discussions](https://github.com/${{ github.repository }}/discussions)
-          
+
           ---
-          
+
           **Full Changelog**: https://github.com/${{ github.repository }}/compare/$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "initial")...$VERSION
           EOF
-          
+
       - name: 🚀 Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
@@ -259,7 +259,7 @@ jobs:
           body_path: release_notes.md
           draft: ${{ github.event.inputs.draft || false }}
           prerelease: ${{ needs.validate.outputs.is_prerelease }}
-          
+
       - name: 📤 Upload source archive
         uses: actions/upload-release-asset@v1
         env:
@@ -269,7 +269,7 @@ jobs:
           asset_path: ./hawk-esports-bot-${{ needs.validate.outputs.version }}-source.zip
           asset_name: hawk-esports-bot-${{ needs.validate.outputs.version }}-source.zip
           asset_content_type: application/zip
-          
+
       - name: 📤 Upload binary archive
         uses: actions/upload-release-asset@v1
         env:
@@ -279,7 +279,7 @@ jobs:
           asset_path: ./hawk-esports-bot-${{ needs.validate.outputs.version }}-binary.zip
           asset_name: hawk-esports-bot-${{ needs.validate.outputs.version }}-binary.zip
           asset_content_type: application/zip
-          
+
       - name: 📤 Upload checksums
         uses: actions/upload-release-asset@v1
         env:
@@ -306,7 +306,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [validate, create-release, deploy]
     if: always() && needs.create-release.result == 'success'
-    
+
     steps:
       - name: 📊 Update release metrics
         run: |
@@ -316,12 +316,12 @@ jobs:
           echo "Release URL: ${{ needs.create-release.outputs.release_url }}"
           echo "Pre-release: ${{ needs.validate.outputs.is_prerelease }}"
           echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-          
+
       - name: 📢 Notify release completion
         run: |
           echo "🎉 Release ${{ needs.validate.outputs.version }} completed successfully!"
           echo "🔗 Release URL: ${{ needs.create-release.outputs.release_url }}"
-          
+
       - name: 🧹 Cleanup artifacts
         run: |
           echo "🧹 Cleaning up temporary artifacts..."
@@ -333,7 +333,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [validate, create-release, deploy]
     if: failure() && needs.create-release.result == 'success'
-    
+
     steps:
       - name: 🔄 Rollback release
         run: |
@@ -342,7 +342,7 @@ jobs:
           echo "- Marking the release as draft"
           echo "- Reverting deployment"
           echo "- Notifying stakeholders"
-          
+
       - name: 📢 Notify rollback
         run: |
           echo "📢 Release ${{ needs.validate.outputs.version }} has been rolled back"

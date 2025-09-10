@@ -24,12 +24,15 @@ const logger = new Logger();
  */
 export async function handleTicketButtonInteraction(
   interaction: ButtonInteraction,
-  client: ExtendedClient,
+  client: ExtendedClient
 ): Promise<void> {
   try {
     const ticketService = client.services?.ticket;
     if (!ticketService) {
-      await interaction.reply({ content: 'Serviço de tickets não disponível.', flags: MessageFlags.Ephemeral });
+      await interaction.reply({
+        content: 'Serviço de tickets não disponível.',
+        flags: MessageFlags.Ephemeral,
+      });
       return;
     }
 
@@ -53,7 +56,10 @@ export async function handleTicketButtonInteraction(
     logger.error('Error handling ticket button interaction:', error);
 
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: 'Erro ao processar interação.', flags: MessageFlags.Ephemeral });
+      await interaction.reply({
+        content: 'Erro ao processar interação.',
+        flags: MessageFlags.Ephemeral,
+      });
     }
   }
 }
@@ -63,12 +69,15 @@ export async function handleTicketButtonInteraction(
  */
 export async function handleTicketModalSubmission(
   interaction: ModalSubmitInteraction,
-  client: ExtendedClient,
+  client: ExtendedClient
 ): Promise<void> {
   try {
     const ticketService = client.services?.ticket;
     if (!ticketService) {
-      await interaction.reply({ content: 'Serviço de tickets não disponível.', flags: MessageFlags.Ephemeral });
+      await interaction.reply({
+        content: 'Serviço de tickets não disponível.',
+        flags: MessageFlags.Ephemeral,
+      });
       return;
     }
 
@@ -84,7 +93,10 @@ export async function handleTicketModalSubmission(
     logger.error('Error handling ticket modal submission:', error);
 
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: 'Erro ao processar modal.', flags: MessageFlags.Ephemeral });
+      await interaction.reply({
+        content: 'Erro ao processar modal.',
+        flags: MessageFlags.Ephemeral,
+      });
     }
   }
 }
@@ -94,7 +106,7 @@ export async function handleTicketModalSubmission(
  */
 async function handleCreateTicketFromPanel(
   interaction: ButtonInteraction,
-  ticketService: any,
+  ticketService: any
 ): Promise<void> {
   const modal = new ModalBuilder().setCustomId('create_ticket_modal').setTitle('Criar Novo Ticket');
 
@@ -137,11 +149,16 @@ async function handleCreateTicketFromPanel(
  */
 function getPriorityEmoji(priority: string): string {
   switch (priority.toLowerCase()) {
-    case 'low': return HAWK_EMOJIS.TICKETS.PRIORITY_LOW;
-    case 'medium': return HAWK_EMOJIS.TICKETS.PRIORITY_MEDIUM;
-    case 'high': return HAWK_EMOJIS.TICKETS.PRIORITY_HIGH;
-    case 'urgent': return HAWK_EMOJIS.TICKETS.PRIORITY_URGENT;
-    default: return HAWK_EMOJIS.TICKETS.PRIORITY_MEDIUM;
+    case 'low':
+      return HAWK_EMOJIS.TICKETS.PRIORITY_LOW;
+    case 'medium':
+      return HAWK_EMOJIS.TICKETS.PRIORITY_MEDIUM;
+    case 'high':
+      return HAWK_EMOJIS.TICKETS.PRIORITY_HIGH;
+    case 'urgent':
+      return HAWK_EMOJIS.TICKETS.PRIORITY_URGENT;
+    default:
+      return HAWK_EMOJIS.TICKETS.PRIORITY_MEDIUM;
   }
 }
 
@@ -150,7 +167,7 @@ function getPriorityEmoji(priority: string): string {
  */
 async function handleCreateTicketModal(
   interaction: ModalSubmitInteraction,
-  ticketService: any,
+  ticketService: any
 ): Promise<void> {
   const title = interaction.fields.getTextInputValue('ticket_title');
   const description = interaction.fields.getTextInputValue('ticket_description');
@@ -169,32 +186,32 @@ async function handleCreateTicketModal(
     interaction.user.id,
     title,
     description,
-    priority,
+    priority
   );
 
   if (result.success) {
     const successEmbed = HawkEmbedBuilder.createSuccess(
       'Ticket Criado com Sucesso!',
-      `${HAWK_EMOJIS.TICKETS.CREATED} Seu ticket foi criado e nossa equipe será notificada!\n\n${HAWK_EMOJIS.CHANNELS.TEXT} **Canal:** ${result.channel}\n${HAWK_EMOJIS.TICKETS.ID} **ID:** \`#${result.ticket!.id.slice(-8)}\``,
+      `${HAWK_EMOJIS.TICKETS.CREATED} Seu ticket foi criado e nossa equipe será notificada!\n\n${HAWK_EMOJIS.CHANNELS.TEXT} **Canal:** ${result.channel}\n${HAWK_EMOJIS.TICKETS.ID} **ID:** \`#${result.ticket!.id.slice(-8)}\``
     )
       .addFields(
-        { 
-          name: `${HAWK_EMOJIS.TICKETS.SUBJECT} Assunto`, 
-          value: `\`${title}\``, 
-          inline: true, 
+        {
+          name: `${HAWK_EMOJIS.TICKETS.SUBJECT} Assunto`,
+          value: `\`${title}\``,
+          inline: true,
         },
-        { 
-           name: `${HAWK_EMOJIS.TICKETS.PRIORITY} Prioridade`, 
-           value: `${getPriorityEmoji(priority)} ${priority.toUpperCase()}`, 
-           inline: true, 
-         },
-        { 
-          name: `${HAWK_EMOJIS.TIME.CREATED} Criado em`, 
-          value: `<t:${Math.floor(Date.now() / 1000)}:F>`, 
-          inline: false, 
+        {
+          name: `${HAWK_EMOJIS.TICKETS.PRIORITY} Prioridade`,
+          value: `${getPriorityEmoji(priority)} ${priority.toUpperCase()}`,
+          inline: true,
         },
+        {
+          name: `${HAWK_EMOJIS.TIME.CREATED} Criado em`,
+          value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
+          inline: false,
+        }
       )
-      .setFooter({ 
+      .setFooter({
         text: `${HAWK_EMOJIS.HELP} Nossa equipe irá atendê-lo em breve!`,
         iconURL: interaction.guild?.iconURL() || undefined,
       });
@@ -212,7 +229,7 @@ async function handleCreateTicketModal(
   } else {
     const errorEmbed = HawkEmbedBuilder.createError(
       'Erro ao Criar Ticket',
-      `${HAWK_EMOJIS.ERROR} ${result.message}\n\n${HAWK_EMOJIS.HELP} Tente novamente ou entre em contato com um administrador.`,
+      `${HAWK_EMOJIS.ERROR} ${result.message}\n\n${HAWK_EMOJIS.HELP} Tente novamente ou entre em contato com um administrador.`
     );
 
     const retryRow = HawkComponentFactory.createActionRow([
@@ -234,7 +251,7 @@ async function handleCreateTicketModal(
 async function handleClaimTicket(
   interaction: ButtonInteraction,
   ticketService: any,
-  ticketId: string,
+  ticketId: string
 ): Promise<void> {
   // Check if user has permission to claim tickets
   const member = interaction.member;
@@ -256,30 +273,29 @@ async function handleClaimTicket(
   const result = await ticketService.assignTicket(
     interaction.guildId!,
     ticketId,
-    interaction.user.id,
+    interaction.user.id
   );
 
   if (result.success) {
     const successEmbed = HawkEmbedBuilder.createSuccess(
       'Ticket Assumido',
-      `${HAWK_EMOJIS.TICKETS.CLAIMED} Você assumiu o ticket #${ticketId.slice(-8)} com sucesso!\n\n${HAWK_EMOJIS.SUPPORT_SYSTEM.TEAM} Boa sorte resolvendo o problema!`,
-    )
-    .addFields(
-      { 
-        name: `${HAWK_EMOJIS.TICKETS.ID} ID do Ticket`, 
-        value: `\`#${ticketId.slice(-8)}\``, 
-        inline: true, 
+      `${HAWK_EMOJIS.TICKETS.CLAIMED} Você assumiu o ticket #${ticketId.slice(-8)} com sucesso!\n\n${HAWK_EMOJIS.SUPPORT_SYSTEM.TEAM} Boa sorte resolvendo o problema!`
+    ).addFields(
+      {
+        name: `${HAWK_EMOJIS.TICKETS.ID} ID do Ticket`,
+        value: `\`#${ticketId.slice(-8)}\``,
+        inline: true,
       },
-      { 
-        name: `${HAWK_EMOJIS.MODERATOR} Responsável`, 
-        value: `${interaction.user}`, 
-        inline: true, 
+      {
+        name: `${HAWK_EMOJIS.MODERATOR} Responsável`,
+        value: `${interaction.user}`,
+        inline: true,
       },
-      { 
-        name: `${HAWK_EMOJIS.TIME.CLAIMED} Assumido em`, 
-        value: `<t:${Math.floor(Date.now() / 1000)}:F>`, 
-        inline: false, 
-      },
+      {
+        name: `${HAWK_EMOJIS.TIME.CLAIMED} Assumido em`,
+        value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
+        inline: false,
+      }
     );
 
     const actionRow = HawkComponentFactory.createActionRow([
@@ -295,7 +311,7 @@ async function handleClaimTicket(
   } else {
     const errorEmbed = HawkEmbedBuilder.createError(
       'Erro ao Assumir Ticket',
-      `${HAWK_EMOJIS.ERROR} ${result.message}\n\n${HAWK_EMOJIS.HELP} Tente novamente ou verifique se o ticket ainda está disponível.`,
+      `${HAWK_EMOJIS.ERROR} ${result.message}\n\n${HAWK_EMOJIS.HELP} Tente novamente ou verifique se o ticket ainda está disponível.`
     );
 
     const retryRow = HawkComponentFactory.createActionRow([
@@ -317,7 +333,7 @@ async function handleClaimTicket(
 async function handleChangePriority(
   interaction: ButtonInteraction,
   ticketService: any,
-  ticketId: string,
+  ticketId: string
 ): Promise<void> {
   // Check if user has permission to change priority
   const member = interaction.member;
@@ -336,19 +352,18 @@ async function handleChangePriority(
 
   const priorityEmbed = HawkEmbedBuilder.createInfo(
     'Alterar Prioridade',
-    `${HAWK_EMOJIS.TICKETS.PRIORITY} Selecione a nova prioridade para o ticket #${ticketId.slice(-8)}:\n\n${HAWK_EMOJIS.SUPPORT_SYSTEM.HELP} Escolha a prioridade que melhor representa a urgência do problema.`,
-  )
-  .addFields(
-    { 
-      name: `${HAWK_EMOJIS.TICKETS.ID} Ticket`, 
-      value: `\`#${ticketId.slice(-8)}\``, 
-      inline: true, 
+    `${HAWK_EMOJIS.TICKETS.PRIORITY} Selecione a nova prioridade para o ticket #${ticketId.slice(-8)}:\n\n${HAWK_EMOJIS.SUPPORT_SYSTEM.HELP} Escolha a prioridade que melhor representa a urgência do problema.`
+  ).addFields(
+    {
+      name: `${HAWK_EMOJIS.TICKETS.ID} Ticket`,
+      value: `\`#${ticketId.slice(-8)}\``,
+      inline: true,
     },
-    { 
-      name: `${HAWK_EMOJIS.MODERATOR} Alterado por`, 
-      value: `${interaction.user}`, 
-      inline: true, 
-    },
+    {
+      name: `${HAWK_EMOJIS.MODERATOR} Alterado por`,
+      value: `${interaction.user}`,
+      inline: true,
+    }
   );
 
   const row = HawkComponentFactory.createActionRow([
@@ -362,7 +377,7 @@ async function handleChangePriority(
       customId: `priority_medium_${ticketId}`,
       label: 'Média',
       style: ButtonStyle.Primary,
-      emoji: '🟡', 
+      emoji: '🟡',
     }),
     HawkComponentFactory.createButton({
       customId: `priority_high_${ticketId}`,
@@ -378,7 +393,11 @@ async function handleChangePriority(
     }),
   ]);
 
-  await interaction.reply({ embeds: [priorityEmbed], components: [row], flags: MessageFlags.Ephemeral });
+  await interaction.reply({
+    embeds: [priorityEmbed],
+    components: [row],
+    flags: MessageFlags.Ephemeral,
+  });
 }
 
 /**
@@ -386,14 +405,17 @@ async function handleChangePriority(
  */
 async function handlePrioritySelection(
   interaction: ButtonInteraction,
-  ticketService: any,
+  ticketService: any
 ): Promise<void> {
   const parts = interaction.customId.split('_');
   const priority = parts[1];
   const ticketId = parts[2];
 
   if (!priority || !ticketId) {
-    await interaction.reply({ content: 'Erro ao processar prioridade.', flags: MessageFlags.Ephemeral });
+    await interaction.reply({
+      content: 'Erro ao processar prioridade.',
+      flags: MessageFlags.Ephemeral,
+    });
     return;
   }
 
@@ -411,24 +433,23 @@ async function handlePrioritySelection(
 
     const successEmbed = HawkEmbedBuilder.createSuccess(
       'Prioridade Alterada',
-      `${HAWK_EMOJIS.TICKETS.PRIORITY} A prioridade do ticket foi alterada com sucesso!`,
-    )
-    .addFields(
-      { 
-        name: `${HAWK_EMOJIS.TICKET} Ticket`, 
-        value: `\`#${ticketId.slice(-8)}\``, 
-        inline: true, 
+      `${HAWK_EMOJIS.TICKETS.PRIORITY} A prioridade do ticket foi alterada com sucesso!`
+    ).addFields(
+      {
+        name: `${HAWK_EMOJIS.TICKET} Ticket`,
+        value: `\`#${ticketId.slice(-8)}\``,
+        inline: true,
       },
-      { 
-        name: `${HAWK_EMOJIS.TICKETS.PRIORITY} Nova Prioridade`, 
-        value: `**${priority.toUpperCase()}**`, 
-        inline: true, 
+      {
+        name: `${HAWK_EMOJIS.TICKETS.PRIORITY} Nova Prioridade`,
+        value: `**${priority.toUpperCase()}**`,
+        inline: true,
       },
-      { 
-        name: `${HAWK_EMOJIS.MODERATOR} Alterado por`, 
-        value: `${interaction.user}`, 
-        inline: true, 
-      },
+      {
+        name: `${HAWK_EMOJIS.MODERATOR} Alterado por`,
+        value: `${interaction.user}`,
+        inline: true,
+      }
     );
 
     await interaction.editReply({ embeds: [successEmbed], components: [] });
@@ -447,21 +468,21 @@ async function handlePrioritySelection(
 
         const updateEmbed = HawkEmbedBuilder.createInfo(
           'Prioridade Atualizada',
-          `${HAWK_EMOJIS.TICKETS.PRIORITY} A prioridade deste ticket foi alterada!`,
+          `${HAWK_EMOJIS.TICKETS.PRIORITY} A prioridade deste ticket foi alterada!`
         )
-        .addFields(
-          { 
-            name: `${HAWK_EMOJIS.TICKETS.PRIORITY} Nova Prioridade`, 
-            value: `${priorityEmojis[priority as keyof typeof priorityEmojis]} **${priority.toUpperCase()}**`, 
-            inline: true, 
-          },
-          { 
-            name: `${HAWK_EMOJIS.MODERATOR} Alterado por`, 
-            value: `${interaction.user}`, 
-            inline: true, 
-          },
-        )
-        .setTimestamp();
+          .addFields(
+            {
+              name: `${HAWK_EMOJIS.TICKETS.PRIORITY} Nova Prioridade`,
+              value: `${priorityEmojis[priority as keyof typeof priorityEmojis]} **${priority.toUpperCase()}**`,
+              inline: true,
+            },
+            {
+              name: `${HAWK_EMOJIS.MODERATOR} Alterado por`,
+              value: `${interaction.user}`,
+              inline: true,
+            }
+          )
+          .setTimestamp();
 
         await channel.send({ embeds: [updateEmbed] });
       }
@@ -471,19 +492,18 @@ async function handlePrioritySelection(
 
     const errorEmbed = HawkEmbedBuilder.createError(
       'Erro ao Alterar Prioridade',
-      `${HAWK_EMOJIS.ERROR} Ocorreu um erro ao tentar alterar a prioridade do ticket. Tente novamente.`,
-    )
-    .addFields(
-      { 
-        name: `${HAWK_EMOJIS.TICKETS.ID} Ticket`, 
-        value: `\`#${ticketId.slice(-8)}\``, 
-        inline: true, 
+      `${HAWK_EMOJIS.ERROR} Ocorreu um erro ao tentar alterar a prioridade do ticket. Tente novamente.`
+    ).addFields(
+      {
+        name: `${HAWK_EMOJIS.TICKETS.ID} Ticket`,
+        value: `\`#${ticketId.slice(-8)}\``,
+        inline: true,
       },
-      { 
-        name: `${HAWK_EMOJIS.SUPPORT} Suporte`, 
-        value: 'Entre em contato com a administração se o problema persistir.', 
-        inline: false, 
-      },
+      {
+        name: `${HAWK_EMOJIS.SUPPORT} Suporte`,
+        value: 'Entre em contato com a administração se o problema persistir.',
+        inline: false,
+      }
     );
 
     await interaction.editReply({ embeds: [errorEmbed], components: [] });
@@ -496,7 +516,7 @@ async function handlePrioritySelection(
 async function handleCloseTicketButton(
   interaction: ButtonInteraction,
   ticketService: any,
-  ticketId: string,
+  ticketId: string
 ): Promise<void> {
   const ticket = ticketService.getTicketData(interaction.guildId!, ticketId);
   if (!ticket) {
@@ -545,7 +565,7 @@ async function handleCloseTicketButton(
 async function handleCloseTicketModal(
   interaction: ModalSubmitInteraction,
   ticketService: any,
-  ticketId: string,
+  ticketId: string
 ): Promise<void> {
   const reason = interaction.fields.getTextInputValue('close_reason') || 'Não especificado';
 
@@ -555,54 +575,52 @@ async function handleCloseTicketModal(
     interaction.guildId!,
     ticketId,
     interaction.user.id,
-    reason,
+    reason
   );
 
   if (result.success) {
     const successEmbed = HawkEmbedBuilder.createSuccess(
       'Ticket Fechado',
-      `${HAWK_EMOJIS.TICKETS.CLOSE} O ticket foi fechado com sucesso!`,
-    )
-    .addFields(
-      { 
-        name: `${HAWK_EMOJIS.TICKETS.ID} Ticket`, 
-        value: `\`#${ticketId.slice(-8)}\``, 
-        inline: true, 
+      `${HAWK_EMOJIS.TICKETS.CLOSE} O ticket foi fechado com sucesso!`
+    ).addFields(
+      {
+        name: `${HAWK_EMOJIS.TICKETS.ID} Ticket`,
+        value: `\`#${ticketId.slice(-8)}\``,
+        inline: true,
       },
-      { 
-        name: `${HAWK_EMOJIS.MODERATOR} Fechado por`, 
-        value: `${interaction.user}`, 
-        inline: true, 
+      {
+        name: `${HAWK_EMOJIS.MODERATOR} Fechado por`,
+        value: `${interaction.user}`,
+        inline: true,
       },
-      { 
-        name: `${HAWK_EMOJIS.CLOCK} Fechado em`, 
-        value: `<t:${Math.floor(Date.now() / 1000)}:F>`, 
-        inline: true, 
+      {
+        name: `${HAWK_EMOJIS.CLOCK} Fechado em`,
+        value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
+        inline: true,
       },
-      { 
-        name: `${HAWK_EMOJIS.TICKETS.REASON} Motivo`, 
-        value: reason, 
-        inline: false, 
-      },
+      {
+        name: `${HAWK_EMOJIS.TICKETS.REASON} Motivo`,
+        value: reason,
+        inline: false,
+      }
     );
 
     await interaction.editReply({ embeds: [successEmbed] });
   } else {
     const errorEmbed = HawkEmbedBuilder.createError(
       'Erro ao Fechar Ticket',
-      `${HAWK_EMOJIS.ERROR} ${result.message}`,
-    )
-    .addFields(
-      { 
-        name: `${HAWK_EMOJIS.TICKETS.ID} Ticket`, 
-        value: `\`#${ticketId.slice(-8)}\``, 
-        inline: true, 
+      `${HAWK_EMOJIS.ERROR} ${result.message}`
+    ).addFields(
+      {
+        name: `${HAWK_EMOJIS.TICKETS.ID} Ticket`,
+        value: `\`#${ticketId.slice(-8)}\``,
+        inline: true,
       },
-      { 
-        name: `${HAWK_EMOJIS.SUPPORT_SYSTEM.HELP} Suporte`, 
-        value: 'Entre em contato com a administração se o problema persistir.', 
-        inline: false, 
-      },
+      {
+        name: `${HAWK_EMOJIS.SUPPORT_SYSTEM.HELP} Suporte`,
+        value: 'Entre em contato com a administração se o problema persistir.',
+        inline: false,
+      }
     );
 
     await interaction.editReply({ embeds: [errorEmbed] });

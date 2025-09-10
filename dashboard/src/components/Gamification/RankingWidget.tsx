@@ -21,11 +21,11 @@ interface RankingWidgetProps {
   showBadges?: boolean;
 }
 
-export default function RankingWidget({ 
-  guildId, 
-  type = 'overall', 
-  limit = 10, 
-  showBadges = true 
+export default function RankingWidget({
+  guildId,
+  type = 'overall',
+  limit = 10,
+  showBadges = true,
 }: RankingWidgetProps) {
   const [rankings, setRankings] = useState<RankingUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +52,7 @@ export default function RankingWidget({
             xp: 125000,
             rank: 1,
             weeklyXP: 2500,
-            badges: 28
+            badges: 28,
           },
           {
             id: '2',
@@ -62,7 +62,7 @@ export default function RankingWidget({
             xp: 118000,
             rank: 2,
             weeklyXP: 2200,
-            badges: 25
+            badges: 25,
           },
           {
             id: '3',
@@ -72,7 +72,7 @@ export default function RankingWidget({
             xp: 112000,
             rank: 3,
             weeklyXP: 2000,
-            badges: 22
+            badges: 22,
           },
           {
             id: '4',
@@ -82,7 +82,7 @@ export default function RankingWidget({
             xp: 105000,
             rank: 4,
             weeklyXP: 1800,
-            badges: 20
+            badges: 20,
           },
           {
             id: '5',
@@ -92,8 +92,8 @@ export default function RankingWidget({
             xp: 98000,
             rank: 5,
             weeklyXP: 1600,
-            badges: 18
-          }
+            badges: 18,
+          },
         ]);
       } finally {
         setLoading(false);
@@ -106,13 +106,13 @@ export default function RankingWidget({
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
-        return <Crown className="h-5 w-5 text-yellow-500" />;
+        return <Crown className='h-5 w-5 text-yellow-500' />;
       case 2:
-        return <Medal className="h-5 w-5 text-gray-400" />;
+        return <Medal className='h-5 w-5 text-gray-400' />;
       case 3:
-        return <Award className="h-5 w-5 text-amber-600" />;
+        return <Award className='h-5 w-5 text-amber-600' />;
       default:
-        return <span className="text-sm font-bold text-muted-foreground">#{rank}</span>;
+        return <span className='text-sm font-bold text-muted-foreground'>#{rank}</span>;
     }
   };
 
@@ -132,13 +132,13 @@ export default function RankingWidget({
   const getTabIcon = (tabType: string) => {
     switch (tabType) {
       case 'overall':
-        return <Trophy className="h-4 w-4" />;
+        return <Trophy className='h-4 w-4' />;
       case 'weekly':
-        return <TrendingUp className="h-4 w-4" />;
+        return <TrendingUp className='h-4 w-4' />;
       case 'monthly':
-        return <Star className="h-4 w-4" />;
+        return <Star className='h-4 w-4' />;
       default:
-        return <Users className="h-4 w-4" />;
+        return <Users className='h-4 w-4' />;
     }
   };
 
@@ -157,15 +157,15 @@ export default function RankingWidget({
 
   if (loading) {
     return (
-      <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-card-foreground mb-4">Ranking</h3>
-        <div className="animate-pulse space-y-3">
+      <div className='bg-card border border-border rounded-lg p-6 shadow-sm'>
+        <h3 className='text-lg font-semibold text-card-foreground mb-4'>Ranking</h3>
+        <div className='animate-pulse space-y-3'>
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="flex items-center space-x-3">
-              <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-10 w-10"></div>
-              <div className="flex-1">
-                <div className="bg-gray-200 dark:bg-gray-700 rounded h-4 w-3/4 mb-2"></div>
-                <div className="bg-gray-200 dark:bg-gray-700 rounded h-3 w-1/2"></div>
+            <div key={i} className='flex items-center space-x-3'>
+              <div className='bg-gray-200 dark:bg-gray-700 rounded-full h-10 w-10'></div>
+              <div className='flex-1'>
+                <div className='bg-gray-200 dark:bg-gray-700 rounded h-4 w-3/4 mb-2'></div>
+                <div className='bg-gray-200 dark:bg-gray-700 rounded h-3 w-1/2'></div>
               </div>
             </div>
           ))}
@@ -176,30 +176,28 @@ export default function RankingWidget({
 
   if (error && rankings.length === 0) {
     return (
-      <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-card-foreground mb-4">Ranking</h3>
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">{error}</p>
+      <div className='bg-card border border-border rounded-lg p-6 shadow-sm'>
+        <h3 className='text-lg font-semibold text-card-foreground mb-4'>Ranking</h3>
+        <div className='text-center py-8'>
+          <p className='text-muted-foreground'>{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-card-foreground">Ranking</h3>
-        <div className="flex items-center space-x-1">
-          <Users className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">
-            {rankings.length} jogadores
-          </span>
+    <div className='bg-card border border-border rounded-lg p-6 shadow-sm'>
+      <div className='flex items-center justify-between mb-4'>
+        <h3 className='text-lg font-semibold text-card-foreground'>Ranking</h3>
+        <div className='flex items-center space-x-1'>
+          <Users className='h-4 w-4 text-muted-foreground' />
+          <span className='text-sm text-muted-foreground'>{rankings.length} jogadores</span>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex space-x-1 mb-4 bg-muted rounded-lg p-1">
-        {(['overall', 'weekly', 'monthly'] as const).map((tab) => (
+      <div className='flex space-x-1 mb-4 bg-muted rounded-lg p-1'>
+        {(['overall', 'weekly', 'monthly'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -216,57 +214,51 @@ export default function RankingWidget({
       </div>
 
       {/* Rankings List */}
-      <div className="space-y-2">
+      <div className='space-y-2'>
         {rankings.map((user, index) => (
           <div
             key={user.id}
-            className={`flex items-center space-x-3 p-3 rounded-lg border transition-colors ${
-              getRankBgColor(user.rank)
-            }`}
+            className={`flex items-center space-x-3 p-3 rounded-lg border transition-colors ${getRankBgColor(
+              user.rank
+            )}`}
           >
             {/* Rank */}
-            <div className="flex items-center justify-center w-8">
-              {getRankIcon(user.rank)}
-            </div>
+            <div className='flex items-center justify-center w-8'>{getRankIcon(user.rank)}</div>
 
             {/* Avatar */}
-            <div className="relative">
+            <div className='relative'>
               {user.avatar ? (
                 <img
                   src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`}
                   alt={user.username}
-                  className="w-10 h-10 rounded-full"
+                  className='w-10 h-10 rounded-full'
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-sm font-bold text-primary">
+                <div className='w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center'>
+                  <span className='text-sm font-bold text-primary'>
                     {user.username.charAt(0).toUpperCase()}
                   </span>
                 </div>
               )}
               {user.rank <= 3 && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-background border-2 border-background flex items-center justify-center">
+                <div className='absolute -top-1 -right-1 w-5 h-5 rounded-full bg-background border-2 border-background flex items-center justify-center'>
                   {getRankIcon(user.rank)}
                 </div>
               )}
             </div>
 
             {/* User Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center space-x-2">
-                <span className="font-medium text-card-foreground truncate">
-                  {user.username}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  #{user.discriminator}
-                </span>
+            <div className='flex-1 min-w-0'>
+              <div className='flex items-center space-x-2'>
+                <span className='font-medium text-card-foreground truncate'>{user.username}</span>
+                <span className='text-xs text-muted-foreground'>#{user.discriminator}</span>
               </div>
-              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+              <div className='flex items-center space-x-4 text-sm text-muted-foreground'>
                 <span>Nível {user.level}</span>
                 <span>{user.xp.toLocaleString()} XP</span>
                 {showBadges && (
-                  <span className="flex items-center space-x-1">
-                    <Award className="h-3 w-3" />
+                  <span className='flex items-center space-x-1'>
+                    <Award className='h-3 w-3' />
                     <span>{user.badges}</span>
                   </span>
                 )}
@@ -275,11 +267,11 @@ export default function RankingWidget({
 
             {/* Weekly XP (for weekly/monthly tabs) */}
             {activeTab !== 'overall' && (
-              <div className="text-right">
-                <div className="text-sm font-medium text-green-600">
+              <div className='text-right'>
+                <div className='text-sm font-medium text-green-600'>
                   +{user.weeklyXP.toLocaleString()}
                 </div>
-                <div className="text-xs text-muted-foreground">
+                <div className='text-xs text-muted-foreground'>
                   {activeTab === 'weekly' ? 'esta semana' : 'este mês'}
                 </div>
               </div>
@@ -290,8 +282,8 @@ export default function RankingWidget({
 
       {/* View More Button */}
       {rankings.length >= limit && (
-        <div className="mt-4 text-center">
-          <button className="text-sm text-primary hover:text-primary/80 font-medium">
+        <div className='mt-4 text-center'>
+          <button className='text-sm text-primary hover:text-primary/80 font-medium'>
             Ver ranking completo
           </button>
         </div>

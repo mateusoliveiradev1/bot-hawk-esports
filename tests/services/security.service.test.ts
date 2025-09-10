@@ -4,18 +4,19 @@ import { DatabaseService } from '../../src/database/database.service';
 import { Request } from 'express';
 
 // Mock Express Request
-const createMockRequest = (options: Partial<Request> = {}): Request => ({
-  ip: '127.0.0.1',
-  headers: {
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    'accept-language': 'en-US,en;q=0.9',
-    'x-forwarded-for': '192.168.1.1',
-  },
-  connection: {
-    remoteAddress: '127.0.0.1',
-  },
-  ...options,
-} as Request);
+const createMockRequest = (options: Partial<Request> = {}): Request =>
+  ({
+    ip: '127.0.0.1',
+    headers: {
+      'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'accept-language': 'en-US,en;q=0.9',
+      'x-forwarded-for': '192.168.1.1',
+    },
+    connection: {
+      remoteAddress: '127.0.0.1',
+    },
+    ...options,
+  }) as Request;
 
 describe('SecurityService', () => {
   let securityService: SecurityService;
@@ -32,11 +33,11 @@ describe('SecurityService', () => {
           update: jest.fn(),
         },
         user: {
-        findUnique: jest.fn(),
-        create: jest.fn(),
-        update: jest.fn(),
-        delete: jest.fn(),
-      },
+          findUnique: jest.fn(),
+          create: jest.fn(),
+          update: jest.fn(),
+          delete: jest.fn(),
+        },
       },
       healthCheck: jest.fn().mockResolvedValue({ healthy: true, details: {} }),
     } as unknown as jest.Mocked<DatabaseService>;
@@ -107,13 +108,13 @@ describe('SecurityService', () => {
 
     it('should reject expired CAPTCHA', () => {
       const captcha = securityService.generateCaptcha();
-      
+
       // Manually expire the captcha
       jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 11 * 60 * 1000); // 11 minutes later
-      
+
       const result = securityService.verifyCaptcha(captcha.id, captcha.text);
       expect(result).toBe(false);
-      
+
       jest.restoreAllMocks();
     });
   });
@@ -302,7 +303,7 @@ describe('SecurityService', () => {
 
     it('should clean suspicious IPs after timeout', () => {
       const req = createMockRequest({ ip: '192.168.1.100' });
-      
+
       // Trigger suspicious activity
       for (let i = 0; i < 5; i++) {
         securityService.analyzeRequest(req);
@@ -327,22 +328,22 @@ describe('SecurityService', () => {
   describe('Integration Tests', () => {
     it('should handle multiple concurrent operations', () => {
       const promises = [];
-      
+
       // Generate multiple captchas concurrently
       for (let i = 0; i < 10; i++) {
         promises.push(Promise.resolve(securityService.generateCaptcha()));
       }
-      
+
       // Check rate limits concurrently
       for (let i = 0; i < 10; i++) {
-        promises.push(Promise.resolve(
-          securityService.checkRateLimit(`user-${i}`, 'command', 5, 60000)
-        ));
+        promises.push(
+          Promise.resolve(securityService.checkRateLimit(`user-${i}`, 'command', 5, 60000))
+        );
       }
 
       return Promise.all(promises).then(results => {
         expect(results).toHaveLength(20);
-        
+
         const stats = securityService.getSecurityStats();
         expect(stats.activeCaptchas).toBe(10);
         expect(stats.rateLimitEntries).toBe(10);

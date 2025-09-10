@@ -121,14 +121,14 @@ export class TicketService {
             allowAnonymous: Boolean(setting.allowAnonymous),
             closeAfterInactivity: Math.max(
               0,
-              setting.closeAfterInactivity || this.DEFAULT_INACTIVITY_HOURS,
+              setting.closeAfterInactivity || this.DEFAULT_INACTIVITY_HOURS
             ),
             notificationSettings: parsedNotifications,
           });
         } catch (settingError) {
           this.logger.error(
             `Error processing ticket setting for guild ${setting.guildId}:`,
-            settingError,
+            settingError
           );
         }
       }
@@ -178,7 +178,7 @@ export class TicketService {
           // Check for duplicate tickets per user
           if (guildTickets.has(ticket.userId)) {
             this.logger.warn(
-              `Duplicate active ticket found for user ${ticket.userId} in guild ${ticket.guildId}`,
+              `Duplicate active ticket found for user ${ticket.userId} in guild ${ticket.guildId}`
             );
           }
 
@@ -206,7 +206,7 @@ export class TicketService {
       }
 
       this.logger.info(
-        `Loaded ${loadedCount} active tickets (${skippedCount} skipped due to errors)`,
+        `Loaded ${loadedCount} active tickets (${skippedCount} skipped due to errors)`
       );
     } catch (error) {
       this.logger.error('Failed to load active tickets:', error);
@@ -217,7 +217,7 @@ export class TicketService {
    * Parse notification settings safely
    */
   private parseNotificationSettings(
-    notificationSettings: any,
+    notificationSettings: any
   ): TicketSettings['notificationSettings'] {
     try {
       if (typeof notificationSettings === 'string') {
@@ -307,7 +307,7 @@ export class TicketService {
           this.logger.error('Error in inactivity checker:', error);
         }
       },
-      60 * 60 * 1000,
+      60 * 60 * 1000
     ); // Check every hour
 
     this.logger.debug('Ticket inactivity checker started');
@@ -328,10 +328,10 @@ export class TicketService {
         }
 
         const inactivityThreshold = new Date(
-          Date.now() - settings.closeAfterInactivity * 60 * 60 * 1000,
+          Date.now() - settings.closeAfterInactivity * 60 * 60 * 1000
         );
         const warningThreshold = new Date(
-          Date.now() - (settings.closeAfterInactivity - 2) * 60 * 60 * 1000,
+          Date.now() - (settings.closeAfterInactivity - 2) * 60 * 60 * 1000
         ); // 2 hours before closing
         const ticketsToClose: TicketData[] = [];
         const ticketsToWarn: TicketData[] = [];
@@ -363,7 +363,7 @@ export class TicketService {
 
             warningsSent++;
             this.logger.info(
-              `Sent inactivity warning for ticket: ${ticket.id} in guild ${guildId}`,
+              `Sent inactivity warning for ticket: ${ticket.id} in guild ${guildId}`
             );
           } catch (error) {
             this.logger.error(`Error sending warning for ticket ${ticket.id}:`, error);
@@ -377,7 +377,7 @@ export class TicketService {
               guildId,
               ticket.id,
               'system',
-              `Fechado automaticamente por inatividade (${settings.closeAfterInactivity}h sem atividade)`,
+              `Fechado automaticamente por inatividade (${settings.closeAfterInactivity}h sem atividade)`
             );
 
             if (result.success) {
@@ -394,7 +394,7 @@ export class TicketService {
 
       if (closedCount > 0 || warningsSent > 0) {
         this.logger.info(
-          `Inactivity check completed: ${closedCount} tickets closed, ${warningsSent} warnings sent`,
+          `Inactivity check completed: ${closedCount} tickets closed, ${warningsSent} warnings sent`
         );
       }
     } catch (error) {
@@ -463,7 +463,7 @@ export class TicketService {
         .setDescription(
           `Este ticket será fechado automaticamente em **${hoursRemaining} horas** devido à inatividade.\n\n` +
             'Para manter o ticket aberto, envie uma mensagem neste canal.\n\n' +
-            `**Configuração atual:** Fechamento após ${settings.closeAfterInactivity} horas de inatividade.`,
+            `**Configuração atual:** Fechamento após ${settings.closeAfterInactivity} horas de inatividade.`
         )
         .setColor('#FFA500')
         .addFields(
@@ -477,7 +477,7 @@ export class TicketService {
             name: '📝 Última atividade',
             value: `<t:${Math.floor(ticket.updatedAt.getTime() / 1000)}:R>`,
             inline: true,
-          },
+          }
         )
         .setTimestamp()
         .setFooter({ text: 'Sistema de Tickets Automático' });
@@ -492,7 +492,7 @@ export class TicketService {
           .setCustomId(`ticket_close_${ticket.id}`)
           .setLabel('Fechar Agora')
           .setStyle(ButtonStyle.Danger)
-          .setEmoji('🔒'),
+          .setEmoji('🔒')
       );
 
       await channel.send({
@@ -564,7 +564,7 @@ export class TicketService {
     userId: string,
     title: string,
     description: string,
-    priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium',
+    priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium'
   ): Promise<{ success: boolean; message: string; ticket?: TicketData; channel?: TextChannel }> {
     try {
       // Input validation
@@ -725,7 +725,7 @@ export class TicketService {
               this.logger.debug(`Auto-assigned ticket ${ticket.id} to ${assignee.id}`);
             } else {
               this.logger.warn(
-                `Failed to auto-assign ticket ${ticket.id}: ${assignResult.message}`,
+                `Failed to auto-assign ticket ${ticket.id}: ${assignResult.message}`
               );
             }
           } else {
@@ -782,7 +782,7 @@ export class TicketService {
     guild: any,
     user: User,
     ticketId: string,
-    title: string,
+    title: string
   ): Promise<TextChannel | null> {
     try {
       // Input validation
@@ -838,7 +838,7 @@ export class TicketService {
         try {
           category = guild.channels.cache.find(
             (c: any) =>
-              c.type === ChannelType.GuildCategory && c.name.toLowerCase().includes('ticket'),
+              c.type === ChannelType.GuildCategory && c.name.toLowerCase().includes('ticket')
           ) as CategoryChannel;
 
           if (category) {
@@ -977,7 +977,7 @@ export class TicketService {
   private async sendTicketWelcomeMessage(
     channel: TextChannel,
     user: User,
-    ticket: TicketData,
+    ticket: TicketData
   ): Promise<void> {
     try {
       const priorityEmojis = {
@@ -1002,7 +1002,7 @@ export class TicketService {
             name: '📅 Criado em',
             value: `<t:${Math.floor(ticket.createdAt.getTime() / 1000)}:F>`,
             inline: true,
-          },
+          }
         )
         .setThumbnail(user.displayAvatarURL())
         .setFooter({ text: 'Use os botões abaixo para gerenciar este ticket' });
@@ -1022,12 +1022,12 @@ export class TicketService {
           .setCustomId(`ticket_close_${ticket.id}`)
           .setLabel('Fechar Ticket')
           .setStyle(ButtonStyle.Danger)
-          .setEmoji('🔒'),
+          .setEmoji('🔒')
       );
 
       await channel.send({ embeds: [embed], components: [row] });
       await channel.send(
-        `${user}, seu ticket foi criado! Nossa equipe de suporte irá atendê-lo em breve.`,
+        `${user}, seu ticket foi criado! Nossa equipe de suporte irá atendê-lo em breve.`
       );
     } catch (error) {
       this.logger.error('Error sending ticket welcome message:', error);
@@ -1056,7 +1056,7 @@ export class TicketService {
 
       // Get online support members
       const onlineSupport = supportRole.members.filter(
-        member => member.presence?.status === 'online' || member.presence?.status === 'idle',
+        member => member.presence?.status === 'online' || member.presence?.status === 'idle'
       );
 
       if (onlineSupport.size === 0) {
@@ -1094,7 +1094,7 @@ export class TicketService {
 
       // Get online support members
       const onlineSupport = supportRole.members.filter(
-        member => member.presence?.status === 'online' || member.presence?.status === 'idle',
+        member => member.presence?.status === 'online' || member.presence?.status === 'idle'
       );
 
       if (onlineSupport.size === 0) {
@@ -1117,7 +1117,7 @@ export class TicketService {
   public async assignTicket(
     guildId: string,
     ticketId: string,
-    assigneeId: string,
+    assigneeId: string
   ): Promise<{ success: boolean; message: string }> {
     try {
       const ticket = this.getTicketData(guildId, ticketId);
@@ -1186,7 +1186,7 @@ export class TicketService {
     guildId: string,
     ticketId: string,
     closedBy: string,
-    reason?: string,
+    reason?: string
   ): Promise<{ success: boolean; message: string }> {
     try {
       const ticket = this.getTicketData(guildId, ticketId);
@@ -1262,7 +1262,7 @@ export class TicketService {
     channelId: string,
     ticket: TicketData,
     closedBy: string,
-    reason?: string,
+    reason?: string
   ): Promise<void> {
     try {
       const channel = this.client.channels.cache.get(channelId) as TextChannel;
@@ -1286,7 +1286,7 @@ export class TicketService {
         .setColor('#FF0000')
         .addFields(
           { name: '📝 Motivo', value: reason || 'Não especificado', inline: false },
-          { name: '📅 Fechado em', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true },
+          { name: '📅 Fechado em', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }
         )
         .setTimestamp();
 
@@ -1309,7 +1309,7 @@ export class TicketService {
   private async performChannelArchival(
     channel: TextChannel,
     guild: any,
-    ticket: TicketData,
+    ticket: TicketData
   ): Promise<void> {
     const maxRetries = 3;
     let retryCount = 0;
@@ -1354,7 +1354,7 @@ export class TicketService {
         retryCount++;
         this.logger.error(
           `Archival attempt ${retryCount} failed for channel ${channel.id}:`,
-          error,
+          error
         );
 
         if (retryCount >= maxRetries) {
@@ -1401,7 +1401,7 @@ export class TicketService {
         retryCount++;
         this.logger.error(
           `Deletion attempt ${retryCount} failed for channel ${channel.id}:`,
-          error,
+          error
         );
 
         if (retryCount >= maxRetries) {
@@ -1461,7 +1461,7 @@ export class TicketService {
       return requiredPermissions.every(
         permission =>
           botMember.permissions.has(permission) ||
-          channel.permissionsFor(botMember)?.has(permission),
+          channel.permissionsFor(botMember)?.has(permission)
       );
     } catch (error) {
       this.logger.error('Error validating archive permissions:', error);
@@ -1480,13 +1480,13 @@ export class TicketService {
           c.type === ChannelType.GuildCategory &&
           (c.name.toLowerCase().includes('arquivo') ||
             c.name.toLowerCase().includes('closed') ||
-            (c.name.toLowerCase().includes('ticket') && c.name.toLowerCase().includes('arquiv'))),
+            (c.name.toLowerCase().includes('ticket') && c.name.toLowerCase().includes('arquiv')))
       ) as CategoryChannel;
 
       if (archiveCategory) {
         // Validate category is not full (Discord limit: 50 channels per category)
         const channelsInCategory = guild.channels.cache.filter(
-          (c: any) => c.parentId === archiveCategory.id,
+          (c: any) => c.parentId === archiveCategory.id
         ).size;
         if (channelsInCategory >= 49) {
           // Leave room for one more
@@ -1513,7 +1513,7 @@ export class TicketService {
    */
   private async createNewArchiveCategory(
     guild: any,
-    existingCount: number,
+    existingCount: number
   ): Promise<CategoryChannel | null> {
     try {
       const categoryName =
@@ -1554,7 +1554,7 @@ export class TicketService {
   private async performArchivalOperations(
     channel: TextChannel,
     archiveCategory: CategoryChannel,
-    ticket: TicketData,
+    ticket: TicketData
   ): Promise<void> {
     // Move channel to archive category
     try {
@@ -1601,7 +1601,7 @@ export class TicketService {
   private async scheduleChannelCleanup(
     channelId: string,
     ticketId: string,
-    delayHours: number = 168,
+    delayHours: number = 168
   ): Promise<void> {
     try {
       const scheduledFor = new Date(Date.now() + delayHours * 60 * 60 * 1000);
@@ -1629,7 +1629,7 @@ export class TicketService {
       });
 
       this.logger.info(
-        `Scheduled cleanup for ticket channel ${channelId} at ${scheduledFor.toISOString()}`,
+        `Scheduled cleanup for ticket channel ${channelId} at ${scheduledFor.toISOString()}`
       );
     } catch (error) {
       this.logger.error(`Failed to schedule cleanup for channel ${channelId}:`, error);
@@ -1639,7 +1639,7 @@ export class TicketService {
         async () => {
           await this.performScheduledCleanup(channelId, ticketId);
         },
-        delayHours * 60 * 60 * 1000,
+        delayHours * 60 * 60 * 1000
       );
     }
   }
@@ -1699,7 +1699,7 @@ export class TicketService {
     guildId: string,
     type: 'create' | 'assign' | 'close' | 'reopen',
     ticket: TicketData,
-    actorId?: string,
+    actorId?: string
   ): Promise<void> {
     try {
       const settings = this.getTicketSettings(guildId);
@@ -1736,7 +1736,7 @@ export class TicketService {
           { name: '🆔 ID', value: `#${ticket.id.slice(-8)}`, inline: true },
           { name: '👤 Usuário', value: user ? `${user.tag}` : 'Desconhecido', inline: true },
           { name: '📊 Prioridade', value: ticket.priority.toUpperCase(), inline: true },
-          { name: '📝 Assunto', value: ticket.title, inline: false },
+          { name: '📝 Assunto', value: ticket.title, inline: false }
         )
         .setTimestamp();
 
@@ -1834,7 +1834,7 @@ export class TicketService {
    */
   public async getGuildTickets(
     guildId: string,
-    status?: 'open' | 'in_progress' | 'closed',
+    status?: 'open' | 'in_progress' | 'closed'
   ): Promise<TicketData[]> {
     try {
       const where: any = { guildId };
@@ -1873,7 +1873,7 @@ export class TicketService {
    */
   public async updateTicketSettings(
     guildId: string,
-    settings: Partial<TicketSettings>,
+    settings: Partial<TicketSettings>
   ): Promise<void> {
     try {
       const currentSettings = this.getTicketSettings(guildId);

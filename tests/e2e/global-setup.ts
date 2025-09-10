@@ -37,18 +37,15 @@ async function globalSetup(config: FullConfig) {
  */
 async function checkEnvironmentVariables() {
   console.log('🔍 Verificando variáveis de ambiente...');
-  
-  const requiredEnvVars = [
-    'DATABASE_URL',
-    'REDIS_URL',
-    'DISCORD_TOKEN',
-    'DISCORD_CLIENT_ID'
-  ];
+
+  const requiredEnvVars = ['DATABASE_URL', 'REDIS_URL', 'DISCORD_TOKEN', 'DISCORD_CLIENT_ID'];
 
   const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
-  
+
   if (missingVars.length > 0) {
-    throw new Error(`Variáveis de ambiente obrigatórias não encontradas: ${missingVars.join(', ')}`);
+    throw new Error(
+      `Variáveis de ambiente obrigatórias não encontradas: ${missingVars.join(', ')}`
+    );
   }
 
   console.log('✅ Variáveis de ambiente verificadas');
@@ -59,15 +56,15 @@ async function checkEnvironmentVariables() {
  */
 async function setupTestDatabase() {
   console.log('🗄️ Configurando banco de dados de teste...');
-  
+
   try {
     // Reset do banco de dados de teste
     execSync('npx prisma db push --force-reset', {
       stdio: 'inherit',
       env: {
         ...process.env,
-        DATABASE_URL: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL
-      }
+        DATABASE_URL: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL,
+      },
     });
 
     // Gerar cliente Prisma
@@ -85,14 +82,14 @@ async function setupTestDatabase() {
  */
 async function clearTestRedis() {
   console.log('🧹 Limpando cache Redis de teste...');
-  
+
   try {
     const Redis = require('ioredis');
     const redis = new Redis(process.env.TEST_REDIS_URL || process.env.REDIS_URL);
-    
+
     await redis.flushall();
     await redis.quit();
-    
+
     console.log('✅ Cache Redis limpo');
   } catch (error) {
     console.warn('⚠️ Aviso: Não foi possível limpar o Redis:', error.message);
@@ -105,25 +102,30 @@ async function clearTestRedis() {
  */
 async function waitForServices() {
   console.log('⏳ Aguardando serviços estarem prontos...');
-  
+
   const maxRetries = 30;
   const retryDelay = 2000; // 2 segundos
-  
+
   // Aguardar dashboard (frontend)
   await waitForService('http://localhost:5173', 'Dashboard', maxRetries, retryDelay);
-  
+
   // Aguardar API (backend)
   await waitForService('http://localhost:3000/health', 'API Backend', maxRetries, retryDelay);
-  
+
   console.log('✅ Todos os serviços estão prontos');
 }
 
 /**
  * Aguardar um serviço específico estar pronto
  */
-async function waitForService(url: string, serviceName: string, maxRetries: number, retryDelay: number) {
+async function waitForService(
+  url: string,
+  serviceName: string,
+  maxRetries: number,
+  retryDelay: number
+) {
   const axios = require('axios');
-  
+
   for (let i = 0; i < maxRetries; i++) {
     try {
       await axios.get(url, { timeout: 5000 });
@@ -134,7 +136,7 @@ async function waitForService(url: string, serviceName: string, maxRetries: numb
       await new Promise(resolve => setTimeout(resolve, retryDelay));
     }
   }
-  
+
   throw new Error(`${serviceName} não ficou pronto após ${maxRetries} tentativas`);
 }
 
@@ -143,16 +145,16 @@ async function waitForService(url: string, serviceName: string, maxRetries: numb
  */
 async function seedTestData() {
   console.log('🌱 Criando dados de teste básicos...');
-  
+
   try {
     // Importar dinamicamente o PrismaClient
     const { PrismaClient } = require('@prisma/client');
     const prisma = new PrismaClient({
       datasources: {
         db: {
-          url: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL
-        }
-      }
+          url: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL,
+        },
+      },
     });
 
     // Criar usuário de teste
@@ -169,8 +171,8 @@ async function seedTestData() {
         coins: 500,
         pubgUsername: 'TestPUBGUser',
         createdAt: new Date(),
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     });
 
     // Criar guild de teste
@@ -184,8 +186,8 @@ async function seedTestData() {
         ownerId: 'test-owner-123',
         memberCount: 100,
         createdAt: new Date(),
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     });
 
     // Criar alguns tickets de teste
@@ -201,7 +203,7 @@ async function seedTestData() {
           subject: 'Teste de Suporte',
           description: 'Ticket de teste para E2E',
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
         {
           id: 'test-ticket-2',
@@ -213,10 +215,10 @@ async function seedTestData() {
           subject: 'Bug Report',
           description: 'Relatório de bug para teste',
           createdAt: new Date(Date.now() - 86400000), // 1 dia atrás
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       ],
-      skipDuplicates: true
+      skipDuplicates: true,
     });
 
     await prisma.$disconnect();
@@ -232,24 +234,24 @@ async function seedTestData() {
  */
 async function setupAuthentication() {
   console.log('🔐 Configurando autenticação para testes...');
-  
+
   // Criar um token de teste ou configurar autenticação mock
   // Isso pode ser usado para testes que requerem autenticação
-  
+
   const browser = await chromium.launch();
   const context = await browser.newContext();
   const page = await context.newPage();
-  
+
   try {
     // Fazer login ou configurar estado de autenticação
     // await page.goto('/login');
     // await page.fill('[data-testid="username"]', 'test-user');
     // await page.fill('[data-testid="password"]', 'test-password');
     // await page.click('[data-testid="login-button"]');
-    
+
     // Salvar estado de autenticação
     // await context.storageState({ path: 'tests/e2e/auth-state.json' });
-    
+
     console.log('✅ Autenticação configurada');
   } catch (error) {
     console.error('❌ Erro ao configurar autenticação:', error);

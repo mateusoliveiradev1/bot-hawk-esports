@@ -9,32 +9,32 @@ const mockTicketMethods = {
   findMany: jest.fn() as jest.MockedFunction<any>,
   create: jest.fn() as jest.MockedFunction<any>,
   update: jest.fn() as jest.MockedFunction<any>,
-  delete: jest.fn() as jest.MockedFunction<any>
+  delete: jest.fn() as jest.MockedFunction<any>,
 };
 
 const mockUserMethods = {
   findUnique: jest.fn() as jest.MockedFunction<any>,
   create: jest.fn() as jest.MockedFunction<any>,
-  update: jest.fn() as jest.MockedFunction<any>
+  update: jest.fn() as jest.MockedFunction<any>,
 };
 
 const mockDatabaseService = {
   client: {
     ticket: mockTicketMethods,
-    user: mockUserMethods
-  }
+    user: mockUserMethods,
+  },
 } as unknown as DatabaseService;
 
 const mockClient = {
   user: { id: '123456789' },
   guilds: {
     cache: new Map(),
-    fetch: jest.fn()
+    fetch: jest.fn(),
   },
   channels: {
     cache: new Map(),
-    fetch: jest.fn()
-  }
+    fetch: jest.fn(),
+  },
 } as unknown as ExtendedClient;
 
 describe('TicketService', () => {
@@ -66,25 +66,32 @@ describe('TicketService', () => {
         status: 'open',
         createdAt: new Date(),
         updatedAt: new Date(),
-        metadata: '{}'
+        metadata: '{}',
       };
 
       // Mock guild and user fetch
-       const mockGuild = {
-         id: 'guild123',
-         members: {
-           fetch: jest.fn().mockResolvedValue(new Map([[
-          'user123',
-          { user: { id: 'user123', username: 'testuser' } }
-        ]]) as any) as any
-         }
-       };
-       
-       (mockClient.guilds.cache as any).set('guild123', mockGuild);
+      const mockGuild = {
+        id: 'guild123',
+        members: {
+          fetch: jest
+            .fn()
+            .mockResolvedValue(
+              new Map([['user123', { user: { id: 'user123', username: 'testuser' } }]]) as any
+            ) as any,
+        },
+      };
+
+      (mockClient.guilds.cache as any).set('guild123', mockGuild);
       mockTicketMethods.create.mockResolvedValue(mockTicketData);
       mockTicketMethods.update.mockResolvedValue({ ...mockTicketData, channelId: 'channel123' });
 
-      const result = await ticketService.createTicket('guild123', 'user123', 'Test Ticket', 'Test Description', 'medium');
+      const result = await ticketService.createTicket(
+        'guild123',
+        'user123',
+        'Test Ticket',
+        'Test Description',
+        'medium'
+      );
 
       expect(result.success).toBe(true);
       expect(result.message).toBe('Ticket criado com sucesso!');
@@ -92,7 +99,13 @@ describe('TicketService', () => {
     });
 
     it('deve lançar erro quando dados inválidos são fornecidos', async () => {
-      const result = await ticketService.createTicket('guild123', '', 'Título', 'Descrição', 'medium');
+      const result = await ticketService.createTicket(
+        'guild123',
+        '',
+        'Título',
+        'Descrição',
+        'medium'
+      );
       expect(result.success).toBe(false);
       expect(result.message).toBe('ID do usuário inválido.');
     });
@@ -107,7 +120,7 @@ describe('TicketService', () => {
         category: 'support',
         status: 'open',
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       mockTicketMethods.findUnique.mockResolvedValue(mockTicket);
@@ -116,7 +129,7 @@ describe('TicketService', () => {
 
       expect(result).toEqual(mockTicket);
       expect(mockTicketMethods.findUnique).toHaveBeenCalledWith({
-        where: { id: '1' }
+        where: { id: '1' },
       });
     });
 
@@ -139,7 +152,7 @@ describe('TicketService', () => {
         status: 'closed',
         createdAt: new Date(),
         updatedAt: new Date(),
-        closedAt: new Date()
+        closedAt: new Date(),
       };
 
       mockTicketMethods.update.mockResolvedValue(mockTicket);
@@ -152,8 +165,8 @@ describe('TicketService', () => {
         data: {
           status: 'closed',
           closedBy: 'user456',
-          closedAt: expect.any(Date)
-        }
+          closedAt: expect.any(Date),
+        },
       });
     });
   });
@@ -168,7 +181,7 @@ describe('TicketService', () => {
           category: 'support',
           status: 'open',
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
         {
           id: '2',
@@ -177,8 +190,8 @@ describe('TicketService', () => {
           category: 'bug',
           status: 'closed',
           createdAt: new Date(),
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       ];
 
       mockTicketMethods.findMany.mockResolvedValue(mockTickets);
@@ -188,7 +201,7 @@ describe('TicketService', () => {
       expect(result).toEqual(mockTickets);
       expect(mockTicketMethods.findMany).toHaveBeenCalledWith({
         where: { userId: 'user123' },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
       });
     });
   });
@@ -203,8 +216,8 @@ describe('TicketService', () => {
           category: 'support',
           status: 'open',
           createdAt: new Date(),
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       ];
 
       mockTicketMethods.findMany.mockResolvedValue(mockActiveTickets);
@@ -215,10 +228,10 @@ describe('TicketService', () => {
       expect(mockTicketMethods.findMany).toHaveBeenCalledWith({
         where: {
           status: {
-            in: ['open', 'in_progress']
-          }
+            in: ['open', 'in_progress'],
+          },
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
       });
     });
   });

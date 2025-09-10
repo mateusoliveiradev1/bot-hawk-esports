@@ -84,7 +84,7 @@ class ApiService {
           guildId: 'mock-guild-id',
         }),
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
@@ -97,14 +97,18 @@ class ApiService {
     }
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}, retryCount = 0): Promise<T> {
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {},
+    retryCount = 0
+  ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
-    
+
     // Ensure we have a token
     if (!this.token) {
       await this.initializeAuth();
     }
-    
+
     const response = await fetch(url, {
       ...options,
       headers: {
@@ -123,12 +127,12 @@ class ApiService {
           return this.request<T>(endpoint, options, retryCount + 1);
         }
       }
-      
+
       throw new Error(`API request failed: ${response.status} ${response.statusText}`);
     }
 
     const data: ApiResponse<T> = await response.json();
-    
+
     if (!data.success) {
       throw new Error(data.error || 'API request failed');
     }
@@ -241,7 +245,11 @@ class ApiService {
     return this.request(`/gamification/xp/overview/${guildId}`);
   }
 
-  async getRankings(guildId: string, type: 'overall' | 'weekly' | 'monthly' = 'overall', limit: number = 10): Promise<any[]> {
+  async getRankings(
+    guildId: string,
+    type: 'overall' | 'weekly' | 'monthly' = 'overall',
+    limit: number = 10
+  ): Promise<any[]> {
     return this.request(`/gamification/rankings/${guildId}?type=${type}&limit=${limit}`);
   }
 

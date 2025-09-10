@@ -189,7 +189,7 @@ export class GameService {
       points: 20,
       timeLimit: 45,
     },
-    
+
     // Armas - Rifles de Assalto
     {
       id: 'pubg_6',
@@ -241,7 +241,7 @@ export class GameService {
       points: 15,
       timeLimit: 30,
     },
-    
+
     // Mecânicas do Jogo
     {
       id: 'pubg_11',
@@ -293,7 +293,7 @@ export class GameService {
       points: 15,
       timeLimit: 30,
     },
-    
+
     // História e Desenvolvimento
     {
       id: 'pubg_16',
@@ -345,12 +345,17 @@ export class GameService {
       points: 15,
       timeLimit: 30,
     },
-    
+
     // Estratégias e Táticas
     {
       id: 'pubg_21',
       question: 'Qual é a melhor estratégia para o início da partida?',
-      options: ['Ir para locais populosos', 'Evitar outros jogadores', 'Seguir o avião', 'Pular no final da rota'],
+      options: [
+        'Ir para locais populosos',
+        'Evitar outros jogadores',
+        'Seguir o avião',
+        'Pular no final da rota',
+      ],
       correctAnswer: 1,
       difficulty: 'medium',
       category: 'pubg',
@@ -397,12 +402,17 @@ export class GameService {
       points: 20,
       timeLimit: 45,
     },
-    
+
     // Eventos e Competições
     {
       id: 'pubg_26',
       question: 'Qual foi o primeiro campeonato mundial oficial do PUBG?',
-      options: ['PGI 2018', 'PUBG Global Championship', 'PUBG Nations Cup', 'PUBG Continental Series'],
+      options: [
+        'PGI 2018',
+        'PUBG Global Championship',
+        'PUBG Nations Cup',
+        'PUBG Continental Series',
+      ],
       correctAnswer: 0,
       difficulty: 'hard',
       category: 'pubg',
@@ -449,7 +459,7 @@ export class GameService {
       points: 15,
       timeLimit: 30,
     },
-    
+
     // Itens e Equipamentos
     {
       id: 'pubg_31',
@@ -501,7 +511,7 @@ export class GameService {
       points: 15,
       timeLimit: 30,
     },
-    
+
     // Questões Avançadas
     {
       id: 'pubg_36',
@@ -696,7 +706,7 @@ export class GameService {
         await this.createScheduledChallenges();
         await this.expireOldChallenges();
       },
-      60 * 60 * 1000,
+      60 * 60 * 1000
     );
   }
 
@@ -709,7 +719,7 @@ export class GameService {
 
     // Daily challenges
     const dailyExists = Array.from(this.activeChallenges.values()).some(
-      c => c.type === 'daily' && c.startDate.toDateString() === today,
+      c => c.type === 'daily' && c.startDate.toDateString() === today
     );
 
     if (!dailyExists) {
@@ -720,7 +730,7 @@ export class GameService {
     if (now.getDay() === 1) {
       // Monday
       const weeklyExists = Array.from(this.activeChallenges.values()).some(
-        c => c.type === 'weekly' && this.isSameWeek(c.startDate, now),
+        c => c.type === 'weekly' && this.isSameWeek(c.startDate, now)
       );
 
       if (!weeklyExists) {
@@ -731,7 +741,7 @@ export class GameService {
     // Monthly challenges (first day of month)
     if (now.getDate() === 1) {
       const monthlyExists = Array.from(this.activeChallenges.values()).some(
-        c => c.type === 'monthly' && c.startDate.getMonth() === now.getMonth(),
+        c => c.type === 'monthly' && c.startDate.getMonth() === now.getMonth()
       );
 
       if (!monthlyExists) {
@@ -857,7 +867,7 @@ export class GameService {
    */
   public async createChallenge(
     challengeData: Omit<Challenge, 'id' | 'isActive'>,
-    guildId?: string,
+    guildId?: string
   ): Promise<Challenge> {
     try {
       // Input validation
@@ -1012,7 +1022,7 @@ export class GameService {
     guildId: string,
     channelId: string,
     hostId: string,
-    settings: QuizSettings,
+    settings: QuizSettings
   ): Promise<QuizSession> {
     try {
       // Input validation
@@ -1068,7 +1078,7 @@ export class GameService {
       // Check for existing active quiz in the same channel
       const existingQuiz = Array.from(this.quizSessions.values()).find(
         session =>
-          session.guildId === guildId && session.channelId === channelId && session.isActive,
+          session.guildId === guildId && session.channelId === channelId && session.isActive
       );
 
       if (existingQuiz) {
@@ -1195,7 +1205,7 @@ export class GameService {
 
         if (availableQuestions.length === 0) {
           this.logger.warn(
-            `No questions found for category: ${settings.category}. Using all categories.`,
+            `No questions found for category: ${settings.category}. Using all categories.`
           );
           availableQuestions = [...validQuestions];
         }
@@ -1204,12 +1214,12 @@ export class GameService {
       // Filter by difficulty
       if (settings.difficulty !== 'mixed') {
         const filteredByDifficulty = availableQuestions.filter(
-          q => q.difficulty === settings.difficulty,
+          q => q.difficulty === settings.difficulty
         );
 
         if (filteredByDifficulty.length === 0) {
           this.logger.warn(
-            `No questions found for difficulty: ${settings.difficulty}. Using all difficulties.`,
+            `No questions found for difficulty: ${settings.difficulty}. Using all difficulties.`
           );
         } else {
           availableQuestions = filteredByDifficulty;
@@ -1232,7 +1242,7 @@ export class GameService {
 
       if (selectedQuestions.length < settings.questionCount) {
         this.logger.warn(
-          `Only ${selectedQuestions.length} questions available, but ${settings.questionCount} were requested`,
+          `Only ${selectedQuestions.length} questions available, but ${settings.questionCount} were requested`
         );
       }
 
@@ -1336,7 +1346,7 @@ export class GameService {
   public async submitQuizAnswer(
     sessionId: string,
     userId: string,
-    answerIndex: number,
+    answerIndex: number
   ): Promise<{ correct: boolean; points: number; streak: number } | null> {
     try {
       // Input validation
@@ -1377,7 +1387,7 @@ export class GameService {
       // Validate answer index against question options
       if (answerIndex >= currentQuestion.options.length) {
         throw new Error(
-          `Invalid answer index: ${answerIndex}. Question has ${currentQuestion.options.length} options`,
+          `Invalid answer index: ${answerIndex}. Question has ${currentQuestion.options.length} options`
         );
       }
 
@@ -1386,7 +1396,7 @@ export class GameService {
         const answeredKey = `${cleanUserId}_${session.currentQuestionIndex}`;
         if ((session as any).answeredQuestions?.has(answeredKey)) {
           this.logger.warn(
-            `User ${cleanUserId} already answered question ${session.currentQuestionIndex}`,
+            `User ${cleanUserId} already answered question ${session.currentQuestionIndex}`
           );
           return null;
         }
@@ -1467,49 +1477,65 @@ export class GameService {
       try {
         // Calculate XP based on performance
         const xpService = (this.client as any).xpService;
-        
+
         // Base XP for participation
         let xpToAward = 20; // Base participation XP
         let coinsToAward = 10; // Base coins
-        
+
         if (xpService) {
           // Bonus XP based on score and accuracy
-          const accuracyBonus = Math.floor((participant.correctAnswers / Math.max(participant.totalAnswers, 1)) * 30);
+          const accuracyBonus = Math.floor(
+            (participant.correctAnswers / Math.max(participant.totalAnswers, 1)) * 30
+          );
           const scoreBonus = Math.floor(participant.score / 10); // 1 XP per 10 points
-          
+
           // Ranking bonus (top performers get more XP)
           const participantRank = results.findIndex(p => p.userId === participant.userId) + 1;
           let rankingBonus = 0;
           if (results.length > 1) {
-            if (participantRank === 1) {rankingBonus = 50;} // Winner bonus
-            else if (participantRank <= Math.ceil(results.length * 0.3)) {rankingBonus = 25;} // Top 30%
-            else if (participantRank <= Math.ceil(results.length * 0.5)) {rankingBonus = 10;} // Top 50%
+            if (participantRank === 1) {
+              rankingBonus = 50;
+            } // Winner bonus
+            else if (participantRank <= Math.ceil(results.length * 0.3)) {
+              rankingBonus = 25;
+            } // Top 30%
+            else if (participantRank <= Math.ceil(results.length * 0.5)) {
+              rankingBonus = 10;
+            } // Top 50%
           }
-          
+
           xpToAward += accuracyBonus + scoreBonus + rankingBonus;
           coinsToAward += Math.floor(xpToAward / 4); // Coins based on XP
-          
+
           // Award XP using QUIZ activity type
           await xpService.addXP(participant.userId, 'QUIZ', 0, 1);
-          
-          this.logger.info(`Awarded ${xpToAward} XP to ${participant.userId} for quiz (accuracy: ${accuracyBonus}, score: ${scoreBonus}, rank: ${rankingBonus})`);
+
+          this.logger.info(
+            `Awarded ${xpToAward} XP to ${participant.userId} for quiz (accuracy: ${accuracyBonus}, score: ${scoreBonus}, rank: ${rankingBonus})`
+          );
         }
 
         // Award coins based on performance
         // Bonus coins based on score
         const scoreCoins = Math.floor(participant.score / 20); // 1 coin per 20 points
-        
+
         // Ranking bonus coins
         const participantRank = results.findIndex(p => p.userId === participant.userId) + 1;
         let rankingCoins = 0;
         if (results.length > 1) {
-          if (participantRank === 1) {rankingCoins = 25;} // Winner bonus
-          else if (participantRank <= Math.ceil(results.length * 0.3)) {rankingCoins = 15;} // Top 30%
-          else if (participantRank <= Math.ceil(results.length * 0.5)) {rankingCoins = 8;} // Top 50%
+          if (participantRank === 1) {
+            rankingCoins = 25;
+          } // Winner bonus
+          else if (participantRank <= Math.ceil(results.length * 0.3)) {
+            rankingCoins = 15;
+          } // Top 30%
+          else if (participantRank <= Math.ceil(results.length * 0.5)) {
+            rankingCoins = 8;
+          } // Top 50%
         }
-        
+
         coinsToAward += scoreCoins + rankingCoins;
-        
+
         // Update user coins in database
         try {
           await this.database.client.user.upsert({
@@ -1530,8 +1556,10 @@ export class GameService {
               pubgPlatform: 'steam',
             },
           });
-          
-          this.logger.info(`Awarded ${coinsToAward} coins to ${participant.userId} for quiz performance`);
+
+          this.logger.info(
+            `Awarded ${coinsToAward} coins to ${participant.userId} for quiz performance`
+          );
         } catch (coinError) {
           this.logger.error(`Failed to award coins to ${participant.userId}:`, coinError);
         }
@@ -1541,17 +1569,20 @@ export class GameService {
         if (badgeService) {
           try {
             // Perfect score badge
-            if (participant.correctAnswers === participant.totalAnswers && participant.totalAnswers > 0) {
+            if (
+              participant.correctAnswers === participant.totalAnswers &&
+              participant.totalAnswers > 0
+            ) {
               await badgeService.awardBadge(participant.userId, 'quiz_perfectionist', true);
               this.logger.info(`Awarded quiz_perfectionist badge to ${participant.userId}`);
             }
-            
+
             // Winner badge
             if (participantRank === 1 && results.length > 1) {
               await badgeService.awardBadge(participant.userId, 'quiz_champion', true);
               this.logger.info(`Awarded quiz_champion badge to ${participant.userId}`);
             }
-            
+
             // High score badge
             if (participant.score >= 100) {
               await badgeService.awardBadge(participant.userId, 'quiz_master', true);
@@ -1564,7 +1595,7 @@ export class GameService {
 
         // Update challenge progress
         await this.updateChallengeProgress(participant.userId, 'quiz_score', participant.score);
-        
+
         // Save results to database
         await this.database.client.gameResult.create({
           data: {
@@ -1586,7 +1617,10 @@ export class GameService {
           },
         });
       } catch (rewardError) {
-        this.logger.error(`Failed to award rewards to participant ${participant.userId}:`, rewardError);
+        this.logger.error(
+          `Failed to award rewards to participant ${participant.userId}:`,
+          rewardError
+        );
       }
     }
 
@@ -1599,22 +1633,30 @@ export class GameService {
       const scoreBonus = Math.floor(p.score / 10);
       let rankingBonus = 0;
       if (results.length > 1) {
-        if (participantRank === 1) {rankingBonus = 50;}
-        else if (participantRank <= Math.ceil(results.length * 0.3)) {rankingBonus = 25;}
-        else if (participantRank <= Math.ceil(results.length * 0.5)) {rankingBonus = 10;}
+        if (participantRank === 1) {
+          rankingBonus = 50;
+        } else if (participantRank <= Math.ceil(results.length * 0.3)) {
+          rankingBonus = 25;
+        } else if (participantRank <= Math.ceil(results.length * 0.5)) {
+          rankingBonus = 10;
+        }
       }
       return sum + xp + accuracyBonus + scoreBonus + rankingBonus;
     }, 0);
-    
+
     const totalCoins = results.reduce((sum, p) => {
       const participantRank = results.findIndex(r => r.userId === p.userId) + 1;
       const coins = 10; // Base coins
       const scoreCoins = Math.floor(p.score / 20);
       let rankingCoins = 0;
       if (results.length > 1) {
-        if (participantRank === 1) {rankingCoins = 25;}
-        else if (participantRank <= Math.ceil(results.length * 0.3)) {rankingCoins = 15;}
-        else if (participantRank <= Math.ceil(results.length * 0.5)) {rankingCoins = 8;}
+        if (participantRank === 1) {
+          rankingCoins = 25;
+        } else if (participantRank <= Math.ceil(results.length * 0.3)) {
+          rankingCoins = 15;
+        } else if (participantRank <= Math.ceil(results.length * 0.5)) {
+          rankingCoins = 8;
+        }
       }
       return sum + coins + scoreCoins + rankingCoins;
     }, 0);
@@ -1622,20 +1664,15 @@ export class GameService {
     // Use enhanced logging service
     const loggingService = this.client?.services?.logging;
     if (loggingService) {
-      await loggingService.logQuizEvent(
-        session.guildId,
-        'end',
-        session.hostId,
-        {
-          quizId: sessionId,
-          score: results[0]?.score || 0,
-          totalQuestions: session.questions.length,
-          participants: results.length,
-          duration,
-          xpAwarded: totalXP,
-          coinsAwarded: totalCoins,
-        },
-      );
+      await loggingService.logQuizEvent(session.guildId, 'end', session.hostId, {
+        quizId: sessionId,
+        score: results[0]?.score || 0,
+        totalQuestions: session.questions.length,
+        participants: results.length,
+        duration,
+        xpAwarded: totalXP,
+        coinsAwarded: totalCoins,
+      });
     }
 
     // Update ranking statistics for each participant
@@ -1647,7 +1684,7 @@ export class GameService {
           participant.userId,
           participant.score,
           participant.correctAnswers,
-          session.questions.length,
+          session.questions.length
         );
       }
     }
@@ -1655,7 +1692,9 @@ export class GameService {
     this.quizSessions.delete(sessionId);
 
     this.logger.game('QUIZ_ENDED', sessionId, results[0]?.userId || 'none', session.guildId);
-    this.logger.info(`Quiz ended with ${results.length} participants. Top score: ${results[0]?.score || 0}, Average: ${Math.round(results.reduce((sum, p) => sum + p.score, 0) / results.length)}, Duration: ${duration}s`);
+    this.logger.info(
+      `Quiz ended with ${results.length} participants. Top score: ${results[0]?.score || 0}, Average: ${Math.round(results.reduce((sum, p) => sum + p.score, 0) / results.length)}, Duration: ${duration}s`
+    );
 
     return results;
   }
@@ -1667,7 +1706,7 @@ export class GameService {
     gameId: string,
     guildId: string,
     channelId: string,
-    hostId: string,
+    hostId: string
   ): Promise<GameSession | null> {
     const game = this.miniGames.find(g => g.id === gameId);
     if (!game) {
@@ -1846,34 +1885,36 @@ export class GameService {
         if (xpService && miniGame.rewards.xp > 0) {
           // Base XP for participation
           let xpToAward = miniGame.rewards.xp;
-          
+
           // Bonus XP for good performance (top 50% of participants)
           const participantRank = results.findIndex(p => p.userId === participant.userId) + 1;
           const isTopPerformer = participantRank <= Math.ceil(results.length / 2);
-          
+
           if (isTopPerformer && results.length > 1) {
             xpToAward = Math.floor(xpToAward * 1.25); // 25% bonus for top performers
           }
-          
+
           // Award XP using the appropriate activity type
           await xpService.addXP(participant.userId, 'ACHIEVEMENT', 0, 1);
-          
-          this.logger.info(`Awarded ${xpToAward} XP to ${participant.userId} for minigame ${miniGame.name}`);
+
+          this.logger.info(
+            `Awarded ${xpToAward} XP to ${participant.userId} for minigame ${miniGame.name}`
+          );
         }
 
         // Award coins
         if (miniGame.rewards.coins > 0) {
           try {
             let coinsToAward = miniGame.rewards.coins;
-            
+
             // Bonus coins for top performers
             const participantRank = results.findIndex(p => p.userId === participant.userId) + 1;
             const isTopPerformer = participantRank <= Math.ceil(results.length / 2);
-            
+
             if (isTopPerformer && results.length > 1) {
               coinsToAward = Math.floor(coinsToAward * 1.25); // 25% bonus for top performers
             }
-            
+
             // Update user coins in database
             await this.database.client.user.upsert({
               where: { id: participant.userId },
@@ -1893,8 +1934,10 @@ export class GameService {
                 pubgPlatform: 'steam',
               },
             });
-            
-            this.logger.info(`Awarded ${coinsToAward} coins to ${participant.userId} for minigame ${miniGame.name}`);
+
+            this.logger.info(
+              `Awarded ${coinsToAward} coins to ${participant.userId} for minigame ${miniGame.name}`
+            );
           } catch (coinError) {
             this.logger.error(`Failed to award coins to ${participant.userId}:`, coinError);
           }
@@ -1907,9 +1950,14 @@ export class GameService {
             for (const badgeId of miniGame.rewards.badges) {
               try {
                 await badgeService.awardBadge(participant.userId, badgeId, true);
-                this.logger.info(`Awarded badge ${badgeId} to ${participant.userId} for minigame ${miniGame.name}`);
+                this.logger.info(
+                  `Awarded badge ${badgeId} to ${participant.userId} for minigame ${miniGame.name}`
+                );
               } catch (badgeError) {
-                this.logger.error(`Failed to award badge ${badgeId} to ${participant.userId}:`, badgeError);
+                this.logger.error(
+                  `Failed to award badge ${badgeId} to ${participant.userId}:`,
+                  badgeError
+                );
               }
             }
           }
@@ -1932,7 +1980,10 @@ export class GameService {
           },
         });
       } catch (rewardError) {
-        this.logger.error(`Failed to award rewards to participant ${participant.userId}:`, rewardError);
+        this.logger.error(
+          `Failed to award rewards to participant ${participant.userId}:`,
+          rewardError
+        );
       }
     }
 
@@ -1948,44 +1999,39 @@ export class GameService {
     }, 0);
 
     // Log detailed minigame event
-     const loggingService = this.client?.services?.logging;
-     if (loggingService) {
-       const miniGame = this.miniGames.find(g => g.id === session.gameId);
-       const duration = Math.floor((new Date().getTime() - session.startedAt.getTime()) / 1000);
-       
-       await loggingService.logMinigameEvent(
-          session.guildId,
-          'end',
-          session.hostId,
-          {
-            gameType: miniGame?.type || 'unknown',
-            gameId: session.gameId,
-            score: results[0]?.score || 0,
-            duration,
-            participants: results.length,
-            winner: results[0]?.userId,
-            xpAwarded: totalXpAwarded,
-            coinsAwarded: totalCoinsAwarded,
-            difficulty: miniGame?.difficulty || 'unknown',
-          },
-        );
-     }
+    const loggingService = this.client?.services?.logging;
+    if (loggingService) {
+      const miniGame = this.miniGames.find(g => g.id === session.gameId);
+      const duration = Math.floor((new Date().getTime() - session.startedAt.getTime()) / 1000);
 
-     // Update ranking statistics for each participant
-     const rankingService = this.client?.services?.ranking;
-     if (rankingService) {
-       const miniGame = this.miniGames.find(g => g.id === session.gameId);
-       for (const participant of results) {
-         const won = participant.score > 0; // Consider it a win if they scored points
-         await rankingService.updateMiniGameStats(
-           session.guildId,
-           participant.userId,
-           miniGame?.type || 'unknown',
-           participant.score,
-           won,
-         );
-       }
-     }
+      await loggingService.logMinigameEvent(session.guildId, 'end', session.hostId, {
+        gameType: miniGame?.type || 'unknown',
+        gameId: session.gameId,
+        score: results[0]?.score || 0,
+        duration,
+        participants: results.length,
+        winner: results[0]?.userId,
+        xpAwarded: totalXpAwarded,
+        coinsAwarded: totalCoinsAwarded,
+        difficulty: miniGame?.difficulty || 'unknown',
+      });
+    }
+
+    // Update ranking statistics for each participant
+    const rankingService = this.client?.services?.ranking;
+    if (rankingService) {
+      const miniGame = this.miniGames.find(g => g.id === session.gameId);
+      for (const participant of results) {
+        const won = participant.score > 0; // Consider it a win if they scored points
+        await rankingService.updateMiniGameStats(
+          session.guildId,
+          participant.userId,
+          miniGame?.type || 'unknown',
+          participant.score,
+          won
+        );
+      }
+    }
 
     this.gameSessions.delete(sessionId);
 
@@ -2019,7 +2065,7 @@ export class GameService {
   public async updateChallengeProgress(
     userId: string,
     requirementType: string,
-    increment: number,
+    increment: number
   ): Promise<void> {
     if (!this.challengeProgress.has(userId)) {
       this.challengeProgress.set(userId, new Map());

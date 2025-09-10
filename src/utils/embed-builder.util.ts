@@ -73,7 +73,7 @@ export class EmbedUtils {
   static createCustomEmbed(
     title: string,
     color: ColorResolvable,
-    description?: string,
+    description?: string
   ): EmbedBuilder {
     const embed = new EmbedBuilder().setColor(color).setTitle(title);
 
@@ -149,11 +149,7 @@ export class EmbedUtils {
   /**
    * Category-specific embed creators
    */
-  static createCategoryEmbed(
-    category: string,
-    title: string,
-    description?: string,
-  ): EmbedBuilder {
+  static createCategoryEmbed(category: string, title: string, description?: string): EmbedBuilder {
     const embed = new EmbedBuilder()
       .setTitle(title)
       .setColor(ColorUtils.getCategoryColor(category))
@@ -201,11 +197,7 @@ export class EmbedUtils {
   /**
    * Rarity-based embed creator
    */
-  static createRarityEmbed(
-    rarity: string,
-    title: string,
-    description?: string,
-  ): EmbedBuilder {
+  static createRarityEmbed(rarity: string, title: string, description?: string): EmbedBuilder {
     const embed = new EmbedBuilder()
       .setTitle(title)
       .setColor(ColorUtils.getRarityColor(rarity))
@@ -221,11 +213,7 @@ export class EmbedUtils {
   /**
    * User profile embed with avatar and standard formatting
    */
-  static createUserProfileEmbed(
-    user: User,
-    title?: string,
-    description?: string,
-  ): EmbedBuilder {
+  static createUserProfileEmbed(user: User, title?: string, description?: string): EmbedBuilder {
     const embed = new EmbedBuilder()
       .setTitle(title || `👤 Perfil de ${user.displayName}`)
       .setThumbnail(user.displayAvatarURL({ size: 256 }))
@@ -255,7 +243,7 @@ export class EmbedUtils {
    */
   static createMaintenanceEmbed(
     title: string = 'Manutenção em Andamento',
-    description?: string,
+    description?: string
   ): EmbedBuilder {
     return new EmbedBuilder()
       .setTitle(`🔧 ${title}`)
@@ -267,10 +255,7 @@ export class EmbedUtils {
   /**
    * Premium feature embed
    */
-  static createPremiumEmbed(
-    title: string,
-    description?: string,
-  ): EmbedBuilder {
+  static createPremiumEmbed(title: string, description?: string): EmbedBuilder {
     return new EmbedBuilder()
       .setTitle(`👑 ${title}`)
       .setDescription(description || null)
@@ -281,10 +266,7 @@ export class EmbedUtils {
   /**
    * Event embed
    */
-  static createEventEmbed(
-    title: string,
-    description?: string,
-  ): EmbedBuilder {
+  static createEventEmbed(title: string, description?: string): EmbedBuilder {
     return new EmbedBuilder()
       .setTitle(`🎉 ${title}`)
       .setDescription(description || null)
@@ -300,7 +282,7 @@ export class EmbedUtils {
     description: string,
     currentPage: number,
     totalPages: number,
-    color?: ColorResolvable,
+    color?: ColorResolvable
   ): EmbedBuilder {
     return new EmbedBuilder()
       .setTitle(title)
@@ -313,11 +295,7 @@ export class EmbedUtils {
   /**
    * Status embed with dynamic color based on status
    */
-  static createStatusEmbed(
-    status: string,
-    title: string,
-    description?: string,
-  ): EmbedBuilder {
+  static createStatusEmbed(status: string, title: string, description?: string): EmbedBuilder {
     const embed = new EmbedBuilder()
       .setTitle(title)
       .setColor(ColorUtils.getStatusColor(status))
@@ -336,7 +314,7 @@ export class EmbedUtils {
   static createQuickEmbed(
     title: string,
     description: string,
-    color: ColorResolvable = THEME_COLORS.INFO,
+    color: ColorResolvable = THEME_COLORS.INFO
   ): EmbedBuilder {
     return new EmbedBuilder()
       .setTitle(title)
@@ -348,11 +326,7 @@ export class EmbedUtils {
   /**
    * Utility method to add standard footer
    */
-  static addStandardFooter(
-    embed: EmbedBuilder,
-    text?: string,
-    iconURL?: string,
-  ): EmbedBuilder {
+  static addStandardFooter(embed: EmbedBuilder, text?: string, iconURL?: string): EmbedBuilder {
     const footerText = text || 'Hawk Esports Bot';
     return embed.setFooter({ text: footerText, iconURL });
   }
@@ -360,11 +334,7 @@ export class EmbedUtils {
   /**
    * Utility method to add author field
    */
-  static addAuthor(
-    embed: EmbedBuilder,
-    user: User,
-    prefix?: string,
-  ): EmbedBuilder {
+  static addAuthor(embed: EmbedBuilder, user: User, prefix?: string): EmbedBuilder {
     const name = prefix ? `${prefix} ${user.displayName}` : user.displayName;
     return embed.setAuthor({
       name,

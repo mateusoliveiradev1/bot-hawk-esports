@@ -11,25 +11,21 @@ export class CacheService {
   private defaultTTL: number = 3600; // 1 hour in seconds
   private memoryCache: Map<string, { value: any; expires: number }> = new Map();
   private useMemoryFallback: boolean = false;
+  private reconnectAttempts: number = 0;
+  private maxReconnectAttempts: number = 10;
+  private healthCheckInterval?: NodeJS.Timeout;
+  private connectionRetryTimeout?: NodeJS.Timeout;
+  private lastHealthCheck: number = 0;
+  private cacheHits: number = 0;
+  private cacheMisses: number = 0;
 
   constructor() {
     this.logger = new Logger();
 
     // Only initialize Redis client if REDIS_URL is provided
     if (process.env.REDIS_URL) {
-      this.client = createClient({
-        url: process.env.REDIS_URL,
-        socket: {
-          reconnectStrategy: retries => {
-            if (retries > 10) {
-              this.logger.error('Redis reconnection failed after 10 attempts');
-              return new Error('Redis reconnection failed');
-            }
-            return Math.min(retries * 50, 1000);
-          },
-        },
-      });
-      this.setupEventListeners();
+      this.initializeRedisClient();
+      this.startHealthCheck();
     } else {
       this.logger.info('Redis URL not provided, using memory fallback only', {
         category: LogCategory.CACHE,
@@ -37,6 +33,103 @@ export class CacheService {
       });
       this.useMemoryFallback = true;
       this.isConnected = false;
+    }
+  }
+
+  /**
+   * Initialize Redis client with improved configuration
+   */
+  private initializeRedisClient(): void {
+    this.client = createClient({
+      url: process.env.REDIS_URL,
+      socket: {
+        reconnectStrategy: retries => {
+          this.reconnectAttempts = retries;
+          if (retries > this.maxReconnectAttempts) {
+            this.logger.error('Redis reconnection failed after maximum attempts', {
+              category: LogCategory.CACHE,
+              metadata: { attempts: retries, maxAttempts: this.maxReconnectAttempts }
+            });
+            this.useMemoryFallback = true;
+            return new Error('Redis reconnection failed');
+          }
+          const delay = Math.min(retries * 100, 3000); // Max 3 seconds
+          this.logger.warn(`Redis reconnection attempt ${retries}/${this.maxReconnectAttempts} in ${delay}ms`, {
+            category: LogCategory.CACHE,
+            metadata: { attempt: retries, delay }
+          });
+          return delay;
+        },
+        connectTimeout: 10000 // 10 seconds
+      }
+    });
+    this.setupEventListeners();
+  }
+
+  /**
+   * Start health check monitoring
+   */
+  private startHealthCheck(): void {
+    // Check Redis health every 30 seconds
+    this.healthCheckInterval = setInterval(async () => {
+      await this.performHealthCheck();
+    }, 30000);
+  }
+
+  /**
+   * Perform Redis health check
+   */
+  private async performHealthCheck(): Promise<void> {
+    if (!this.client) return;
+
+    try {
+      const start = Date.now();
+      await this.client.ping();
+      const latency = Date.now() - start;
+      
+      this.lastHealthCheck = Date.now();
+      
+      if (!this.isConnected) {
+        this.logger.info('Redis health check passed - connection restored', {
+          category: LogCategory.CACHE,
+          metadata: { latency, status: 'healthy' }
+        });
+        this.isConnected = true;
+        this.useMemoryFallback = false;
+        this.reconnectAttempts = 0;
+      }
+      
+      // Log performance metrics
+      if (latency > 1000) {
+        this.logger.warn('Redis high latency detected', {
+          category: LogCategory.CACHE,
+          metadata: { latency, threshold: 1000 }
+        });
+      }
+    } catch (error) {
+      if (this.isConnected) {
+        this.logger.error('Redis health check failed', {
+          category: LogCategory.CACHE,
+          error: error as Error,
+          metadata: { status: 'unhealthy' }
+        });
+        this.isConnected = false;
+        this.useMemoryFallback = true;
+      }
+    }
+  }
+
+  /**
+   * Stop health check monitoring
+   */
+  private stopHealthCheck(): void {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = undefined;
+    }
+    if (this.connectionRetryTimeout) {
+      clearTimeout(this.connectionRetryTimeout);
+      this.connectionRetryTimeout = undefined;
     }
   }
 
@@ -124,6 +217,9 @@ export class CacheService {
    * Disconnect from Redis
    */
   public async disconnect(): Promise<void> {
+    // Stop health monitoring
+    this.stopHealthCheck();
+    
     if (!this.client) {
       return;
     }
@@ -133,7 +229,15 @@ export class CacheService {
       this.isConnected = false;
       this.logger.info('Disconnected from Redis successfully', {
         category: LogCategory.CACHE,
-        metadata: { connection: 'redis', status: 'disconnected' },
+        metadata: { 
+          connection: 'redis', 
+          status: 'disconnected',
+          finalStats: {
+            hits: this.cacheHits,
+            misses: this.cacheMisses,
+            hitRate: this.getHitRate()
+          }
+        },
       });
     } catch (error) {
       this.logger.error('Failed to disconnect from Redis', {
@@ -143,6 +247,38 @@ export class CacheService {
       });
       throw error;
     }
+  }
+
+  /**
+   * Get current cache hit rate
+   */
+  public getHitRate(): string {
+    const total = this.cacheHits + this.cacheMisses;
+    if (total === 0) return '0%';
+    return `${((this.cacheHits / total) * 100).toFixed(2)}%`;
+  }
+
+  /**
+   * Get cache performance metrics
+   */
+  public getPerformanceMetrics(): {
+    hits: number;
+    misses: number;
+    hitRate: string;
+    isConnected: boolean;
+    useMemoryFallback: boolean;
+    lastHealthCheck: number;
+    reconnectAttempts: number;
+  } {
+    return {
+      hits: this.cacheHits,
+      misses: this.cacheMisses,
+      hitRate: this.getHitRate(),
+      isConnected: this.isConnected,
+      useMemoryFallback: this.useMemoryFallback,
+      lastHealthCheck: this.lastHealthCheck,
+      reconnectAttempts: this.reconnectAttempts
+    };
   }
 
   /**
@@ -189,13 +325,20 @@ export class CacheService {
   public async get<T>(key: string): Promise<T | null> {
     if (!this.client || !this.isConnected) {
       // Use memory fallback silently
-      return this.getMemoryCache<T>(key);
+      const result = this.getMemoryCache<T>(key);
+      if (result !== null) {
+        this.cacheHits++;
+      } else {
+        this.cacheMisses++;
+      }
+      return result;
     }
 
     try {
       const value = await this.client.get(key);
 
       if (value === null) {
+        this.cacheMisses++;
         this.logger.debug('Cache miss', {
           category: LogCategory.CACHE,
           metadata: { operation: 'get', key, hit: false },
@@ -203,6 +346,7 @@ export class CacheService {
         return null;
       }
 
+      this.cacheHits++;
       const parsedValue = JSON.parse(value) as T;
       this.logger.debug('Cache hit', {
         category: LogCategory.CACHE,
@@ -210,13 +354,15 @@ export class CacheService {
       });
       return parsedValue;
     } catch (error) {
+      this.cacheMisses++;
       this.logger.error('Failed to get cache key', {
         category: LogCategory.CACHE,
         error: error as Error,
         metadata: { operation: 'get', key },
       });
       this.isConnected = false;
-      return null;
+      // Fallback to memory cache
+      return this.getMemoryCache<T>(key);
     }
   }
 
@@ -400,7 +546,7 @@ export class CacheService {
           return null;
         }
       });
-      
+
       this.logger.debug('Multiple cache keys retrieved', {
         category: LogCategory.CACHE,
         metadata: { operation: 'mget', keysCount: keys.length, hits, hitRate: hits / keys.length },
@@ -448,13 +594,22 @@ export class CacheService {
 
       this.logger.debug('Multiple cache keys set successfully', {
         category: LogCategory.CACHE,
-        metadata: { operation: 'mset', keysCount: Object.keys(keyValuePairs).length, ttl: ttl || this.defaultTTL, totalSize },
+        metadata: {
+          operation: 'mset',
+          keysCount: Object.keys(keyValuePairs).length,
+          ttl: ttl || this.defaultTTL,
+          totalSize,
+        },
       });
     } catch (error) {
       this.logger.error('Failed to set multiple cache keys', {
         category: LogCategory.CACHE,
         error: error as Error,
-        metadata: { operation: 'mset', keysCount: Object.keys(keyValuePairs).length, ttl: ttl || this.defaultTTL },
+        metadata: {
+          operation: 'mset',
+          keysCount: Object.keys(keyValuePairs).length,
+          ttl: ttl || this.defaultTTL,
+        },
       });
       this.isConnected = false;
       // Don't throw error to prevent breaking the application
@@ -684,12 +839,12 @@ export class CacheService {
     if (!cached) {
       return null;
     }
-    
+
     if (Date.now() > cached.expires) {
       this.memoryCache.delete(key);
       return null;
     }
-    
+
     return cached.value as T;
   }
 
@@ -702,12 +857,12 @@ export class CacheService {
     if (!cached) {
       return false;
     }
-    
+
     if (Date.now() > cached.expires) {
       this.memoryCache.delete(key);
       return false;
     }
-    
+
     return true;
   }
 

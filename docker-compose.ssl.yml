@@ -8,7 +8,7 @@ services:
   certbot:
     image: certbot/certbot:latest
     container_name: hawk-certbot-prod
-    restart: "no"
+    restart: 'no'
     volumes:
       - ./config/certbot/conf:/etc/letsencrypt:rw
       - ./config/certbot/www:/var/www/certbot:rw
@@ -32,7 +32,7 @@ services:
           cpus: '0.05'
     profiles:
       - ssl
-    entrypoint: ["/entrypoint.sh"]
+    entrypoint: ['/entrypoint.sh']
 
   # SSL Certificate Renewal Service
   ssl-renewer:
@@ -63,7 +63,7 @@ services:
       - ssl
     depends_on:
       - nginx
-    entrypoint: ["/renewal.sh"]
+    entrypoint: ['/renewal.sh']
 
   # SSL Health Check Service
   ssl-monitor:
@@ -93,7 +93,7 @@ services:
       - ssl
     depends_on:
       - nginx
-    entrypoint: ["/monitor.sh"]
+    entrypoint: ['/monitor.sh']
 
 networks:
   hawk-network:
@@ -107,14 +107,14 @@ volumes:
       type: none
       o: bind
       device: ./config/ssl
-  
+
   certbot_conf:
     driver: local
     driver_opts:
       type: none
       o: bind
       device: ./config/certbot/conf
-  
+
   certbot_www:
     driver: local
     driver_opts:

@@ -10,7 +10,7 @@ const readline = require('readline');
 
 const rl = readline.createInterface({
   input: process.stdin,
-  output: process.stdout
+  output: process.stdout,
 });
 
 // Cores para console
@@ -20,7 +20,7 @@ const colors = {
   red: '\x1b[31m',
   cyan: '\x1b[36m',
   white: '\x1b[37m',
-  reset: '\x1b[0m'
+  reset: '\x1b[0m',
 };
 
 function log(message, color = 'white') {
@@ -30,10 +30,10 @@ function log(message, color = 'white') {
 // Função para executar comandos
 function runCommand(command, options = {}) {
   try {
-    const result = execSync(command, { 
+    const result = execSync(command, {
       stdio: options.silent ? 'pipe' : 'inherit',
       encoding: 'utf8',
-      ...options 
+      ...options,
     });
     return { success: true, output: result };
   } catch (error) {
@@ -92,16 +92,23 @@ async function setupComplete() {
       fs.copyFileSync('.env.example', '.env');
       log('✅ Arquivo .env criado a partir do .env.example', 'green');
     } else {
-      log('⚠️  Arquivo .env.example não encontrado. Você precisará configurar manualmente.', 'yellow');
+      log(
+        '⚠️  Arquivo .env.example não encontrado. Você precisará configurar manualmente.',
+        'yellow'
+      );
     }
   }
 
   // Configurar Spotify
   log('\n🎵 Verificando configuração do Spotify...', 'yellow');
   const envContent = fs.readFileSync('.env', 'utf8');
-  const hasSpotifyId = envContent.includes('SPOTIFY_CLIENT_ID=') && !envContent.includes('SPOTIFY_CLIENT_ID=your_spotify_client_id');
-  const hasSpotifySecret = envContent.includes('SPOTIFY_CLIENT_SECRET=') && !envContent.includes('SPOTIFY_CLIENT_SECRET=your_spotify_client_secret');
-  
+  const hasSpotifyId =
+    envContent.includes('SPOTIFY_CLIENT_ID=') &&
+    !envContent.includes('SPOTIFY_CLIENT_ID=your_spotify_client_id');
+  const hasSpotifySecret =
+    envContent.includes('SPOTIFY_CLIENT_SECRET=') &&
+    !envContent.includes('SPOTIFY_CLIENT_SECRET=your_spotify_client_secret');
+
   if (!hasSpotifyId || !hasSpotifySecret) {
     log('🔧 Executando configuração do Spotify...', 'cyan');
     const spotifySetup = runCommand('node setup-spotify.js');
@@ -120,16 +127,22 @@ async function setupComplete() {
     log('   • Windows: https://docs.docker.com/desktop/windows/install/', 'white');
     log('   • macOS: https://docs.docker.com/desktop/mac/install/', 'white');
     log('   • Linux: https://docs.docker.com/engine/install/', 'white');
-    log('\n⚠️  Continuando sem Docker. Você precisará configurar PostgreSQL e Redis manualmente.', 'yellow');
+    log(
+      '\n⚠️  Continuando sem Docker. Você precisará configurar PostgreSQL e Redis manualmente.',
+      'yellow'
+    );
   } else {
     // Verificar se Docker está rodando
     const dockerCheck = runCommand('docker version', { silent: true });
     if (!dockerCheck.success) {
       log('❌ Docker não está rodando. Inicie o Docker Desktop e tente novamente.', 'red');
-      log('\n⚠️  Continuando sem Docker. Você precisará configurar PostgreSQL e Redis manualmente.', 'yellow');
+      log(
+        '\n⚠️  Continuando sem Docker. Você precisará configurar PostgreSQL e Redis manualmente.',
+        'yellow'
+      );
     } else {
       log('✅ Docker está rodando!', 'green');
-      
+
       // Iniciar serviços Docker
       log('\n🗄️  Iniciando banco de dados e cache...', 'yellow');
       const dockerCompose = runCommand('docker compose up -d postgres redis');
@@ -137,11 +150,11 @@ async function setupComplete() {
         log('⚠️  Erro ao iniciar serviços Docker. Verifique o docker-compose.yml', 'yellow');
       } else {
         log('✅ Serviços Docker iniciados!', 'green');
-        
+
         // Aguardar serviços ficarem prontos
         log('⏳ Aguardando serviços ficarem prontos...', 'yellow');
         await sleep(10000);
-        
+
         // Configurar banco de dados
         log('\n🗃️  Configurando banco de dados...', 'yellow');
         const prismaGenerate = runCommand('npx prisma generate');
@@ -179,18 +192,18 @@ async function setupComplete() {
   console.log('');
 
   // Perguntar se quer iniciar o bot
-  rl.question('Deseja iniciar o bot agora? (s/n): ', (answer) => {
+  rl.question('Deseja iniciar o bot agora? (s/n): ', answer => {
     if (answer.toLowerCase() === 's' || answer.toLowerCase() === 'sim') {
       log('\n🚀 Iniciando o bot...', 'green');
       rl.close();
-      
+
       // Iniciar o bot
-      const botProcess = spawn('npm', ['run', 'dev'], { 
+      const botProcess = spawn('npm', ['run', 'dev'], {
         stdio: 'inherit',
-        shell: true 
+        shell: true,
       });
-      
-      botProcess.on('close', (code) => {
+
+      botProcess.on('close', code => {
         log(`\n✨ Bot finalizado com código ${code}`, 'green');
       });
     } else {

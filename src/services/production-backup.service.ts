@@ -99,28 +99,32 @@ class ProductionBackupService extends EventEmitter {
     try {
       // Ensure backup directory exists
       await this.ensureBackupDirectory();
-      
+
       // Load existing stats
       await this.loadStats();
-      
+
       // Schedule automatic backups
       if (this.config.enabled) {
         this.scheduleBackups();
       }
-      
-      productionLogger.info('Production backup service initialized', 
+
+      productionLogger.info(
+        'Production backup service initialized',
         createLogContext(LogCategory.SYSTEM, {
           metadata: {
             enabled: this.config.enabled,
             schedule: this.config.schedule,
             storage: this.config.storage,
           },
-        }));
+        })
+      );
     } catch (error) {
-      productionLogger.error('Failed to initialize backup service', 
+      productionLogger.error(
+        'Failed to initialize backup service',
         createLogContext(LogCategory.SYSTEM, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }));
+        })
+      );
     }
   }
 
@@ -128,7 +132,7 @@ class ProductionBackupService extends EventEmitter {
     if (this.config.storage.local.enabled) {
       try {
         await fs.mkdir(this.config.storage.local.path, { recursive: true });
-        
+
         // Create subdirectories for different backup types
         const subdirs = ['database', 'files', 'logs', 'full'];
         for (const subdir of subdirs) {
@@ -147,8 +151,10 @@ class ProductionBackupService extends EventEmitter {
       this.stats = { ...this.stats, ...JSON.parse(data) };
     } catch (error) {
       // Stats file doesn't exist or is corrupted, start fresh
-      productionLogger.debug('No existing backup stats found, starting fresh', 
-        createLogContext(LogCategory.SYSTEM));
+      productionLogger.debug(
+        'No existing backup stats found, starting fresh',
+        createLogContext(LogCategory.SYSTEM)
+      );
     }
   }
 
@@ -168,7 +174,7 @@ class ProductionBackupService extends EventEmitter {
     // Parse cron expression and schedule backups
     // For simplicity, we'll use a basic interval-based approach
     // In production, you'd want to use a proper cron library like 'node-cron'
-    
+
     // Daily database backup at 2 AM
     const dailyBackup = setInterval(async () => {
       const now = new Date();
@@ -202,8 +208,10 @@ class ProductionBackupService extends EventEmitter {
     const timestamp = new Date();
     const startTime = Date.now();
 
-    productionLogger.info(`Starting database backup: ${backupId}`, 
-      createLogContext(LogCategory.SYSTEM));
+    productionLogger.info(
+      `Starting database backup: ${backupId}`,
+      createLogContext(LogCategory.SYSTEM)
+    );
 
     try {
       this.isRunning = true;
@@ -215,7 +223,7 @@ class ProductionBackupService extends EventEmitter {
 
       // Generate database dump
       const dumpData = await this.generateDatabaseDump();
-      
+
       // Write to file with optional compression
       let size: number;
       if (this.config.compression) {
@@ -244,23 +252,27 @@ class ProductionBackupService extends EventEmitter {
       await this.saveStats();
       this.emit('backupCompleted', result);
 
-      productionLogger.info(`Database backup completed: ${backupId}`, 
+      productionLogger.info(
+        `Database backup completed: ${backupId}`,
         createLogContext(LogCategory.SYSTEM, {
           metadata: {
             size: this.formatBytes(size),
             duration: `${duration}ms`,
             location: backupPath,
           },
-        }));
+        })
+      );
 
-      productionLogger.info('Backup metrics recorded', 
+      productionLogger.info(
+        'Backup metrics recorded',
         createLogContext(LogCategory.SYSTEM, {
           metadata: {
             backupSize: size,
             backupDuration: duration,
             backupId,
           },
-        }));
+        })
+      );
 
       return result;
     } catch (error) {
@@ -279,10 +291,12 @@ class ProductionBackupService extends EventEmitter {
         error: errorMessage,
       };
 
-      productionLogger.error(`Database backup failed: ${backupId}`, 
+      productionLogger.error(
+        `Database backup failed: ${backupId}`,
         createLogContext(LogCategory.SYSTEM, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }));
+        })
+      );
 
       productionMonitoring.createAlert('critical', 'backup', 'Database backup failed', {
         backupId,
@@ -300,7 +314,7 @@ class ProductionBackupService extends EventEmitter {
     try {
       // This is a simplified version - in production you'd use proper database dump tools
       // For PostgreSQL: pg_dump, for MySQL: mysqldump, etc.
-      
+
       // Simplified database dump - in production, use proper database dump tools
       // For PostgreSQL: pg_dump, for MySQL: mysqldump, etc.
       const tables = ['users', 'guilds', 'badges', 'quiz_questions', 'music_queue', 'logs'];
@@ -312,14 +326,16 @@ class ProductionBackupService extends EventEmitter {
         dump += `-- Table: ${table}\n`;
         dump += '-- Backup would be generated using proper database tools\n\n';
       }
-      
-      productionLogger.info('Database dump generated (placeholder)', 
+
+      productionLogger.info(
+        'Database dump generated (placeholder)',
         createLogContext(LogCategory.SYSTEM, {
           metadata: {
             tables: tables.length,
             timestamp: new Date().toISOString(),
           },
-        }));
+        })
+      );
 
       return dump;
     } catch (error) {
@@ -332,8 +348,10 @@ class ProductionBackupService extends EventEmitter {
     const timestamp = new Date();
     const startTime = Date.now();
 
-    productionLogger.info(`Starting files backup: ${backupId}`, 
-      createLogContext(LogCategory.SYSTEM));
+    productionLogger.info(
+      `Starting files backup: ${backupId}`,
+      createLogContext(LogCategory.SYSTEM)
+    );
 
     try {
       this.isRunning = true;
@@ -355,7 +373,7 @@ class ProductionBackupService extends EventEmitter {
 
       const size = await this.createTarArchive(dirsToBackup, backupPath);
       const duration = Date.now() - startTime;
-      
+
       this.stats.successfulBackups++;
       this.stats.totalSize += size;
       this.stats.lastBackup = timestamp;
@@ -373,14 +391,16 @@ class ProductionBackupService extends EventEmitter {
       await this.saveStats();
       this.emit('backupCompleted', result);
 
-      productionLogger.info(`Files backup completed: ${backupId}`, 
+      productionLogger.info(
+        `Files backup completed: ${backupId}`,
         createLogContext(LogCategory.SYSTEM, {
           metadata: {
             size: this.formatBytes(size),
             duration: `${duration}ms`,
             location: backupPath,
           },
-        }));
+        })
+      );
 
       return result;
     } catch (error) {
@@ -399,10 +419,12 @@ class ProductionBackupService extends EventEmitter {
         error: errorMessage,
       };
 
-      productionLogger.error(`Files backup failed: ${backupId}`, 
+      productionLogger.error(
+        `Files backup failed: ${backupId}`,
         createLogContext(LogCategory.SYSTEM, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }));
+        })
+      );
 
       this.emit('backupFailed', result);
       return result;
@@ -423,7 +445,7 @@ class ProductionBackupService extends EventEmitter {
     try {
       // Create database backup
       const dbBackup = await this.createDatabaseBackup();
-      
+
       // Create files backup
       const filesBackup = await this.createFilesBackup();
 
@@ -483,11 +505,11 @@ class ProductionBackupService extends EventEmitter {
 
       writeStream.on('finish', () => resolve(size));
       writeStream.on('error', reject);
-      
-      gzip.on('data', (chunk) => {
+
+      gzip.on('data', chunk => {
         size += chunk.length;
       });
-      
+
       gzip.pipe(writeStream);
       gzip.write(data);
       gzip.end();
@@ -498,7 +520,7 @@ class ProductionBackupService extends EventEmitter {
     // Simplified tar creation - in production use a proper tar library
     // This is just a placeholder implementation
     const archiveData = JSON.stringify({ paths, timestamp: new Date() });
-    
+
     if (this.config.compression) {
       return this.writeCompressedFile(outputPath, archiveData);
     } else {
@@ -511,18 +533,18 @@ class ProductionBackupService extends EventEmitter {
   async cleanupOldBackups(): Promise<void> {
     try {
       const backupTypes = ['database', 'files', 'logs', 'full'];
-      
+
       for (const type of backupTypes) {
         const backupDir = join(this.config.storage.local.path, type);
-        
+
         try {
           const files = await fs.readdir(backupDir);
           const fileStats = await Promise.all(
-            files.map(async (file) => {
+            files.map(async file => {
               const filePath = join(backupDir, file);
               const stats = await fs.stat(filePath);
               return { file, path: filePath, mtime: stats.mtime };
-            }),
+            })
           );
 
           // Sort by modification time (newest first)
@@ -555,43 +577,49 @@ class ProductionBackupService extends EventEmitter {
 
   async restoreBackup(backupId: string, type: 'database' | 'files' | 'full'): Promise<boolean> {
     try {
-      productionLogger.info(`Starting restore from backup: ${backupId}`, 
+      productionLogger.info(
+        `Starting restore from backup: ${backupId}`,
         createLogContext(LogCategory.SYSTEM, {
           metadata: { backupId, type },
-        }));
+        })
+      );
 
       // Implementation would depend on backup type
       // This is a placeholder for the restore logic
-      
-      productionLogger.info(`Restore completed: ${backupId}`, 
-        createLogContext(LogCategory.SYSTEM));
+
+      productionLogger.info(`Restore completed: ${backupId}`, createLogContext(LogCategory.SYSTEM));
 
       return true;
     } catch (error) {
-      productionLogger.error(`Restore failed: ${backupId}`, 
+      productionLogger.error(
+        `Restore failed: ${backupId}`,
         createLogContext(LogCategory.SYSTEM, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }));
+        })
+      );
       return false;
     }
   }
 
-  async getBackupList(): Promise<Array<{ id: string; type: string; size: number; date: Date; location: string }>> {
-    const backups: Array<{ id: string; type: string; size: number; date: Date; location: string }> = [];
-    
+  async getBackupList(): Promise<
+    Array<{ id: string; type: string; size: number; date: Date; location: string }>
+  > {
+    const backups: Array<{ id: string; type: string; size: number; date: Date; location: string }> =
+      [];
+
     try {
       const backupTypes = ['database', 'files', 'logs', 'full'];
-      
+
       for (const type of backupTypes) {
         const backupDir = join(this.config.storage.local.path, type);
-        
+
         try {
           const files = await fs.readdir(backupDir);
-          
+
           for (const file of files) {
             const filePath = join(backupDir, file);
             const stats = await fs.stat(filePath);
-            
+
             backups.push({
               id: file.replace(/\.(sql|tar)(\.gz)?$/, ''),
               type,
@@ -605,12 +633,14 @@ class ProductionBackupService extends EventEmitter {
         }
       }
     } catch (error) {
-      productionLogger.error('Failed to get backup list', 
+      productionLogger.error(
+        'Failed to get backup list',
         createLogContext(LogCategory.SYSTEM, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }));
+        })
+      );
     }
-    
+
     return backups.sort((a, b) => b.date.getTime() - a.date.getTime());
   }
 
@@ -623,7 +653,9 @@ class ProductionBackupService extends EventEmitter {
   }
 
   private formatBytes(bytes: number): string {
-    if (bytes === 0) {return '0 Bytes';}
+    if (bytes === 0) {
+      return '0 Bytes';
+    }
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));

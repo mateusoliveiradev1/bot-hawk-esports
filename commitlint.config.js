@@ -5,18 +5,18 @@ module.exports = {
       2,
       'always',
       [
-        'feat',     // Nova funcionalidade
-        'fix',      // Correção de bug
-        'docs',     // Documentação
-        'style',    // Formatação, ponto e vírgula, etc
+        'feat', // Nova funcionalidade
+        'fix', // Correção de bug
+        'docs', // Documentação
+        'style', // Formatação, ponto e vírgula, etc
         'refactor', // Refatoração de código
-        'perf',     // Melhoria de performance
-        'test',     // Adição ou correção de testes
-        'chore',    // Tarefas de build, configurações, etc
-        'ci',       // Mudanças em CI/CD
-        'build',    // Mudanças no sistema de build
-        'revert'    // Reverter commit anterior
-      ]
+        'perf', // Melhoria de performance
+        'test', // Adição ou correção de testes
+        'chore', // Tarefas de build, configurações, etc
+        'ci', // Mudanças em CI/CD
+        'build', // Mudanças no sistema de build
+        'revert', // Reverter commit anterior
+      ],
     ],
     'type-case': [2, 'always', 'lower-case'],
     'type-empty': [2, 'never'],
@@ -28,6 +28,6 @@ module.exports = {
     'body-leading-blank': [1, 'always'],
     'body-max-line-length': [2, 'always', 100],
     'footer-leading-blank': [1, 'always'],
-    'footer-max-line-length': [2, 'always', 100]
-  }
+    'footer-max-line-length': [2, 'always', 100],
+  },
 };

@@ -53,8 +53,12 @@
 
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
+    transition:
+      background-color 0.3s ease,
+      color 0.3s ease;
   }
 
   html {
@@ -66,43 +70,43 @@
   .btn {
     @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
   }
-  
+
   .btn-primary {
     @apply btn bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800;
   }
-  
+
   .btn-secondary {
     @apply btn bg-secondary text-secondary-foreground hover:bg-secondary/80;
   }
-  
+
   .btn-outline {
     @apply btn border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground;
   }
-  
+
   .btn-ghost {
     @apply btn text-foreground hover:bg-accent hover:text-accent-foreground;
   }
-  
+
   .btn-sm {
     @apply h-8 px-3 text-xs;
   }
-  
+
   .btn-md {
     @apply h-10 px-4 py-2;
   }
-  
+
   .btn-lg {
     @apply h-12 px-6 text-base;
   }
-  
+
   .card {
     @apply rounded-lg border border-border bg-card p-6 shadow-sm text-card-foreground;
   }
-  
+
   .input {
     @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
   }
-  
+
   .label {
     @apply text-sm font-medium leading-none text-foreground;
   }

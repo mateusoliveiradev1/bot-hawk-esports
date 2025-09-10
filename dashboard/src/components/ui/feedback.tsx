@@ -77,7 +77,9 @@ export const AnimatedAlert: React.FC<FeedbackProps> = ({
     }, 300);
   };
 
-  if (!isVisible) {return null;}
+  if (!isVisible) {
+    return null;
+  }
 
   return (
     <div
@@ -86,32 +88,24 @@ export const AnimatedAlert: React.FC<FeedbackProps> = ({
         config.bgColor,
         config.borderColor,
         isAnimating ? 'opacity-0 transform scale-95' : 'opacity-100 transform scale-100',
-        className,
+        className
       )}
     >
-      <div className="flex items-start space-x-3">
-        {showIcon && (
-          <Icon className={cn('h-5 w-5 mt-0.5 flex-shrink-0', config.iconColor)} />
-        )}
-        <div className="flex-1 min-w-0">
-          {title && (
-            <h4 className={cn('text-sm font-semibold mb-1', config.textColor)}>
-              {title}
-            </h4>
-          )}
-          <p className={cn('text-sm', config.textColor)}>
-            {message}
-          </p>
+      <div className='flex items-start space-x-3'>
+        {showIcon && <Icon className={cn('h-5 w-5 mt-0.5 flex-shrink-0', config.iconColor)} />}
+        <div className='flex-1 min-w-0'>
+          {title && <h4 className={cn('text-sm font-semibold mb-1', config.textColor)}>{title}</h4>}
+          <p className={cn('text-sm', config.textColor)}>{message}</p>
         </div>
         {closable && (
           <button
             onClick={handleClose}
             className={cn(
               'flex-shrink-0 rounded-md p-1.5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors',
-              config.textColor,
+              config.textColor
             )}
           >
-            <X className="h-4 w-4" />
+            <X className='h-4 w-4' />
           </button>
         )}
       </div>
@@ -142,7 +136,7 @@ export const ProgressFeedback: React.FC<ProgressFeedbackProps> = ({
   label,
 }) => {
   const percentage = Math.min((value / max) * 100, 100);
-  
+
   const sizeClasses = {
     sm: 'h-2',
     md: 'h-3',
@@ -159,22 +153,17 @@ export const ProgressFeedback: React.FC<ProgressFeedbackProps> = ({
   return (
     <div className={cn('space-y-2', className)}>
       {(label || showPercentage) && (
-        <div className="flex justify-between items-center text-sm">
-          {label && <span className="text-muted-foreground">{label}</span>}
-          {showPercentage && (
-            <span className="font-medium">{Math.round(percentage)}%</span>
-          )}
+        <div className='flex justify-between items-center text-sm'>
+          {label && <span className='text-muted-foreground'>{label}</span>}
+          {showPercentage && <span className='font-medium'>{Math.round(percentage)}%</span>}
         </div>
       )}
-      <div className={cn(
-        'w-full bg-muted rounded-full overflow-hidden',
-        sizeClasses[size],
-      )}>
+      <div className={cn('w-full bg-muted rounded-full overflow-hidden', sizeClasses[size])}>
         <div
           className={cn(
             'h-full rounded-full transition-all duration-500 ease-out',
             variantClasses[variant],
-            animated && 'animate-pulse',
+            animated && 'animate-pulse'
           )}
           style={{ width: `${percentage}%` }}
         />
@@ -228,29 +217,15 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 
   return (
     <div className={cn('flex items-center space-x-2', className)}>
-      <div className="relative">
-        <div
-          className={cn(
-            'rounded-full',
-            config.color,
-            sizeClasses[size],
-          )}
-        />
+      <div className='relative'>
+        <div className={cn('rounded-full', config.color, sizeClasses[size])} />
         {animated && status === 'online' && (
           <div
-            className={cn(
-              'absolute inset-0 rounded-full animate-ping',
-              config.color,
-              'opacity-75',
-            )}
+            className={cn('absolute inset-0 rounded-full animate-ping', config.color, 'opacity-75')}
           />
         )}
       </div>
-      {label && (
-        <span className="text-sm text-muted-foreground">
-          {label || config.label}
-        </span>
-      )}
+      {label && <span className='text-sm text-muted-foreground'>{label || config.label}</span>}
     </div>
   );
 };
@@ -270,10 +245,12 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
 
   useEffect(() => {
-    if (messages.length <= 1) {return;}
+    if (messages.length <= 1) {
+      return;
+    }
 
     const timer = setInterval(() => {
-      setCurrentMessageIndex((prev) => (prev + 1) % messages.length);
+      setCurrentMessageIndex(prev => (prev + 1) % messages.length);
     }, interval);
 
     return () => clearInterval(timer);
@@ -281,11 +258,11 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
 
   return (
     <div className={cn('text-center space-y-4', className)}>
-      <div className="flex justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-muted border-t-primary" />
+      <div className='flex justify-center'>
+        <div className='animate-spin rounded-full h-8 w-8 border-2 border-muted border-t-primary' />
       </div>
-      <div className="min-h-[1.5rem]">
-        <p className="text-sm text-muted-foreground animate-fade-in">
+      <div className='min-h-[1.5rem]'>
+        <p className='text-sm text-muted-foreground animate-fade-in'>
           {messages[currentMessageIndex]}
         </p>
       </div>
@@ -308,22 +285,19 @@ export const ShimmerSkeleton: React.FC<ShimmerSkeletonProps> = ({
   return (
     <div className={cn('animate-pulse space-y-3', className)}>
       {avatar && (
-        <div className="flex items-center space-x-3">
-          <div className="h-10 w-10 bg-muted rounded-full" />
-          <div className="space-y-2">
-            <div className="h-4 bg-muted rounded w-24" />
-            <div className="h-3 bg-muted rounded w-16" />
+        <div className='flex items-center space-x-3'>
+          <div className='h-10 w-10 bg-muted rounded-full' />
+          <div className='space-y-2'>
+            <div className='h-4 bg-muted rounded w-24' />
+            <div className='h-3 bg-muted rounded w-16' />
           </div>
         </div>
       )}
-      <div className="space-y-2">
+      <div className='space-y-2'>
         {Array.from({ length: lines }).map((_, index) => (
           <div
             key={index}
-            className={cn(
-              'h-4 bg-muted rounded',
-              index === lines - 1 ? 'w-3/4' : 'w-full',
-            )}
+            className={cn('h-4 bg-muted rounded', index === lines - 1 ? 'w-3/4' : 'w-full')}
           />
         ))}
       </div>

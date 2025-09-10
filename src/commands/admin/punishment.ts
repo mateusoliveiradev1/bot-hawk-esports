@@ -20,7 +20,7 @@ class PunishmentCommand extends BaseCommand {
    */
   public async execute(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<void> {
     await this.executeWithErrorHandling(
       interaction,
@@ -28,19 +28,19 @@ class PunishmentCommand extends BaseCommand {
       async () => {
         // Validate guild context
         this.validateGuildContext(interaction);
-        
+
         // Validate punishment service
         const punishmentService = client.services?.punishment;
         this.validateService(punishmentService, 'Punishment');
-        
+
         // Defer reply for processing
         await this.deferWithLoading(interaction);
-        
+
         // Route to appropriate subcommand handler
         const subcommand = interaction.options.getSubcommand();
         await this.routeSubcommand(interaction, punishmentService, subcommand);
       },
-      'punishment command execution',
+      'punishment command execution'
     );
   }
 
@@ -50,10 +50,10 @@ class PunishmentCommand extends BaseCommand {
   private async routeSubcommand(
     interaction: ChatInputCommandInteraction,
     punishmentService: PunishmentService,
-    subcommand: string,
+    subcommand: string
   ): Promise<void> {
     const guildId = interaction.guild!.id;
-    
+
     switch (subcommand) {
       case 'history':
         await this.handleHistory(interaction, punishmentService);
@@ -81,15 +81,15 @@ class PunishmentCommand extends BaseCommand {
    */
   private async handleHistory(
     interaction: ChatInputCommandInteraction,
-    punishmentService: PunishmentService,
+    punishmentService: PunishmentService
   ): Promise<void> {
     const targetUser = interaction.options.getUser('usuario', true);
-    
+
     // Validate user input
     if (!targetUser) {
       throw new Error('Usuário não encontrado');
     }
-    
+
     const punishments = punishmentService.getUserPunishments(targetUser.id);
 
     const embed = new EmbedBuilder()
@@ -128,16 +128,16 @@ class PunishmentCommand extends BaseCommand {
    */
   private async handleWarnings(
     interaction: ChatInputCommandInteraction,
-    punishmentService: PunishmentService,
+    punishmentService: PunishmentService
   ): Promise<void> {
     const targetUser = interaction.options.getUser('usuario', true);
     const guildId = interaction.guild!.id;
-    
+
     // Validate user input
     if (!targetUser) {
       throw new Error('Usuário não encontrado');
     }
-    
+
     const warnings = await punishmentService.getUserWarnings(targetUser.id, guildId);
 
     const embed = new EmbedBuilder()
@@ -209,7 +209,7 @@ class PunishmentCommand extends BaseCommand {
   private async handleStats(
     interaction: ChatInputCommandInteraction,
     punishmentService: PunishmentService,
-    guildId: string,
+    guildId: string
   ): Promise<void> {
     // This would require additional methods in PunishmentService to get guild stats
     const embed = new EmbedBuilder()
@@ -226,7 +226,7 @@ class PunishmentCommand extends BaseCommand {
         '• Usuários mais punidos\n' +
         '• Tendências mensais\n' +
         '• Taxa de reincidência\n' +
-        '• Efetividade do sistema de avisos',
+        '• Efetividade do sistema de avisos'
     );
 
     await interaction.editReply({ embeds: [embed] });
@@ -238,11 +238,11 @@ class PunishmentCommand extends BaseCommand {
   private async handleInvalidSubcommand(
     interaction: ChatInputCommandInteraction,
     subcommand: string,
-    guildId: string,  
-    punishmentService: PunishmentService,
+    guildId: string,
+    punishmentService: PunishmentService
   ): Promise<void> {
     this.logger.warn(`Invalid subcommand received: ${subcommand}`);
-    
+
     const embed = new EmbedBuilder()
       .setTitle('❌ Subcomando Inválido')
       .setDescription(`Subcomando '${subcommand}' não reconhecido.`)
@@ -283,32 +283,29 @@ const punishment: Command = {
         .setName('history')
         .setDescription('Ver histórico de punições de um usuário')
         .addUserOption(option =>
-          option.setName('usuario').setDescription('Usuário para ver o histórico').setRequired(true),
-        ),
+          option.setName('usuario').setDescription('Usuário para ver o histórico').setRequired(true)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('warnings')
         .setDescription('Ver avisos ativos de um usuário')
         .addUserOption(option =>
-          option.setName('usuario').setDescription('Usuário para ver os avisos').setRequired(true),
-        ),
+          option.setName('usuario').setDescription('Usuário para ver os avisos').setRequired(true)
+        )
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('config').setDescription('Ver configurações do sistema de punições'),
+      subcommand.setName('config').setDescription('Ver configurações do sistema de punições')
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('stats').setDescription('Ver estatísticas gerais de punições do servidor'),
+      subcommand.setName('stats').setDescription('Ver estatísticas gerais de punições do servidor')
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild) as SlashCommandBuilder,
 
   category: CommandCategory.ADMIN,
   cooldown: 5,
 
-  async execute(
-    interaction: ChatInputCommandInteraction,
-    client: ExtendedClient,
-  ): Promise<void> {
+  async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
     await punishmentCommand.execute(interaction, client);
   },
 };
