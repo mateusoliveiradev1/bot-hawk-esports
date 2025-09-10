@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Trophy, Medal, Award, Crown, TrendingUp, Users, Star } from 'lucide-react';
 import { apiService } from '../../services/api';
 
@@ -215,7 +215,7 @@ export default function RankingWidget({
 
       {/* Rankings List */}
       <div className='space-y-2'>
-        {rankings.map((user, index) => (
+        {rankings.map((user) => (
           <div
             key={user.id}
             className={`flex items-center space-x-3 p-3 rounded-lg border transition-colors ${getRankBgColor(

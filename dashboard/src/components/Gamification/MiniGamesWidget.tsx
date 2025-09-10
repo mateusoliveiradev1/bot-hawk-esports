@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Gamepad2, Users, Clock, Trophy, Target, Brain, Zap, Star, Play, Eye } from 'lucide-react';
 import { apiService } from '../../services/api';
 

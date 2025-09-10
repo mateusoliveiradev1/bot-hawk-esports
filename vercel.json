@@ -1,25 +1,8 @@
 {
   "version": 2,
   "name": "hawk-esports-dashboard",
-  "builds": [
-    {
-      "src": "dashboard/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/dashboard/$1"
-    }
-  ],
+
+
   "rewrites": [
     {
       "source": "/api/:path*",
@@ -53,8 +36,9 @@
     "VITE_API_URL": "https://bot-hawk-esports.onrender.com",
     "VITE_BOT_INVITE_URL": "https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=8&scope=bot%20applications.commands"
   },
-  "buildCommand": "cd dashboard && npm ci && npm run build",
-  "outputDirectory": "dashboard/dist",
-  "installCommand": "cd dashboard && npm ci",
-  "framework": "vite"
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm ci",
+  "framework": "vite",
+  "rootDirectory": "dashboard"
 }

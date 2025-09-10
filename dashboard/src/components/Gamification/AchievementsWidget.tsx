@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Award, Target, Clock, CheckCircle, Lock, Star, Trophy, Zap, Crown } from 'lucide-react';
 import { apiService } from '../../services/api';
 
@@ -48,7 +48,6 @@ export default function AchievementsWidget({
   userId,
   guildId,
   showChallenges = true,
-  showCompleted = false,
 }: AchievementsWidgetProps) {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);

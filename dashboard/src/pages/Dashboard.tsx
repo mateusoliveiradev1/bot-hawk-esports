@@ -398,7 +398,7 @@ export default function Dashboard() {
           <XPWidget guildId={guildId} showRanking={true} showProgress={true} />
 
           {/* Badges Widget */}
-          <BadgesWidget guildId={guildId} showProgress={true} showRarity={true} />
+          <BadgesWidget guildId={guildId} showProgress={true} />
 
           {/* Mini-Games Widget */}
           <MiniGamesWidget guildId={guildId} showStats={true} showActiveGames={true} />
