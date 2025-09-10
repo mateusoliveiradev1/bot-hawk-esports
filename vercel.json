@@ -23,7 +23,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://bot-hawk-esports.up.railway.app/api/:path*"
+      "destination": "https://bot-hawk-esports.onrender.com/api/:path*"
     },
     {
       "source": "/((?!api).*)",
@@ -50,7 +50,7 @@
     }
   ],
   "env": {
-    "VITE_API_URL": "https://bot-hawk-esports.up.railway.app",
+    "VITE_API_URL": "https://bot-hawk-esports.onrender.com",
     "VITE_BOT_INVITE_URL": "https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=8&scope=bot%20applications.commands"
   },
   "buildCommand": "cd dashboard && npm ci && npm run build",
