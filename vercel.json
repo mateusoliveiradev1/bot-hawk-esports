@@ -1,8 +1,6 @@
 {
   "version": 2,
   "name": "hawk-esports-dashboard",
-
-
   "rewrites": [
     {
       "source": "/api/:path*",
@@ -36,9 +34,7 @@
     "VITE_API_URL": "https://bot-hawk-esports.onrender.com",
     "VITE_BOT_INVITE_URL": "https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=8&scope=bot%20applications.commands"
   },
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "installCommand": "npm ci",
-  "framework": "vite",
-  "rootDirectory": "dashboard"
+  "buildCommand": "cd dashboard && npm run build",
+  "outputDirectory": "dashboard/dist",
+  "installCommand": "cd dashboard && npm ci"
 }
