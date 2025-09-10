@@ -107,7 +107,7 @@ export class HawkComponentFactory {
   static createHawkNavigation(
     currentPage: number,
     totalPages: number,
-    customId: string = 'hawk_nav'
+    customId: string = 'hawk_nav',
   ): ActionRowBuilder<ButtonBuilder> {
     return new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
@@ -138,7 +138,7 @@ export class HawkComponentFactory {
         .setEmoji('⏭️')
         .setLabel('Último')
         .setStyle(HAWK_COMPONENT_CONFIG.STYLES.SECONDARY)
-        .setDisabled(currentPage === totalPages)
+        .setDisabled(currentPage === totalPages),
     );
   }
 
@@ -148,7 +148,7 @@ export class HawkComponentFactory {
   static createSimpleNavigation(
     currentPage: number,
     totalPages: number,
-    customId: string = 'simple_nav'
+    customId: string = 'simple_nav',
   ): ActionRowBuilder<ButtonBuilder> {
     return new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
@@ -167,7 +167,7 @@ export class HawkComponentFactory {
         .setEmoji(HAWK_EMOJIS.NEXT)
         .setLabel('Próximo')
         .setStyle(HAWK_COMPONENT_CONFIG.STYLES.SECONDARY)
-        .setDisabled(currentPage === totalPages)
+        .setDisabled(currentPage === totalPages),
     );
   }
 
@@ -197,7 +197,7 @@ export class HawkComponentFactory {
         .setCustomId('hawk_stats')
         .setEmoji(HAWK_EMOJIS.STATS)
         .setLabel('Estatísticas')
-        .setStyle(HAWK_COMPONENT_CONFIG.STYLES.SECONDARY)
+        .setStyle(HAWK_COMPONENT_CONFIG.STYLES.SECONDARY),
     );
   }
 
@@ -206,7 +206,7 @@ export class HawkComponentFactory {
    */
   static createConfirmationButtons(
     confirmId: string = 'confirm',
-    cancelId: string = 'cancel'
+    cancelId: string = 'cancel',
   ): ActionRowBuilder<ButtonBuilder> {
     return new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
@@ -218,7 +218,7 @@ export class HawkComponentFactory {
         .setCustomId(cancelId)
         .setEmoji(HAWK_EMOJIS.ERROR)
         .setLabel('Cancelar')
-        .setStyle(HAWK_COMPONENT_CONFIG.STYLES.DANGER)
+        .setStyle(HAWK_COMPONENT_CONFIG.STYLES.DANGER),
     );
   }
 
@@ -232,7 +232,7 @@ export class HawkComponentFactory {
       label: string;
       style?: ButtonStyle;
       disabled?: boolean;
-    }>
+    }>,
   ): ActionRowBuilder<ButtonBuilder> {
     const row = new ActionRowBuilder<ButtonBuilder>();
 
@@ -243,7 +243,7 @@ export class HawkComponentFactory {
           .setEmoji(action.emoji)
           .setLabel(action.label)
           .setStyle(action.style || HAWK_COMPONENT_CONFIG.STYLES.SECONDARY)
-          .setDisabled(action.disabled || false)
+          .setDisabled(action.disabled || false),
       );
     });
 
@@ -276,7 +276,7 @@ export class HawkComponentFactory {
       new ButtonBuilder()
         .setCustomId('music_shuffle')
         .setEmoji(EMOJI_CONTEXTS.MUSIC_CONTROLS.shuffle)
-        .setStyle(HAWK_COMPONENT_CONFIG.STYLES.SECONDARY)
+        .setStyle(HAWK_COMPONENT_CONFIG.STYLES.SECONDARY),
     );
   }
 
@@ -299,7 +299,7 @@ export class HawkComponentFactory {
         .setCustomId('volume_up')
         .setEmoji(HAWK_EMOJIS.VOLUME_UP)
         .setLabel('Volume +')
-        .setStyle(HAWK_COMPONENT_CONFIG.STYLES.SECONDARY)
+        .setStyle(HAWK_COMPONENT_CONFIG.STYLES.SECONDARY),
     );
   }
 
@@ -344,7 +344,7 @@ export class HawkComponentFactory {
             value: 'music',
             emoji: HAWK_EMOJIS.MUSIC,
           },
-        ])
+        ]),
     );
   }
 
@@ -358,7 +358,7 @@ export class HawkComponentFactory {
       value: string;
       emoji?: string;
     }>,
-    placeholder: string = 'Selecione uma categoria'
+    placeholder: string = 'Selecione uma categoria',
   ): ActionRowBuilder<StringSelectMenuBuilder> {
     return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
       new StringSelectMenuBuilder()
@@ -370,8 +370,8 @@ export class HawkComponentFactory {
             description: cat.description,
             value: cat.value,
             emoji: cat.emoji,
-          }))
-        )
+          })),
+        ),
     );
   }
 
@@ -414,7 +414,7 @@ export class HawkComponentFactory {
             value: 'monthly',
             emoji: '⭐',
           },
-        ])
+        ]),
     );
   }
 
@@ -435,7 +435,7 @@ export class HawkComponentFactory {
             .setStyle(TextInputStyle.Short)
             .setPlaceholder('Descreva brevemente seu feedback')
             .setRequired(true)
-            .setMaxLength(100)
+            .setMaxLength(100),
         ),
         new ActionRowBuilder<TextInputBuilder>().addComponents(
           new TextInputBuilder()
@@ -444,7 +444,7 @@ export class HawkComponentFactory {
             .setStyle(TextInputStyle.Paragraph)
             .setPlaceholder('Descreva detalhadamente sua sugestão, problema ou elogio')
             .setRequired(true)
-            .setMaxLength(1000)
+            .setMaxLength(1000),
         ),
         new ActionRowBuilder<TextInputBuilder>().addComponents(
           new TextInputBuilder()
@@ -453,8 +453,8 @@ export class HawkComponentFactory {
             .setStyle(TextInputStyle.Short)
             .setPlaceholder('Ex: PUBG, Música, Badges, Geral')
             .setRequired(false)
-            .setMaxLength(50)
-        )
+            .setMaxLength(50),
+        ),
       );
   }
 
@@ -473,7 +473,7 @@ export class HawkComponentFactory {
             .setStyle(TextInputStyle.Short)
             .setPlaceholder('Ex: Bug, Erro, Comportamento inadequado')
             .setRequired(true)
-            .setMaxLength(50)
+            .setMaxLength(50),
         ),
         new ActionRowBuilder<TextInputBuilder>().addComponents(
           new TextInputBuilder()
@@ -482,7 +482,7 @@ export class HawkComponentFactory {
             .setStyle(TextInputStyle.Paragraph)
             .setPlaceholder('Descreva o problema em detalhes, incluindo quando ocorreu')
             .setRequired(true)
-            .setMaxLength(1000)
+            .setMaxLength(1000),
         ),
         new ActionRowBuilder<TextInputBuilder>().addComponents(
           new TextInputBuilder()
@@ -491,8 +491,8 @@ export class HawkComponentFactory {
             .setStyle(TextInputStyle.Paragraph)
             .setPlaceholder('Como reproduzir o problema? Que comandos foram usados?')
             .setRequired(false)
-            .setMaxLength(500)
-        )
+            .setMaxLength(500),
+        ),
       );
   }
 
@@ -576,7 +576,7 @@ export class HawkComponentFactory {
       new ButtonBuilder()
         .setCustomId('hawk_mobile_badges')
         .setEmoji(HAWK_EMOJIS.BADGE)
-        .setStyle(HAWK_COMPONENT_CONFIG.STYLES.SECONDARY)
+        .setStyle(HAWK_COMPONENT_CONFIG.STYLES.SECONDARY),
     );
   }
 

@@ -39,8 +39,8 @@ class RankingCommand extends BaseCommand {
               { name: '🏅 Interno - Badges', value: 'internal_badges' },
               { name: '⏰ Presença', value: 'presence' },
               { name: '🎵 Música', value: 'music' },
-              { name: '🎯 Jogos', value: 'games' }
-            )
+              { name: '🎯 Jogos', value: 'games' },
+            ),
         )
         .addIntegerOption(option =>
           option
@@ -48,13 +48,13 @@ class RankingCommand extends BaseCommand {
             .setDescription('Página do ranking (padrão: 1)')
             .setRequired(false)
             .setMinValue(1)
-            .setMaxValue(50)
+            .setMaxValue(50),
         )
         .addBooleanOption(option =>
           option
             .setName('public')
             .setDescription('Tornar a resposta pública (padrão: privado)')
-            .setRequired(false)
+            .setRequired(false),
         ) as SlashCommandBuilder,
       category: CommandCategory.PUBG,
       cooldown: 15,
@@ -84,7 +84,7 @@ class RankingCommand extends BaseCommand {
         page,
         interaction.guildId!,
         interaction.user.id,
-        client
+        client,
       );
       const components = this.createRankingComponents(rankingType, page, embed);
 
@@ -99,7 +99,7 @@ class RankingCommand extends BaseCommand {
         error,
         interaction,
         client,
-        interaction.options.getString('type', true)
+        interaction.options.getString('type', true),
       );
     }
   }
@@ -109,7 +109,7 @@ class RankingCommand extends BaseCommand {
     page: number,
     guildId: string,
     userId: string,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<EmbedBuilder> {
     const limit = 10;
     const offset = (page - 1) * limit;
@@ -131,7 +131,7 @@ class RankingCommand extends BaseCommand {
                   ? 24 * 60 * 60 * 1000
                   : period === 'weekly'
                     ? 7 * 24 * 60 * 60 * 1000
-                    : 30 * 24 * 60 * 60 * 1000)
+                    : 30 * 24 * 60 * 60 * 1000),
             ),
             endDate: new Date(),
           } as any;
@@ -140,7 +140,7 @@ class RankingCommand extends BaseCommand {
             periodObj,
             undefined,
             'rankPoints',
-            limit
+            limit,
           );
           rankingData = pubgRanking;
           totalCount = pubgRanking.length;
@@ -162,7 +162,7 @@ class RankingCommand extends BaseCommand {
             guildId,
             allTimePeriod,
             'xp',
-            limit
+            limit,
           );
           rankingData = xpRanking;
           totalCount = xpRanking.length;
@@ -172,7 +172,7 @@ class RankingCommand extends BaseCommand {
             page,
             totalCount,
             userId,
-            client
+            client,
           );
         } catch (error) {
           logger.error('Error fetching XP ranking:', error);
@@ -191,7 +191,7 @@ class RankingCommand extends BaseCommand {
             guildId,
             allTimePeriod,
             'coins',
-            limit
+            limit,
           );
           rankingData = coinsRanking;
           totalCount = coinsRanking.length;
@@ -201,7 +201,7 @@ class RankingCommand extends BaseCommand {
             page,
             totalCount,
             userId,
-            client
+            client,
           );
         } catch (error) {
           logger.error('Error fetching coins ranking:', error);
@@ -220,7 +220,7 @@ class RankingCommand extends BaseCommand {
             guildId,
             allTimePeriod,
             'badgeCount',
-            limit
+            limit,
           );
           rankingData = badgesRanking;
           totalCount = badgesRanking.length;
@@ -230,7 +230,7 @@ class RankingCommand extends BaseCommand {
             page,
             totalCount,
             userId,
-            client
+            client,
           );
         } catch (error) {
           logger.error('Error fetching badges ranking:', error);
@@ -247,7 +247,7 @@ class RankingCommand extends BaseCommand {
           page,
           totalCount,
           userId,
-          client
+          client,
         );
         break;
 
@@ -262,7 +262,7 @@ class RankingCommand extends BaseCommand {
           totalCount,
           userId,
           client,
-          '🎵'
+          '🎵',
         );
         break;
 
@@ -277,7 +277,7 @@ class RankingCommand extends BaseCommand {
           totalCount,
           userId,
           client,
-          '🎯'
+          '🎯',
         );
         break;
 
@@ -299,7 +299,7 @@ class RankingCommand extends BaseCommand {
         new ButtonBuilder()
           .setCustomId(`ranking_${rankingType}_${page - 1}`)
           .setLabel('◀️ Anterior')
-          .setStyle(ButtonStyle.Primary)
+          .setStyle(ButtonStyle.Primary),
       );
     }
 
@@ -307,7 +307,7 @@ class RankingCommand extends BaseCommand {
       new ButtonBuilder()
         .setCustomId(`ranking_${rankingType}_refresh`)
         .setLabel('🔄 Atualizar')
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Secondary),
     );
 
     if (offset + limit < totalCount) {
@@ -315,7 +315,7 @@ class RankingCommand extends BaseCommand {
         new ButtonBuilder()
           .setCustomId(`ranking_${rankingType}_${page + 1}`)
           .setLabel('Próxima ▶️')
-          .setStyle(ButtonStyle.Primary)
+          .setStyle(ButtonStyle.Primary),
       );
     }
 
@@ -333,7 +333,7 @@ class RankingCommand extends BaseCommand {
           { label: '⏰ Presença', value: 'presence', emoji: '⏰' },
           { label: '🎵 Música', value: 'music', emoji: '🎵' },
           { label: '🎯 Jogos', value: 'games', emoji: '🎯' },
-        ])
+        ]),
     );
 
     return [selectRow, buttonsRow];
@@ -343,7 +343,7 @@ class RankingCommand extends BaseCommand {
     response: any,
     interaction: ChatInputCommandInteraction,
     client: ExtendedClient,
-    rankingType: string
+    rankingType: string,
   ): Promise<void> {
     const collector = response.createMessageComponentCollector({ time: 300000 });
 
@@ -364,7 +364,7 @@ class RankingCommand extends BaseCommand {
           1,
           interaction.guildId!,
           interaction.user.id,
-          client
+          client,
         );
         const newComponents = this.createRankingComponents(newType, 1, newEmbed);
         await i.editReply({ embeds: [newEmbed], components: newComponents });
@@ -381,12 +381,12 @@ class RankingCommand extends BaseCommand {
             currentPage,
             interaction.guildId!,
             interaction.user.id,
-            client
+            client,
           );
           const refreshedComponents = this.createRankingComponents(
             type,
             currentPage,
-            refreshedEmbed
+            refreshedEmbed,
           );
           await i.editReply({ embeds: [refreshedEmbed], components: refreshedComponents });
         } else {
@@ -396,7 +396,7 @@ class RankingCommand extends BaseCommand {
             newPage,
             interaction.guildId!,
             interaction.user.id,
-            client
+            client,
           );
           const newComponents = this.createRankingComponents(type, newPage, newEmbed);
           await i.editReply({ embeds: [newEmbed], components: newComponents });
@@ -413,7 +413,7 @@ class RankingCommand extends BaseCommand {
     error: any,
     interaction: ChatInputCommandInteraction,
     client: ExtendedClient,
-    rankingType: string
+    rankingType: string,
   ): Promise<void> {
     logger.error('Ranking command error:', error);
 
@@ -429,7 +429,7 @@ class RankingCommand extends BaseCommand {
           userId: interaction.user.id,
           rankingType,
           command: 'ranking',
-        }
+        },
       );
     }
 
@@ -462,7 +462,7 @@ class RankingCommand extends BaseCommand {
     period: 'daily' | 'weekly' | 'monthly',
     page: number,
     total: number,
-    userId: string
+    userId: string,
   ): Promise<EmbedBuilder> {
     const periodNames = {
       daily: 'Diário',
@@ -522,7 +522,7 @@ class RankingCommand extends BaseCommand {
     page: number,
     total: number,
     userId: string,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<EmbedBuilder> {
     const typeEmojis = {
       XP: '⭐',
@@ -593,7 +593,7 @@ class RankingCommand extends BaseCommand {
     page: number,
     total: number,
     userId: string,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<EmbedBuilder> {
     const embed = new EmbedBuilder()
       .setTitle('⏰ Ranking de Presença')
@@ -647,7 +647,7 @@ class RankingCommand extends BaseCommand {
     total: number,
     userId: string,
     client: ExtendedClient,
-    emoji: string
+    emoji: string,
   ): Promise<EmbedBuilder> {
     const embed = new EmbedBuilder()
       .setTitle(`${emoji} Ranking de ${type}`)
@@ -751,7 +751,7 @@ async function createPUBGRankingEmbed(
   period: 'daily' | 'weekly' | 'monthly',
   page: number,
   total: number,
-  userId: string
+  userId: string,
 ): Promise<EmbedBuilder> {
   return (commandInstance as any).createPUBGRankingEmbed(rankings, period, page, total, userId);
 }
@@ -762,7 +762,7 @@ async function createInternalRankingEmbed(
   page: number,
   total: number,
   userId: string,
-  client: ExtendedClient
+  client: ExtendedClient,
 ): Promise<EmbedBuilder> {
   return (commandInstance as any).createInternalRankingEmbed(
     rankings,
@@ -770,7 +770,7 @@ async function createInternalRankingEmbed(
     page,
     total,
     userId,
-    client
+    client,
   );
 }
 
@@ -779,7 +779,7 @@ async function createPresenceRankingEmbed(
   page: number,
   total: number,
   userId: string,
-  client: ExtendedClient
+  client: ExtendedClient,
 ): Promise<EmbedBuilder> {
   return (commandInstance as any).createPresenceRankingEmbed(rankings, page, total, userId, client);
 }
@@ -791,7 +791,7 @@ async function createActivityRankingEmbed(
   total: number,
   userId: string,
   client: ExtendedClient,
-  emoji: string
+  emoji: string,
 ): Promise<EmbedBuilder> {
   return (commandInstance as any).createActivityRankingEmbed(
     rankings,
@@ -800,7 +800,7 @@ async function createActivityRankingEmbed(
     total,
     userId,
     client,
-    emoji
+    emoji,
   );
 }
 
@@ -825,7 +825,7 @@ async function getRankingEmbed(
   page: number,
   guildId: string,
   userId: string,
-  client: ExtendedClient
+  client: ExtendedClient,
 ): Promise<EmbedBuilder> {
   return (commandInstance as any).getRankingEmbed(type, page, guildId, userId, client);
 }

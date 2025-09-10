@@ -37,7 +37,7 @@ export class IntegratedService {
 
   constructor(
     private readonly config: ServiceIntegrationConfig,
-    private readonly cacheService?: CacheService
+    private readonly cacheService?: CacheService,
   ) {
     // Initialize rate limiter
     if (config.enableRateLimit && config.rateLimitConfig) {
@@ -74,7 +74,7 @@ export class IntegratedService {
       };
       rateLimitKey?: string;
       errorContext?: Record<string, any>;
-    }
+    },
   ): Promise<T> {
     const { operationId, cacheKey, cacheTTL, cacheOptions, rateLimitKey, errorContext } = options;
 
@@ -306,7 +306,7 @@ export class ServiceIntegrationFactory {
    */
   static createCustomIntegration(
     config: ServiceIntegrationConfig,
-    cacheService?: CacheService
+    cacheService?: CacheService,
   ): IntegratedService {
     this.logger.info(`Created custom service integration: ${config.serviceName}`);
     return new IntegratedService(config, cacheService);
@@ -327,7 +327,7 @@ export function IntegratedOperation(
     };
     rateLimitKey?: string | ((args: any[]) => string);
     errorContext?: Record<string, any> | ((args: any[]) => Record<string, any>);
-  } = {}
+  } = {},
 ) {
   return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value;
@@ -381,7 +381,7 @@ export class ServiceMigrationHelper {
       methodsToWrap?: string[];
       cacheKeyGenerator?: (methodName: string, args: any[]) => string;
       rateLimitKeyGenerator?: (methodName: string, args: any[]) => string;
-    } = {}
+    } = {},
   ): void {
     const { methodsToWrap, cacheKeyGenerator, rateLimitKeyGenerator } = options;
 
@@ -391,7 +391,7 @@ export class ServiceMigrationHelper {
       Object.getOwnPropertyNames(Object.getPrototypeOf(serviceInstance)).filter(name => {
         const descriptor = Object.getOwnPropertyDescriptor(
           Object.getPrototypeOf(serviceInstance),
-          name
+          name,
         );
         return descriptor && typeof descriptor.value === 'function' && name !== 'constructor';
       });
@@ -424,7 +424,7 @@ export class ServiceMigrationHelper {
     serviceInstance.integration = integration;
 
     this.logger.info(
-      `Migrated service ${serviceInstance.constructor.name} with ${methods.length} methods`
+      `Migrated service ${serviceInstance.constructor.name} with ${methods.length} methods`,
     );
   }
 
@@ -433,7 +433,7 @@ export class ServiceMigrationHelper {
    */
   static analyzeAndCreateConfig(
     serviceInstance: any,
-    serviceName: string
+    serviceName: string,
   ): ServiceIntegrationConfig {
     const config: ServiceIntegrationConfig = {
       serviceName,

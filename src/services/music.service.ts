@@ -168,7 +168,7 @@ export class MusicService {
       () => {
         this.cleanupInactiveConnections();
       },
-      5 * 60 * 1000
+      5 * 60 * 1000,
     );
 
     // Clean up old queue data every 30 minutes
@@ -176,7 +176,7 @@ export class MusicService {
       () => {
         this.cleanupOldQueues();
       },
-      30 * 60 * 1000
+      30 * 60 * 1000,
     );
 
     // Clean up cache every hour
@@ -184,7 +184,7 @@ export class MusicService {
       () => {
         this.cleanupCache();
       },
-      60 * 60 * 1000
+      60 * 60 * 1000,
     );
   }
 
@@ -274,7 +274,7 @@ export class MusicService {
       }
 
       this.logger.debug(
-        `Cache cleanup completed - Streams: ${cleanedStreams}, Active: ${cleanedActive}`
+        `Cache cleanup completed - Streams: ${cleanedStreams}, Active: ${cleanedActive}`,
       );
     } catch (error) {
       this.logger.error('Error during cache cleanup:', error);
@@ -309,7 +309,7 @@ export class MusicService {
         this.logger.info('✅ Play-dl initialized with cookie configuration');
       } else {
         this.logger.warn(
-          '⚠️ Could not get free client ID for play-dl, some features may be limited'
+          '⚠️ Could not get free client ID for play-dl, some features may be limited',
         );
       }
 
@@ -515,7 +515,7 @@ export class MusicService {
       }
 
       this.logger.info(
-        `✅ Loaded ${reconstructedQueues} persistent queues from database (${validTracks} valid tracks, ${invalidTracks} invalid tracks)`
+        `✅ Loaded ${reconstructedQueues} persistent queues from database (${validTracks} valid tracks, ${invalidTracks} invalid tracks)`,
       );
     } catch (error) {
       this.logger.error('❌ Failed to load queues from database:', error);
@@ -662,7 +662,7 @@ export class MusicService {
               tracks: queue.tracks.slice(0, 10), // Save first 10 tracks as backup
               timestamp: Date.now(),
             },
-            3600
+            3600,
           ); // 1 hour cache
           this.logger.debug(`Saved backup queue to cache for guild ${guildId}`);
         }
@@ -799,7 +799,7 @@ export class MusicService {
 
       connection.on('stateChange', (oldState, newState) => {
         this.logger.debug(
-          `Voice connection state changed in guild ${guildId}: ${oldState.status} -> ${newState.status}`
+          `Voice connection state changed in guild ${guildId}: ${oldState.status} -> ${newState.status}`,
         );
       });
     } catch (error) {
@@ -913,11 +913,11 @@ export class MusicService {
             queue.isPlaying = true;
             queue.isPaused = false;
             this.logger.info(
-              `🎵 Now playing: ${queue.currentTrack?.title || 'Unknown'} in guild ${guildId}`
+              `🎵 Now playing: ${queue.currentTrack?.title || 'Unknown'} in guild ${guildId}`,
             );
           } else {
             this.logger.debug(
-              `🎵 Audio player is now playing in guild ${guildId} (no queue found)`
+              `🎵 Audio player is now playing in guild ${guildId} (no queue found)`,
             );
           }
         } catch (error) {
@@ -975,21 +975,21 @@ export class MusicService {
             this.skip(guildId).catch(skipError => {
               this.logger.error(
                 `Failed to skip after player error in guild ${guildId}:`,
-                skipError
+                skipError,
               );
             });
           }
         } catch (recoveryError) {
           this.logger.error(
             `Error during player error recovery for guild ${guildId}:`,
-            recoveryError
+            recoveryError,
           );
         }
       });
 
       player.on('stateChange', (oldState, newState) => {
         this.logger.debug(
-          `Player state changed in guild ${guildId}: ${oldState.status} -> ${newState.status}`
+          `Player state changed in guild ${guildId}: ${oldState.status} -> ${newState.status}`,
         );
       });
 
@@ -1041,7 +1041,7 @@ export class MusicService {
       // Play next track
       if (queue.tracks.length > 0) {
         this.logger.debug(
-          `Playing next track in guild ${guildId} (${queue.tracks.length} tracks remaining)`
+          `Playing next track in guild ${guildId} (${queue.tracks.length} tracks remaining)`,
         );
 
         const nextTrack = queue.shuffle
@@ -1107,7 +1107,7 @@ export class MusicService {
         cached = await this.cache.get<Track[]>(cacheKey);
         if (cached && Array.isArray(cached)) {
           this.logger.debug(
-            `📦 Found cached results for: "${cleanQuery}" (${cached.length} tracks)`
+            `📦 Found cached results for: "${cleanQuery}" (${cached.length} tracks)`,
           );
           return cached;
         }
@@ -1221,7 +1221,7 @@ export class MusicService {
               if (duration <= 0 || duration > 7200000) {
                 // Max 2 hours
                 this.logger.warn(
-                  `Invalid duration for video: ${video.title} (${duration / 1000}s)`
+                  `Invalid duration for video: ${video.title} (${duration / 1000}s)`,
                 );
                 errorCount++;
                 continue;
@@ -1243,7 +1243,7 @@ export class MusicService {
               tracks.push(track);
               processedCount++;
               this.logger.debug(
-                `📝 Added track: ${track.title} by ${track.artist} (${track.duration}ms)`
+                `📝 Added track: ${track.title} by ${track.artist} (${track.duration}ms)`,
               );
             } catch (trackError) {
               this.logger.warn('Error processing track result:', trackError);
@@ -1259,7 +1259,7 @@ export class MusicService {
       }
 
       this.logger.debug(
-        `✅ YouTube search completed: ${tracks.length} tracks found (processed: ${processedCount}, errors: ${errorCount})`
+        `✅ YouTube search completed: ${tracks.length} tracks found (processed: ${processedCount}, errors: ${errorCount})`,
       );
 
       // Try to cache for 1 hour, but don't fail if cache is unavailable
@@ -1309,7 +1309,7 @@ export class MusicService {
         cached = await this.cache.get<Track[]>(cacheKey);
         if (cached && Array.isArray(cached)) {
           this.logger.debug(
-            `📦 Found cached results for: "${cleanQuery}" (${cached.length} tracks)`
+            `📦 Found cached results for: "${cleanQuery}" (${cached.length} tracks)`,
           );
           return cached;
         }
@@ -1376,7 +1376,7 @@ export class MusicService {
         } catch (urlError) {
           this.logger.error(
             `❌ Failed to get track info from Spotify URL "${cleanQuery}":`,
-            urlError
+            urlError,
           );
           errorCount++;
           // Fallback to YouTube search
@@ -1390,7 +1390,7 @@ export class MusicService {
             cleanQuery,
             ['track'],
             'US',
-            Math.min(limit, 50) as any
+            Math.min(limit, 50) as any,
           );
           const timeoutPromise = new Promise<never>((_, reject) => {
             setTimeout(() => reject(new Error('Spotify search timeout')), 10000);
@@ -1445,7 +1445,7 @@ export class MusicService {
               tracks.push(spotifyTrack);
               processedCount++;
               this.logger.debug(
-                `📝 Added track: ${spotifyTrack.title} by ${spotifyTrack.artist} (${spotifyTrack.duration}ms)`
+                `📝 Added track: ${spotifyTrack.title} by ${spotifyTrack.artist} (${spotifyTrack.duration}ms)`,
               );
             } catch (trackError) {
               this.logger.warn('Error processing Spotify track result:', trackError);
@@ -1462,7 +1462,7 @@ export class MusicService {
       }
 
       this.logger.debug(
-        `✅ Spotify search completed: ${tracks.length} tracks found (processed: ${processedCount}, errors: ${errorCount})`
+        `✅ Spotify search completed: ${tracks.length} tracks found (processed: ${processedCount}, errors: ${errorCount})`,
       );
 
       // Try to cache for 1 hour, but don't fail if cache is unavailable
@@ -1564,7 +1564,7 @@ export class MusicService {
       this.logger.music(
         'TRACK_ADDED',
         guildId,
-        `Added track: ${track.title} (Queue: ${queue.tracks.length})`
+        `Added track: ${track.title} (Queue: ${queue.tracks.length})`,
       );
     } catch (error) {
       this.logger.error(`Failed to add track to queue for guild ${guildId}:`, error);
@@ -1578,7 +1578,7 @@ export class MusicService {
   public async addTrack(
     guildId: string,
     query: string,
-    requestedBy: string
+    requestedBy: string,
   ): Promise<{ success: boolean; message: string; track?: Track }> {
     try {
       // Input validation
@@ -1745,7 +1745,7 @@ export class MusicService {
       // Check if stream creation is already in progress for this video
       if (this.activeStreams.has(videoId)) {
         this.logger.debug(
-          `⏳ Stream creation already in progress for video ${videoId}, waiting...`
+          `⏳ Stream creation already in progress for video ${videoId}, waiting...`,
         );
         return await this.activeStreams.get(videoId)!;
       }
@@ -1769,7 +1769,7 @@ export class MusicService {
 
   private async createStreamInternal(
     videoId: string,
-    originalUrl: string
+    originalUrl: string,
   ): Promise<AudioResource | null> {
     const cleanUrl = `https://www.youtube.com/watch?v=${videoId}`;
     this.logger.info(`🎵 Creating YouTube stream for: \`${cleanUrl}\``);
@@ -1783,7 +1783,7 @@ export class MusicService {
       } catch (cacheError) {
         this.logger.warn(
           '⚠️ Cached stream URL failed, proceeding with fresh extraction:',
-          cacheError
+          cacheError,
         );
         this.streamCache.delete(videoId);
       }
@@ -1797,7 +1797,7 @@ export class MusicService {
       const info = (await Promise.race([
         video_basic_info(cleanUrl),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('play-dl video_basic_info timeout after 15s')), 15000)
+          setTimeout(() => reject(new Error('play-dl video_basic_info timeout after 15s')), 15000),
         ),
       ])) as any;
 
@@ -1822,7 +1822,7 @@ export class MusicService {
       const stream = (await Promise.race([
         stream_from_info(info, { quality: 2, discordPlayerCompatibility: true }),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('play-dl stream timeout after 15s')), 15000)
+          setTimeout(() => reject(new Error('play-dl stream timeout after 15s')), 15000),
         ),
       ])) as any;
 
@@ -1867,7 +1867,7 @@ export class MusicService {
       const { stdout, stderr } = (await Promise.race([
         execAsync(ytDlpCommand, { timeout: 20000 }),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('yt-dlp timeout after 20s')), 20000)
+          setTimeout(() => reject(new Error('yt-dlp timeout after 20s')), 20000),
         ),
       ])) as any;
 
@@ -1936,7 +1936,7 @@ export class MusicService {
           });
 
           resolve(resource);
-        }
+        },
       );
 
       request.on('error', (error: any) => {
@@ -1958,7 +1958,7 @@ export class MusicService {
   public async playTrack(guildId: string, track: Track): Promise<boolean> {
     try {
       this.logger.debug(
-        `🎵 Starting playTrack for: ${track.title} (${track.platform}) in guild ${guildId}`
+        `🎵 Starting playTrack for: ${track.title} (${track.platform}) in guild ${guildId}`,
       );
 
       const player = this.players.get(guildId);
@@ -1987,14 +1987,14 @@ export class MusicService {
         }
       } else {
         this.logger.debug(
-          `🎵 Converting Spotify track to YouTube: ${track.artist} - ${track.title}`
+          `🎵 Converting Spotify track to YouTube: ${track.artist} - ${track.title}`,
         );
 
         // For Spotify, we need to find the YouTube equivalent
         const youtubeResults = await this.searchYouTube(`${track.artist} ${track.title}`, 1);
         if (youtubeResults.length === 0) {
           this.logger.error(
-            `❌ Could not find YouTube equivalent for Spotify track: ${track.title}`
+            `❌ Could not find YouTube equivalent for Spotify track: ${track.title}`,
           );
           return false;
         }
@@ -2010,7 +2010,7 @@ export class MusicService {
           const streamResource = await this.createYouTubeStream(firstResult.url);
           if (!streamResource) {
             this.logger.error(
-              `❌ Failed to create stream for converted Spotify track: ${firstResult.url}`
+              `❌ Failed to create stream for converted Spotify track: ${firstResult.url}`,
             );
             return false;
           }
@@ -2018,7 +2018,7 @@ export class MusicService {
         } catch (streamError) {
           this.logger.error(
             `❌ Stream creation error for converted Spotify track ${firstResult.url}:`,
-            streamError
+            streamError,
           );
           return false;
         }
@@ -2028,7 +2028,7 @@ export class MusicService {
 
       // Verify resource properties
       this.logger.debug(
-        `🔍 Resource properties - readable: ${resource.readable}, ended: ${resource.ended}`
+        `🔍 Resource properties - readable: ${resource.readable}, ended: ${resource.ended}`,
       );
       this.logger.debug(`🔍 Resource volume available: ${resource.volume ? 'Yes' : 'No'}`);
 
@@ -2068,7 +2068,7 @@ export class MusicService {
         this.logger.music(
           'TRACK_PLAYING',
           guildId,
-          `✅ Successfully playing: ${track.title} (${track.platform})`
+          `✅ Successfully playing: ${track.title} (${track.platform})`,
         );
 
         // Update queue status
@@ -2088,7 +2088,7 @@ export class MusicService {
           this.logger.music(
             'TRACK_PLAYING',
             guildId,
-            `✅ Successfully playing after buffering: ${track.title} (${track.platform})`
+            `✅ Successfully playing after buffering: ${track.title} (${track.platform})`,
           );
 
           // Update queue status
@@ -2358,7 +2358,7 @@ export class MusicService {
   public async moveInQueue(
     guildId: string,
     fromIndex: number,
-    toIndex: number
+    toIndex: number,
   ): Promise<Track | null> {
     const queue = this.queues.get(guildId);
     if (
@@ -2421,7 +2421,7 @@ export class MusicService {
       }
 
       this.logger.info(
-        `Playlist '${name}' saved successfully for user ${userId} with ${tracks.length} tracks`
+        `Playlist '${name}' saved successfully for user ${userId} with ${tracks.length} tracks`,
       );
       return true;
     } catch (error) {

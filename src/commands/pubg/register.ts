@@ -29,7 +29,7 @@ const register: Command = {
         .setDescription('Seu nick exato no PUBG')
         .setRequired(true)
         .setMinLength(3)
-        .setMaxLength(16)
+        .setMaxLength(16),
     )
     .addStringOption(option =>
       option
@@ -41,8 +41,8 @@ const register: Command = {
           { name: '🎮 Xbox', value: 'xbox' },
           { name: '🎯 PlayStation', value: 'psn' },
           { name: '📱 Mobile', value: 'mobile' },
-          { name: '🎮 Stadia', value: 'stadia' }
-        )
+          { name: '🎮 Stadia', value: 'stadia' },
+        ),
     )
     .setDMPermission(false) as SlashCommandBuilder,
 
@@ -51,7 +51,7 @@ const register: Command = {
 
   async execute(
     interaction: ChatInputCommandInteraction | CommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ) {
     try {
       if (!interaction.isChatInputCommand()) {
@@ -80,7 +80,7 @@ const register: Command = {
         const alreadyRegisteredEmbed = new EmbedBuilder()
           .setTitle('✅ Já registrado')
           .setDescription(
-            `Você já está registrado como **${existingUser.pubgUsername}** na plataforma **${getPlatformName(existingUser.pubgPlatform as PUBGPlatform)}**.`
+            `Você já está registrado como **${existingUser.pubgUsername}** na plataforma **${getPlatformName(existingUser.pubgPlatform as PUBGPlatform)}**.`,
           )
           .setColor('#00FF00')
           .addFields(
@@ -93,7 +93,7 @@ const register: Command = {
               name: '🔄 Quer atualizar?',
               value: 'Use o botão abaixo para atualizar seus dados de registro.',
               inline: false,
-            }
+            },
           );
 
         const updateRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -101,7 +101,7 @@ const register: Command = {
             .setCustomId('update_registration')
             .setLabel('Atualizar Registro')
             .setStyle(ButtonStyle.Secondary)
-            .setEmoji('🔄')
+            .setEmoji('🔄'),
         );
 
         const response = await interaction.reply({
@@ -145,7 +145,7 @@ const register: Command = {
       const errorEmbed = new EmbedBuilder()
         .setTitle('❌ Erro no registro')
         .setDescription(
-          'Ocorreu um erro interno durante o registro. Tente novamente em alguns minutos.'
+          'Ocorreu um erro interno durante o registro. Tente novamente em alguns minutos.',
         )
         .setColor('#FF0000')
         .setFooter({ text: 'Se o problema persistir, contate um administrador' });
@@ -160,7 +160,7 @@ async function performRegistration(
   client: ExtendedClient,
   nick: string,
   platform: PUBGPlatform,
-  isUpdate: boolean
+  isUpdate: boolean,
 ) {
   try {
     // Validar nick PUBG
@@ -194,7 +194,7 @@ async function performRegistration(
       const duplicateEmbed = new EmbedBuilder()
         .setTitle('❌ Nick já registrado')
         .setDescription(
-          `O nick **${nick}** na plataforma **${getPlatformName(platform)}** já está registrado por outro usuário.`
+          `O nick **${nick}** na plataforma **${getPlatformName(platform)}** já está registrado por outro usuário.`,
         )
         .setColor('#FF0000')
         .addFields({
@@ -222,7 +222,7 @@ async function performRegistration(
       const serviceErrorEmbed = new EmbedBuilder()
         .setTitle('❌ Serviço indisponível')
         .setDescription(
-          'O serviço PUBG está temporariamente indisponível. Tente novamente mais tarde.'
+          'O serviço PUBG está temporariamente indisponível. Tente novamente mais tarde.',
         )
         .setColor('#FF0000')
         .setFooter({ text: 'Contate um administrador se o problema persistir' });
@@ -234,7 +234,7 @@ async function performRegistration(
     // Tentar buscar o jogador na API do PUBG
     const playerData: PUBGPlayer | null = await client.services.pubg.getPlayerByName(
       nick,
-      platform
+      platform,
     );
 
     if (!playerData) {
@@ -345,7 +345,7 @@ async function performRegistration(
     const successEmbed = new EmbedBuilder()
       .setTitle('✅ Registro concluído!')
       .setDescription(
-        `Parabéns! Você foi registrado com sucesso como **${nick}** na plataforma **${getPlatformName(platform)}**.`
+        `Parabéns! Você foi registrado com sucesso como **${nick}** na plataforma **${getPlatformName(platform)}**.`,
       )
       .setColor('#00FF00')
       .addFields(
@@ -363,14 +363,14 @@ async function performRegistration(
           name: '📊 Estatísticas',
           value: `**Kills:** ${playerData.stats?.gameModeStats?.[PUBGGameMode.SQUAD]?.kills || 0}\n**Wins:** ${playerData.stats?.gameModeStats?.[PUBGGameMode.SQUAD]?.wins || 0}`,
           inline: true,
-        }
+        },
       )
       .setFooter({ text: 'Agora você tem acesso completo ao servidor!' });
 
     await interaction.editReply({ embeds: [successEmbed], components: [] });
 
     logger.info(
-      `User ${interaction.user.tag} registered as ${nick} on ${platform} in guild ${guild.name}`
+      `User ${interaction.user.tag} registered as ${nick} on ${platform} in guild ${guild.name}`,
     );
 
     // Log de sucesso para o canal de logs da API
@@ -387,7 +387,7 @@ async function performRegistration(
           nick,
           platform: getPlatformName(platform),
           rank: playerData.stats?.rankPointTitle || 'Não classificado',
-        }
+        },
       );
     }
 
@@ -406,12 +406,12 @@ async function handlePlayerNotFound(
   client: ExtendedClient,
   nick: string,
   platform: PUBGPlatform,
-  isUpdate: boolean
+  isUpdate: boolean,
 ) {
   const notFoundEmbed = new EmbedBuilder()
     .setTitle('❌ Jogador não encontrado')
     .setDescription(
-      `Não foi possível encontrar o jogador **${nick}** na plataforma **${getPlatformName(platform)}**.`
+      `Não foi possível encontrar o jogador **${nick}** na plataforma **${getPlatformName(platform)}**.`,
     )
     .setColor('#FF0000')
     .addFields(
@@ -426,7 +426,7 @@ async function handlePlayerNotFound(
         value:
           'Seu perfil PUBG deve ser público e você deve ter jogado pelo menos uma partida recentemente.',
         inline: false,
-      }
+      },
     )
     .setFooter({ text: 'Tente novamente após verificar os dados' });
 
@@ -440,7 +440,7 @@ async function handlePlayerNotFound(
       .setCustomId('manual_verification')
       .setLabel('Verificação Manual')
       .setStyle(ButtonStyle.Secondary)
-      .setEmoji('👤')
+      .setEmoji('👤'),
   );
 
   const response = await interaction.editReply({
@@ -482,7 +482,7 @@ async function handleRegistrationError(
   nick: string,
   platform: PUBGPlatform,
   isUpdate: boolean,
-  error: any
+  error: any,
 ) {
   // Log detalhado para o canal de logs da API
   if (client.services?.logging) {
@@ -498,14 +498,14 @@ async function handleRegistrationError(
         nick,
         platform,
         error: error instanceof Error ? error.message : 'Erro desconhecido',
-      }
+      },
     );
   }
 
   const apiErrorEmbed = new EmbedBuilder()
     .setTitle('⚠️ Erro na verificação')
     .setDescription(
-      'Ocorreu um erro ao verificar seus dados no PUBG. Você pode tentar novamente ou solicitar verificação manual.'
+      'Ocorreu um erro ao verificar seus dados no PUBG. Você pode tentar novamente ou solicitar verificação manual.',
     )
     .setColor('#FFA500')
     .addFields({
@@ -525,7 +525,7 @@ async function handleRegistrationError(
       .setCustomId('manual_verification')
       .setLabel('Verificação Manual')
       .setStyle(ButtonStyle.Secondary)
-      .setEmoji('👤')
+      .setEmoji('👤'),
   );
 
   const response = await interaction.editReply({
@@ -565,7 +565,7 @@ async function requestManualVerification(
   interaction: ChatInputCommandInteraction | CommandInteraction,
   client: ExtendedClient,
   nick: string,
-  platform: PUBGPlatform
+  platform: PUBGPlatform,
 ) {
   // Criar ticket para verificação manual
   const ticketEmbed = new EmbedBuilder()
@@ -583,7 +583,7 @@ async function requestManualVerification(
         value:
           'Um administrador irá verificar seus dados manualmente e liberar seu acesso em breve.',
         inline: false,
-      }
+      },
     )
     .setFooter({ text: 'Aguarde a verificação manual' });
 
@@ -657,7 +657,7 @@ async function assignRankRole(member: GuildMember, tier: string, guild: Guild): 
     // Remove existing rank roles
     const rankKeywords = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master'];
     const rankRoles = guild.roles.cache.filter(role =>
-      rankKeywords.some(keyword => role.name.includes(keyword))
+      rankKeywords.some(keyword => role.name.includes(keyword)),
     );
 
     if (rankRoles.size > 0) {

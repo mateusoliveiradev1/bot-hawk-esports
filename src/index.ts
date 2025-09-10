@@ -125,7 +125,7 @@ class HawkEsportsBot {
       this.logger.info('🔧 Initializing StructuredLogger...');
       this.structuredLogger = new StructuredLogger(
         this.monitoringConfig.logging,
-        'bot-hawk-esports'
+        'bot-hawk-esports',
       );
       this.logger.info('✅ StructuredLogger initialized');
 
@@ -236,7 +236,7 @@ class HawkEsportsBot {
           loggingService,
           pubgService,
           this.monitoringConfig.alerts,
-          this.monitoringConfig.logging
+          this.monitoringConfig.logging,
         ),
         metrics: new MetricsService(),
         alert: new AlertService(this.monitoringConfig.alerts),
@@ -253,7 +253,7 @@ class HawkEsportsBot {
         this.structuredLogger,
         this.services.health,
         this.services.metrics,
-        this.monitoringConfig.backup
+        this.monitoringConfig.backup,
       );
 
       this.services = {
@@ -283,7 +283,7 @@ class HawkEsportsBot {
       (this.client as any).badgeAuditService = new BadgeAuditService(
         this.client,
         this.services.badge,
-        this.db
+        this.db,
       );
 
       // Initialize PresenceEnhancementsService
@@ -502,7 +502,7 @@ class HawkEsportsBot {
         this.services.logging,
         this.services.pubg,
         alertServiceConfig,
-        this.monitoringConfig.logging
+        this.monitoringConfig.logging,
       );
 
       // Log service initialization
@@ -531,7 +531,7 @@ class HawkEsportsBot {
           this.backupScheduler = createBackupScheduler(
             this.services.backup,
             this.structuredLogger,
-            this.services.alert
+            this.services.alert,
           );
 
           if (this.monitoringConfig.backup.enabled) {
@@ -540,7 +540,7 @@ class HawkEsportsBot {
           } else {
             this.structuredLogger.info('Backup scheduler disabled in configuration');
           }
-        })
+        }),
       ];
 
       // Wait for all services to initialize
@@ -549,12 +549,12 @@ class HawkEsportsBot {
       const initTime = Date.now() - startTime;
       this.logger.info(`✅ All services initialized in ${initTime}ms`);
       this.structuredLogger.info('All services initialized successfully', {
-        metadata: { initializationTime: initTime }
+        metadata: { initializationTime: initTime },
       });
     } catch (error) {
       this.structuredLogger.error(
         'Service initialization failed',
-        error instanceof Error ? error : new Error(String(error))
+        error instanceof Error ? error : new Error(String(error)),
       );
       this.logger.error('Service initialization failed:', error);
       throw error;
@@ -570,7 +570,7 @@ class HawkEsportsBot {
 
       const stats = this.commands.getStats();
       this.logger.info(
-        `✅ Loaded ${stats.total} commands (${stats.slash} slash, ${stats.context} context)`
+        `✅ Loaded ${stats.total} commands (${stats.slash} slash, ${stats.context} context)`,
       );
     } catch (error) {
       this.logger.error('Command loading failed:', error);
@@ -590,7 +590,7 @@ class HawkEsportsBot {
 
       this.logger.info(`🤖 Bot logged in as ${this.client.user.tag}`);
       this.logger.info(
-        `📊 Serving ${this.client.guilds.cache.size} guilds with ${this.client.users.cache.size} users`
+        `📊 Serving ${this.client.guilds.cache.size} guilds with ${this.client.users.cache.size} users`,
       );
 
       // Set bot activity
@@ -604,7 +604,7 @@ class HawkEsportsBot {
         const { CommandDeployer } = await import('./deploy-commands');
         const deployer = new CommandDeployer(
           process.env.DISCORD_TOKEN!,
-          process.env.DISCORD_CLIENT_ID!
+          process.env.DISCORD_CLIENT_ID!,
         );
 
         // Deploy commands to all guilds the bot is in
@@ -722,7 +722,7 @@ class HawkEsportsBot {
         } catch (error) {
           this.logger.error(
             `Failed to initialize persistent ticket service for guild ${guild.name}:`,
-            error
+            error,
           );
         }
       } catch (error) {
@@ -770,7 +770,7 @@ class HawkEsportsBot {
                   // Find text channel in the same category to send notification
                   const category = leftChannel.parent;
                   const textChannel = category?.children.cache.find(
-                    ch => ch.type === ChannelType.GuildText && ch.name.includes('chat')
+                    ch => ch.type === ChannelType.GuildText && ch.name.includes('chat'),
                   ) as TextChannel;
 
                   // Send auto check-out notification
@@ -781,7 +781,7 @@ class HawkEsportsBot {
                         `${member.displayName} saiu do canal de voz e foi automaticamente removido da sessão.\n\n` +
                           `⏰ **Saída detectada em:** <t:${Math.floor(Date.now() / 1000)}:F>\n` +
                           `🔊 **Canal:** ${leftChannel.name}\n\n` +
-                          '💡 **Dica:** Use `/checkin` novamente para criar uma nova sessão!'
+                          '💡 **Dica:** Use `/checkin` novamente para criar uma nova sessão!',
                       )
                       .setColor(0xffa500)
                       .setThumbnail(member.displayAvatarURL())
@@ -795,7 +795,7 @@ class HawkEsportsBot {
                     await this.services.presence.checkOut(
                       userId,
                       oldState.guild.id,
-                      'Auto check-out - left voice channel'
+                      'Auto check-out - left voice channel',
                     );
                   }
 
@@ -807,12 +807,12 @@ class HawkEsportsBot {
                       userId,
                       oldState.guild.id,
                       estimatedSessionStart,
-                      leftChannel.id
+                      leftChannel.id,
                     );
                   }
 
                   this.logger.info(
-                    `Auto check-out performed for user ${userId} from channel ${leftChannel.name}`
+                    `Auto check-out performed for user ${userId} from channel ${leftChannel.name}`,
                   );
                 } catch (autoCheckoutError) {
                   this.logger.error('Auto check-out error:', autoCheckoutError);

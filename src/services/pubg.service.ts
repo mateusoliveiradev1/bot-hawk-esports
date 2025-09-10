@@ -73,13 +73,13 @@ export class PUBGService {
     if (!rawApiKey || rawApiKey === 'your-pubg-api-key-here' || rawApiKey.length < 20) {
       this.apiKey = null;
       this.logger.warn(
-        '⚠️ PUBG API key not configured or invalid. Some features will use mock data.'
+        '⚠️ PUBG API key not configured or invalid. Some features will use mock data.',
       );
       this.logApiOperation(
         'PUBG API Configuration',
         'warning',
         'API key not configured or invalid',
-        { service: 'PUBG', operation: 'Configuration' }
+        { service: 'PUBG', operation: 'Configuration' },
       );
     } else {
       this.apiKey = rawApiKey;
@@ -112,7 +112,7 @@ export class PUBGService {
     operation: string,
     status: 'success' | 'error' | 'warning',
     message: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): Promise<void> {
     if (!this.loggingService) {
       return;
@@ -127,7 +127,7 @@ export class PUBGService {
         success,
         undefined,
         status === 'error' ? message : undefined,
-        metadata
+        metadata,
       );
     } catch (error) {
       this.logger.error('Failed to log API operation:', error);
@@ -173,7 +173,7 @@ export class PUBGService {
         if (this.circuitBreakerFailures >= this.circuitBreakerThreshold) {
           this.circuitBreakerState = CircuitBreakerState.OPEN;
           this.logger.warn(
-            `🔴 PUBG API Circuit breaker opened after ${this.circuitBreakerFailures} failures`
+            `🔴 PUBG API Circuit breaker opened after ${this.circuitBreakerFailures} failures`,
           );
           await this.logApiOperation(
             'PUBG API Circuit Breaker Opened',
@@ -185,7 +185,7 @@ export class PUBGService {
               failures: this.circuitBreakerFailures,
               timeoutSeconds: this.circuitBreakerTimeout / 1000,
               status: 'opened',
-            }
+            },
           );
         }
         break;
@@ -201,7 +201,7 @@ export class PUBGService {
             service: 'PUBG',
             operation: 'Circuit Breaker',
             status: 'reopened',
-          }
+          },
         );
         break;
 
@@ -240,7 +240,7 @@ export class PUBGService {
               previousState,
               newState: this.circuitBreakerState,
               successfulHalfOpenCalls: this.circuitBreakerHalfOpenMaxCalls,
-            }
+            },
           );
         }
         break;
@@ -266,7 +266,7 @@ export class PUBGService {
               operation: 'Circuit Breaker',
               state: this.circuitBreakerState,
               status: 'failures_reset',
-            }
+            },
           );
         }
         break;
@@ -314,7 +314,7 @@ export class PUBGService {
       async error => {
         this.logger.error('PUBG API request error:', error);
         return Promise.reject(error);
-      }
+      },
     );
 
     // Response interceptor
@@ -322,7 +322,7 @@ export class PUBGService {
       async (response: AxiosResponse) => {
         const duration = Date.now() - this.lastRequestTime;
         this.logger.debug(
-          `✅ PUBG API Response: ${response.status} ${response.config.url} (${duration}ms)`
+          `✅ PUBG API Response: ${response.status} ${response.config.url} (${duration}ms)`,
         );
 
         // Log successful request to channel
@@ -430,7 +430,7 @@ export class PUBGService {
         }
 
         return Promise.reject(error);
-      }
+      },
     );
   }
 
@@ -440,12 +440,12 @@ export class PUBGService {
   private async executeWithRetry<T>(
     operation: () => Promise<T>,
     operationName: string,
-    maxRetries: number = this.maxRetries
+    maxRetries: number = this.maxRetries,
   ): Promise<T> {
     // Check circuit breaker
     if (this.isCircuitBreakerOpen()) {
       const error = new Error(
-        'Circuit breaker is open for PUBG API. Service temporarily unavailable.'
+        'Circuit breaker is open for PUBG API. Service temporarily unavailable.',
       );
       this.logger.warn(`🔴 ${operationName}: Circuit breaker is open`);
       throw error;
@@ -461,7 +461,7 @@ export class PUBGService {
 
         if (attempt > 0) {
           this.logger.info(
-            `✅ ${operationName}: Succeeded on attempt ${attempt + 1} (${duration}ms)`
+            `✅ ${operationName}: Succeeded on attempt ${attempt + 1} (${duration}ms)`,
           );
           this.logApiOperation(
             'PUBG API Retry',
@@ -472,7 +472,7 @@ export class PUBGService {
               operation: operationName,
               attempts: attempt + 1,
               responseTime: duration,
-            }
+            },
           );
         }
 
@@ -495,7 +495,7 @@ export class PUBGService {
           const jitter = baseDelay * this.retryJitterFactor * (Math.random() * 2 - 1);
           const delay = Math.min(
             Math.max(100, baseDelay + jitter), // Minimum 100ms delay
-            this.maxRetryDelay // Maximum delay cap
+            this.maxRetryDelay, // Maximum delay cap
           );
           this.logger.warn(
             `⚠️ ${operationName}: Attempt ${attempt + 1} failed, retrying in ${Math.round(delay)}ms`,
@@ -507,7 +507,7 @@ export class PUBGService {
                 delay: Math.round(delay),
                 jitter: Math.round(jitter),
               },
-            }
+            },
           );
 
           this.logApiOperation(
@@ -520,7 +520,7 @@ export class PUBGService {
               attempt: `${attempt + 1}/${maxRetries + 1}`,
               error: error.message.substring(0, 100),
               delay: `${Math.round(delay)}ms`,
-            }
+            },
           );
 
           await new Promise(resolve => setTimeout(resolve, delay));
@@ -548,7 +548,7 @@ export class PUBGService {
         operation: operationName,
         attempts: maxRetries + 1,
         error: lastError.message.substring(0, 100),
-      }
+      },
     );
 
     throw lastError;
@@ -578,7 +578,7 @@ export class PUBGService {
    */
   public async getPlayerByName(
     playerName: string,
-    platform: PUBGPlatform = PUBGPlatform.STEAM
+    platform: PUBGPlatform = PUBGPlatform.STEAM,
   ): Promise<PUBGPlayer | null> {
     try {
       // Validate input
@@ -595,7 +595,7 @@ export class PUBGService {
       }
 
       const cacheKey = this.cache.keyGenerators.pubgPlayer(
-        `${platform}:${playerName.toLowerCase()}`
+        `${platform}:${playerName.toLowerCase()}`,
       );
       const cached = await this.cache.get<PUBGPlayer>(cacheKey);
 
@@ -611,7 +611,7 @@ export class PUBGService {
             player: playerName,
             platform: platform,
             cached: true,
-          }
+          },
         );
         return cached;
       }
@@ -629,7 +629,7 @@ export class PUBGService {
             params: {
               'filter[playerNames]': playerName,
             },
-          }
+          },
         );
 
         const players = response.data.data;
@@ -667,7 +667,7 @@ export class PUBGService {
 
       // Try to return stale cache data
       const cacheKey = this.cache.keyGenerators.pubgPlayer(
-        `${platform}:${playerName.toLowerCase()}`
+        `${platform}:${playerName.toLowerCase()}`,
       );
       const staleCache = await this.cache.get<PUBGPlayer>(cacheKey);
       if (staleCache) {
@@ -683,7 +683,7 @@ export class PUBGService {
             platform: platform,
             cached: true,
             stale: true,
-          }
+          },
         );
         return staleCache;
       }
@@ -703,7 +703,7 @@ export class PUBGService {
   public async getPlayerStats(
     playerId: string,
     platform: PUBGPlatform,
-    seasonId?: string
+    seasonId?: string,
   ): Promise<PUBGPlayerStats | null> {
     try {
       const currentSeason = seasonId || (await this.getCurrentSeason(platform));
@@ -728,7 +728,7 @@ export class PUBGService {
             platform: platform,
             season: currentSeason,
             cached: true,
-          }
+          },
         );
         return cached;
       }
@@ -741,7 +741,7 @@ export class PUBGService {
 
       const stats = await this.executeWithRetry(async () => {
         const response = await this.api.get<PUBGAPIResponse<PUBGPlayerStats>>(
-          `/shards/${platform}/players/${playerId}/seasons/${currentSeason}`
+          `/shards/${platform}/players/${playerId}/seasons/${currentSeason}`,
         );
 
         return response.data.data;
@@ -773,7 +773,7 @@ export class PUBGService {
             platform: platform,
             cached: true,
             stale: true,
-          }
+          },
         );
         return staleCache;
       }
@@ -789,7 +789,7 @@ export class PUBGService {
     playerId: string,
     platform: PUBGPlatform,
     seasonId: string,
-    gameMode: PUBGGameMode
+    gameMode: PUBGGameMode,
   ): Promise<PUBGSeasonStats | null> {
     try {
       const cacheKey = this.cache.keyGenerators.pubgStats(playerId, seasonId, gameMode);
@@ -801,7 +801,7 @@ export class PUBGService {
       }
 
       const response = await this.api.get<PUBGAPIResponse<PUBGSeasonStats>>(
-        `/shards/${platform}/players/${playerId}/seasons/${seasonId}/ranked`
+        `/shards/${platform}/players/${playerId}/seasons/${seasonId}/ranked`,
       );
 
       const seasonStats = response.data.data;
@@ -839,7 +839,7 @@ export class PUBGService {
             platform: platform,
             matchesCount: cached.length,
             cached: true,
-          }
+          },
         );
         return cached;
       }
@@ -893,7 +893,7 @@ export class PUBGService {
             matchesCount: staleCache.length,
             cached: true,
             stale: true,
-          }
+          },
         );
         return staleCache;
       }
@@ -915,7 +915,7 @@ export class PUBGService {
       }
 
       const response = await this.api.get<PUBGAPIResponse<PUBGMatch>>(
-        `/shards/${platform}/matches/${matchId}`
+        `/shards/${platform}/matches/${matchId}`,
       );
 
       const match = response.data.data;
@@ -951,7 +951,7 @@ export class PUBGService {
       }
 
       const response = await this.api.get<PUBGAPIResponse<PUBGSeason[]>>(
-        `/shards/${platform}/seasons`
+        `/shards/${platform}/seasons`,
       );
 
       const seasons = response.data.data;
@@ -983,7 +983,7 @@ export class PUBGService {
   public async getLeaderboard(
     platform: PUBGPlatform,
     gameMode: PUBGGameMode,
-    seasonId?: string
+    seasonId?: string,
   ): Promise<PUBGLeaderboardEntry[]> {
     const currentSeason = seasonId || (await this.getCurrentSeason(platform));
     if (!currentSeason) {
@@ -1009,7 +1009,7 @@ export class PUBGService {
             season: currentSeason,
             entries: cached.length,
             cached: true,
-          }
+          },
         );
         return cached;
       }
@@ -1022,7 +1022,7 @@ export class PUBGService {
 
       const leaderboard = await this.executeWithRetry(async () => {
         const response = await this.api.get<PUBGAPIResponse<any>>(
-          `/shards/${platform}/leaderboards/${currentSeason}/${gameMode}`
+          `/shards/${platform}/leaderboards/${currentSeason}/${gameMode}`,
         );
 
         // Transform API response to leaderboard entries
@@ -1073,7 +1073,7 @@ export class PUBGService {
             entries: staleCache.length,
             cached: true,
             stale: true,
-          }
+          },
         );
         return staleCache;
       }
@@ -1261,7 +1261,7 @@ export class PUBGService {
       }
 
       const response = await this.api.get<PUBGAPIResponse<any>>(
-        `/shards/${platform}/players/${playerId}/weapon_mastery`
+        `/shards/${platform}/players/${playerId}/weapon_mastery`,
       );
 
       const weaponMastery = response.data.data;
@@ -1292,7 +1292,7 @@ export class PUBGService {
       }
 
       const response = await this.api.get<PUBGAPIResponse<any>>(
-        `/shards/${platform}/players/${playerId}/survival_mastery`
+        `/shards/${platform}/players/${playerId}/survival_mastery`,
       );
 
       const survivalMastery = response.data.data;
@@ -1686,7 +1686,7 @@ export class PUBGService {
   public async updateUserStats(
     userId: string,
     pubgPlayerId: string,
-    platform: PUBGPlatform
+    platform: PUBGPlatform,
   ): Promise<PUBGPlayerStats | null> {
     try {
       this.logger.info(`Updating PUBG stats for user ${userId}`, {
@@ -1705,7 +1705,7 @@ export class PUBGService {
       const cacheKey = this.cache.keyGenerators.pubgStats(
         `${platform}:${pubgPlayerId}`,
         'current',
-        'all'
+        'all',
       );
       await this.cache.del(cacheKey);
 
@@ -1733,7 +1733,7 @@ export class PUBGService {
             (stats.gameModeStats?.solo?.roundsPlayed || 0) +
             (stats.gameModeStats?.duo?.roundsPlayed || 0) +
             (stats.gameModeStats?.squad?.roundsPlayed || 0),
-        }
+        },
       );
 
       return stats;
@@ -1751,7 +1751,7 @@ export class PUBGService {
           pubgPlayerId,
           platform,
           error: error.message,
-        }
+        },
       );
 
       return null;
@@ -1777,7 +1777,7 @@ export class PUBGService {
           service: 'PUBG',
           operation: 'Bulk Stats Sync',
           maxUsers,
-        }
+        },
       );
 
       // TODO: Implement actual bulk sync logic when database service is available
@@ -1793,7 +1793,7 @@ export class PUBGService {
           service: 'PUBG',
           operation: 'Bulk Stats Sync',
           error: error.message,
-        }
+        },
       );
 
       return 0;
@@ -1840,7 +1840,7 @@ export class PUBGService {
         health.circuitBreaker = 'open';
         health.metrics.timeoutRemaining = Math.max(
           0,
-          this.circuitBreakerTimeout - (Date.now() - this.circuitBreakerLastFailure)
+          this.circuitBreakerTimeout - (Date.now() - this.circuitBreakerLastFailure),
         );
       } else if (this.circuitBreakerFailures > 0) {
         health.circuitBreaker = 'half-open';
@@ -1923,7 +1923,7 @@ export class PUBGService {
           health.metrics.timeoutRemaining > 0
             ? `${Math.round(health.metrics.timeoutRemaining / 1000)}s`
             : 'N/A',
-      }
+      },
     );
 
     return health;

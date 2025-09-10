@@ -37,8 +37,8 @@ class QuizCommand extends BaseCommand {
               { name: '🏆 PUBG - Esports & Competitivo', value: 'pubg_esports' },
               { name: '📚 PUBG - História & Lore', value: 'pubg_lore' },
               { name: '🎯 Gaming Geral', value: 'gaming' },
-              { name: '🎲 Misto', value: 'mixed' }
-            )
+              { name: '🎲 Misto', value: 'mixed' },
+            ),
         )
         .addStringOption(option =>
           option
@@ -50,8 +50,8 @@ class QuizCommand extends BaseCommand {
               { name: '🟡 Veterano (Médio)', value: 'medium' },
               { name: '🔴 Pro Player (Difícil)', value: 'hard' },
               { name: '💀 Chicken Dinner (Extremo)', value: 'extreme' },
-              { name: '🌈 Misto', value: 'mixed' }
-            )
+              { name: '🌈 Misto', value: 'mixed' },
+            ),
         )
         .addIntegerOption(option =>
           option
@@ -59,7 +59,7 @@ class QuizCommand extends BaseCommand {
             .setDescription('Número de perguntas (5-25)')
             .setRequired(false)
             .setMinValue(5)
-            .setMaxValue(25)
+            .setMaxValue(25),
         )
         .addIntegerOption(option =>
           option
@@ -67,7 +67,7 @@ class QuizCommand extends BaseCommand {
             .setDescription('Tempo por pergunta em segundos (10-180)')
             .setRequired(false)
             .setMinValue(10)
-            .setMaxValue(180)
+            .setMaxValue(180),
         ) as SlashCommandBuilder,
       category: CommandCategory.GENERAL,
       cooldown: 15,
@@ -83,7 +83,7 @@ class QuizCommand extends BaseCommand {
         const embed = new EmbedBuilder()
           .setTitle('🚫 Sistema Indisponível')
           .setDescription(
-            '```diff\n- O sistema de quiz está temporariamente indisponível\n+ Tente novamente em alguns minutos```'
+            '```diff\n- O sistema de quiz está temporariamente indisponível\n+ Tente novamente em alguns minutos```',
           )
           .setColor(0xff4444)
           .setThumbnail('https://cdn.discordapp.com/emojis/852869487845515264.png')
@@ -121,14 +121,14 @@ class QuizCommand extends BaseCommand {
         interaction.guildId!,
         interaction.channelId,
         interaction.user.id,
-        settings
+        settings,
       );
 
       if (!session) {
         const embed = new EmbedBuilder()
           .setTitle('⚠️ Falha na Inicialização')
           .setDescription(
-            '```yaml\nErro: Não foi possível criar a sessão de quiz\nMotivo: Recursos temporariamente indisponíveis\nAção: Tente novamente em alguns segundos```'
+            '```yaml\nErro: Não foi possível criar a sessão de quiz\nMotivo: Recursos temporariamente indisponíveis\nAção: Tente novamente em alguns segundos```',
           )
           .setColor(0xffaa00)
           .addFields({
@@ -153,8 +153,8 @@ class QuizCommand extends BaseCommand {
             `📊 **Perguntas:** ${questionCount} questões\n` +
             `⏱️ **Tempo:** ${timePerQuestion}s por pergunta\n` +
             '🏆 **Recompensas:** XP + Moedas + Badges\n\n' +
-            "```diff\n+ Clique em 'Entrar na Batalha' para participar!\n```\n" +
-            '*O quiz começará em 15 segundos...*'
+            '```diff\n+ Clique em \'Entrar na Batalha\' para participar!\n```\n' +
+            '*O quiz começará em 15 segundos...*',
         )
         .setColor(categoryInfo.color)
         .setThumbnail(categoryInfo.thumbnail)
@@ -173,7 +173,7 @@ class QuizCommand extends BaseCommand {
             name: '🎁 Recompensas Possíveis',
             value: `• **${this.getXPReward(difficulty, questionCount)} XP**\n• **${this.getCoinReward(difficulty, questionCount)} Moedas**\n• **Badges especiais**`,
             inline: true,
-          }
+          },
         )
         .setFooter({
           text: `PUBG Quiz System • Participantes: 0/${this.getMaxParticipants()}`,
@@ -196,7 +196,7 @@ class QuizCommand extends BaseCommand {
           .setCustomId(`quiz_cancel_${session.id}`)
           .setLabel('❌ Cancelar')
           .setStyle(ButtonStyle.Danger)
-          .setEmoji('🚫')
+          .setEmoji('🚫'),
       );
 
       await interaction.reply({
@@ -214,7 +214,7 @@ class QuizCommand extends BaseCommand {
         .setDescription(
           '```diff\n- Falha inesperada no sistema de quiz\n+ Reportando erro automaticamente...```\n\n' +
             '**Código do erro:** `QUIZ_EXEC_FAIL`\n' +
-            '**Ação recomendada:** Tente novamente ou contate um administrador'
+            '**Ação recomendada:** Tente novamente ou contate um administrador',
         )
         .setColor(0xff0000)
         .addFields({
@@ -240,7 +240,7 @@ class QuizCommand extends BaseCommand {
   private async endQuiz(
     interaction: ChatInputCommandInteraction,
     session: any,
-    gameService: GameService
+    gameService: GameService,
   ) {
     const results = await gameService.endQuiz(session.id);
 
@@ -275,7 +275,7 @@ class QuizCommand extends BaseCommand {
               `📊 ${participant.score} pontos • ✅ ${participant.correctAnswers}/${participant.totalAnswers} (${accuracy}%)`
             );
           })
-          .join('\n\n')
+          .join('\n\n'),
       )
       .setColor(0xffd700)
       .setFooter({ text: `Participantes: ${results.length}` })
@@ -382,7 +382,7 @@ class QuizCommand extends BaseCommand {
    */
   private async showQuizConfigurationMenu(
     interaction: ChatInputCommandInteraction,
-    gameService: GameService
+    gameService: GameService,
   ) {
     const embed = new EmbedBuilder()
       .setTitle('🎯 Configuração do Quiz PUBG')
@@ -392,7 +392,7 @@ class QuizCommand extends BaseCommand {
           '⚡ Selecione o nível de dificuldade\n' +
           '📊 Configure o número de perguntas\n' +
           '⏱️ Defina o tempo por pergunta\n\n' +
-          '```yaml\nDica: Use os menus abaixo para configurar seu quiz ideal```'
+          '```yaml\nDica: Use os menus abaixo para configurar seu quiz ideal```',
       )
       .setColor(0x0099ff)
       .setThumbnail('https://cdn.discordapp.com/emojis/852869487845515264.png')
@@ -407,7 +407,7 @@ class QuizCommand extends BaseCommand {
           name: '📈 Sistema de Ranking',
           value: '• Pontuação global\n• Streaks de vitórias\n• Estatísticas detalhadas',
           inline: true,
-        }
+        },
       )
       .setFooter({ text: 'PUBG Quiz System • Selecione suas preferências abaixo' })
       .setTimestamp();
@@ -440,7 +440,7 @@ class QuizCommand extends BaseCommand {
           .setLabel('Quiz Misto')
           .setDescription('Mistura de todas as categorias')
           .setValue('mixed')
-          .setEmoji('🎲')
+          .setEmoji('🎲'),
       );
 
     const difficultySelect = new StringSelectMenuBuilder()
@@ -466,14 +466,14 @@ class QuizCommand extends BaseCommand {
           .setLabel('Chicken Dinner (Extremo)')
           .setDescription('Perguntas expert - 40 pts por acerto')
           .setValue('extreme')
-          .setEmoji('💀')
+          .setEmoji('💀'),
       );
 
     const actionRow1 = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-      categorySelect
+      categorySelect,
     );
     const actionRow2 = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-      difficultySelect
+      difficultySelect,
     );
 
     const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -491,7 +491,7 @@ class QuizCommand extends BaseCommand {
         .setCustomId('quiz_cancel_config')
         .setLabel('❌ Cancelar')
         .setStyle(ButtonStyle.Secondary)
-        .setEmoji('🚫')
+        .setEmoji('🚫'),
     );
 
     await interaction.reply({
@@ -508,7 +508,7 @@ class QuizCommand extends BaseCommand {
     interaction: ChatInputCommandInteraction,
     session: any,
     gameService: GameService,
-    seconds: number
+    seconds: number,
   ) {
     const originalMessage = await interaction.fetchReply();
     let currentSeconds = seconds;
@@ -525,7 +525,7 @@ class QuizCommand extends BaseCommand {
         const joined = await gameService.joinQuiz(
           session.id,
           buttonInteraction.user.id,
-          buttonInteraction.user.username
+          buttonInteraction.user.username,
         );
 
         if (joined) {
@@ -560,7 +560,7 @@ class QuizCommand extends BaseCommand {
               `• **${this.getXPReward(session.settings.difficulty, session.settings.questionCount)} XP** para o vencedor\n` +
               `• **${this.getCoinReward(session.settings.difficulty, session.settings.questionCount)} Moedas** para o vencedor\n` +
               '• **Badges especiais** para conquistas\n' +
-              '• **XP de participação** para todos'
+              '• **XP de participação** para todos',
           )
           .setColor(categoryInfo.color)
           .addFields(
@@ -574,7 +574,7 @@ class QuizCommand extends BaseCommand {
               value:
                 '**1º lugar:** 100% das recompensas\n**2º lugar:** 75% das recompensas\n**3º lugar:** 50% das recompensas\n**Participação:** 25% das recompensas',
               inline: true,
-            }
+            },
           )
           .setFooter({ text: 'Boa sorte na batalha! 🎮' })
           .setTimestamp();
@@ -626,7 +626,7 @@ class QuizCommand extends BaseCommand {
               `⏱️ **Tempo:** ${session.settings.timePerQuestion}s por pergunta\n` +
               '🏆 **Recompensas:** XP + Moedas + Badges\n\n' +
               `\`\`\`diff\n${currentSeconds <= 5 ? '! ' : '+ '}Quiz começando em ${currentSeconds} segundo${currentSeconds !== 1 ? 's' : ''}...\n\`\`\`\n` +
-              `${currentSeconds <= 5 ? '🔥 **ÚLTIMOS SEGUNDOS!** 🔥' : '*Ainda dá tempo de entrar!*'}`
+              `${currentSeconds <= 5 ? '🔥 **ÚLTIMOS SEGUNDOS!** 🔥' : '*Ainda dá tempo de entrar!*'}`,
           )
           .setColor(currentSeconds <= 5 ? 0xff4444 : categoryInfo.color)
           .setThumbnail(categoryInfo.thumbnail)
@@ -645,7 +645,7 @@ class QuizCommand extends BaseCommand {
               name: '🎁 Recompensas Possíveis',
               value: `• **${this.getXPReward(session.settings.difficulty, session.settings.questionCount)} XP**\n• **${this.getCoinReward(session.settings.difficulty, session.settings.questionCount)} Moedas**\n• **Badges especiais**`,
               inline: true,
-            }
+            },
           )
           .setFooter({
             text: `PUBG Quiz System • Participantes: ${participantCount}/${this.getMaxParticipants()}`,
@@ -675,7 +675,7 @@ class QuizCommand extends BaseCommand {
   private async startQuizQuestions(
     interaction: ChatInputCommandInteraction,
     session: any,
-    gameService: GameService
+    gameService: GameService,
   ) {
     try {
       // Check if we have participants
@@ -686,7 +686,7 @@ class QuizCommand extends BaseCommand {
           .setDescription(
             '**Nenhum participante se inscreveu!**\n\n' +
               'O quiz foi cancelado por falta de participantes.\n' +
-              'Tente novamente mais tarde quando houver mais pessoas online.'
+              'Tente novamente mais tarde quando houver mais pessoas online.',
           )
           .setColor(0xff6b6b)
           .setThumbnail('https://cdn.discordapp.com/emojis/852869487845515264.png')
@@ -706,7 +706,7 @@ class QuizCommand extends BaseCommand {
             `👥 **${participants.length} guerreiros** entraram na arena\n` +
             `📊 **${session.settings.questionCount} perguntas** te aguardam\n` +
             `⏱️ **${session.settings.timePerQuestion}s** por pergunta\n\n` +
-            '```yaml\nPrimeira pergunta chegando em 3 segundos...```'
+            '```yaml\nPrimeira pergunta chegando em 3 segundos...```',
         )
         .setColor(categoryInfo.color)
         .setThumbnail(categoryInfo.thumbnail)
@@ -722,7 +722,7 @@ class QuizCommand extends BaseCommand {
             name: '🎯 Meta',
             value: 'Responda corretamente\ne seja o **#1** no ranking!',
             inline: true,
-          }
+          },
         )
         .setFooter({ text: 'PUBG Quiz System • Boa sorte a todos!' })
         .setTimestamp();
@@ -745,7 +745,7 @@ class QuizCommand extends BaseCommand {
         .setDescription(
           '**Ocorreu um erro ao iniciar o quiz!**\n\n' +
             'Por favor, tente novamente em alguns instantes.\n' +
-            'Se o problema persistir, contate um administrador.'
+            'Se o problema persistir, contate um administrador.',
         )
         .setColor(0xff4444)
         .setFooter({ text: 'PUBG Quiz System • Erro interno' })

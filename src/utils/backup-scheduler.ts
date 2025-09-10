@@ -60,7 +60,7 @@ export class BackupScheduler {
         {
           scheduled: false,
           timezone: 'America/Sao_Paulo',
-        }
+        },
       );
 
       this.scheduledTask.start();
@@ -82,7 +82,7 @@ export class BackupScheduler {
           {
             component: 'backup-scheduler',
             schedule: config.backup.schedule,
-          }
+          },
         );
       }
     } catch (error) {
@@ -99,7 +99,7 @@ export class BackupScheduler {
         {
           component: 'backup-scheduler',
           error: String(error),
-        }
+        },
       );
 
       throw error;
@@ -194,7 +194,7 @@ export class BackupScheduler {
             size: result.size,
             backupPath: result.backupPath,
             checksum: result.checksum,
-          }
+          },
         );
       }
     } catch (error) {
@@ -220,7 +220,7 @@ export class BackupScheduler {
             isManual,
             duration,
             error: errorMessage,
-          }
+          },
         );
       }
 
@@ -253,7 +253,7 @@ export class BackupScheduler {
 export function createBackupScheduler(
   backupService: BackupService,
   logger: StructuredLogger,
-  alertService: AlertService
+  alertService: AlertService,
 ): BackupScheduler {
   return new BackupScheduler(backupService, logger, alertService);
 }

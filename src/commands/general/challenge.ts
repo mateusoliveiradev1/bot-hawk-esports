@@ -33,8 +33,8 @@ class ChallengeCommand extends BaseCommand {
               { name: '📋 Ver Desafios Ativos', value: 'list' },
               { name: '📊 Meu Progresso', value: 'progress' },
               { name: '🎁 Resgatar Recompensas', value: 'claim' },
-              { name: '📈 Estatísticas', value: 'stats' }
-            )
+              { name: '📈 Estatísticas', value: 'stats' },
+            ),
         )
         .addStringOption(option =>
           option
@@ -45,8 +45,8 @@ class ChallengeCommand extends BaseCommand {
               { name: '📅 Diários', value: 'daily' },
               { name: '📆 Semanais', value: 'weekly' },
               { name: '🗓️ Mensais', value: 'monthly' },
-              { name: '⭐ Especiais', value: 'special' }
-            )
+              { name: '⭐ Especiais', value: 'special' },
+            ),
         ) as SlashCommandBuilder,
       category: CommandCategory.GENERAL,
       cooldown: 10,
@@ -68,7 +68,7 @@ class ChallengeCommand extends BaseCommand {
         const embed = new EmbedBuilder()
           .setTitle('❌ Usuário Não Registrado')
           .setDescription(
-            'Você precisa se registrar primeiro usando `/register` para acessar desafios!'
+            'Você precisa se registrar primeiro usando `/register` para acessar desafios!',
           )
           .setColor(0xff0000)
           .setTimestamp();
@@ -118,7 +118,7 @@ class ChallengeCommand extends BaseCommand {
   private async showActiveChallenges(
     interaction: ChatInputCommandInteraction,
     gameService: GameService,
-    typeFilter?: string | null
+    typeFilter?: string | null,
   ) {
     const challenges = gameService.getActiveChallenges();
 
@@ -133,7 +133,7 @@ class ChallengeCommand extends BaseCommand {
         .setDescription(
           typeFilter
             ? `Não há desafios ${this.getChallengeTypeName(typeFilter)} ativos no momento.`
-            : 'Não há desafios ativos no momento. Novos desafios são criados automaticamente!'
+            : 'Não há desafios ativos no momento. Novos desafios são criados automaticamente!',
         )
         .setColor(0xffa500)
         .setTimestamp();
@@ -150,7 +150,7 @@ class ChallengeCommand extends BaseCommand {
         acc[challenge.type]!.push(challenge);
         return acc;
       },
-      {} as Record<string, Challenge[]>
+      {} as Record<string, Challenge[]>,
     );
 
     const embed = new EmbedBuilder()
@@ -178,7 +178,7 @@ class ChallengeCommand extends BaseCommand {
                 .join('\n\n')
             );
           })
-          .join('\n\n')
+          .join('\n\n'),
       )
       .setColor(0x0099ff)
       .setFooter({ text: 'Use /challenge progress para ver seu progresso!' })
@@ -196,7 +196,7 @@ class ChallengeCommand extends BaseCommand {
       new ButtonBuilder()
         .setCustomId('challenge_stats')
         .setLabel('📈 Estatísticas')
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Secondary),
     );
 
     const response = await interaction.reply({
@@ -234,7 +234,7 @@ class ChallengeCommand extends BaseCommand {
             buttonInteraction,
             gameService,
             database,
-            interaction.user.id
+            interaction.user.id,
           );
           break;
       }
@@ -258,7 +258,7 @@ class ChallengeCommand extends BaseCommand {
     interaction: any,
     gameService: GameService,
     userId: string,
-    typeFilter?: string | null
+    typeFilter?: string | null,
   ) {
     const userProgress = gameService.getUserChallengeProgress(userId);
     const activeChallenges = gameService.getActiveChallenges();
@@ -347,7 +347,7 @@ class ChallengeCommand extends BaseCommand {
         .setTitle('🎁 Recompensas Disponíveis')
         .setDescription(
           'Você não tem recompensas para resgatar no momento.\n\n' +
-            'Complete desafios para ganhar XP, moedas e badges!'
+            'Complete desafios para ganhar XP, moedas e badges!',
         )
         .setColor(0xffa500)
         .setTimestamp();
@@ -362,7 +362,7 @@ class ChallengeCommand extends BaseCommand {
         acc.coins += challenge.rewards.coins;
         return acc;
       },
-      { xp: 0, coins: 0 }
+      { xp: 0, coins: 0 },
     );
 
     const embed = new EmbedBuilder()
@@ -380,7 +380,7 @@ class ChallengeCommand extends BaseCommand {
             .join('\n\n') +
           '\n\n**📊 Total das Recompensas:**\n' +
           `⭐ ${totalRewards.xp} XP\n` +
-          `💰 ${totalRewards.coins} moedas`
+          `💰 ${totalRewards.coins} moedas`,
       )
       .setColor(0x00ff00)
       .setTimestamp();
@@ -393,7 +393,7 @@ class ChallengeCommand extends BaseCommand {
       new ButtonBuilder()
         .setCustomId('claim_individual')
         .setLabel('📋 Resgatar Individual')
-        .setStyle(ButtonStyle.Primary)
+        .setStyle(ButtonStyle.Primary),
     );
 
     const editMethod = interaction.editReply || interaction.reply;
@@ -439,7 +439,7 @@ class ChallengeCommand extends BaseCommand {
               '**Recompensas recebidas:**\n' +
               `⭐ +${totalClaimed.xp} XP\n` +
               `💰 +${totalClaimed.coins} moedas\n\n` +
-              'Parabéns pelo seu progresso! 🎉'
+              'Parabéns pelo seu progresso! 🎉',
           )
           .setColor(0x00ff00)
           .setTimestamp();
@@ -450,7 +450,7 @@ class ChallengeCommand extends BaseCommand {
           buttonInteraction,
           gameService,
           userId,
-          claimableChallenges
+          claimableChallenges,
         );
       }
     });
@@ -463,7 +463,7 @@ class ChallengeCommand extends BaseCommand {
     interaction: any,
     gameService: GameService,
     userId: string,
-    claimableChallenges: Challenge[]
+    claimableChallenges: Challenge[],
   ) {
     const embed = new EmbedBuilder()
       .setTitle('📋 Resgatar Recompensas Individuais')
@@ -477,7 +477,7 @@ class ChallengeCommand extends BaseCommand {
                 `🎁 ${challenge.rewards.xp} XP + ${challenge.rewards.coins} moedas`
               );
             })
-            .join('\n\n')
+            .join('\n\n'),
       )
       .setColor(0x0099ff)
       .setTimestamp();
@@ -486,15 +486,15 @@ class ChallengeCommand extends BaseCommand {
       new ButtonBuilder()
         .setCustomId(`claim_individual_${challenge.id}`)
         .setLabel(
-          `${index + 1}. ${challenge.name.substring(0, 20)}${challenge.name.length > 20 ? '...' : ''}`
+          `${index + 1}. ${challenge.name.substring(0, 20)}${challenge.name.length > 20 ? '...' : ''}`,
         )
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Secondary),
     );
 
     const buttonRows = [];
     for (let i = 0; i < claimButtons.length; i += 5) {
       buttonRows.push(
-        new ActionRowBuilder<ButtonBuilder>().addComponents(claimButtons.slice(i, i + 5))
+        new ActionRowBuilder<ButtonBuilder>().addComponents(claimButtons.slice(i, i + 5)),
       );
     }
 
@@ -552,7 +552,7 @@ class ChallengeCommand extends BaseCommand {
     interaction: any,
     gameService: GameService,
     database: DatabaseService,
-    userId: string
+    userId: string,
   ) {
     try {
       // Get user stats from database
@@ -602,7 +602,7 @@ class ChallengeCommand extends BaseCommand {
           }
           return acc;
         },
-        {} as Record<string, { total: number; completed: number; claimed: number }>
+        {} as Record<string, { total: number; completed: number; claimed: number }>,
       );
 
       const embed = new EmbedBuilder()
@@ -630,7 +630,7 @@ class ChallengeCommand extends BaseCommand {
             `• Mensagens enviadas: ${user.stats?.messagesCount || 0}\n` +
             `• Tempo em voz: ${this.formatVoiceTime(user.stats?.voiceTime || 0)}\n` +
             `• Jogos jogados: ${user.stats?.gamesPlayed || 0}\n` +
-            `• Quizzes completados: ${user.stats?.quizzesCompleted || 0}`
+            `• Quizzes completados: ${user.stats?.quizzesCompleted || 0}`,
         )
         .setColor(0x9b59b6)
         .setFooter({ text: `Membro desde: ${user.createdAt.toLocaleDateString('pt-BR')}` })

@@ -19,10 +19,10 @@ export class BackupCommand extends BaseCommand {
     .setDescription('Gerenciar backups do banco de dados')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(subcommand =>
-      subcommand.setName('create').setDescription('Criar um backup manual do banco de dados')
+      subcommand.setName('create').setDescription('Criar um backup manual do banco de dados'),
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('status').setDescription('Ver status do sistema de backup')
+      subcommand.setName('status').setDescription('Ver status do sistema de backup'),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -33,21 +33,21 @@ export class BackupCommand extends BaseCommand {
             .setName('limit')
             .setDescription('Número máximo de backups para mostrar')
             .setMinValue(1)
-            .setMaxValue(20)
-        )
+            .setMaxValue(20),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('info')
         .setDescription('Ver informações detalhadas de um backup')
         .addStringOption(option =>
-          option.setName('filename').setDescription('Nome do arquivo de backup').setRequired(true)
-        )
+          option.setName('filename').setDescription('Nome do arquivo de backup').setRequired(true),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('cleanup')
-        .setDescription('Limpar backups antigos baseado na política de retenção')
+        .setDescription('Limpar backups antigos baseado na política de retenção'),
     );
 
   public category = CommandCategory.ADMIN;
@@ -128,7 +128,7 @@ export class BackupCommand extends BaseCommand {
 
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       const embed = HawkEmbedBuilder.createErrorEmbed('Erro no Comando de Backup').setDescription(
-        `Erro ao executar comando: ${errorMessage}`
+        `Erro ao executar comando: ${errorMessage}`,
       );
 
       await this.safeReply(interaction, { embeds: [embed] });
@@ -141,7 +141,7 @@ export class BackupCommand extends BaseCommand {
   private async handleCreateBackup(
     interaction: ChatInputCommandInteraction,
     database: any,
-    logger: any
+    logger: any,
   ) {
     await this.deferWithLoading(interaction);
 
@@ -169,7 +169,7 @@ export class BackupCommand extends BaseCommand {
             value: result.checksum ? `\`${result.checksum.slice(0, 16)}...\`` : 'N/A',
             inline: true,
           },
-          { name: '📅 Data', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }
+          { name: '📅 Data', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true },
         )
         .setTimestamp();
 
@@ -184,7 +184,7 @@ export class BackupCommand extends BaseCommand {
       });
     } catch (error) {
       throw new Error(
-        `Falha ao criar backup: ${error instanceof Error ? error.message : String(error)}`
+        `Falha ao criar backup: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -221,7 +221,7 @@ export class BackupCommand extends BaseCommand {
             ? `<t:${Math.floor(stats.latestBackup.getTime() / 1000)}:R>`
             : 'Nenhum',
           inline: true,
-        }
+        },
       )
       .setTimestamp();
 
@@ -252,16 +252,16 @@ export class BackupCommand extends BaseCommand {
             .map(
               (backup, index) =>
                 `**${index + 1}.** \`${backup.name}\`\n` +
-                `   📊 ${this.formatBytes(backup.size)} • 📅 <t:${Math.floor(backup.date.getTime() / 1000)}:R>`
+                `   📊 ${this.formatBytes(backup.size)} • 📅 <t:${Math.floor(backup.date.getTime() / 1000)}:R>`,
             )
-            .join('\n\n')
+            .join('\n\n'),
         )
         .setTimestamp();
 
       await this.safeReply(interaction, { embeds: [embed], ephemeral: true });
     } catch (error) {
       throw new Error(
-        `Falha ao listar backups: ${error instanceof Error ? error.message : String(error)}`
+        `Falha ao listar backups: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -293,7 +293,7 @@ export class BackupCommand extends BaseCommand {
             inline: false,
           },
           { name: '🗜️ Comprimido', value: filename.endsWith('.gz') ? 'Sim' : 'Não', inline: true },
-          { name: '📍 Caminho', value: `\`${backupPath}\``, inline: false }
+          { name: '📍 Caminho', value: `\`${backupPath}\``, inline: false },
         )
         .setTimestamp();
 
@@ -306,7 +306,7 @@ export class BackupCommand extends BaseCommand {
         });
       } else {
         throw new Error(
-          `Falha ao obter informações do backup: ${error instanceof Error ? error.message : String(error)}`
+          `Falha ao obter informações do backup: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
     }
@@ -318,7 +318,7 @@ export class BackupCommand extends BaseCommand {
   private async handleCleanupBackups(
     interaction: ChatInputCommandInteraction,
     database: any,
-    logger: any
+    logger: any,
   ) {
     await this.deferWithLoading(interaction);
 
@@ -328,11 +328,11 @@ export class BackupCommand extends BaseCommand {
 
       const embed = HawkEmbedBuilder.createSuccessEmbed('Limpeza de Backups Concluída')
         .setDescription(
-          'A limpeza de backups antigos foi executada com sucesso baseada na política de retenção configurada.'
+          'A limpeza de backups antigos foi executada com sucesso baseada na política de retenção configurada.',
         )
         .addFields(
           { name: '✅ Status', value: 'Concluído', inline: true },
-          { name: '📅 Data', value: new Date().toLocaleString('pt-BR'), inline: true }
+          { name: '📅 Data', value: new Date().toLocaleString('pt-BR'), inline: true },
         )
         .setTimestamp();
 
@@ -344,7 +344,7 @@ export class BackupCommand extends BaseCommand {
       });
     } catch (error) {
       throw new Error(
-        `Falha na limpeza de backups: ${error instanceof Error ? error.message : String(error)}`
+        `Falha na limpeza de backups: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -392,7 +392,7 @@ export class BackupCommand extends BaseCommand {
    */
   private async getBackupList(
     backupDir: string,
-    limit: number
+    limit: number,
   ): Promise<
     Array<{
       name: string;

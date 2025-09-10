@@ -18,7 +18,7 @@ const dynamicBadges: Command = {
     .setName('dynamic-badges')
     .setDescription('Gerenciar sistema de badges dinâmicas baseadas em estatísticas PUBG')
     .addSubcommand(subcommand =>
-      subcommand.setName('list').setDescription('Listar todas as regras de badges dinâmicas')
+      subcommand.setName('list').setDescription('Listar todas as regras de badges dinâmicas'),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -28,24 +28,24 @@ const dynamicBadges: Command = {
           option
             .setName('rule-id')
             .setDescription('ID da regra para ativar/desativar')
-            .setRequired(true)
-        )
+            .setRequired(true),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('process-user')
         .setDescription('Forçar processamento de badges para um usuário específico')
         .addUserOption(option =>
-          option.setName('user').setDescription('Usuário para processar badges').setRequired(true)
-        )
+          option.setName('user').setDescription('Usuário para processar badges').setRequired(true),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('process-all')
-        .setDescription('Forçar processamento de todas as badges dinâmicas')
+        .setDescription('Forçar processamento de todas as badges dinâmicas'),
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('stats').setDescription('Ver estatísticas do sistema de badges dinâmicas')
+      subcommand.setName('stats').setDescription('Ver estatísticas do sistema de badges dinâmicas'),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -55,8 +55,8 @@ const dynamicBadges: Command = {
           option
             .setName('rule-id')
             .setDescription('ID da regra para ver detalhes')
-            .setRequired(true)
-        )
+            .setRequired(true),
+        ),
     )
     .setDefaultMemberPermissions('0'),
 
@@ -108,7 +108,7 @@ const dynamicBadges: Command = {
 
 async function handleListRules(
   interaction: ChatInputCommandInteraction,
-  service: DynamicBadgeService
+  service: DynamicBadgeService,
 ): Promise<void> {
   const rules = service.getDynamicRules();
 
@@ -166,7 +166,7 @@ async function handleListRules(
     new ButtonBuilder()
       .setCustomId('process_all_now')
       .setLabel('⚡ Processar Tudo')
-      .setStyle(ButtonStyle.Primary)
+      .setStyle(ButtonStyle.Primary),
   );
 
   await interaction.reply({
@@ -178,7 +178,7 @@ async function handleListRules(
 
 async function handleToggleRule(
   interaction: ChatInputCommandInteraction,
-  service: DynamicBadgeService
+  service: DynamicBadgeService,
 ): Promise<void> {
   const ruleId = interaction.options.getString('rule-id', true);
   const rules = service.getDynamicRules();
@@ -216,7 +216,7 @@ async function handleToggleRule(
           name: 'Prioridade',
           value: rule.priority,
           inline: true,
-        }
+        },
       )
       .setColor(rule.isActive ? 0x00ff00 : 0xff0000)
       .setTimestamp();
@@ -235,7 +235,7 @@ async function handleToggleRule(
 
 async function handleProcessUser(
   interaction: ChatInputCommandInteraction,
-  service: DynamicBadgeService
+  service: DynamicBadgeService,
 ): Promise<void> {
   const user = interaction.options.getUser('user', true);
 
@@ -271,7 +271,7 @@ async function handleProcessUser(
 
 async function handleProcessAll(
   interaction: ChatInputCommandInteraction,
-  service: DynamicBadgeService
+  service: DynamicBadgeService,
 ): Promise<void> {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -308,7 +308,7 @@ async function handleProcessAll(
 
 async function handleStats(
   interaction: ChatInputCommandInteraction,
-  service: DynamicBadgeService
+  service: DynamicBadgeService,
 ): Promise<void> {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -354,7 +354,7 @@ async function handleStats(
           name: '🎯 Por Prioridade',
           value: `Crítica: **${rulesByPriority.critical}**\nAlta: **${rulesByPriority.high}**\nMédia: **${rulesByPriority.medium}**\nBaixa: **${rulesByPriority.low}**`,
           inline: true,
-        }
+        },
       )
       .setColor(0x00ae86)
       .setTimestamp()
@@ -374,7 +374,7 @@ async function handleStats(
 
 async function handleRuleDetails(
   interaction: ChatInputCommandInteraction,
-  service: DynamicBadgeService
+  service: DynamicBadgeService,
 ): Promise<void> {
   const ruleId = interaction.options.getString('rule-id', true);
   const rules = service.getDynamicRules();
@@ -421,7 +421,7 @@ async function handleRuleDetails(
         name: '🔍 Condição',
         value: `\`\`\`javascript\n${rule.condition}\`\`\``,
         inline: false,
-      }
+      },
     )
     .setColor(getRarityColor(rule.badgeTemplate.rarity))
     .setTimestamp()

@@ -78,7 +78,7 @@ export class MetricsService {
   constructor(
     private databaseService?: DatabaseService,
     private cacheService?: CacheService,
-    private discordClient?: ExtendedClient
+    private discordClient?: ExtendedClient,
   ) {
     this.logger = new Logger();
     this.startTime = Date.now();
@@ -98,7 +98,7 @@ export class MetricsService {
         // Store in history for trend analysis
         this.performanceHistory.push({
           timestamp: Date.now(),
-          metrics: systemMetrics
+          metrics: systemMetrics,
         });
         
         // Keep history size manageable
@@ -130,25 +130,25 @@ export class MetricsService {
       metadata: {
         memory: {
           usage: `${systemMetrics.memory.percentage.toFixed(1)}%`,
-          heap: `${(systemMetrics.memory.heap.used / 1024 / 1024).toFixed(1)}MB`
+          heap: `${(systemMetrics.memory.heap.used / 1024 / 1024).toFixed(1)}MB`,
         },
         cpu: `${systemMetrics.cpu.usage.toFixed(1)}%`,
         discord: {
           guilds: appMetrics.discord.guilds,
           latency: `${appMetrics.discord.latency}ms`,
-          connected: appMetrics.discord.connected
+          connected: appMetrics.discord.connected,
         },
         cache: {
           hitRate: `${((this.cacheHits / (this.cacheHits + this.cacheMisses)) * 100 || 0).toFixed(1)}%`,
-          size: appMetrics.cache.size
+          size: appMetrics.cache.size,
         },
         api: {
           requests: this.requestCount,
           avgResponseTime: `${(this.responseTimeSum / this.requestCount || 0).toFixed(1)}ms`,
-          errorRate: `${((this.errorCount / this.requestCount) * 100 || 0).toFixed(1)}%`
+          errorRate: `${((this.errorCount / this.requestCount) * 100 || 0).toFixed(1)}%`,
         },
-        uptime: `${Math.floor(systemMetrics.uptime / 3600)}h ${Math.floor((systemMetrics.uptime % 3600) / 60)}m`
-      }
+        uptime: `${Math.floor(systemMetrics.uptime / 3600)}h ${Math.floor((systemMetrics.uptime % 3600) / 60)}m`,
+      },
     });
   }
 
@@ -166,7 +166,7 @@ export class MetricsService {
         memoryTrend: 'stable',
         cpuTrend: 'stable',
         averageMemory: 0,
-        averageCpu: 0
+        averageCpu: 0,
       };
     }
 
@@ -185,7 +185,7 @@ export class MetricsService {
       memoryTrend: Math.abs(memoryDiff) < 2 ? 'stable' : memoryDiff > 0 ? 'increasing' : 'decreasing',
       cpuTrend: Math.abs(cpuDiff) < 5 ? 'stable' : cpuDiff > 0 ? 'increasing' : 'decreasing',
       averageMemory: recentMemoryAvg,
-      averageCpu: recentCpuAvg
+      averageCpu: recentCpuAvg,
     };
   }
 
@@ -206,7 +206,7 @@ export class MetricsService {
     name: string,
     value: number,
     type: MetricData['type'] = 'gauge',
-    labels?: Record<string, string>
+    labels?: Record<string, string>,
   ): void {
     const metric: MetricData = {
       name,
@@ -385,7 +385,7 @@ export class MetricsService {
     const guilds = this.discordClient.guilds.cache.size;
     const users = this.discordClient.guilds.cache.reduce(
       (acc, guild) => acc + guild.memberCount,
-      0
+      0,
     );
     const channels = this.discordClient.channels.cache.size;
     const latency = this.discordClient.ws.ping;

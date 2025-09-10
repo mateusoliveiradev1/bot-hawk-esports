@@ -116,14 +116,14 @@ class ProductionBackupService extends EventEmitter {
             schedule: this.config.schedule,
             storage: this.config.storage,
           },
-        })
+        }),
       );
     } catch (error) {
       productionLogger.error(
         'Failed to initialize backup service',
         createLogContext(LogCategory.SYSTEM, {
           error: error instanceof Error ? error : new Error(String(error)),
-        })
+        }),
       );
     }
   }
@@ -153,7 +153,7 @@ class ProductionBackupService extends EventEmitter {
       // Stats file doesn't exist or is corrupted, start fresh
       productionLogger.debug(
         'No existing backup stats found, starting fresh',
-        createLogContext(LogCategory.SYSTEM)
+        createLogContext(LogCategory.SYSTEM),
       );
     }
   }
@@ -210,7 +210,7 @@ class ProductionBackupService extends EventEmitter {
 
     productionLogger.info(
       `Starting database backup: ${backupId}`,
-      createLogContext(LogCategory.SYSTEM)
+      createLogContext(LogCategory.SYSTEM),
     );
 
     try {
@@ -260,7 +260,7 @@ class ProductionBackupService extends EventEmitter {
             duration: `${duration}ms`,
             location: backupPath,
           },
-        })
+        }),
       );
 
       productionLogger.info(
@@ -271,7 +271,7 @@ class ProductionBackupService extends EventEmitter {
             backupDuration: duration,
             backupId,
           },
-        })
+        }),
       );
 
       return result;
@@ -295,7 +295,7 @@ class ProductionBackupService extends EventEmitter {
         `Database backup failed: ${backupId}`,
         createLogContext(LogCategory.SYSTEM, {
           error: error instanceof Error ? error : new Error(String(error)),
-        })
+        }),
       );
 
       productionMonitoring.createAlert('critical', 'backup', 'Database backup failed', {
@@ -334,7 +334,7 @@ class ProductionBackupService extends EventEmitter {
             tables: tables.length,
             timestamp: new Date().toISOString(),
           },
-        })
+        }),
       );
 
       return dump;
@@ -350,7 +350,7 @@ class ProductionBackupService extends EventEmitter {
 
     productionLogger.info(
       `Starting files backup: ${backupId}`,
-      createLogContext(LogCategory.SYSTEM)
+      createLogContext(LogCategory.SYSTEM),
     );
 
     try {
@@ -399,7 +399,7 @@ class ProductionBackupService extends EventEmitter {
             duration: `${duration}ms`,
             location: backupPath,
           },
-        })
+        }),
       );
 
       return result;
@@ -423,7 +423,7 @@ class ProductionBackupService extends EventEmitter {
         `Files backup failed: ${backupId}`,
         createLogContext(LogCategory.SYSTEM, {
           error: error instanceof Error ? error : new Error(String(error)),
-        })
+        }),
       );
 
       this.emit('backupFailed', result);
@@ -544,7 +544,7 @@ class ProductionBackupService extends EventEmitter {
               const filePath = join(backupDir, file);
               const stats = await fs.stat(filePath);
               return { file, path: filePath, mtime: stats.mtime };
-            })
+            }),
           );
 
           // Sort by modification time (newest first)
@@ -581,7 +581,7 @@ class ProductionBackupService extends EventEmitter {
         `Starting restore from backup: ${backupId}`,
         createLogContext(LogCategory.SYSTEM, {
           metadata: { backupId, type },
-        })
+        }),
       );
 
       // Implementation would depend on backup type
@@ -595,7 +595,7 @@ class ProductionBackupService extends EventEmitter {
         `Restore failed: ${backupId}`,
         createLogContext(LogCategory.SYSTEM, {
           error: error instanceof Error ? error : new Error(String(error)),
-        })
+        }),
       );
       return false;
     }
@@ -637,7 +637,7 @@ class ProductionBackupService extends EventEmitter {
         'Failed to get backup list',
         createLogContext(LogCategory.SYSTEM, {
           error: error instanceof Error ? error : new Error(String(error)),
-        })
+        }),
       );
     }
 

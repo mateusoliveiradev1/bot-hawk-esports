@@ -48,7 +48,7 @@ export class CacheService {
           if (retries > this.maxReconnectAttempts) {
             this.logger.error('Redis reconnection failed after maximum attempts', {
               category: LogCategory.CACHE,
-              metadata: { attempts: retries, maxAttempts: this.maxReconnectAttempts }
+              metadata: { attempts: retries, maxAttempts: this.maxReconnectAttempts },
             });
             this.useMemoryFallback = true;
             return new Error('Redis reconnection failed');
@@ -56,12 +56,12 @@ export class CacheService {
           const delay = Math.min(retries * 100, 3000); // Max 3 seconds
           this.logger.warn(`Redis reconnection attempt ${retries}/${this.maxReconnectAttempts} in ${delay}ms`, {
             category: LogCategory.CACHE,
-            metadata: { attempt: retries, delay }
+            metadata: { attempt: retries, delay },
           });
           return delay;
         },
-        connectTimeout: 10000 // 10 seconds
-      }
+        connectTimeout: 10000, // 10 seconds
+      },
     });
     this.setupEventListeners();
   }
@@ -80,7 +80,7 @@ export class CacheService {
    * Perform Redis health check
    */
   private async performHealthCheck(): Promise<void> {
-    if (!this.client) return;
+    if (!this.client) {return;}
 
     try {
       const start = Date.now();
@@ -92,7 +92,7 @@ export class CacheService {
       if (!this.isConnected) {
         this.logger.info('Redis health check passed - connection restored', {
           category: LogCategory.CACHE,
-          metadata: { latency, status: 'healthy' }
+          metadata: { latency, status: 'healthy' },
         });
         this.isConnected = true;
         this.useMemoryFallback = false;
@@ -103,7 +103,7 @@ export class CacheService {
       if (latency > 1000) {
         this.logger.warn('Redis high latency detected', {
           category: LogCategory.CACHE,
-          metadata: { latency, threshold: 1000 }
+          metadata: { latency, threshold: 1000 },
         });
       }
     } catch (error) {
@@ -111,7 +111,7 @@ export class CacheService {
         this.logger.error('Redis health check failed', {
           category: LogCategory.CACHE,
           error: error as Error,
-          metadata: { status: 'unhealthy' }
+          metadata: { status: 'unhealthy' },
         });
         this.isConnected = false;
         this.useMemoryFallback = true;
@@ -235,8 +235,8 @@ export class CacheService {
           finalStats: {
             hits: this.cacheHits,
             misses: this.cacheMisses,
-            hitRate: this.getHitRate()
-          }
+            hitRate: this.getHitRate(),
+          },
         },
       });
     } catch (error) {
@@ -254,7 +254,7 @@ export class CacheService {
    */
   public getHitRate(): string {
     const total = this.cacheHits + this.cacheMisses;
-    if (total === 0) return '0%';
+    if (total === 0) {return '0%';}
     return `${((this.cacheHits / total) * 100).toFixed(2)}%`;
   }
 
@@ -277,7 +277,7 @@ export class CacheService {
       isConnected: this.isConnected,
       useMemoryFallback: this.useMemoryFallback,
       lastHealthCheck: this.lastHealthCheck,
-      reconnectAttempts: this.reconnectAttempts
+      reconnectAttempts: this.reconnectAttempts,
     };
   }
 

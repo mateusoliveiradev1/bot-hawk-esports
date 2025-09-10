@@ -29,7 +29,7 @@ export abstract class BaseCommand {
     interaction: ChatInputCommandInteraction,
     client: ExtendedClient,
     operation: () => Promise<void>,
-    operationName: string
+    operationName: string,
   ): Promise<void> {
     return ErrorHandler.executeWithLogging(
       async () => {
@@ -41,7 +41,7 @@ export abstract class BaseCommand {
       },
       this.logger,
       `${operationName} for user ${interaction.user.id}`,
-      `Guild: ${interaction.guild?.id}, Command: ${interaction.commandName}`
+      `Guild: ${interaction.guild?.id}, Command: ${interaction.commandName}`,
     );
   }
 
@@ -52,7 +52,7 @@ export abstract class BaseCommand {
     ServiceValidator.validateObjectProperties(
       { interaction },
       ['interaction'],
-      'interaction validation'
+      'interaction validation',
     );
 
     if (!interaction.isCommand()) {
@@ -81,7 +81,7 @@ export abstract class BaseCommand {
    */
   protected async sendServiceUnavailableError(
     interaction: ChatInputCommandInteraction,
-    serviceName: string
+    serviceName: string,
   ): Promise<void> {
     await interaction.reply({
       content: `❌ O serviço ${serviceName} está temporariamente indisponível. Tente novamente mais tarde.`,
@@ -123,7 +123,7 @@ export abstract class BaseCommand {
    */
   protected validateUserPermissions(
     interaction: ChatInputCommandInteraction,
-    requiredPermissions: bigint[]
+    requiredPermissions: bigint[],
   ): void {
     if (!interaction.guild || !interaction.member) {
       throw new Error('Cannot validate permissions outside guild context');
@@ -137,7 +137,7 @@ export abstract class BaseCommand {
     ServiceValidator.validatePermissions(
       memberPermissionStrings,
       userPermissionStrings,
-      'Required permissions not met'
+      'Required permissions not met',
     );
   }
 
@@ -170,7 +170,7 @@ export abstract class BaseCommand {
    */
   protected async deferWithLoading(
     interaction: ChatInputCommandInteraction,
-    ephemeral: boolean = false
+    ephemeral: boolean = false,
   ): Promise<void> {
     await interaction.deferReply({ ephemeral });
   }
@@ -184,7 +184,7 @@ export class CommandHandlerFactory {
    * Create a command handler with error handling
    */
   static createHandler(
-    handler: (interaction: ChatInputCommandInteraction, client: ExtendedClient) => Promise<void>
+    handler: (interaction: ChatInputCommandInteraction, client: ExtendedClient) => Promise<void>,
   ) {
     return async (interaction: ChatInputCommandInteraction, client: ExtendedClient) => {
       const logger = new Logger();
@@ -220,7 +220,7 @@ export class CommandHandlerFactory {
     handlers: Record<
       string,
       (interaction: ChatInputCommandInteraction, client: ExtendedClient) => Promise<void>
-    >
+    >,
   ) {
     return CommandHandlerFactory.createHandler(async (interaction, client) => {
       const subcommand = interaction.options.getSubcommand();

@@ -37,7 +37,7 @@ class CheckoutCommand extends BaseCommand {
 
   async execute(
     interaction: CommandInteraction | ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     await interaction.deferReply();
 
@@ -50,7 +50,7 @@ class CheckoutCommand extends BaseCommand {
     const badgeService = new BadgeService(
       client,
       (client as any).services?.xp,
-      (client as any).services?.logging
+      (client as any).services?.logging,
     );
 
     try {
@@ -63,7 +63,7 @@ class CheckoutCommand extends BaseCommand {
         const notRegisteredEmbed = new EmbedBuilder()
           .setTitle('❌ Usuário Não Registrado')
           .setDescription(
-            'Você precisa estar registrado para usar este comando.\n\nUse `/register` para se registrar.'
+            'Você precisa estar registrado para usar este comando.\n\nUse `/register` para se registrar.',
           )
           .setColor(0xff0000)
           .setTimestamp();
@@ -78,7 +78,7 @@ class CheckoutCommand extends BaseCommand {
         const noSessionEmbed = new EmbedBuilder()
           .setTitle('❌ Nenhuma Sessão Ativa')
           .setDescription(
-            'Você não possui uma sessão de presença ativa.\n\nUse `/checkin` para iniciar uma nova sessão.'
+            'Você não possui uma sessão de presença ativa.\n\nUse `/checkin` para iniciar uma nova sessão.',
           )
           .setColor(0xff0000)
           .setTimestamp();
@@ -100,7 +100,7 @@ class CheckoutCommand extends BaseCommand {
       try {
         checkoutResult = await presenceEnhancementsService.enhancedCheckOut(
           interaction.guildId!,
-          userId
+          userId,
         );
       } catch (enhancedError) {
         logger.warn('Enhanced checkout failed, falling back to regular service:', enhancedError);
@@ -112,7 +112,7 @@ class CheckoutCommand extends BaseCommand {
           .setTitle('❌ Erro no Check-out')
           .setDescription(
             checkoutResult.message ||
-              'Não foi possível finalizar sua sessão. Tente novamente em alguns instantes.'
+              'Não foi possível finalizar sua sessão. Tente novamente em alguns instantes.',
           )
           .setColor(0xff0000)
           .setTimestamp();
@@ -155,20 +155,20 @@ class CheckoutCommand extends BaseCommand {
         badgeService,
         userId,
         durationMinutes,
-        (user.stats?.checkIns || 0) + 1
+        (user.stats?.checkIns || 0) + 1,
       );
 
       // Clean up session channels
       const channelCleanup = await this.cleanupSessionChannels(
         interaction as ChatInputCommandInteraction,
-        userSession.location || ''
+        userSession.location || '',
       );
 
       // Create success embed
       const successEmbed = new EmbedBuilder()
         .setTitle('✅ Check-out Realizado com Sucesso!')
         .setDescription(
-          `Sua sessão foi finalizada com sucesso!\n\n**Duração da Sessão:** ${this.formatDuration(hours, minutes)}`
+          `Sua sessão foi finalizada com sucesso!\n\n**Duração da Sessão:** ${this.formatDuration(hours, minutes)}`,
         )
         .setColor(0x00ff00)
         .addFields(
@@ -201,7 +201,7 @@ class CheckoutCommand extends BaseCommand {
             name: '⏰ Tempo Total de Jogo',
             value: this.formatTotalPlayTime((user.stats?.voiceTime || 0) + durationMinutes),
             inline: true,
-          }
+          },
         )
         .setThumbnail(interaction.user.displayAvatarURL())
         .setTimestamp();
@@ -237,7 +237,7 @@ class CheckoutCommand extends BaseCommand {
         new ButtonBuilder()
           .setCustomId(`profile_${userId}`)
           .setLabel('👤 Meu Perfil')
-          .setStyle(ButtonStyle.Secondary)
+          .setStyle(ButtonStyle.Secondary),
       );
 
       const response = await interaction.editReply({
@@ -255,7 +255,7 @@ class CheckoutCommand extends BaseCommand {
       const errorEmbed = new EmbedBuilder()
         .setTitle('❌ Erro Interno')
         .setDescription(
-          'Ocorreu um erro ao processar seu check-out. Tente novamente em alguns instantes.'
+          'Ocorreu um erro ao processar seu check-out. Tente novamente em alguns instantes.',
         )
         .setColor(0xff0000)
         .setTimestamp();
@@ -359,7 +359,7 @@ class CheckoutCommand extends BaseCommand {
    */
   private async cleanupSessionChannels(
     interaction: ChatInputCommandInteraction,
-    sessionLocation: string
+    sessionLocation: string,
   ): Promise<{ channelsRemoved: number }> {
     try {
       const guild = interaction.guild!;
@@ -475,7 +475,7 @@ class CheckoutCommand extends BaseCommand {
     badgeService: BadgeService,
     userId: string,
     durationMinutes: number,
-    totalSessions: number
+    totalSessions: number,
   ): Promise<void> {
     try {
       // Award duration-based badges
@@ -509,7 +509,7 @@ class CheckoutCommand extends BaseCommand {
   private setupButtonCollector(
     response: any,
     interaction: ChatInputCommandInteraction,
-    userId: string
+    userId: string,
   ): void {
     const collector = response.createMessageComponentCollector({
       componentType: ComponentType.Button,
@@ -561,7 +561,7 @@ class CheckoutCommand extends BaseCommand {
             .setCustomId('expired')
             .setLabel('⏰ Botões Expirados')
             .setStyle(ButtonStyle.Secondary)
-            .setDisabled(true)
+            .setDisabled(true),
         );
 
         await response.edit({ components: [expiredButtons] });

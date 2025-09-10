@@ -51,7 +51,7 @@ export class CommandManager {
     try {
       const commandsPath = path.join(__dirname);
       this.logger.debug(
-        `${this.lazyLoadingEnabled ? 'Indexing' : 'Loading'} commands from: ${commandsPath}`
+        `${this.lazyLoadingEnabled ? 'Indexing' : 'Loading'} commands from: ${commandsPath}`,
       );
 
       const commandFolders = fs
@@ -65,11 +65,11 @@ export class CommandManager {
         const commandFiles = fs
           .readdirSync(folderPath)
           .filter(
-            file => (file.endsWith('.ts') || file.endsWith('.js')) && !file.endsWith('.d.ts')
+            file => (file.endsWith('.ts') || file.endsWith('.js')) && !file.endsWith('.d.ts'),
           );
 
         this.logger.debug(
-          `Found ${commandFiles.length} command files in ${folder}: ${commandFiles.join(', ')}`
+          `Found ${commandFiles.length} command files in ${folder}: ${commandFiles.join(', ')}`,
         );
 
         for (const file of commandFiles) {
@@ -97,7 +97,7 @@ export class CommandManager {
         this.logger.info(`Indexed ${this.commandPaths.size} commands for lazy loading`);
       } else {
         this.logger.info(
-          `Loaded ${this.commands.size} slash commands and ${this.contextMenus.size} context menu commands`
+          `Loaded ${this.commands.size} slash commands and ${this.contextMenus.size} context menu commands`,
         );
       }
     } catch (error) {
@@ -241,7 +241,7 @@ export class CommandManager {
    */
   public isOnCooldown(
     commandName: string,
-    userId: string
+    userId: string,
   ): { onCooldown: boolean; timeLeft?: number } {
     if (!this.cooldowns.has(commandName)) {
       this.cooldowns.set(commandName, new Collection());
@@ -369,7 +369,7 @@ export class CommandManager {
    */
   public async handleSlashCommand(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const command = await this.getCommand(interaction.commandName);
     if (!command) {
@@ -382,7 +382,7 @@ export class CommandManager {
         interaction.user.id,
         interaction.guildId,
         command.data.name,
-        command.category || 'general'
+        command.category || 'general',
       );
 
       if (!rateLimitResult.allowed) {
@@ -446,7 +446,7 @@ export class CommandManager {
    */
   public async handleContextCommand(
     interaction: ContextMenuCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const command = this.getContextMenu(interaction.commandName);
     if (!command) {
@@ -472,7 +472,7 @@ export class CommandManager {
    */
   public async handleAutocomplete(
     interaction: AutocompleteInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const command = await this.getCommand(interaction.commandName);
     if (!command || !command.autocomplete) {

@@ -240,7 +240,7 @@ export class CacheManager extends EventEmitter {
     get: async <T>(
       userId: string,
       type: keyof typeof CACHE_PATTERNS.USER,
-      fallback?: () => Promise<T>
+      fallback?: () => Promise<T>,
     ) => {
       const cache = this.getCache('USER_DATA');
       const key = CACHE_PATTERNS.USER[type](userId);
@@ -254,7 +254,7 @@ export class CacheManager extends EventEmitter {
       userId: string,
       type: keyof typeof CACHE_PATTERNS.USER,
       value: T,
-      ttl?: number
+      ttl?: number,
     ) => {
       const cache = this.getCache('USER_DATA');
       const key = CACHE_PATTERNS.USER[type](userId);
@@ -283,7 +283,7 @@ export class CacheManager extends EventEmitter {
     get: async <T>(
       guildId: string,
       type: keyof typeof CACHE_PATTERNS.GUILD,
-      fallback?: () => Promise<T>
+      fallback?: () => Promise<T>,
     ) => {
       const cache = this.getCache('GUILD_CONFIG');
       const key = CACHE_PATTERNS.GUILD[type](guildId);
@@ -297,7 +297,7 @@ export class CacheManager extends EventEmitter {
       guildId: string,
       type: keyof typeof CACHE_PATTERNS.GUILD,
       value: T,
-      ttl?: number
+      ttl?: number,
     ) => {
       const cache = this.getCache('GUILD_CONFIG');
       const key = CACHE_PATTERNS.GUILD[type](guildId);
@@ -326,7 +326,7 @@ export class CacheManager extends EventEmitter {
     get: async <T>(
       type: keyof typeof CACHE_PATTERNS.LEADERBOARD,
       identifier: string,
-      fallback?: () => Promise<T>
+      fallback?: () => Promise<T>,
     ) => {
       const cache = this.getCache('LEADERBOARD');
       const key = CACHE_PATTERNS.LEADERBOARD[type](identifier);
@@ -340,7 +340,7 @@ export class CacheManager extends EventEmitter {
       type: keyof typeof CACHE_PATTERNS.LEADERBOARD,
       identifier: string,
       value: T,
-      ttl?: number
+      ttl?: number,
     ) => {
       const cache = this.getCache('LEADERBOARD');
       const key = CACHE_PATTERNS.LEADERBOARD[type](identifier);
@@ -369,7 +369,7 @@ export class CacheManager extends EventEmitter {
       type: keyof typeof CACHE_PATTERNS.PUBG,
       playerId: string,
       season?: string,
-      fallback?: () => Promise<T>
+      fallback?: () => Promise<T>,
     ) => {
       const cache = this.getCache('GAME_STATS');
       let key: string;
@@ -394,7 +394,7 @@ export class CacheManager extends EventEmitter {
       playerId: string,
       value: T,
       season?: string,
-      ttl?: number
+      ttl?: number,
     ) => {
       const cache = this.getCache('GAME_STATS');
       let key: string;

@@ -19,7 +19,7 @@ export class ValidationUtils {
    */
   static async validateUserRegistration(
     interaction: CommandInteraction,
-    database: DatabaseService
+    database: DatabaseService,
   ): Promise<{ isValid: boolean; user?: any }> {
     try {
       const user = await database.client.user.findUnique({
@@ -35,7 +35,7 @@ export class ValidationUtils {
         await interaction.editReply({
           embeds: [
             EmbedUtils.userNotRegistered(
-              'Você precisa se registrar primeiro usando `/register-server`'
+              'Você precisa se registrar primeiro usando `/register-server`',
             ),
           ],
         });
@@ -57,14 +57,14 @@ export class ValidationUtils {
   static async validatePermissions(
     interaction: CommandInteraction,
     requiredPermissions: bigint[],
-    requireAll: boolean = true
+    requireAll: boolean = true,
   ): Promise<boolean> {
     try {
       const member = interaction.member as GuildMember;
 
       if (!member) {
         this.logger.warn(
-          `Permission validation failed: No member found for user ${interaction.user.id}`
+          `Permission validation failed: No member found for user ${interaction.user.id}`,
         );
         await interaction.editReply({
           embeds: [
@@ -77,7 +77,7 @@ export class ValidationUtils {
       // Validate guild context
       if (!interaction.guildId || !interaction.guild) {
         this.logger.warn(
-          `Permission validation failed: No guild context for user ${interaction.user.id}`
+          `Permission validation failed: No guild context for user ${interaction.user.id}`,
         );
         await interaction.editReply({
           embeds: [
@@ -90,7 +90,7 @@ export class ValidationUtils {
       // Check if member is still in guild
       if (!member.guild || member.guild.id !== interaction.guildId) {
         this.logger.warn(
-          `Permission validation failed: Member not in guild ${interaction.guildId}`
+          `Permission validation failed: Member not in guild ${interaction.guildId}`,
         );
         await interaction.editReply({
           embeds: [EmbedUtils.createErrorEmbed('Erro', 'Você não está mais neste servidor')],
@@ -104,12 +104,12 @@ export class ValidationUtils {
 
       if (!hasPermissions) {
         this.logger.warn(
-          `Permission validation failed: User ${interaction.user.id} lacks required permissions`
+          `Permission validation failed: User ${interaction.user.id} lacks required permissions`,
         );
         await interaction.editReply({
           embeds: [
             EmbedUtils.insufficientPermissions(
-              'Você não tem permissões suficientes para executar este comando'
+              'Você não tem permissões suficientes para executar este comando',
             ),
           ],
         });
@@ -156,14 +156,14 @@ export class ValidationUtils {
   static validateStringParameter(
     value: string | null,
     parameterName: string,
-    interaction: CommandInteraction
+    interaction: CommandInteraction,
   ): boolean {
     if (!value || value.trim().length === 0) {
       interaction.editReply({
         embeds: [
           EmbedUtils.createErrorEmbed(
             'Parâmetro Inválido',
-            `O parâmetro '${parameterName}' é obrigatório`
+            `O parâmetro '${parameterName}' é obrigatório`,
           ),
         ],
       });
@@ -180,14 +180,14 @@ export class ValidationUtils {
     min: number,
     max: number,
     parameterName: string,
-    interaction: CommandInteraction
+    interaction: CommandInteraction,
   ): boolean {
     if (value < min || value > max) {
       interaction.editReply({
         embeds: [
           EmbedUtils.createErrorEmbed(
             'Parâmetro Inválido',
-            `O parâmetro '${parameterName}' deve estar entre ${min} e ${max}`
+            `O parâmetro '${parameterName}' deve estar entre ${min} e ${max}`,
           ),
         ],
       });
@@ -207,7 +207,7 @@ export class ValidationUtils {
         embeds: [
           EmbedUtils.createErrorEmbed(
             'Canal de Voz Necessário',
-            'Você precisa estar em um canal de voz para usar este comando'
+            'Você precisa estar em um canal de voz para usar este comando',
           ),
         ],
       });
@@ -222,7 +222,7 @@ export class ValidationUtils {
    */
   static validateBotPermissions(
     interaction: CommandInteraction,
-    requiredPermissions: bigint[]
+    requiredPermissions: bigint[],
   ): boolean {
     const botMember = interaction.guild?.members.me;
 
@@ -236,7 +236,7 @@ export class ValidationUtils {
     }
 
     const hasPermissions = requiredPermissions.every(permission =>
-      botMember.permissions.has(permission)
+      botMember.permissions.has(permission),
     );
 
     if (!hasPermissions) {
@@ -244,7 +244,7 @@ export class ValidationUtils {
         embeds: [
           EmbedUtils.createErrorEmbed(
             'Permissões Insuficientes',
-            'O bot não tem permissões suficientes para executar esta ação'
+            'O bot não tem permissões suficientes para executar esta ação',
           ),
         ],
       });
@@ -291,7 +291,7 @@ export class ValidationUtils {
       maxLength?: number;
       allowSpecialChars?: boolean;
       pattern?: RegExp;
-    } = {}
+    } = {},
   ): { isValid: boolean; sanitized: string; error?: string } {
     try {
       if (!input && options.required) {
@@ -484,7 +484,7 @@ export class ValidationUtils {
     userId: string,
     action: string,
     maxAttempts: number = 5,
-    windowMs: number = 60000
+    windowMs: number = 60000,
   ): { allowed: boolean; resetTime?: Date } {
     const key = `${userId}:${action}`;
     const now = Date.now();
@@ -526,14 +526,14 @@ export class ValidationUtils {
   static async handleCommandError(
     error: any,
     interaction: CommandInteraction,
-    logger?: any
+    logger?: any,
   ): Promise<void> {
     if (logger) {
       logger.error('Command execution error:', error);
     }
 
     const errorEmbed = EmbedUtils.internalError(
-      'Ocorreu um erro interno. Tente novamente mais tarde.'
+      'Ocorreu um erro interno. Tente novamente mais tarde.',
     );
 
     try {

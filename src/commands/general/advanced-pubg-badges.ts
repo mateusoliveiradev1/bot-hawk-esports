@@ -29,8 +29,8 @@ class AdvancedBadgesCommand extends BaseCommand {
               option
                 .setName('user')
                 .setDescription('Usuário para verificar (opcional)')
-                .setRequired(false)
-            )
+                .setRequired(false),
+            ),
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -40,8 +40,8 @@ class AdvancedBadgesCommand extends BaseCommand {
               option
                 .setName('user')
                 .setDescription('Usuário para verificar (opcional)')
-                .setRequired(false)
-            )
+                .setRequired(false),
+            ),
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -51,8 +51,8 @@ class AdvancedBadgesCommand extends BaseCommand {
               option
                 .setName('user')
                 .setDescription('Usuário para verificar (opcional)')
-                .setRequired(false)
-            )
+                .setRequired(false),
+            ),
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -62,8 +62,8 @@ class AdvancedBadgesCommand extends BaseCommand {
               option
                 .setName('user')
                 .setDescription('Usuário para verificar (opcional)')
-                .setRequired(false)
-            )
+                .setRequired(false),
+            ),
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -78,9 +78,9 @@ class AdvancedBadgesCommand extends BaseCommand {
                   { name: 'Sequências de Vitórias', value: 'win_streaks' },
                   { name: 'Consistência Top 10', value: 'consistency' },
                   { name: 'Maestria de Armas', value: 'weapon_mastery' },
-                  { name: 'Badges Avançadas', value: 'advanced_badges' }
-                )
-            )
+                  { name: 'Badges Avançadas', value: 'advanced_badges' },
+                ),
+            ),
         ) as SlashCommandBuilder,
       category: CommandCategory.GENERAL,
       cooldown: 10,
@@ -113,7 +113,7 @@ class AdvancedBadgesCommand extends BaseCommand {
 
   async handleProgress(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const targetUser = interaction.options.getUser('user') || interaction.user;
     const advancedService = (client as any).advancedPUBGBadgesService as AdvancedPUBGBadgesService;
@@ -131,13 +131,13 @@ class AdvancedBadgesCommand extends BaseCommand {
           content: `Progresso de badges avançadas para ${targetUser.displayName} carregado com sucesso!`,
         });
       },
-      'handleProgress'
+      'handleProgress',
     );
   }
 
   async handleStreaks(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const targetUser = interaction.options.getUser('user') || interaction.user;
     const advancedService = (client as any).advancedPUBGBadgesService as AdvancedPUBGBadgesService;
@@ -155,13 +155,13 @@ class AdvancedBadgesCommand extends BaseCommand {
           content: `Sequências de ${targetUser.displayName} carregadas com sucesso!`,
         });
       },
-      'handleStreaks'
+      'handleStreaks',
     );
   }
 
   async handleConsistency(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const targetUser = interaction.options.getUser('user') || interaction.user;
     const advancedService = (client as any).advancedPUBGBadgesService as AdvancedPUBGBadgesService;
@@ -179,13 +179,13 @@ class AdvancedBadgesCommand extends BaseCommand {
           content: `Estatísticas de consistência de ${targetUser.displayName} carregadas com sucesso!`,
         });
       },
-      'handleConsistency'
+      'handleConsistency',
     );
   }
 
   async handleWeapons(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const targetUser = interaction.options.getUser('user') || interaction.user;
     const advancedService = (client as any).advancedPUBGBadgesService as AdvancedPUBGBadgesService;
@@ -203,13 +203,13 @@ class AdvancedBadgesCommand extends BaseCommand {
           content: `Maestria de armas de ${targetUser.displayName} carregada com sucesso!`,
         });
       },
-      'handleWeapons'
+      'handleWeapons',
     );
   }
 
   async handleLeaderboard(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const type = interaction.options.getString('type', true);
     const advancedService = (client as any).advancedPUBGBadgesService as AdvancedPUBGBadgesService;
@@ -228,7 +228,7 @@ class AdvancedBadgesCommand extends BaseCommand {
           content: `Ranking de ${type} carregado com sucesso!`,
         });
       },
-      'handleLeaderboard'
+      'handleLeaderboard',
     );
   }
 }

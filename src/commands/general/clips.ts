@@ -30,21 +30,21 @@ class ClipsCommand extends BaseCommand {
             .setName('upload')
             .setDescription('Fazer upload de um clip')
             .addAttachmentOption(option =>
-              option.setName('video').setDescription('Arquivo de vídeo do clip').setRequired(true)
+              option.setName('video').setDescription('Arquivo de vídeo do clip').setRequired(true),
             )
             .addStringOption(option =>
               option
                 .setName('title')
                 .setDescription('Título do clip')
                 .setRequired(true)
-                .setMaxLength(100)
+                .setMaxLength(100),
             )
             .addStringOption(option =>
               option
                 .setName('description')
                 .setDescription('Descrição do clip')
                 .setRequired(false)
-                .setMaxLength(500)
+                .setMaxLength(500),
             )
             .addStringOption(option =>
               option
@@ -57,9 +57,9 @@ class ClipsCommand extends BaseCommand {
                   { name: 'CS2', value: 'cs2' },
                   { name: 'Apex Legends', value: 'apex' },
                   { name: 'Fortnite', value: 'fortnite' },
-                  { name: 'Outros', value: 'outros' }
-                )
-            )
+                  { name: 'Outros', value: 'outros' },
+                ),
+            ),
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -75,8 +75,8 @@ class ClipsCommand extends BaseCommand {
                   { name: 'Mais curtidos', value: 'top' },
                   { name: 'Em destaque', value: 'featured' },
                   { name: 'Por jogo', value: 'game' },
-                  { name: 'Mais recentes', value: 'recent' }
-                )
+                  { name: 'Mais recentes', value: 'recent' },
+                ),
             )
             .addStringOption(option =>
               option
@@ -89,25 +89,25 @@ class ClipsCommand extends BaseCommand {
                   { name: 'CS2', value: 'cs2' },
                   { name: 'Apex Legends', value: 'apex' },
                   { name: 'Fortnite', value: 'fortnite' },
-                  { name: 'Outros', value: 'outros' }
-                )
-            )
+                  { name: 'Outros', value: 'outros' },
+                ),
+            ),
         )
         .addSubcommand(subcommand =>
           subcommand
             .setName('info')
             .setDescription('Ver informações detalhadas de um clip')
             .addStringOption(option =>
-              option.setName('clip_id').setDescription('ID do clip').setRequired(true)
-            )
+              option.setName('clip_id').setDescription('ID do clip').setRequired(true),
+            ),
         )
         .addSubcommand(subcommand =>
           subcommand
             .setName('delete')
             .setDescription('Deletar um clip')
             .addStringOption(option =>
-              option.setName('clip_id').setDescription('ID do clip para deletar').setRequired(true)
-            )
+              option.setName('clip_id').setDescription('ID do clip para deletar').setRequired(true),
+            ),
         ),
       category: 'general',
       cooldown: 5,
@@ -218,7 +218,7 @@ class ClipsCommand extends BaseCommand {
         .addFields(
           { name: '🎮 Jogo', value: gameType.toUpperCase(), inline: true },
           { name: '📁 Tamanho', value: this.formatFileSize(video.size), inline: true },
-          { name: '🆔 ID do Clip', value: clip.id, inline: true }
+          { name: '🆔 ID do Clip', value: clip.id, inline: true },
         )
         .setThumbnail(interaction.user.displayAvatarURL())
         .setFooter({ text: `Enviado por ${interaction.user.username}` });
@@ -374,7 +374,7 @@ class ClipsCommand extends BaseCommand {
           { name: '👎 Descurtidas', value: downvotes.toString(), inline: true },
           { name: '📊 Total', value: totalVotes.toString(), inline: true },
           { name: '🕒 Enviado', value: timeAgo, inline: false },
-          { name: '🆔 ID', value: clipId, inline: false }
+          { name: '🆔 ID', value: clipId, inline: false },
         )
         .setFooter({ text: 'Use os botões abaixo para votar no clip' });
 
@@ -387,7 +387,7 @@ class ClipsCommand extends BaseCommand {
           .setCustomId(`clip_vote_down_${clipId}`)
           .setLabel('👎')
           .setStyle(ButtonStyle.Danger),
-        new ButtonBuilder().setLabel('🔗 Ver Clip').setStyle(ButtonStyle.Link).setURL(clip.url)
+        new ButtonBuilder().setLabel('🔗 Ver Clip').setStyle(ButtonStyle.Link).setURL(clip.url),
       );
 
       await interaction.editReply({

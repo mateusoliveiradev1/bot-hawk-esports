@@ -30,8 +30,8 @@ class EconomyCommand extends BaseCommand {
               option
                 .setName('usuario')
                 .setDescription('Ver economia de outro usuário')
-                .setRequired(false)
-            )
+                .setRequired(false),
+            ),
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -45,8 +45,8 @@ class EconomyCommand extends BaseCommand {
                 .addChoices(
                   { name: `${HAWK_EMOJIS.SYSTEM.STAR} XP`, value: 'xp' },
                   { name: `${HAWK_EMOJIS.ECONOMY.COIN} Moedas`, value: 'coins' },
-                  { name: `${HAWK_EMOJIS.SYSTEM.LEVEL} Nível`, value: 'level' }
-                )
+                  { name: `${HAWK_EMOJIS.SYSTEM.LEVEL} Nível`, value: 'level' },
+                ),
             )
             .addIntegerOption(option =>
               option
@@ -54,8 +54,8 @@ class EconomyCommand extends BaseCommand {
                 .setDescription('Número de usuários no ranking (padrão: 10)')
                 .setRequired(false)
                 .setMinValue(5)
-                .setMaxValue(25)
-            )
+                .setMaxValue(25),
+            ),
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -67,11 +67,11 @@ class EconomyCommand extends BaseCommand {
                 .setDescription('Número de transações (padrão: 10)')
                 .setRequired(false)
                 .setMinValue(5)
-                .setMaxValue(50)
-            )
+                .setMaxValue(50),
+            ),
         )
         .addSubcommand(subcommand =>
-          subcommand.setName('daily').setDescription('Resgatar recompensa diária')
+          subcommand.setName('daily').setDescription('Resgatar recompensa diária'),
         ) as SlashCommandBuilder,
       category: CommandCategory.ECONOMY,
       cooldown: 5,
@@ -120,7 +120,7 @@ class EconomyCommand extends BaseCommand {
    */
   private async handleEconomyProfile(
     interaction: ChatInputCommandInteraction,
-    database: DatabaseService
+    database: DatabaseService,
   ) {
     const targetUser = interaction.options.getUser('usuario') || interaction.user;
     const userId = targetUser.id;
@@ -134,7 +134,7 @@ class EconomyCommand extends BaseCommand {
       if (!userData) {
         const embed = HawkEmbedBuilder.createError(
           `${HAWK_EMOJIS.ERROR} Usuário não encontrado`,
-          'Este usuário não está registrado no sistema.'
+          'Este usuário não está registrado no sistema.',
         );
 
         await interaction.editReply({ embeds: [embed] });
@@ -154,7 +154,7 @@ class EconomyCommand extends BaseCommand {
 
       const embed = HawkEmbedBuilder.createSuccess(
         `${HAWK_EMOJIS.ECONOMY.MONEY} Economia de ${targetUser.username}`,
-        ''
+        '',
       )
         .setThumbnail(targetUser.displayAvatarURL())
         .addFields(
@@ -173,7 +173,7 @@ class EconomyCommand extends BaseCommand {
             name: `${HAWK_EMOJIS.SYSTEM.PROGRESS} Progresso para o próximo nível`,
             value: `${progressBar}\n**${progressXP}**/${neededXP} XP (${progressPercentage}%)`,
             inline: false,
-          }
+          },
         );
 
       // Add recent activity if available
@@ -212,7 +212,7 @@ class EconomyCommand extends BaseCommand {
   private async handleEconomyRanking(
     interaction: ChatInputCommandInteraction,
     database: DatabaseService,
-    client: ExtendedClient
+    client: ExtendedClient,
   ) {
     const type = interaction.options.getString('tipo');
     const limit = interaction.options.getInteger('limite') || 10;
@@ -257,7 +257,7 @@ class EconomyCommand extends BaseCommand {
       if (users.length === 0) {
         const embed = HawkEmbedBuilder.createWarning(
           title,
-          'Nenhum usuário encontrado no ranking.'
+          'Nenhum usuário encontrado no ranking.',
         );
 
         await interaction.editReply({ embeds: [embed] });
@@ -297,7 +297,7 @@ class EconomyCommand extends BaseCommand {
           } catch {
             return `${index + 1}º **Usuário Desconhecido** - 0`;
           }
-        })
+        }),
       );
 
       embed.addFields({
@@ -318,7 +318,7 @@ class EconomyCommand extends BaseCommand {
    */
   private async handleTransactionHistory(
     interaction: ChatInputCommandInteraction,
-    database: DatabaseService
+    database: DatabaseService,
   ) {
     const limit = interaction.options.getInteger('limite') || 10;
     const userId = interaction.user.id;
@@ -335,7 +335,7 @@ class EconomyCommand extends BaseCommand {
       if (transactions.length === 0) {
         const embed = HawkEmbedBuilder.createWarning(
           `${HAWK_EMOJIS.SYSTEM.ACTIVITY} Histórico de Transações`,
-          'Você ainda não possui transações registradas.'
+          'Você ainda não possui transações registradas.',
         );
 
         await interaction.editReply({ embeds: [embed] });
@@ -344,7 +344,7 @@ class EconomyCommand extends BaseCommand {
 
       const embed = HawkEmbedBuilder.createInfo(
         `${HAWK_EMOJIS.SYSTEM.ACTIVITY} Histórico de Transações`,
-        `Últimas ${transactions.length} transações`
+        `Últimas ${transactions.length} transações`,
       );
 
       const transactionText = transactions
@@ -388,7 +388,7 @@ class EconomyCommand extends BaseCommand {
    */
   private async handleDailyReward(
     interaction: ChatInputCommandInteraction,
-    database: DatabaseService
+    database: DatabaseService,
   ) {
     const userId = interaction.user.id;
 
@@ -412,7 +412,7 @@ class EconomyCommand extends BaseCommand {
       if (existingClaim) {
         const embed = HawkEmbedBuilder.createWarning(
           `${HAWK_EMOJIS.SYSTEM.TIME} Recompensa Diária`,
-          'Você já resgatou sua recompensa diária hoje!\n\nVolte amanhã para resgatar novamente.'
+          'Você já resgatou sua recompensa diária hoje!\n\nVolte amanhã para resgatar novamente.',
         );
 
         await interaction.editReply({ embeds: [embed] });
@@ -471,7 +471,7 @@ class EconomyCommand extends BaseCommand {
 
       const embed = HawkEmbedBuilder.createSuccess(
         `${HAWK_EMOJIS.ECONOMY.REWARD} Recompensa Diária Resgatada!`,
-        'Parabéns! Você resgatou sua recompensa diária.'
+        'Parabéns! Você resgatou sua recompensa diária.',
       )
         .addFields(
           { name: `${HAWK_EMOJIS.SYSTEM.STAR} XP Ganho`, value: `+${xpReward} XP`, inline: true },
@@ -484,7 +484,7 @@ class EconomyCommand extends BaseCommand {
             name: `${HAWK_EMOJIS.SYSTEM.STREAK} Sequência`,
             value: `${currentStreak} dias`,
             inline: true,
-          }
+          },
         )
         .setFooter({ text: 'Volte amanhã para continuar sua sequência!' });
 
@@ -499,7 +499,7 @@ class EconomyCommand extends BaseCommand {
       await interaction.editReply({ embeds: [embed] });
 
       this.logger.info(
-        `Daily reward claimed by user ${userId}: ${xpReward} XP, ${coinReward} coins (streak: ${currentStreak})`
+        `Daily reward claimed by user ${userId}: ${xpReward} XP, ${coinReward} coins (streak: ${currentStreak})`,
       );
     } catch (error) {
       this.logger.error('Error claiming daily reward:', error);

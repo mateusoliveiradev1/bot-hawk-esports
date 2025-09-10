@@ -38,8 +38,8 @@ module.exports = {
               { name: '🏆 PUBG - Esports & Competitivo', value: 'pubg_esports' },
               { name: '⚙️ PUBG - Mecânicas & Sistema', value: 'pubg_mechanics' },
               { name: '🎮 Gaming Geral', value: 'gaming_general' },
-              { name: '🎯 Esports Geral', value: 'esports_general' }
-            )
+              { name: '🎯 Esports Geral', value: 'esports_general' },
+            ),
         )
         .addStringOption(option =>
           option
@@ -51,8 +51,8 @@ module.exports = {
               { name: '🟡 Médio', value: 'medium' },
               { name: '🔴 Difícil', value: 'hard' },
               { name: '🌈 Misto', value: 'mixed' },
-              { name: '🧠 Adaptativo', value: 'adaptive' }
-            )
+              { name: '🧠 Adaptativo', value: 'adaptive' },
+            ),
         )
         .addIntegerOption(option =>
           option
@@ -60,7 +60,7 @@ module.exports = {
             .setDescription('Número de perguntas (5-50)')
             .setRequired(false)
             .setMinValue(5)
-            .setMaxValue(50)
+            .setMaxValue(50),
         )
         .addIntegerOption(option =>
           option
@@ -68,7 +68,7 @@ module.exports = {
             .setDescription('Tempo por pergunta em segundos (10-120)')
             .setRequired(false)
             .setMinValue(10)
-            .setMaxValue(120)
+            .setMaxValue(120),
         )
         .addIntegerOption(option =>
           option
@@ -76,47 +76,47 @@ module.exports = {
             .setDescription('Máximo de participantes (2-20)')
             .setRequired(false)
             .setMinValue(2)
-            .setMaxValue(20)
+            .setMaxValue(20),
         )
         .addBooleanOption(option =>
-          option.setName('dicas').setDescription('Permitir dicas durante o quiz').setRequired(false)
+          option.setName('dicas').setDescription('Permitir dicas durante o quiz').setRequired(false),
         )
         .addBooleanOption(option =>
           option
             .setName('explicacoes')
             .setDescription('Mostrar explicações após cada pergunta')
-            .setRequired(false)
+            .setRequired(false),
         )
         .addBooleanOption(option =>
           option
             .setName('power-ups')
             .setDescription('Habilitar power-ups durante o quiz')
-            .setRequired(false)
-        )
+            .setRequired(false),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('participar')
         .setDescription('Participar de uma sessão de quiz ativa')
         .addStringOption(option =>
-          option.setName('sessao').setDescription('ID da sessão de quiz').setRequired(true)
-        )
+          option.setName('sessao').setDescription('ID da sessão de quiz').setRequired(true),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('iniciar')
         .setDescription('Iniciar uma sessão de quiz criada')
         .addStringOption(option =>
-          option.setName('sessao').setDescription('ID da sessão de quiz').setRequired(true)
-        )
+          option.setName('sessao').setDescription('ID da sessão de quiz').setRequired(true),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('status')
         .setDescription('Ver status de uma sessão de quiz')
         .addStringOption(option =>
-          option.setName('sessao').setDescription('ID da sessão de quiz').setRequired(true)
-        )
+          option.setName('sessao').setDescription('ID da sessão de quiz').setRequired(true),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -126,8 +126,8 @@ module.exports = {
           option
             .setName('usuario')
             .setDescription('Usuário para ver estatísticas (deixe vazio para suas próprias)')
-            .setRequired(false)
-        )
+            .setRequired(false),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -144,25 +144,25 @@ module.exports = {
               { name: '🏆 PUBG - Esports & Competitivo', value: 'pubg_esports' },
               { name: '⚙️ PUBG - Mecânicas & Sistema', value: 'pubg_mechanics' },
               { name: '🎮 Gaming Geral', value: 'gaming_general' },
-              { name: '🎯 Esports Geral', value: 'esports_general' }
-            )
-        )
+              { name: '🎯 Esports Geral', value: 'esports_general' },
+            ),
+        ),
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('categorias').setDescription('Ver todas as categorias disponíveis')
+      subcommand.setName('categorias').setDescription('Ver todas as categorias disponíveis'),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('adicionar-pergunta')
         .setDescription('Adicionar uma pergunta personalizada (Admin apenas)')
         .addStringOption(option =>
-          option.setName('pergunta').setDescription('Texto da pergunta').setRequired(true)
+          option.setName('pergunta').setDescription('Texto da pergunta').setRequired(true),
         )
         .addStringOption(option =>
           option
             .setName('opcoes')
             .setDescription('Opções separadas por | (ex: Opção1|Opção2|Opção3|Opção4)')
-            .setRequired(true)
+            .setRequired(true),
         )
         .addIntegerOption(option =>
           option
@@ -170,7 +170,7 @@ module.exports = {
             .setDescription('Índice da resposta correta (1-4)')
             .setRequired(true)
             .setMinValue(1)
-            .setMaxValue(4)
+            .setMaxValue(4),
         )
         .addStringOption(option =>
           option
@@ -183,8 +183,8 @@ module.exports = {
               { name: '🏆 PUBG - Esports & Competitivo', value: 'pubg_esports' },
               { name: '⚙️ PUBG - Mecânicas & Sistema', value: 'pubg_mechanics' },
               { name: '🎮 Gaming Geral', value: 'gaming_general' },
-              { name: '🎯 Esports Geral', value: 'esports_general' }
-            )
+              { name: '🎯 Esports Geral', value: 'esports_general' },
+            ),
         )
         .addStringOption(option =>
           option
@@ -195,14 +195,14 @@ module.exports = {
               { name: '🟢 Fácil', value: 'easy' },
               { name: '🟡 Médio', value: 'medium' },
               { name: '🔴 Difícil', value: 'hard' },
-              { name: '⚫ Expert', value: 'expert' }
-            )
+              { name: '⚫ Expert', value: 'expert' },
+            ),
         )
         .addStringOption(option =>
           option
             .setName('explicacao')
             .setDescription('Explicação da resposta correta')
-            .setRequired(false)
+            .setRequired(false),
         )
         .addIntegerOption(option =>
           option
@@ -210,7 +210,7 @@ module.exports = {
             .setDescription('Pontos da pergunta (5-50)')
             .setRequired(false)
             .setMinValue(5)
-            .setMaxValue(50)
+            .setMaxValue(50),
         )
         .addIntegerOption(option =>
           option
@@ -218,8 +218,8 @@ module.exports = {
             .setDescription('Tempo limite em segundos (10-120)')
             .setRequired(false)
             .setMinValue(10)
-            .setMaxValue(120)
-        )
+            .setMaxValue(120),
+        ),
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
@@ -288,7 +288,7 @@ module.exports = {
 
   async handleCreateQuiz(
     interaction: ChatInputCommandInteraction,
-    quizService: InteractiveQuizService
+    quizService: InteractiveQuizService,
   ) {
     const category = interaction.options.getString('categoria', true);
     const difficulty = interaction.options.getString('dificuldade') || 'mixed';
@@ -315,7 +315,7 @@ module.exports = {
       interaction.user.id,
       interaction.channelId,
       interaction.guildId!,
-      settings
+      settings,
     );
 
     const categoryInfo = quizService.getCategories().find(c => c.id === category);
@@ -370,7 +370,7 @@ module.exports = {
             enablePowerUps ? '⚡ Power-ups habilitados' : '🚫 Power-ups desabilitados',
           ].join('\n'),
           inline: false,
-        }
+        },
       )
       .setColor(categoryInfo?.color || 0x00ae86)
       .setFooter({ text: 'Use /quiz-interativo participar para entrar na sessão!' })
@@ -394,7 +394,7 @@ module.exports = {
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       joinButton,
       startButton,
-      statusButton
+      statusButton,
     );
 
     await interaction.reply({
@@ -421,7 +421,7 @@ module.exports = {
 
   async handleJoinQuiz(
     interaction: ChatInputCommandInteraction,
-    quizService: InteractiveQuizService
+    quizService: InteractiveQuizService,
   ) {
     const sessionId = interaction.options.getString('sessao', true);
 
@@ -442,7 +442,7 @@ module.exports = {
 
   async handleStartQuiz(
     interaction: ChatInputCommandInteraction,
-    quizService: InteractiveQuizService
+    quizService: InteractiveQuizService,
   ) {
     const sessionId = interaction.options.getString('sessao', true);
     const session = quizService.getQuizSession(sessionId);
@@ -474,7 +474,7 @@ module.exports = {
 
   async handleQuizStatus(
     interaction: ChatInputCommandInteraction,
-    quizService: InteractiveQuizService
+    quizService: InteractiveQuizService,
   ) {
     const sessionId = interaction.options.getString('sessao', true);
     const session = quizService.getQuizSession(sessionId);
@@ -511,7 +511,7 @@ module.exports = {
           name: '❓ Progresso',
           value: `${session.currentQuestionIndex}/${session.questions.length}`,
           inline: true,
-        }
+        },
       )
       .setColor(0x00ae86)
       .setTimestamp();
@@ -537,7 +537,7 @@ module.exports = {
 
   async handleUserStats(
     interaction: ChatInputCommandInteraction,
-    quizService: InteractiveQuizService
+    quizService: InteractiveQuizService,
   ) {
     const targetUser = interaction.options.getUser('usuario') || interaction.user;
     const stats = await quizService.getUserStats(targetUser.id);
@@ -575,7 +575,7 @@ module.exports = {
           name: '⏱️ Tempo Total',
           value: `${Math.round(stats.totalTimeSpent / 60)} min`,
           inline: true,
-        }
+        },
       )
       .setColor(0x00ae86)
       .setTimestamp();
@@ -601,7 +601,7 @@ module.exports = {
 
   async handleLeaderboard(
     interaction: ChatInputCommandInteraction,
-    quizService: InteractiveQuizService
+    quizService: InteractiveQuizService,
   ) {
     const category = interaction.options.getString('categoria', true);
     const leaderboard = await quizService.getCategoryLeaderboard(category, 10);
@@ -643,7 +643,7 @@ module.exports = {
 
   async handleCategories(
     interaction: ChatInputCommandInteraction,
-    quizService: InteractiveQuizService
+    quizService: InteractiveQuizService,
   ) {
     const categories = quizService.getCategories();
 
@@ -681,7 +681,7 @@ module.exports = {
 
   async handleAddQuestion(
     interaction: ChatInputCommandInteraction,
-    quizService: InteractiveQuizService
+    quizService: InteractiveQuizService,
   ) {
     // Check if user has admin permissions
     if (!interaction.memberPermissions?.has('Administrator')) {
@@ -757,7 +757,7 @@ module.exports = {
             name: '⚡ Dificuldade',
             value: difficulty,
             inline: true,
-          }
+          },
         )
         .setColor(0x00ff00)
         .setTimestamp();
@@ -785,7 +785,7 @@ module.exports = {
   async handleJoinButton(
     buttonInteraction: any,
     quizService: InteractiveQuizService,
-    sessionId: string
+    sessionId: string,
   ) {
     try {
       const joined = await quizService.joinQuizSession(sessionId, buttonInteraction.user);
@@ -812,7 +812,7 @@ module.exports = {
   async handleStartButton(
     buttonInteraction: any,
     quizService: InteractiveQuizService,
-    sessionId: string
+    sessionId: string,
   ) {
     const session = quizService.getQuizSession(sessionId);
 
@@ -851,7 +851,7 @@ module.exports = {
   async handleStatusButton(
     buttonInteraction: any,
     quizService: InteractiveQuizService,
-    sessionId: string
+    sessionId: string,
   ) {
     const session = quizService.getQuizSession(sessionId);
 
@@ -887,7 +887,7 @@ module.exports = {
           name: '❓ Progresso',
           value: `${session.currentQuestionIndex}/${session.questions.length}`,
           inline: true,
-        }
+        },
       )
       .setColor(0x00ae86)
       .setTimestamp();
@@ -932,7 +932,7 @@ module.exports = {
             name: `${String.fromCharCode(65 + index)}. ${option}`,
             value: '\u200b',
             inline: false,
-          }))
+          })),
         )
         .setColor(0x00ae86)
         .setFooter({
@@ -948,13 +948,13 @@ module.exports = {
         new ButtonBuilder()
           .setCustomId(`answer_${sessionId}_${index}`)
           .setLabel(String.fromCharCode(65 + index))
-          .setStyle(ButtonStyle.Primary)
+          .setStyle(ButtonStyle.Primary),
       );
 
       const rows = [];
       for (let i = 0; i < answerButtons.length; i += 5) {
         rows.push(
-          new ActionRowBuilder<ButtonBuilder>().addComponents(answerButtons.slice(i, i + 5))
+          new ActionRowBuilder<ButtonBuilder>().addComponents(answerButtons.slice(i, i + 5)),
         );
       }
 
@@ -990,7 +990,7 @@ module.exports = {
             sessionId,
             answerInteraction.user.id,
             answerIndex,
-            responseTime
+            responseTime,
           );
           answeredUsers.add(answerInteraction.user.id);
 
@@ -1020,7 +1020,7 @@ module.exports = {
       const resultEmbed = new EmbedBuilder()
         .setTitle('📊 Resultado da Pergunta')
         .setDescription(
-          `**Resposta Correta:** ${String.fromCharCode(65 + currentQuestion.correctAnswer)}. ${correctOption}`
+          `**Resposta Correta:** ${String.fromCharCode(65 + currentQuestion.correctAnswer)}. ${correctOption}`,
         )
         .setColor(0x00ff00)
         .setTimestamp();
@@ -1069,7 +1069,7 @@ module.exports = {
   async showFinalResults(
     channel: TextChannel,
     quizService: InteractiveQuizService,
-    sessionId: string
+    sessionId: string,
   ) {
     const session = quizService.getQuizSession(sessionId);
     if (!session) {

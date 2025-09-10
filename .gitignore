@@ -198,6 +198,9 @@ Thumbs.db
 
 # Database
 *.db
+
+# Redis dump files
+dump.rdb
 *.sqlite
 *.sqlite3
 

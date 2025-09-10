@@ -82,7 +82,7 @@ export class StructuredLogger {
 
   constructor(
     config: LoggerConfig,
-    private serviceName: string = 'bot-hawk-esports'
+    private serviceName: string = 'bot-hawk-esports',
   ) {
     this.config = config;
     this.hostname = require('os').hostname();
@@ -117,9 +117,9 @@ export class StructuredLogger {
             winston.format.printf(({ timestamp, level, message, service, context }) => {
               const contextStr = context ? ` [${JSON.stringify(context)}]` : '';
               return `${timestamp} [${service}] ${level}: ${message}${contextStr}`;
-            })
+            }),
           ),
-        })
+        }),
       );
     }
 
@@ -129,7 +129,7 @@ export class StructuredLogger {
         winston.format.timestamp(),
         winston.format.errors({ stack: true }),
         winston.format.json(),
-        winston.format.prettyPrint({ depth: 3 })
+        winston.format.prettyPrint({ depth: 3 }),
       );
 
       transports.push(
@@ -140,7 +140,7 @@ export class StructuredLogger {
           maxFiles: this.config.maxFiles,
           tailable: true,
           zippedArchive: true, // Compress old log files
-        })
+        }),
       );
 
       // Error logs separate file with enhanced format
@@ -152,13 +152,13 @@ export class StructuredLogger {
             winston.format.timestamp(),
             winston.format.errors({ stack: true }),
             winston.format.json(),
-            winston.format.prettyPrint({ depth: 5 }) // More detail for errors
+            winston.format.prettyPrint({ depth: 5 }), // More detail for errors
           ),
           maxsize: this.parseSize(this.config.maxSize),
           maxFiles: this.config.maxFiles,
           tailable: true,
           zippedArchive: true,
-        })
+        }),
       );
 
       // Application logs (info and above) - Production ready
@@ -171,7 +171,7 @@ export class StructuredLogger {
           maxFiles: this.config.maxFiles,
           tailable: true,
           zippedArchive: true,
-        })
+        }),
       );
 
       // Performance logs for monitoring
@@ -188,13 +188,13 @@ export class StructuredLogger {
                 return info;
               }
               return false;
-            })()
+            })(),
           ),
           maxsize: this.parseSize(this.config.maxSize),
           maxFiles: this.config.maxFiles,
           tailable: true,
           zippedArchive: true,
-        })
+        }),
       );
 
       // Debug logs separate file (only in development)
@@ -208,7 +208,7 @@ export class StructuredLogger {
             maxFiles: Math.min(this.config.maxFiles, 3), // Limit debug files
             tailable: true,
             zippedArchive: true,
-          })
+          }),
         );
       }
     }
@@ -229,7 +229,7 @@ export class StructuredLogger {
       format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.errors({ stack: true }),
-        winston.format.json()
+        winston.format.json(),
       ),
       defaultMeta: {
         service: this.serviceName,
@@ -246,14 +246,14 @@ export class StructuredLogger {
       new winston.transports.File({
         filename: path.join(this.config.logDir, 'exceptions.log'),
         format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
-      })
+      }),
     );
 
     this.logger.rejections.handle(
       new winston.transports.File({
         filename: path.join(this.config.logDir, 'rejections.log'),
         format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
-      })
+      }),
     );
   }
 
@@ -477,7 +477,7 @@ export class StructuredLogger {
     guildId: string,
     success: boolean,
     duration: number,
-    error?: Error
+    error?: Error,
   ): void {
     const context: LogContext = {
       userId,
@@ -512,7 +512,7 @@ export class StructuredLogger {
     table: string,
     duration: number,
     success: boolean,
-    error?: Error
+    error?: Error,
   ): void {
     const context: LogContext = {
       duration,
@@ -546,7 +546,7 @@ export class StructuredLogger {
     method: string,
     statusCode: number,
     duration: number,
-    error?: Error
+    error?: Error,
   ): void {
     const context: LogContext = {
       duration,
@@ -600,7 +600,7 @@ export class StructuredLogger {
     event: string,
     userId?: string,
     ipAddress?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): void {
     const context: LogContext = {
       userId,
@@ -653,7 +653,7 @@ export class StructuredLogger {
   async exportLogs(
     startDate: Date,
     endDate: Date,
-    format: 'json' | 'csv' = 'json'
+    format: 'json' | 'csv' = 'json',
   ): Promise<string> {
     // This would require implementing log export functionality
     // For now, return empty string

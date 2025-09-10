@@ -73,7 +73,7 @@ class ProductionRateLimiterService extends EventEmitter {
 
   async checkRateLimit(
     identifier: string,
-    config: Partial<RateLimitConfig> = {}
+    config: Partial<RateLimitConfig> = {},
   ): Promise<RateLimitResult> {
     const finalConfig = { ...this.defaultConfig, ...config };
     const key = finalConfig.keyGenerator!(identifier);
@@ -106,7 +106,7 @@ class ProductionRateLimiterService extends EventEmitter {
               windowMs: finalConfig.windowMs,
               resetTime,
             },
-          })
+          }),
         );
 
         // Create security alert
@@ -146,7 +146,7 @@ class ProductionRateLimiterService extends EventEmitter {
             remaining,
             resetTime,
           },
-        })
+        }),
       );
 
       return {
@@ -160,7 +160,7 @@ class ProductionRateLimiterService extends EventEmitter {
         `Rate limit check failed for ${identifier}`,
         createLogContext(LogCategory.SECURITY, {
           error: error instanceof Error ? error : new Error(String(error)),
-        })
+        }),
       );
 
       // On error, allow the request but log it
@@ -175,7 +175,7 @@ class ProductionRateLimiterService extends EventEmitter {
 
   async resetRateLimit(
     identifier: string,
-    config: Partial<RateLimitConfig> = {}
+    config: Partial<RateLimitConfig> = {},
   ): Promise<boolean> {
     const finalConfig = { ...this.defaultConfig, ...config };
     const key = finalConfig.keyGenerator!(identifier);
@@ -188,7 +188,7 @@ class ProductionRateLimiterService extends EventEmitter {
         `Rate limit reset for ${identifier}`,
         createLogContext(LogCategory.SECURITY, {
           metadata: { identifier },
-        })
+        }),
       );
 
       return true;
@@ -197,7 +197,7 @@ class ProductionRateLimiterService extends EventEmitter {
         `Failed to reset rate limit for ${identifier}`,
         createLogContext(LogCategory.SECURITY, {
           error: error instanceof Error ? error : new Error(String(error)),
-        })
+        }),
       );
       return false;
     }
@@ -205,7 +205,7 @@ class ProductionRateLimiterService extends EventEmitter {
 
   async getRemainingRequests(
     identifier: string,
-    config: Partial<RateLimitConfig> = {}
+    config: Partial<RateLimitConfig> = {},
   ): Promise<{ remaining: number; resetTime: number }> {
     const finalConfig = { ...this.defaultConfig, ...config };
     const key = finalConfig.keyGenerator!(identifier);
@@ -289,7 +289,7 @@ class ProductionRateLimiterService extends EventEmitter {
       burstSize: number;
       refillRate: number; // tokens per second
       maxTokens: number;
-    }
+    },
   ): Promise<RateLimitResult> {
     const key = `burst:${identifier}`;
     const now = Date.now();
@@ -388,7 +388,7 @@ class ProductionRateLimiterService extends EventEmitter {
           duration: durationMs,
           reason: 'Rate limit exceeded',
         },
-      })
+      }),
     );
 
     productionMonitoring.createAlert('critical', 'security', 'IP temporarily blocked', {
@@ -411,7 +411,7 @@ class ProductionRateLimiterService extends EventEmitter {
         `IP ${ip} unblocked`,
         createLogContext(LogCategory.SECURITY, {
           metadata: { ip },
-        })
+        }),
       );
     }
 
@@ -426,7 +426,7 @@ class ProductionRateLimiterService extends EventEmitter {
 
     productionLogger.info(
       'Production rate limiter service shutdown completed',
-      createLogContext(LogCategory.SYSTEM)
+      createLogContext(LogCategory.SYSTEM),
     );
   }
 

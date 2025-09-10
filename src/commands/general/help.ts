@@ -32,7 +32,7 @@ class HelpCommand extends BaseCommand {
             .setName('command')
             .setDescription('Comando específico para obter ajuda detalhada')
             .setRequired(false)
-            .setAutocomplete(true)
+            .setAutocomplete(true),
         ) as SlashCommandBuilder,
       category: CommandCategory.GENERAL,
       cooldown: 5,
@@ -79,14 +79,14 @@ class HelpCommand extends BaseCommand {
   private async handleSpecificCommand(
     interaction: ChatInputCommandInteraction,
     client: ExtendedClient,
-    commandName: string
+    commandName: string,
   ): Promise<void> {
     const command = client.commands.get(commandName);
 
     if (!command) {
       const notFoundEmbed = HawkEmbedBuilder.createError(
         `${HAWK_EMOJIS.SYSTEM.ERROR} Comando Não Encontrado`,
-        `O comando \`${commandName}\` não existe.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Use \`/help\` para ver todos os comandos disponíveis.`
+        `O comando \`${commandName}\` não existe.\n\n${HAWK_EMOJIS.SYSTEM.INFO} Use \`/help\` para ver todos os comandos disponíveis.`,
       );
 
       await interaction.reply({ embeds: [notFoundEmbed], flags: MessageFlags.Ephemeral });
@@ -95,7 +95,7 @@ class HelpCommand extends BaseCommand {
 
     const commandEmbed = HawkEmbedBuilder.createInfo(
       `${HAWK_EMOJIS.SYSTEM.HELP} Ajuda: /${command.data.name}`,
-      (command.data as any).description
+      (command.data as any).description,
     ).addFields(
       {
         name: `${HAWK_EMOJIS.SYSTEM.CATEGORY} Categoria`,
@@ -111,7 +111,7 @@ class HelpCommand extends BaseCommand {
         name: `${HAWK_EMOJIS.SYSTEM.PERMISSIONS} Permissões`,
         value: command.permissions?.join(', ') || 'Nenhuma',
         inline: true,
-      }
+      },
     );
 
     if (command.aliases && command.aliases.length > 0) {
@@ -127,11 +127,11 @@ class HelpCommand extends BaseCommand {
 
   private async handleGeneralHelp(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const mainEmbed = HawkEmbedBuilder.createInfo(
       `${HAWK_EMOJIS.SYSTEM.HELP} Central de Ajuda - Hawk Esports Bot`,
-      `${HAWK_EMOJIS.SYSTEM.INFO} Selecione uma categoria abaixo para ver os comandos disponíveis ou use o menu para navegar.`
+      `${HAWK_EMOJIS.SYSTEM.INFO} Selecione uma categoria abaixo para ver os comandos disponíveis ou use o menu para navegar.`,
     )
       .setThumbnail(client.user?.displayAvatarURL() ?? null)
       .addFields(
@@ -164,7 +164,7 @@ class HelpCommand extends BaseCommand {
           name: `${HAWK_EMOJIS.SYSTEM.ADMIN} Admin`,
           value: 'Comandos administrativos (apenas admins)',
           inline: true,
-        }
+        },
       )
       .setFooter({
         text: 'Use /help <comando> para ajuda específica • Hawk Esports',
@@ -261,7 +261,7 @@ class HelpCommand extends BaseCommand {
   private async handleInteractions(
     response: any,
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const collector = response.createMessageComponentCollector({
       time: 300000, // 5 minutes
@@ -315,19 +315,19 @@ class HelpCommand extends BaseCommand {
 
     const categoryEnum = categoryMap[category] ?? CommandCategory.GENERAL;
     const commands = Array.from(client.commands.values()).filter(
-      (cmd: any) => cmd.category === categoryEnum
+      (cmd: any) => cmd.category === categoryEnum,
     );
 
     if (commands.length === 0) {
       return HawkEmbedBuilder.createWarning(
         `${HAWK_EMOJIS.SYSTEM.HELP} Comandos - ${this.getCategoryName(categoryEnum)}`,
-        `${HAWK_EMOJIS.WARNING} Nenhum comando encontrado nesta categoria.`
+        `${HAWK_EMOJIS.WARNING} Nenhum comando encontrado nesta categoria.`,
       );
     }
 
     const embed = HawkEmbedBuilder.createInfo(
       `${HAWK_EMOJIS.SYSTEM.HELP} Comandos - ${this.getCategoryName(categoryEnum)}`,
-      ''
+      '',
     );
 
     const commandList = commands
@@ -354,7 +354,7 @@ class HelpCommand extends BaseCommand {
   private getQuickStartEmbed(): any {
     return HawkEmbedBuilder.createSuccess(
       `${HAWK_EMOJIS.SYSTEM.ROCKET} Início Rápido`,
-      `${HAWK_EMOJIS.SYSTEM.INFO} Siga estes passos para começar a usar o bot:`
+      `${HAWK_EMOJIS.SYSTEM.INFO} Siga estes passos para começar a usar o bot:`,
     )
       .addFields(
         {
@@ -386,7 +386,7 @@ class HelpCommand extends BaseCommand {
           name: `${HAWK_EMOJIS.VIDEO} Clips`,
           value: 'Envie seus clips com `/clip upload` e vote nos melhores',
           inline: false,
-        }
+        },
       )
       .setFooter({
         text: `${HAWK_EMOJIS.SYSTEM.TIP} Dica: Use /help <comando> para ajuda específica • Hawk Esports`,
@@ -396,7 +396,7 @@ class HelpCommand extends BaseCommand {
   private getFeaturesEmbed(): any {
     return HawkEmbedBuilder.createInfo(
       `${HAWK_EMOJIS.SYSTEM.STAR} Funcionalidades Principais`,
-      `${HAWK_EMOJIS.SYSTEM.INFO} Conheça todas as funcionalidades do Hawk Esports Bot:`
+      `${HAWK_EMOJIS.SYSTEM.INFO} Conheça todas as funcionalidades do Hawk Esports Bot:`,
     )
       .addFields(
         {
@@ -428,7 +428,7 @@ class HelpCommand extends BaseCommand {
           name: `${HAWK_EMOJIS.SYSTEM.ADMIN} Administração Completa`,
           value: `${HAWK_EMOJIS.SYSTEM.BULLET} Auto-setup do servidor\n${HAWK_EMOJIS.SYSTEM.BULLET} Sistema de logs\n${HAWK_EMOJIS.SYSTEM.BULLET} Moderação automática\n${HAWK_EMOJIS.SYSTEM.BULLET} Backup de dados`,
           inline: false,
-        }
+        },
       )
       .setFooter({ text: 'Hawk Esports - A melhor experiência PUBG no Discord' });
   }

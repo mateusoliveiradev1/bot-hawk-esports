@@ -481,7 +481,7 @@ export class ChallengeService {
       {
         timezone: 'UTC',
         runOnInit: true,
-      }
+      },
     );
 
     this.logger.info('Scheduled daily challenge rotation for 00:00 UTC');
@@ -519,7 +519,7 @@ export class ChallengeService {
       await this.cleanupExpiredChallenges();
 
       this.logger.info(
-        `Daily challenge rotation completed. Generated ${newChallenges.length} challenges for ${today}`
+        `Daily challenge rotation completed. Generated ${newChallenges.length} challenges for ${today}`,
       );
     } catch (error) {
       this.logger.error('Failed to rotate daily challenges:', error);
@@ -532,7 +532,7 @@ export class ChallengeService {
    */
   private generateDailyChallengeSet(): ChallengeDefinition[] {
     const availableTemplates = Array.from(this.challengeTemplates.values()).filter(
-      template => template.isActive && template.timeLimit === 24
+      template => template.isActive && template.timeLimit === 24,
     );
 
     // Categorizar desafios por dificuldade
@@ -592,7 +592,7 @@ export class ChallengeService {
         const challengeToReplace = selectedChallenges[indexToReplace];
         if (challengeToReplace && mostRepeatedType) {
           const alternativeTemplates = availableTemplates.filter(
-            t => t.type !== mostRepeatedType && t.difficulty === challengeToReplace.difficulty
+            t => t.type !== mostRepeatedType && t.difficulty === challengeToReplace.difficulty,
           );
 
           if (alternativeTemplates.length > 0) {
@@ -613,7 +613,7 @@ export class ChallengeService {
    */
   private selectRandomChallenges(
     templates: ChallengeDefinition[],
-    count: number
+    count: number,
   ): ChallengeDefinition[] {
     const shuffled = [...templates].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, Math.min(count, shuffled.length));
@@ -624,7 +624,7 @@ export class ChallengeService {
    */
   private async saveDailyChallengeSet(
     date: string,
-    challenges: ChallengeDefinition[]
+    challenges: ChallengeDefinition[],
   ): Promise<void> {
     try {
       for (const challenge of challenges) {
@@ -734,7 +734,7 @@ export class ChallengeService {
     userId: string,
     type: string,
     value: number,
-    date: string
+    date: string,
   ): Promise<string[]> {
     try {
       const completedChallenges: string[] = [];
@@ -782,7 +782,7 @@ export class ChallengeService {
     } catch (error) {
       this.logger.error(
         `Failed to update challenge progress for user ${userId} on ${date}:`,
-        error
+        error,
       );
       return [];
     }
@@ -818,7 +818,7 @@ export class ChallengeService {
       }
 
       this.logger.info(
-        `Awarded challenge rewards to user ${userId}: XP=${rewards.xp}, Coins=${rewards.coins}, Badge=${rewards.badge || 'none'}`
+        `Awarded challenge rewards to user ${userId}: XP=${rewards.xp}, Coins=${rewards.coins}, Badge=${rewards.badge || 'none'}`,
       );
     } catch (error) {
       this.logger.error(`Failed to award challenge rewards to user ${userId}:`, error);
@@ -921,7 +921,7 @@ export class ChallengeService {
 
       return challengeDefinitions;
     } catch (error) {
-      this.logger.error("Failed to get today's challenges:", error);
+      this.logger.error('Failed to get today\'s challenges:', error);
       return [];
     }
   }
@@ -1036,7 +1036,7 @@ export class ChallengeService {
 
       return await this.getTodaysChallenges(today);
     } catch (error) {
-      this.logger.error("Failed to force generate today's challenges:", error);
+      this.logger.error('Failed to force generate today\'s challenges:', error);
       throw error;
     }
   }

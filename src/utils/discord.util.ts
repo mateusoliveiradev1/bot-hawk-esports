@@ -61,7 +61,7 @@ export class DiscordUtils {
   static async findChannel(
     guild: Guild,
     identifier: string,
-    type?: ChannelType
+    type?: ChannelType,
   ): Promise<GuildChannel | null> {
     try {
       // Try by ID first
@@ -138,7 +138,7 @@ export class DiscordUtils {
   static async assignRole(
     member: GuildMember,
     role: Role | string,
-    reason?: string
+    reason?: string,
   ): Promise<boolean> {
     try {
       let roleObj: Role | null;
@@ -168,7 +168,7 @@ export class DiscordUtils {
   static async removeRole(
     member: GuildMember,
     role: Role | string,
-    reason?: string
+    reason?: string,
   ): Promise<boolean> {
     try {
       let roleObj: Role | null;
@@ -207,7 +207,7 @@ export class DiscordUtils {
         member = guild.members.cache.find(
           m =>
             m.user.username.toLowerCase() === identifier.toLowerCase() ||
-            m.displayName.toLowerCase() === identifier.toLowerCase()
+            m.displayName.toLowerCase() === identifier.toLowerCase(),
         );
       }
 
@@ -248,7 +248,7 @@ export class DiscordUtils {
   static async banMember(
     member: GuildMember,
     reason?: string,
-    deleteMessageDays?: number
+    deleteMessageDays?: number,
   ): Promise<boolean> {
     try {
       await member.ban({
@@ -265,7 +265,7 @@ export class DiscordUtils {
   static async timeoutMember(
     member: GuildMember,
     duration: number,
-    reason?: string
+    reason?: string,
   ): Promise<boolean> {
     try {
       await member.timeout(duration, reason);
@@ -282,7 +282,7 @@ export class DiscordUtils {
   static async bulkDeleteMessages(
     channel: TextChannel,
     amount: number,
-    filterFn?: (msg: any) => boolean
+    filterFn?: (msg: any) => boolean,
   ): Promise<number> {
     try {
       const messages = await channel.messages.fetch({ limit: amount });
@@ -296,7 +296,7 @@ export class DiscordUtils {
       const twoWeeksAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
       const bulkDeleteMessages = messagesToDelete.filter(msg => msg.createdTimestamp > twoWeeksAgo);
       const individualDeleteMessages = messagesToDelete.filter(
-        msg => msg.createdTimestamp <= twoWeeksAgo
+        msg => msg.createdTimestamp <= twoWeeksAgo,
       );
 
       let deletedCount = 0;

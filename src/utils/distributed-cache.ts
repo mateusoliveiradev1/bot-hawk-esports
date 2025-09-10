@@ -85,7 +85,7 @@ export class DistributedCache extends EventEmitter {
       smartTTLConfig: SmartTTLConfig;
       cleanupIntervalMs?: number;
       refreshIntervalMs?: number;
-    }
+    },
   ) {
     super();
     this.tiers = options.tiers.sort((a, b) => a.priority - b.priority);
@@ -131,7 +131,7 @@ export class DistributedCache extends EventEmitter {
       dependencies?: string[];
       tags?: string[];
       forceRefresh?: boolean;
-    }
+    },
   ): Promise<T | null> {
     const startTime = Date.now();
 
@@ -225,7 +225,7 @@ export class DistributedCache extends EventEmitter {
       ttl?: number;
       dependencies?: string[];
       tags?: string[];
-    }
+    },
   ): Promise<void> {
     try {
       const tier = this.selectTier(options?.tier);
@@ -442,7 +442,7 @@ export class DistributedCache extends EventEmitter {
       ttl?: number;
       dependencies?: string[];
       tags?: string[];
-    }>
+    }>,
   ): Promise<number> {
     let warmedUp = 0;
 
@@ -533,14 +533,14 @@ export class DistributedCache extends EventEmitter {
       // Increase TTL for frequently accessed items
       const accessFrequencyFactor = Math.min(
         entry.accessCount * this.smartTTLConfig.accessFrequencyMultiplier,
-        3 // Max 3x multiplier
+        3, // Max 3x multiplier
       );
 
       // Decrease TTL for old items
       const age = Date.now() - entry.createdAt;
       const ageFactor = Math.max(
         1 - (age / (24 * 60 * 60 * 1000)) * this.smartTTLConfig.dataAgeMultiplier,
-        0.1 // Min 10% of original TTL
+        0.1, // Min 10% of original TTL
       );
 
       ttl = baseTTL * accessFrequencyFactor * ageFactor;
@@ -699,7 +699,7 @@ export function CacheResult(
     tier?: string;
     dependencies?: string[];
     tags?: string[];
-  } = {}
+  } = {},
 ) {
   return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value;
@@ -732,7 +732,7 @@ export function InvalidateCache(
     pattern?: string;
     dependencies?: string[];
     tags?: string[];
-  } = {}
+  } = {},
 ) {
   return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value;

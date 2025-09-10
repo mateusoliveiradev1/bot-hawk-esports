@@ -18,7 +18,7 @@ const exclusiveBadges: Command = {
     .setDescription('Gerenciar badges exclusivas e fundador')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(subcommand =>
-      subcommand.setName('create-founder').setDescription('Criar todas as badges fundador')
+      subcommand.setName('create-founder').setDescription('Criar todas as badges fundador'),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -28,8 +28,8 @@ const exclusiveBadges: Command = {
           option
             .setName('usuario')
             .setDescription('Usuário para receber a badge fundador')
-            .setRequired(true)
-        )
+            .setRequired(true),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -39,8 +39,8 @@ const exclusiveBadges: Command = {
           option
             .setName('usuario')
             .setDescription('Usuário para receber a badge pioneiro')
-            .setRequired(true)
-        )
+            .setRequired(true),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -50,23 +50,23 @@ const exclusiveBadges: Command = {
           option
             .setName('usuario')
             .setDescription('Usuário para receber a badge beta tester')
-            .setRequired(true)
-        )
+            .setRequired(true),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('list-exclusive')
-        .setDescription('Listar todas as badges exclusivas e seus portadores')
+        .setDescription('Listar todas as badges exclusivas e seus portadores'),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('verify-founder')
-        .setDescription('Verificar e validar badges fundador existentes')
+        .setDescription('Verificar e validar badges fundador existentes'),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('auto-award')
-        .setDescription('Conceder badges automáticas baseadas em critérios')
+        .setDescription('Conceder badges automáticas baseadas em critérios'),
     ),
 
   async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void> {
@@ -125,7 +125,7 @@ const exclusiveBadges: Command = {
 
 async function handleCreateFounder(
   interaction: ChatInputCommandInteraction,
-  service: BadgeOptimizationService
+  service: BadgeOptimizationService,
 ) {
   await interaction.deferReply({ ephemeral: true });
 
@@ -138,7 +138,7 @@ async function handleCreateFounder(
       .addFields(
         { name: '👑 Fundador', value: 'Badge exclusiva do fundador', inline: true },
         { name: '🌟 Pioneiro', value: 'Primeiros 100 membros', inline: true },
-        { name: '🧪 Beta Tester', value: 'Testadores da fase beta', inline: true }
+        { name: '🧪 Beta Tester', value: 'Testadores da fase beta', inline: true },
       )
       .setColor('#FFD700')
       .setTimestamp();
@@ -155,7 +155,7 @@ async function handleCreateFounder(
 async function handleAwardFounder(
   interaction: ChatInputCommandInteraction,
   optimizationService: BadgeOptimizationService,
-  badgeService: BadgeService
+  badgeService: BadgeService,
 ) {
   await interaction.deferReply({ ephemeral: true });
 
@@ -170,7 +170,7 @@ async function handleAwardFounder(
         .setDescription(`**${user.displayName}** recebeu a badge fundador!`)
         .addFields(
           { name: '🎁 Recompensas', value: '5000 XP\n2500 Moedas\nCargo Fundador', inline: true },
-          { name: '⭐ Raridade', value: 'Fundador (Única)', inline: true }
+          { name: '⭐ Raridade', value: 'Fundador (Única)', inline: true },
         )
         .setColor('#FFD700')
         .setThumbnail(user.displayAvatarURL())
@@ -192,7 +192,7 @@ async function handleAwardFounder(
 
 async function handleAwardEarlyAdopter(
   interaction: ChatInputCommandInteraction,
-  badgeService: BadgeService
+  badgeService: BadgeService,
 ) {
   await interaction.deferReply({ ephemeral: true });
 
@@ -207,7 +207,7 @@ async function handleAwardEarlyAdopter(
         .setDescription(`**${user.displayName}** recebeu a badge pioneiro!`)
         .addFields(
           { name: '🎁 Recompensas', value: '2000 XP\n1000 Moedas\nCargo Pioneiro', inline: true },
-          { name: '⭐ Raridade', value: 'Exclusiva', inline: true }
+          { name: '⭐ Raridade', value: 'Exclusiva', inline: true },
         )
         .setColor('#FF1493')
         .setThumbnail(user.displayAvatarURL())
@@ -229,7 +229,7 @@ async function handleAwardEarlyAdopter(
 
 async function handleAwardBetaTester(
   interaction: ChatInputCommandInteraction,
-  badgeService: BadgeService
+  badgeService: BadgeService,
 ) {
   await interaction.deferReply({ ephemeral: true });
 
@@ -244,7 +244,7 @@ async function handleAwardBetaTester(
         .setDescription(`**${user.displayName}** recebeu a badge beta tester!`)
         .addFields(
           { name: '🎁 Recompensas', value: '1500 XP\n750 Moedas\nCargo Beta Tester', inline: true },
-          { name: '⭐ Raridade', value: 'Exclusiva', inline: true }
+          { name: '⭐ Raridade', value: 'Exclusiva', inline: true },
         )
         .setColor('#FF1493')
         .setThumbnail(user.displayAvatarURL())
@@ -266,7 +266,7 @@ async function handleAwardBetaTester(
 
 async function handleListExclusive(
   interaction: ChatInputCommandInteraction,
-  badgeService: BadgeService
+  badgeService: BadgeService,
 ) {
   await interaction.deferReply({ ephemeral: true });
 
@@ -312,7 +312,7 @@ async function handleListExclusive(
 
 async function handleVerifyFounder(
   interaction: ChatInputCommandInteraction,
-  badgeService: BadgeService
+  badgeService: BadgeService,
 ) {
   await interaction.deferReply({ ephemeral: true });
 
@@ -389,7 +389,7 @@ async function handleVerifyFounder(
 async function handleAutoAward(
   interaction: ChatInputCommandInteraction,
   client: ExtendedClient,
-  badgeService: BadgeService
+  badgeService: BadgeService,
 ) {
   await interaction.deferReply({ ephemeral: true });
 
@@ -427,7 +427,7 @@ async function handleAutoAward(
     const embed = new EmbedBuilder()
       .setTitle('🤖 Concessão Automática de Badges')
       .setDescription(
-        `Processo concluído! ${awardedCount} badges foram concedidas automaticamente.`
+        `Processo concluído! ${awardedCount} badges foram concedidas automaticamente.`,
       )
       .setColor('#00CED1')
       .setTimestamp();

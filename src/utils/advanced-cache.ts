@@ -103,7 +103,7 @@ export class AdvancedCache {
 
   constructor(
     private readonly cacheService: CacheService,
-    private readonly config: AdvancedCacheConfig
+    private readonly config: AdvancedCacheConfig,
   ) {
     if (config.rateLimitConfig) {
       this.rateLimiter = new RateLimiter(config.rateLimitConfig);
@@ -126,7 +126,7 @@ export class AdvancedCache {
       dependencies?: string[];
       tags?: string[];
       forceRefresh?: boolean;
-    }
+    },
   ): Promise<CacheOperationResult<T>> {
     const startTime = Date.now();
 
@@ -137,7 +137,7 @@ export class AdvancedCache {
           'Cache operation rate limited',
           ErrorCategory.RATE_LIMIT,
           ErrorSeverity.LOW,
-          { key }
+          { key },
         );
       }
 
@@ -212,7 +212,7 @@ export class AdvancedCache {
       dependencies?: string[];
       tags?: string[];
       strategy?: CacheStrategy;
-    }
+    },
   ): Promise<CacheOperationResult<T>> {
     const startTime = Date.now();
 
@@ -411,7 +411,7 @@ export class AdvancedCache {
       ttl?: number;
       dependencies?: string[];
       tags?: string[];
-    }
+    },
   ): Promise<CacheOperationResult<T>> {
     const startTime = Date.now();
 
@@ -568,7 +568,7 @@ export class AdvancedCache {
     this.metrics.totalKeys = this.metadata.size;
     this.metrics.totalSize = Array.from(this.metadata.values()).reduce(
       (sum, meta) => sum + meta.size,
-      0
+      0,
     );
   }
 
@@ -632,7 +632,7 @@ export function Cacheable(
     keyGenerator?: (...args: any[]) => string;
     dependencies?: string[];
     tags?: string[];
-  } = {}
+  } = {},
 ) {
   return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value;
@@ -672,7 +672,7 @@ export function InvalidateCache(
     pattern?: string;
     dependencies?: string[];
     tags?: string[];
-  } = {}
+  } = {},
 ) {
   return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value;

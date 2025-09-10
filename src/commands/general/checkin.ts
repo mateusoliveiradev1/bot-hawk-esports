@@ -35,7 +35,7 @@ class CheckinCommand extends BaseCommand {
       data: new SlashCommandBuilder()
         .setName('checkin')
         .setDescription(
-          `${HAWK_EMOJIS.GAMING.CONTROLLER} Fazer check-in para iniciar uma sessão de presença`
+          `${HAWK_EMOJIS.GAMING.CONTROLLER} Fazer check-in para iniciar uma sessão de presença`,
         )
         .addStringOption(option =>
           option
@@ -46,15 +46,15 @@ class CheckinCommand extends BaseCommand {
               { name: `${HAWK_EMOJIS.GAMING.GAME} Matchmaking (MM)`, value: 'mm' },
               { name: `${HAWK_EMOJIS.GAMING.CONTROLLER} Scrim`, value: 'scrim' },
               { name: `${HAWK_EMOJIS.TROPHY} Campeonato`, value: 'campeonato' },
-              { name: `${HAWK_EMOJIS.MEDAL} Ranked`, value: 'ranked' }
-            )
+              { name: `${HAWK_EMOJIS.MEDAL} Ranked`, value: 'ranked' },
+            ),
         )
         .addStringOption(option =>
           option
             .setName('nome')
             .setDescription('Nome da partida/evento (obrigatório para scrim e campeonato)')
             .setRequired(false)
-            .setMaxLength(50)
+            .setMaxLength(50),
         ) as SlashCommandBuilder,
       category: CommandCategory.GENERAL,
       cooldown: 10,
@@ -63,7 +63,7 @@ class CheckinCommand extends BaseCommand {
 
   async execute(
     interaction: CommandInteraction | ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     if (!interaction.isChatInputCommand()) {
       return;
@@ -82,7 +82,7 @@ class CheckinCommand extends BaseCommand {
         const errorEmbed = new EmbedBuilder()
           .setTitle('❌ Nome Obrigatório')
           .setDescription(
-            `Para sessões de **${this.getTipoDisplayName(tipo)}**, é obrigatório informar um nome.`
+            `Para sessões de **${this.getTipoDisplayName(tipo)}**, é obrigatório informar um nome.`,
           )
           .setColor(0xff0000)
           .setTimestamp();
@@ -103,7 +103,7 @@ class CheckinCommand extends BaseCommand {
           .setTitle('❌ Usuário Não Registrado')
           .setDescription(
             'Você precisa estar registrado para usar este comando.\n\n' +
-              'Use `/register` para se registrar primeiro.'
+              'Use `/register` para se registrar primeiro.',
           )
           .setColor(0xff0000)
           .setTimestamp();
@@ -122,7 +122,7 @@ class CheckinCommand extends BaseCommand {
           guildId,
           userId,
           tipo,
-          nome || undefined
+          nome || undefined,
         );
 
         if (!enhancedResult.success) {
@@ -134,14 +134,14 @@ class CheckinCommand extends BaseCommand {
       } catch (enhancedError) {
         logger.warn(
           'Enhanced presence service failed, falling back to regular service:',
-          enhancedError
+          enhancedError,
         );
         presenceService = new PresenceService(client);
         const regularResult = await presenceService.checkIn(
           guildId,
           userId,
           tipo,
-          nome || undefined
+          nome || undefined,
         );
 
         if (!regularResult.success) {
@@ -198,7 +198,7 @@ class CheckinCommand extends BaseCommand {
       const badgeService = new BadgeService(
         client,
         (client as any).services?.xp,
-        (client as any).services?.logging
+        (client as any).services?.logging,
       );
       await this.checkPresenceBadges(badgeService, userId, tipo);
 
@@ -211,7 +211,7 @@ class CheckinCommand extends BaseCommand {
         baseXP,
         currentStreak,
         pubgValidation,
-        channelResult
+        channelResult,
       );
 
       // Create action buttons
@@ -229,7 +229,7 @@ class CheckinCommand extends BaseCommand {
         presenceService,
         userId,
         guildId,
-        channelResult
+        channelResult,
       );
 
       logger.info(`User ${userId} checked in successfully for ${tipo} session`);
@@ -239,7 +239,7 @@ class CheckinCommand extends BaseCommand {
       const errorEmbed = new EmbedBuilder()
         .setTitle('❌ Erro Interno')
         .setDescription(
-          'Ocorreu um erro ao processar seu check-in. Tente novamente em alguns instantes.'
+          'Ocorreu um erro ao processar seu check-in. Tente novamente em alguns instantes.',
         )
         .setColor(0xff0000)
         .setTimestamp();
@@ -276,7 +276,7 @@ class CheckinCommand extends BaseCommand {
     interaction: ChatInputCommandInteraction,
     tipo: string,
     sessionName: string,
-    nome?: string
+    nome?: string,
   ): Promise<{ voiceChannel?: VoiceChannel; textChannel?: TextChannel }> {
     try {
       const guild = interaction.guild!;
@@ -289,7 +289,7 @@ class CheckinCommand extends BaseCommand {
       category =
         guild.channels.cache.find(
           (channel): channel is CategoryChannel =>
-            channel.type === ChannelType.GuildCategory && channel.name === categoryName
+            channel.type === ChannelType.GuildCategory && channel.name === categoryName,
         ) || null;
 
       if (!category) {
@@ -360,7 +360,7 @@ class CheckinCommand extends BaseCommand {
         const welcomeEmbed = new EmbedBuilder()
           .setTitle(`🎮 ${nome || sessionName}`)
           .setDescription(
-            `Canal criado para a sessão de **${this.getTipoDisplayName(tipo)}**\n\nBoa sorte e divirtam-se! 🎯`
+            `Canal criado para a sessão de **${this.getTipoDisplayName(tipo)}**\n\nBoa sorte e divirtam-se! 🎯`,
           )
           .setColor(0x00ff00)
           .setTimestamp();
@@ -386,7 +386,7 @@ class CheckinCommand extends BaseCommand {
     baseXP: number,
     currentStreak: number,
     pubgValidation: any,
-    channelResult: { voiceChannel?: VoiceChannel; textChannel?: TextChannel }
+    channelResult: { voiceChannel?: VoiceChannel; textChannel?: TextChannel },
   ): Promise<EmbedBuilder> {
     const successEmbed = new EmbedBuilder()
       .setTitle('✅ Check-in Realizado!')
@@ -407,7 +407,7 @@ class CheckinCommand extends BaseCommand {
           name: '⏰ Início',
           value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
           inline: true,
-        }
+        },
       )
       .setThumbnail(interaction.user.displayAvatarURL())
       .setTimestamp();
@@ -430,7 +430,7 @@ class CheckinCommand extends BaseCommand {
         name: '🔥 Streak Atual',
         value: `${currentStreak} dias`,
         inline: true,
-      }
+      },
     );
 
     // Add PUBG validation info if available
@@ -500,7 +500,7 @@ class CheckinCommand extends BaseCommand {
       new ButtonBuilder()
         .setCustomId(`confirm_presence_${userId}`)
         .setLabel('✅ Confirmar Presença')
-        .setStyle(ButtonStyle.Primary)
+        .setStyle(ButtonStyle.Primary),
     );
 
     const secondaryButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -515,7 +515,7 @@ class CheckinCommand extends BaseCommand {
       new ButtonBuilder()
         .setCustomId(`session_participants_${userId}`)
         .setLabel('👤 Participantes')
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Secondary),
     );
 
     return { actionButtons, secondaryButtons };
@@ -524,7 +524,7 @@ class CheckinCommand extends BaseCommand {
   private async checkPresenceBadges(
     badgeService: BadgeService,
     userId: string,
-    tipo: string
+    tipo: string,
   ): Promise<void> {
     try {
       // Award first check-in badge
@@ -552,7 +552,7 @@ class CheckinCommand extends BaseCommand {
     presenceService: PresenceService | PresenceEnhancementsService,
     userId: string,
     guildId: string,
-    channelResult: { voiceChannel?: VoiceChannel; textChannel?: TextChannel }
+    channelResult: { voiceChannel?: VoiceChannel; textChannel?: TextChannel },
   ): void {
     const collector = response.createMessageComponentCollector({
       componentType: ComponentType.Button,
@@ -569,7 +569,7 @@ class CheckinCommand extends BaseCommand {
       ];
 
       const isOwnerOnly = !allowedForAll.some(id =>
-        buttonInteraction.customId.includes(id.replace(`_${userId}`, ''))
+        buttonInteraction.customId.includes(id.replace(`_${userId}`, '')),
       );
 
       if (isOwnerOnly && buttonInteraction.user.id !== userId) {
@@ -587,7 +587,7 @@ class CheckinCommand extends BaseCommand {
           userId,
           guildId,
           channelResult,
-          response
+          response,
         );
       } catch (error) {
         console.error('Error handling button interaction:', error);
@@ -606,7 +606,7 @@ class CheckinCommand extends BaseCommand {
             .setCustomId('expired')
             .setLabel('⏰ Botões Expirados')
             .setStyle(ButtonStyle.Secondary)
-            .setDisabled(true)
+            .setDisabled(true),
         );
 
         await response.edit({ components: [expiredButtons] });
@@ -622,7 +622,7 @@ class CheckinCommand extends BaseCommand {
     userId: string,
     guildId: string,
     channelResult: { voiceChannel?: VoiceChannel; textChannel?: TextChannel },
-    response: any
+    response: any,
   ): Promise<void> {
     if (buttonInteraction.customId === `checkout_${userId}`) {
       await this.handleCheckoutButton(
@@ -630,7 +630,7 @@ class CheckinCommand extends BaseCommand {
         presenceService,
         userId,
         guildId,
-        response
+        response,
       );
     } else if (buttonInteraction.customId === `invite_players_${userId}`) {
       await this.handleInvitePlayersButton(buttonInteraction, channelResult);
@@ -650,14 +650,14 @@ class CheckinCommand extends BaseCommand {
     presenceService: PresenceService | PresenceEnhancementsService,
     userId: string,
     guildId: string,
-    response: any
+    response: any,
   ): Promise<void> {
     let checkoutResult;
     if ('enhancedCheckOut' in presenceService) {
       checkoutResult = await presenceService.enhancedCheckOut(
         guildId,
         userId,
-        'Checkout via botão'
+        'Checkout via botão',
       );
     } else {
       checkoutResult = await presenceService.checkOut(guildId, userId, 'Checkout via botão');
@@ -678,7 +678,7 @@ class CheckinCommand extends BaseCommand {
           .setCustomId('checkout_disabled')
           .setLabel('✅ Check-out Realizado')
           .setStyle(ButtonStyle.Success)
-          .setDisabled(true)
+          .setDisabled(true),
       );
 
       await response.edit({ components: [disabledButtons] });
@@ -687,7 +687,7 @@ class CheckinCommand extends BaseCommand {
 
   private async handleInvitePlayersButton(
     buttonInteraction: any,
-    channelResult: { voiceChannel?: VoiceChannel; textChannel?: TextChannel }
+    channelResult: { voiceChannel?: VoiceChannel; textChannel?: TextChannel },
   ): Promise<void> {
     const inviteEmbed = new EmbedBuilder()
       .setTitle('👥 Convidar Jogadores')
@@ -699,7 +699,7 @@ class CheckinCommand extends BaseCommand {
           '• Compartilhe os links dos canais com seus amigos\n' +
           '• Eles podem entrar diretamente nos canais\n' +
           '• Use o botão "✅ Confirmar Presença" quando chegarem\n' +
-          '• O criador da sessão pode fazer check-out por todos'
+          '• O criador da sessão pode fazer check-out por todos',
       )
       .setColor(0x00ff00)
       .setTimestamp();
@@ -709,7 +709,7 @@ class CheckinCommand extends BaseCommand {
 
   private async handleConfirmPresenceButton(
     buttonInteraction: any,
-    channelResult: { voiceChannel?: VoiceChannel; textChannel?: TextChannel }
+    channelResult: { voiceChannel?: VoiceChannel; textChannel?: TextChannel },
   ): Promise<void> {
     const confirmingUser = buttonInteraction.user;
     const isInVoiceChannel = channelResult.voiceChannel?.members.has(confirmingUser.id);
@@ -728,7 +728,7 @@ class CheckinCommand extends BaseCommand {
         `${confirmingUser.displayName} confirmou presença na sessão!\n\n` +
           `⏰ **Confirmado em:** <t:${Math.floor(Date.now() / 1000)}:F>\n` +
           `🔊 **Canal:** ${channelResult.voiceChannel ? `<#${channelResult.voiceChannel.id}>` : 'N/A'}\n\n` +
-          '💡 **Lembre-se:** Faça check-out quando sair para evitar penalidades!'
+          '💡 **Lembre-se:** Faça check-out quando sair para evitar penalidades!',
       )
       .setColor(0x00ff00)
       .setThumbnail(confirmingUser.displayAvatarURL())
@@ -749,7 +749,7 @@ class CheckinCommand extends BaseCommand {
 
   private async handleSessionParticipantsButton(
     buttonInteraction: any,
-    channelResult: { voiceChannel?: VoiceChannel; textChannel?: TextChannel }
+    channelResult: { voiceChannel?: VoiceChannel; textChannel?: TextChannel },
   ): Promise<void> {
     const voiceMembers = channelResult.voiceChannel?.members;
     const participantsList =
@@ -761,7 +761,7 @@ class CheckinCommand extends BaseCommand {
       .setDescription(
         `**Canal de Voz:** ${channelResult.voiceChannel ? `<#${channelResult.voiceChannel.id}>` : 'N/A'}\n\n` +
           `**Participantes Ativos (${voiceMembers?.size || 0}):**\n${participantsList}\n\n` +
-          '💡 **Dica:** Use "✅ Confirmar Presença" para registrar sua participação!'
+          '💡 **Dica:** Use "✅ Confirmar Presença" para registrar sua participação!',
       )
       .setColor(0x3498db)
       .setTimestamp();
@@ -784,7 +784,7 @@ class CheckinCommand extends BaseCommand {
       .addFields(
         { name: '⏰ Início', value: `<t:${sessionStart}:F>`, inline: true },
         { name: '⏱️ Duração', value: `<t:${sessionStart}:R>`, inline: true },
-        { name: '🎮 Status', value: '🟢 Ativa', inline: true }
+        { name: '🎮 Status', value: '🟢 Ativa', inline: true },
       )
       .setColor(0x00ff00)
       .setTimestamp();
@@ -795,7 +795,7 @@ class CheckinCommand extends BaseCommand {
   private scheduleChannelCleanup(
     voiceChannel: VoiceChannel,
     textChannel?: TextChannel,
-    tipo?: string
+    tipo?: string,
   ): void {
     // Get configuration for this session type
     const config = getChannelConfig(tipo);

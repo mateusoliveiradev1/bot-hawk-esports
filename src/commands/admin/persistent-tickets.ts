@@ -28,27 +28,27 @@ export default {
             .setName('channel')
             .setDescription('Canal onde o embed de tickets será enviado')
             .addChannelTypes(ChannelType.GuildText)
-            .setRequired(true)
+            .setRequired(true),
         )
         .addChannelOption(option =>
           option
             .setName('category')
             .setDescription('Categoria onde os tickets serão criados')
             .addChannelTypes(ChannelType.GuildCategory)
-            .setRequired(false)
+            .setRequired(false),
         )
         .addRoleOption(option =>
           option
             .setName('support-role')
             .setDescription('Cargo que pode gerenciar tickets')
-            .setRequired(false)
+            .setRequired(false),
         )
         .addChannelOption(option =>
           option
             .setName('log-channel')
             .setDescription('Canal para logs de tickets')
             .addChannelTypes(ChannelType.GuildText)
-            .setRequired(false)
+            .setRequired(false),
         )
         .addIntegerOption(option =>
           option
@@ -56,13 +56,13 @@ export default {
             .setDescription('Máximo de tickets por usuário (padrão: 3)')
             .setMinValue(1)
             .setMaxValue(10)
-            .setRequired(false)
+            .setRequired(false),
         )
         .addBooleanOption(option =>
           option
             .setName('auto-close')
             .setDescription('Fechar tickets automaticamente após inatividade')
-            .setRequired(false)
+            .setRequired(false),
         )
         .addIntegerOption(option =>
           option
@@ -70,23 +70,23 @@ export default {
             .setDescription('Horas de inatividade antes do fechamento automático (padrão: 24)')
             .setMinValue(1)
             .setMaxValue(168)
-            .setRequired(false)
-        )
+            .setRequired(false),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('refresh')
-        .setDescription('Atualizar o embed de tickets no canal configurado')
+        .setDescription('Atualizar o embed de tickets no canal configurado'),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('status')
-        .setDescription('Verificar status do sistema de tickets persistente')
+        .setDescription('Verificar status do sistema de tickets persistente'),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('remove')
-        .setDescription('Remover configuração do sistema de tickets persistente')
+        .setDescription('Remover configuração do sistema de tickets persistente'),
     ),
 
   async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
@@ -143,7 +143,7 @@ export default {
 async function handleSetup(
   interaction: ChatInputCommandInteraction,
   service: PersistentTicketService,
-  guildId: string
+  guildId: string,
 ): Promise<void> {
   await interaction.deferReply();
 
@@ -228,7 +228,7 @@ async function handleSetup(
         name: '⏰ Fechamento Automático',
         value: autoClose ? `${autoCloseHours}h` : 'Desabilitado',
         inline: true,
-      }
+      },
     )
     .setColor(0x00ff00)
     .setTimestamp();
@@ -242,7 +242,7 @@ async function handleSetup(
 async function handleRefresh(
   interaction: ChatInputCommandInteraction,
   service: PersistentTicketService,
-  guildId: string
+  guildId: string,
 ): Promise<void> {
   await interaction.deferReply();
 
@@ -267,7 +267,7 @@ async function handleRefresh(
   const embed = new EmbedBuilder()
     .setTitle('🔄 Embed Atualizado')
     .setDescription(
-      `O embed de tickets foi atualizado com sucesso no canal <#${config.channelId}>.`
+      `O embed de tickets foi atualizado com sucesso no canal <#${config.channelId}>.`,
     )
     .setColor(0x0099ff)
     .setTimestamp();
@@ -281,7 +281,7 @@ async function handleRefresh(
 async function handleStatus(
   interaction: ChatInputCommandInteraction,
   service: PersistentTicketService,
-  guildId: string
+  guildId: string,
 ): Promise<void> {
   const config = service.getConfig(guildId);
 
@@ -289,7 +289,7 @@ async function handleStatus(
     const embed = new EmbedBuilder()
       .setTitle('❌ Sistema Não Configurado')
       .setDescription(
-        'O sistema de tickets persistente não está configurado neste servidor.\n\nUse `/persistent-tickets setup` para configurar.'
+        'O sistema de tickets persistente não está configurado neste servidor.\n\nUse `/persistent-tickets setup` para configurar.',
       )
       .setColor(0xff0000)
       .setTimestamp();
@@ -348,7 +348,7 @@ async function handleStatus(
         name: '⏰ Fechamento Automático',
         value: config.autoClose ? `${config.autoCloseHours}h ✅` : 'Desabilitado ❌',
         inline: true,
-      }
+      },
     )
     .setColor(0x0099ff)
     .setTimestamp();
@@ -362,7 +362,7 @@ async function handleStatus(
 async function handleRemove(
   interaction: ChatInputCommandInteraction,
   service: PersistentTicketService,
-  guildId: string
+  guildId: string,
 ): Promise<void> {
   await interaction.deferReply();
 

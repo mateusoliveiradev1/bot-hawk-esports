@@ -38,7 +38,7 @@ async function testBackupSystem() {
       logger,
       healthService,
       metricsService,
-      config.backup
+      config.backup,
     );
 
     console.log('✅ BackupService criado com sucesso');
@@ -89,7 +89,7 @@ async function testBackupSystem() {
       console.log(`  - Total: ${stats.totalBackups}`);
       console.log(`  - Tamanho total: ${formatBytes(stats.totalSize)}`);
       console.log(
-        `  - Último backup: ${stats.lastBackup ? new Date(stats.lastBackup).toLocaleString() : 'Nenhum'}`
+        `  - Último backup: ${stats.lastBackup ? new Date(stats.lastBackup).toLocaleString() : 'Nenhum'}`,
       );
     } catch (error) {
       console.log('⚠️ Banco de dados não encontrado, criando arquivo de teste...');

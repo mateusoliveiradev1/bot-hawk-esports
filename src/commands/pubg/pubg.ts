@@ -29,7 +29,7 @@ class PubgCommand extends BaseCommand {
               option
                 .setName('username')
                 .setDescription('Seu nome de usuário no PUBG')
-                .setRequired(true)
+                .setRequired(true),
             )
             .addStringOption(option =>
               option
@@ -41,9 +41,9 @@ class PubgCommand extends BaseCommand {
                   { name: 'Xbox', value: 'xbox' },
                   { name: 'PlayStation', value: 'psn' },
                   { name: 'Stadia', value: 'stadia' },
-                  { name: 'Kakao', value: 'kakao' }
-                )
-            )
+                  { name: 'Kakao', value: 'kakao' },
+                ),
+            ),
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -53,7 +53,7 @@ class PubgCommand extends BaseCommand {
               option
                 .setName('usuario')
                 .setDescription('Usuário para ver as estatísticas (deixe vazio para ver as suas)')
-                .setRequired(false)
+                .setRequired(false),
             )
             .addStringOption(option =>
               option
@@ -66,9 +66,9 @@ class PubgCommand extends BaseCommand {
                   { name: 'Squad', value: 'squad' },
                   { name: 'Solo FPP', value: 'solo-fpp' },
                   { name: 'Duo FPP', value: 'duo-fpp' },
-                  { name: 'Squad FPP', value: 'squad-fpp' }
-                )
-            )
+                  { name: 'Squad FPP', value: 'squad-fpp' },
+                ),
+            ),
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -78,13 +78,13 @@ class PubgCommand extends BaseCommand {
               option
                 .setName('usuario1')
                 .setDescription('Primeiro usuário para comparar')
-                .setRequired(true)
+                .setRequired(true),
             )
             .addUserOption(option =>
               option
                 .setName('usuario2')
                 .setDescription('Segundo usuário para comparar (deixe vazio para comparar consigo)')
-                .setRequired(false)
+                .setRequired(false),
             )
             .addStringOption(option =>
               option
@@ -97,9 +97,9 @@ class PubgCommand extends BaseCommand {
                   { name: 'Squad', value: 'squad' },
                   { name: 'Solo FPP', value: 'solo-fpp' },
                   { name: 'Duo FPP', value: 'duo-fpp' },
-                  { name: 'Squad FPP', value: 'squad-fpp' }
-                )
-            )
+                  { name: 'Squad FPP', value: 'squad-fpp' },
+                ),
+            ),
         ),
       category: CommandCategory.PUBG,
       cooldown: 5,
@@ -145,7 +145,7 @@ class PubgCommand extends BaseCommand {
 
   private async handleLinkCommand(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ) {
     const username = interaction.options.getString('username', true);
     const platform = interaction.options.getString('platform', true) as PUBGPlatform;
@@ -202,12 +202,12 @@ class PubgCommand extends BaseCommand {
       const embed = new EmbedBuilder()
         .setTitle('✅ Conta PUBG vinculada com sucesso!')
         .setDescription(
-          `Sua conta **${player.name}** foi vinculada à plataforma **${platform.toUpperCase()}**.`
+          `Sua conta **${player.name}** foi vinculada à plataforma **${platform.toUpperCase()}**.`,
         )
         .addFields(
           { name: '👤 Jogador', value: player.name, inline: true },
           { name: '🎮 Plataforma', value: platform.toUpperCase(), inline: true },
-          { name: '🆔 ID do Jogador', value: player.id, inline: true }
+          { name: '🆔 ID do Jogador', value: player.id, inline: true },
         )
         .setColor(0x00ff00)
         .setThumbnail(interaction.user.displayAvatarURL())
@@ -220,7 +220,7 @@ class PubgCommand extends BaseCommand {
             { name: '🎯 Estatísticas Rápidas (Squad)', value: '\u200B', inline: false },
             { name: '🎮 Partidas', value: squadStats.roundsPlayed.toString(), inline: true },
             { name: '🏆 Vitórias', value: squadStats.wins.toString(), inline: true },
-            { name: '💀 Kills', value: squadStats.kills.toString(), inline: true }
+            { name: '💀 Kills', value: squadStats.kills.toString(), inline: true },
           );
         }
       }
@@ -252,7 +252,7 @@ class PubgCommand extends BaseCommand {
 
   private async handleStatsCommand(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ) {
     const targetUser = interaction.options.getUser('usuario') || interaction.user;
     const gameMode = (interaction.options.getString('modo') as PUBGGameMode) || PUBGGameMode.SQUAD;
@@ -286,7 +286,7 @@ class PubgCommand extends BaseCommand {
       // Buscar estatísticas atualizadas
       const stats = await pubgService.getPlayerStats(
         userData.pubgUsername,
-        userData.pubgPlatform as PUBGPlatform
+        userData.pubgPlatform as PUBGPlatform,
       );
       if (!stats) {
         await interaction.editReply({
@@ -306,7 +306,7 @@ class PubgCommand extends BaseCommand {
       const embed = new EmbedBuilder()
         .setTitle(`📊 Estatísticas PUBG - ${userData.pubgUsername}`)
         .setDescription(
-          `Modo: **${gameMode.toUpperCase()}** | Plataforma: **${userData.pubgPlatform?.toUpperCase()}**`
+          `Modo: **${gameMode.toUpperCase()}** | Plataforma: **${userData.pubgPlatform?.toUpperCase()}**`,
         )
         .addFields(
           { name: '🎮 Partidas', value: modeStats.roundsPlayed.toString(), inline: true },
@@ -350,7 +350,7 @@ class PubgCommand extends BaseCommand {
             name: '⏱️ Tempo Sobrevivido',
             value: `${Math.round(modeStats.timeSurvived / 60)} min`,
             inline: true,
-          }
+          },
         )
         .setColor(0x0099ff)
         .setThumbnail(targetUser.displayAvatarURL())
@@ -374,7 +374,7 @@ class PubgCommand extends BaseCommand {
         new ButtonBuilder()
           .setCustomId(`pubg_modes_${targetUser.id}`)
           .setLabel('🎮 Outros Modos')
-          .setStyle(ButtonStyle.Primary)
+          .setStyle(ButtonStyle.Primary),
       );
 
       await interaction.editReply({ embeds: [embed], components: [row] });
@@ -388,7 +388,7 @@ class PubgCommand extends BaseCommand {
 
   private async handleCompareCommand(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ) {
     const user1 = interaction.options.getUser('usuario1', true);
     const user2 = interaction.options.getUser('usuario2') || interaction.user;
@@ -457,12 +457,12 @@ class PubgCommand extends BaseCommand {
       const kda1 = pubgService.calculateKDA(
         modeStats1.kills,
         modeStats1.losses,
-        modeStats1.assists || 0
+        modeStats1.assists || 0,
       );
       const kda2 = pubgService.calculateKDA(
         modeStats2.kills,
         modeStats2.losses,
-        modeStats2.assists || 0
+        modeStats2.assists || 0,
       );
       const winRate1 = (modeStats1.wins / modeStats1.roundsPlayed) * 100;
       const winRate2 = (modeStats2.wins / modeStats2.roundsPlayed) * 100;
@@ -505,7 +505,7 @@ class PubgCommand extends BaseCommand {
             name: '⏱️ Tempo Médio',
             value: `${Math.round(modeStats1.timeSurvived / 60)} min\n${Math.round(modeStats2.timeSurvived / 60)} min`,
             inline: true,
-          }
+          },
         )
         .setColor(0xff6600)
         .setTimestamp();

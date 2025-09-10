@@ -60,7 +60,7 @@ export class AlertService {
   constructor(
     private config: AlertConfig,
     private databaseService?: DatabaseService,
-    private discordClient?: ExtendedClient
+    private discordClient?: ExtendedClient,
   ) {
     this.logger = new Logger();
     this.setupEmailTransporter();
@@ -233,7 +233,7 @@ export class AlertService {
     title: string,
     message: string,
     source: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): Promise<string> {
     const alertId = `${source}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -387,7 +387,7 @@ export class AlertService {
         .addFields(
           { name: 'Source', value: alert.source, inline: true },
           { name: 'Type', value: alert.type.toUpperCase(), inline: true },
-          { name: 'Time', value: alert.timestamp.toISOString(), inline: true }
+          { name: 'Time', value: alert.timestamp.toISOString(), inline: true },
         )
         .setTimestamp(alert.timestamp);
 
@@ -581,7 +581,7 @@ export class AlertService {
    */
   startMonitoring(
     metricsCallback: () => Promise<Record<string, any>>,
-    intervalMs: number = 60000
+    intervalMs: number = 60000,
   ): void {
     setInterval(async () => {
       try {

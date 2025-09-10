@@ -18,7 +18,7 @@ export class DatabaseUtils {
       username?: string;
       discriminator?: string;
       avatar?: string;
-    }
+    },
   ) {
     try {
       // First try to find existing user
@@ -94,7 +94,7 @@ export class DatabaseUtils {
       coins?: number;
       commandsUsed?: number;
       lastActive?: Date;
-    }
+    },
   ) {
     try {
       const user = await database.client.user.update({
@@ -124,7 +124,7 @@ export class DatabaseUtils {
     database: DatabaseService,
     userId: string,
     badgeId: string,
-    metadata?: any
+    metadata?: any,
   ) {
     try {
       // Check if user already has this badge
@@ -174,7 +174,7 @@ export class DatabaseUtils {
       type: string;
       description: string;
       metadata?: any;
-    }
+    },
   ) {
     try {
       await database.client.auditLog.create({
@@ -225,7 +225,7 @@ export class DatabaseUtils {
     updates: Array<{
       userId: string;
       data: any;
-    }>
+    }>,
   ) {
     try {
       const results = await Promise.allSettled(
@@ -233,8 +233,8 @@ export class DatabaseUtils {
           database.client.user.update({
             where: { id: update.userId },
             data: update.data,
-          })
-        )
+          }),
+        ),
       );
 
       const successful = results.filter(r => r.status === 'fulfilled').length;
@@ -256,7 +256,7 @@ export class DatabaseUtils {
     database: DatabaseService,
     table: string,
     dateField: string,
-    daysOld: number
+    daysOld: number,
   ) {
     try {
       const cutoffDate = new Date();
@@ -284,7 +284,7 @@ export class DatabaseUtils {
   static async getPaginatedResults<T>(
     queryFn: (skip: number, take: number) => Promise<T[]>,
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<{ data: T[]; page: number; limit: number; hasMore: boolean }> {
     try {
       const skip = (page - 1) * limit;

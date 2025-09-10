@@ -84,7 +84,7 @@ export class Logger {
         }),
         winston.format.errors({ stack: true }),
         winston.format.json(),
-        winston.format.prettyPrint()
+        winston.format.prettyPrint(),
       ),
     };
 
@@ -193,10 +193,10 @@ export class Logger {
               }
 
               return log;
-            }
-          )
+            },
+          ),
         ),
-      })
+      }),
     );
 
     // File transport
@@ -208,7 +208,7 @@ export class Logger {
         maxsize: this.config.maxSize,
         maxFiles: this.config.maxFiles,
         tailable: true,
-      })
+      }),
     );
 
     // Error file transport
@@ -220,7 +220,7 @@ export class Logger {
         maxsize: this.config.maxSize,
         maxFiles: this.config.maxFiles,
         tailable: true,
-      })
+      }),
     );
 
     this.logger = winston.createLogger({
@@ -316,7 +316,7 @@ export class Logger {
     userId: string,
     guildId?: string,
     duration?: number,
-    error?: Error
+    error?: Error,
   ): void {
     const level = error ? 'error' : 'info';
     const message = error
@@ -341,7 +341,7 @@ export class Logger {
     statusCode: number,
     responseTime: number,
     userId?: string,
-    error?: Error
+    error?: Error,
   ): void {
     const level = statusCode >= 400 ? 'error' : statusCode >= 300 ? 'warn' : 'http';
     const message = `API ${method} ${endpoint} - ${statusCode} (${responseTime}ms)`;
@@ -363,7 +363,7 @@ export class Logger {
     table: string,
     duration: number,
     userId?: string,
-    error?: Error
+    error?: Error,
   ): void {
     const level = error ? 'error' : duration > 1000 ? 'warn' : 'debug';
     const message = error
@@ -398,7 +398,7 @@ export class Logger {
     playerId?: string,
     responseTime?: number,
     userId?: string,
-    error?: Error
+    error?: Error,
   ): void {
     const level = error ? 'error' : responseTime && responseTime > 5000 ? 'warn' : 'info';
     const message = error
@@ -421,7 +421,7 @@ export class Logger {
     guildId: string,
     userId?: string,
     track?: string,
-    error?: Error
+    error?: Error,
   ): void {
     const level = error ? 'error' : 'info';
     const message = error
@@ -444,7 +444,7 @@ export class Logger {
     gameType: string,
     userId: string,
     guildId?: string,
-    error?: Error
+    error?: Error,
   ): void {
     const level = error ? 'error' : 'info';
     const message = error
@@ -467,7 +467,7 @@ export class Logger {
     badgeId: string,
     userId: string,
     guildId?: string,
-    error?: Error
+    error?: Error,
   ): void {
     const level = error ? 'error' : 'info';
     const message = error
@@ -491,7 +491,7 @@ export class Logger {
     severity: 'low' | 'medium' | 'high' | 'critical',
     guildId?: string,
     channelId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): void {
     const level = severity === 'critical' || severity === 'high' ? 'error' : 'warn';
     const message = `Security event: ${event} [${severity.toUpperCase()}]`;
@@ -512,7 +512,7 @@ export class Logger {
     value: number,
     unit: string,
     userId?: string,
-    guildId?: string
+    guildId?: string,
   ): void {
     const level = this.getPerformanceLevel(metric, value, unit);
     const message = `Performance: ${metric} = ${value}${unit}`;
@@ -532,7 +532,7 @@ export class Logger {
     ticketId: string,
     userId?: string,
     guildId?: string,
-    error?: Error
+    error?: Error,
   ): void {
     const level = error ? 'error' : 'info';
     const message = error
@@ -555,7 +555,7 @@ export class Logger {
     userId: string,
     guildId?: string,
     amount?: number,
-    error?: Error
+    error?: Error,
   ): void {
     const level = error ? 'error' : 'info';
     const message = error
@@ -579,7 +579,7 @@ export class Logger {
     moderatorId: string,
     guildId?: string,
     reason?: string,
-    error?: Error
+    error?: Error,
   ): void {
     const level = error ? 'error' : 'info';
     const message = error
@@ -602,7 +602,7 @@ export class Logger {
     guildId?: string,
     userId?: string,
     metadata?: Record<string, any>,
-    error?: Error
+    error?: Error,
   ): void {
     const level = error ? 'error' : 'info';
     const message = error ? `Event ${eventName} failed - ${error.message}` : `Event: ${eventName}`;
@@ -624,7 +624,7 @@ export class Logger {
   private getPerformanceLevel(
     metric: string,
     value: number,
-    unit: string
+    unit: string,
   ): 'debug' | 'warn' | 'error' {
     // Define performance thresholds
     const thresholds: Record<string, { warn: number; error: number }> = {

@@ -93,7 +93,7 @@ class ProductionLogger {
             message,
             ...meta,
           });
-        })
+        }),
       ),
       transports: [
         // Daily rotating file for all logs
@@ -121,7 +121,7 @@ class ProductionLogger {
       format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.errors({ stack: true }),
-        winston.format.json()
+        winston.format.json(),
       ),
       transports: [
         new winston.transports.DailyRotateFile({
@@ -287,7 +287,7 @@ class ProductionLogger {
     url: string,
     statusCode: number,
     duration: number,
-    context?: ProductionLogContext
+    context?: ProductionLogContext,
   ): void {
     const level = statusCode >= 400 ? LogLevel.WARN : LogLevel.INFO;
     const message = `${method} ${url} - ${statusCode} (${duration}ms)`;
@@ -332,7 +332,7 @@ class ProductionLogger {
   healthCheck(
     service: string,
     status: 'healthy' | 'unhealthy' | 'degraded',
-    context?: ProductionLogContext
+    context?: ProductionLogContext,
   ): void {
     const level = status === 'healthy' ? LogLevel.INFO : LogLevel.WARN;
     this.logger.log(level, `Health check: ${service} - ${status}`, {
@@ -359,7 +359,7 @@ class ProductionLogger {
 // Helper function to create valid log context
 export function createLogContext(
   category: LogCategory,
-  additional?: Partial<ProductionLogContext>
+  additional?: Partial<ProductionLogContext>,
 ): ProductionLogContext {
   return {
     category,

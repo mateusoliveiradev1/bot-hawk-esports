@@ -67,7 +67,7 @@ class LogsCommand extends BaseCommand {
 
   private async handleConfigCommand(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const guildId = interaction.guild!.id;
     const currentConfig = client.services!.logging!.getConfig(guildId);
@@ -139,7 +139,7 @@ class LogsCommand extends BaseCommand {
           name: '📋 Changelog',
           value: changelog ? `<#${changelog.id}>` : 'Não configurado',
           inline: true,
-        }
+        },
       )
       .setTimestamp();
 
@@ -148,7 +148,7 @@ class LogsCommand extends BaseCommand {
 
   private async handleEventosCommand(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const guildId = interaction.guild!.id;
     const currentConfig = client.services!.logging!.getConfig(guildId);
@@ -228,7 +228,7 @@ class LogsCommand extends BaseCommand {
           name: '🔊 Eventos de Voz',
           value: newEvents.voiceJoin ? '✅ Ativo' : '❌ Inativo',
           inline: true,
-        }
+        },
       )
       .setTimestamp();
 
@@ -237,7 +237,7 @@ class LogsCommand extends BaseCommand {
 
   private async handleFiltrosCommand(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const guildId = interaction.guild!.id;
     const currentConfig = client.services!.logging!.getConfig(guildId);
@@ -270,7 +270,7 @@ class LogsCommand extends BaseCommand {
 
   private async handleStatusCommand(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const guildId = interaction.guild!.id;
     const config = client.services!.logging!.getConfig(guildId);
@@ -290,7 +290,7 @@ class LogsCommand extends BaseCommand {
           name: '🏠 Servidores Configurados',
           value: stats.configuredGuilds.toString(),
           inline: true,
-        }
+        },
       )
       .setTimestamp();
 
@@ -364,7 +364,7 @@ class LogsCommand extends BaseCommand {
 
   private async handleTesteCommand(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const guildId = interaction.guild!.id;
     const config = client.services!.logging!.getConfig(guildId);
@@ -375,12 +375,12 @@ class LogsCommand extends BaseCommand {
     const testEmbed = new EmbedBuilder()
       .setTitle('🧪 Teste do Sistema de Logs')
       .setDescription(
-        'Esta é uma mensagem de teste para verificar se o sistema de logs está funcionando corretamente.'
+        'Esta é uma mensagem de teste para verificar se o sistema de logs está funcionando corretamente.',
       )
       .setColor(0x00ff00)
       .addFields(
         { name: '👤 Testado por', value: interaction.user.tag, inline: true },
-        { name: '⏰ Data/Hora', value: new Date().toLocaleString('pt-BR'), inline: true }
+        { name: '⏰ Data/Hora', value: new Date().toLocaleString('pt-BR'), inline: true },
       )
       .setTimestamp();
 
@@ -413,7 +413,7 @@ class LogsCommand extends BaseCommand {
     const resultEmbed = new EmbedBuilder()
       .setTitle('🧪 Resultados do Teste')
       .setDescription(
-        testResults.length > 0 ? testResults.join('\n') : 'Nenhum canal configurado para teste.'
+        testResults.length > 0 ? testResults.join('\n') : 'Nenhum canal configurado para teste.',
       )
       .setColor(testResults.some(r => r.includes('❌')) ? 0xff0000 : 0x00ff00)
       .setTimestamp();
@@ -423,7 +423,7 @@ class LogsCommand extends BaseCommand {
 
   private async handleChangelogCommand(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient
+    client: ExtendedClient,
   ): Promise<void> {
     const tipo = interaction.options.getString('tipo', true) as
       | 'feature'
@@ -468,7 +468,7 @@ class LogsCommand extends BaseCommand {
         { name: '📝 Título', value: titulo, inline: true },
         { name: '🔢 Versão', value: versao || 'N/A', inline: true },
         { name: '📄 Descrição', value: descricao, inline: false },
-        { name: '👤 Autor', value: interaction.user.tag, inline: true }
+        { name: '👤 Autor', value: interaction.user.tag, inline: true },
       )
       .setTimestamp();
 
@@ -491,43 +491,43 @@ const logs: Command = {
             .setName('moderacao')
             .setDescription('Canal para logs de moderação')
             .addChannelTypes(ChannelType.GuildText)
-            .setRequired(false)
+            .setRequired(false),
         )
         .addChannelOption(option =>
           option
             .setName('mensagens')
             .setDescription('Canal para logs de mensagens')
             .addChannelTypes(ChannelType.GuildText)
-            .setRequired(false)
+            .setRequired(false),
         )
         .addChannelOption(option =>
           option
             .setName('membros')
             .setDescription('Canal para logs de membros')
             .addChannelTypes(ChannelType.GuildText)
-            .setRequired(false)
+            .setRequired(false),
         )
         .addChannelOption(option =>
           option
             .setName('voz')
             .setDescription('Canal para logs de voz')
             .addChannelTypes(ChannelType.GuildText)
-            .setRequired(false)
+            .setRequired(false),
         )
         .addChannelOption(option =>
           option
             .setName('servidor')
             .setDescription('Canal para logs gerais do servidor')
             .addChannelTypes(ChannelType.GuildText)
-            .setRequired(false)
+            .setRequired(false),
         )
         .addChannelOption(option =>
           option
             .setName('changelog')
             .setDescription('Canal para changelog do bot')
             .addChannelTypes(ChannelType.GuildText)
-            .setRequired(false)
-        )
+            .setRequired(false),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -537,58 +537,58 @@ const logs: Command = {
           option
             .setName('mensagens_deletadas')
             .setDescription('Logar mensagens deletadas')
-            .setRequired(false)
+            .setRequired(false),
         )
         .addBooleanOption(option =>
           option
             .setName('mensagens_editadas')
             .setDescription('Logar mensagens editadas')
-            .setRequired(false)
+            .setRequired(false),
         )
         .addBooleanOption(option =>
           option
             .setName('entrada_membros')
             .setDescription('Logar entrada de membros')
-            .setRequired(false)
+            .setRequired(false),
         )
         .addBooleanOption(option =>
           option
             .setName('saida_membros')
             .setDescription('Logar saída de membros')
-            .setRequired(false)
+            .setRequired(false),
         )
         .addBooleanOption(option =>
           option
             .setName('atualizacao_membros')
             .setDescription('Logar atualizações de membros')
-            .setRequired(false)
+            .setRequired(false),
         )
         .addBooleanOption(option =>
           option
             .setName('acoes_moderacao')
             .setDescription('Logar ações de moderação')
-            .setRequired(false)
+            .setRequired(false),
         )
         .addBooleanOption(option =>
           option
             .setName('eventos_voz')
             .setDescription('Logar eventos de canais de voz')
-            .setRequired(false)
-        )
+            .setRequired(false),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('filtros')
         .setDescription('Configurar filtros de logs')
         .addBooleanOption(option =>
-          option.setName('ignorar_bots').setDescription('Ignorar ações de bots').setRequired(false)
-        )
+          option.setName('ignorar_bots').setDescription('Ignorar ações de bots').setRequired(false),
+        ),
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('status').setDescription('Ver status atual do sistema de logs')
+      subcommand.setName('status').setDescription('Ver status atual do sistema de logs'),
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('teste').setDescription('Enviar mensagem de teste para os canais de log')
+      subcommand.setName('teste').setDescription('Enviar mensagem de teste para os canais de log'),
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -603,30 +603,30 @@ const logs: Command = {
               { name: '✨ Nova Funcionalidade', value: 'feature' },
               { name: '🐛 Correção de Bug', value: 'bugfix' },
               { name: '⚡ Melhoria', value: 'improvement' },
-              { name: '💥 Mudança Importante', value: 'breaking' }
-            )
+              { name: '💥 Mudança Importante', value: 'breaking' },
+            ),
         )
         .addStringOption(option =>
           option
             .setName('titulo')
             .setDescription('Título da mudança')
             .setRequired(true)
-            .setMaxLength(100)
+            .setMaxLength(100),
         )
         .addStringOption(option =>
           option
             .setName('descricao')
             .setDescription('Descrição detalhada da mudança')
             .setRequired(true)
-            .setMaxLength(1000)
+            .setMaxLength(1000),
         )
         .addStringOption(option =>
           option
             .setName('versao')
             .setDescription('Versão (ex: v1.2.3)')
             .setRequired(false)
-            .setMaxLength(20)
-        )
+            .setMaxLength(20),
+        ),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .setDMPermission(false),

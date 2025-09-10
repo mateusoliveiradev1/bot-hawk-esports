@@ -13,7 +13,7 @@ export class ErrorHandler {
     operation: () => Promise<T>,
     logger: Logger,
     operationName: string,
-    context?: string
+    context?: string,
   ): Promise<T> {
     try {
       const result = await operation();
@@ -36,7 +36,7 @@ export class ErrorHandler {
     operation: () => T,
     logger: Logger,
     operationName: string,
-    context?: string
+    context?: string,
   ): T {
     try {
       const result = operation();
@@ -60,7 +60,7 @@ export class ErrorHandler {
     logger: Logger,
     operationName: string,
     defaultValue?: T,
-    context?: string
+    context?: string,
   ): Promise<T | undefined> {
     try {
       return await operation();
@@ -167,7 +167,7 @@ export class SystemError extends Error {
   constructor(
     message: string,
     code: string = ErrorCodes.VALIDATION_ERROR,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ) {
     super(message);
     this.name = 'SystemError';

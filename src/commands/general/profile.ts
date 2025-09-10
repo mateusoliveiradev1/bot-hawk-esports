@@ -30,13 +30,13 @@ class ProfileCommand extends BaseCommand {
           option
             .setName('user')
             .setDescription('Usuário para ver o perfil (deixe vazio para ver o seu)')
-            .setRequired(false)
+            .setRequired(false),
         )
         .addBooleanOption(option =>
           option
             .setName('public')
             .setDescription('Tornar a resposta pública (padrão: privado)')
-            .setRequired(false)
+            .setRequired(false),
         ) as SlashCommandBuilder,
       category: CommandCategory.GENERAL,
       cooldown: 10,
@@ -64,7 +64,7 @@ class ProfileCommand extends BaseCommand {
       if (!userData) {
         const errorEmbed = HawkEmbedBuilder.createError(
           'Usuário não encontrado',
-          'Este usuário não está registrado no sistema.'
+          'Este usuário não está registrado no sistema.',
         );
         await interaction.editReply({ embeds: [errorEmbed] });
         return;
@@ -76,7 +76,7 @@ class ProfileCommand extends BaseCommand {
         userData.pubgUsername
           ? pubgService.getPlayerByName(
               userData.pubgUsername,
-              (userData.pubgPlatform as any) || 'steam'
+              (userData.pubgPlatform as any) || 'steam',
             )
           : null,
         rankingService.getUserRank(interaction.guild?.id || '', targetUser.id, 'internal'),
@@ -91,7 +91,7 @@ class ProfileCommand extends BaseCommand {
         pubgStats,
         rankings,
         presenceData,
-        isOwnProfile
+        isOwnProfile,
       );
 
       // Create action buttons
@@ -120,7 +120,7 @@ class ProfileCommand extends BaseCommand {
           HawkComponentFactory.createLinkButton(
             'Dashboard',
             'https://your-dashboard-url.com/profile',
-            HAWK_EMOJIS.WEB
+            HAWK_EMOJIS.WEB,
           ),
         ]);
       } else {
@@ -152,7 +152,7 @@ class ProfileCommand extends BaseCommand {
         targetUser,
         userData,
         userBadges,
-        pubgStats
+        pubgStats,
       );
     } catch (error) {
       await interaction.reply({
@@ -169,11 +169,11 @@ class ProfileCommand extends BaseCommand {
     pubgStats: any,
     rankings: any,
     presenceData: any,
-    isOwnProfile: boolean
+    isOwnProfile: boolean,
   ): Promise<EmbedBuilder> {
     const embed = HawkEmbedBuilder.createInfo(
       `${HAWK_EMOJIS.USER} Perfil de ${user.displayName}`,
-      ''
+      '',
     )
       .setThumbnail(user.displayAvatarURL())
       .setTimestamp();
@@ -253,7 +253,7 @@ class ProfileCommand extends BaseCommand {
         .slice(0, 3)
         .map(
           ([type, rank]: [string, any]) =>
-            `${this.getRankingEmoji(type)} **${this.getRankingName(type)}:** #${rank.position}`
+            `${this.getRankingEmoji(type)} **${this.getRankingName(type)}:** #${rank.position}`,
         )
         .join('\n');
       embed.addFields({
@@ -280,7 +280,7 @@ class ProfileCommand extends BaseCommand {
     targetUser: any,
     userData: any,
     userBadges: any[],
-    pubgStats: any
+    pubgStats: any,
   ): Promise<void> {
     const collector = response.createMessageComponentCollector({
       time: 300000, // 5 minutes
@@ -318,7 +318,7 @@ class ProfileCommand extends BaseCommand {
           const compareEmbed = new EmbedBuilder()
             .setTitle('⚖️ Comparação de Perfis')
             .setDescription(
-              'Funcionalidade em desenvolvimento!\nEm breve você poderá comparar estatísticas entre jogadores.'
+              'Funcionalidade em desenvolvimento!\nEm breve você poderá comparar estatísticas entre jogadores.',
             )
             .setColor('#FFA500');
           await i.reply({ embeds: [compareEmbed], flags: MessageFlags.Ephemeral });
@@ -335,13 +335,13 @@ class ProfileCommand extends BaseCommand {
     if (badges.length === 0) {
       return HawkEmbedBuilder.createWarning(
         `${HAWK_EMOJIS.BADGE} Badges de ${user.displayName}`,
-        'Este usuário ainda não possui badges.\n\nParticipe das atividades do servidor para conquistar badges!'
+        'Este usuário ainda não possui badges.\n\nParticipe das atividades do servidor para conquistar badges!',
       ).setThumbnail(user.displayAvatarURL());
     }
 
     const embed = HawkEmbedBuilder.createSuccess(
       `${HAWK_EMOJIS.BADGE} Badges de ${user.displayName}`,
-      ''
+      '',
     ).setThumbnail(user.displayAvatarURL());
 
     // Group badges by category
@@ -377,7 +377,7 @@ class ProfileCommand extends BaseCommand {
   private async createPUBGStatsEmbed(user: any, stats: any, userData: any): Promise<EmbedBuilder> {
     const embed = HawkEmbedBuilder.createInfo(
       `${HAWK_EMOJIS.PUBG} Estatísticas PUBG - ${user.displayName}`,
-      ''
+      '',
     ).setThumbnail(user.displayAvatarURL());
 
     // Current season stats
@@ -398,7 +398,7 @@ class ProfileCommand extends BaseCommand {
           name: `${HAWK_EMOJIS.WEAPON} Combate`,
           value: `${HAWK_EMOJIS.KILL} Kills: ${season.kills}\n${HAWK_EMOJIS.DAMAGE} Dano: ${Math.round(season.damageDealt)}\n${HAWK_EMOJIS.GAMING.TARGET} K/D: ${season.kdr?.toFixed(2)}`,
           inline: true,
-        }
+        },
       );
     }
 
@@ -420,7 +420,7 @@ class ProfileCommand extends BaseCommand {
           name: `${HAWK_EMOJIS.BADGES.ACHIEVEMENT} Conquistas`,
           value: `${HAWK_EMOJIS.TROPHY} Chicken Dinners: ${lifetime.wins}\n${HAWK_EMOJIS.CHART} Top 10: ${lifetime.top10s}\n${HAWK_EMOJIS.GAMING.TARGET} Headshots: ${lifetime.headshotKills}`,
           inline: true,
-        }
+        },
       );
     }
 
@@ -444,7 +444,7 @@ class ProfileCommand extends BaseCommand {
   private async createAchievementsEmbed(user: any, userData: any): Promise<EmbedBuilder> {
     const embed = HawkEmbedBuilder.createInfo(
       `${HAWK_EMOJIS.ACHIEVEMENT} Conquistas de ${user.displayName}`,
-      ''
+      '',
     ).setThumbnail(user.displayAvatarURL());
 
     // Mock achievements data - replace with actual data from database

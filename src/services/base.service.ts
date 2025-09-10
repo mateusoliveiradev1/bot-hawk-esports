@@ -16,7 +16,7 @@ export abstract class BaseService {
 
   constructor(
     client: ExtendedClient,
-    requiredServices: Array<keyof ExtendedClient> = ['database', 'cache']
+    requiredServices: Array<keyof ExtendedClient> = ['database', 'cache'],
   ) {
     this.serviceName = this.constructor.name;
     this.validateDependencies(client, requiredServices);
@@ -29,7 +29,7 @@ export abstract class BaseService {
    */
   private validateDependencies(
     client: ExtendedClient,
-    required: Array<keyof ExtendedClient>
+    required: Array<keyof ExtendedClient>,
   ): void {
     if (!client) {
       throw new Error('ExtendedClient is required');
@@ -57,7 +57,7 @@ export abstract class BaseService {
   protected async executeWithLogging<T>(
     operation: () => Promise<T>,
     operationName: string,
-    errorMessage?: string
+    errorMessage?: string,
   ): Promise<T> {
     try {
       const result = await operation();

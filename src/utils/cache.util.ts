@@ -42,7 +42,7 @@ export class CacheUtils {
     cache: CacheService,
     key: string,
     fallbackFn: () => Promise<T>,
-    ttl: number = CacheUtils.TTL.MEDIUM
+    ttl: number = CacheUtils.TTL.MEDIUM,
   ): Promise<T> {
     try {
       // Try to get from cache first
@@ -82,7 +82,7 @@ export class CacheUtils {
     discordId: string,
     guildId: string,
     data: T,
-    ttl: number = CacheUtils.TTL.MEDIUM
+    ttl: number = CacheUtils.TTL.MEDIUM,
   ): Promise<void> {
     try {
       const userKey = this.KEYS.USER(discordId);
@@ -100,7 +100,7 @@ export class CacheUtils {
   static async invalidateUserCache(
     cache: CacheService,
     discordId: string,
-    guildId?: string
+    guildId?: string,
   ): Promise<void> {
     try {
       const keysToInvalidate = [
@@ -115,7 +115,7 @@ export class CacheUtils {
           this.KEYS.USER_GUILD(discordId, guildId),
           this.KEYS.LEADERBOARD(guildId, 'xp'),
           this.KEYS.LEADERBOARD(guildId, 'level'),
-          this.KEYS.RANKING(guildId, 'internal')
+          this.KEYS.RANKING(guildId, 'internal'),
         );
       }
 
@@ -133,7 +133,7 @@ export class CacheUtils {
     guildId: string,
     type: string,
     data: any[],
-    ttl: number = CacheUtils.TTL.LONG
+    ttl: number = CacheUtils.TTL.LONG,
   ): Promise<void> {
     try {
       const key = this.KEYS.LEADERBOARD(guildId, type);
@@ -149,7 +149,7 @@ export class CacheUtils {
   static async getCachedLeaderboard<T>(
     cache: CacheService,
     guildId: string,
-    type: string
+    type: string,
   ): Promise<T[] | null> {
     try {
       const key = this.KEYS.LEADERBOARD(guildId, type);
@@ -167,7 +167,7 @@ export class CacheUtils {
     cache: CacheService,
     guildId: string,
     settings: any,
-    ttl: number = CacheUtils.TTL.VERY_LONG
+    ttl: number = CacheUtils.TTL.VERY_LONG,
   ): Promise<void> {
     try {
       const key = this.KEYS.GUILD_SETTINGS(guildId);
@@ -199,11 +199,11 @@ export class CacheUtils {
       key: string;
       value: any;
       ttl?: number;
-    }>
+    }>,
   ): Promise<void> {
     try {
       await Promise.all(
-        operations.map(op => cache.set(op.key, op.value, op.ttl || CacheUtils.TTL.MEDIUM))
+        operations.map(op => cache.set(op.key, op.value, op.ttl || CacheUtils.TTL.MEDIUM)),
       );
     } catch (error) {
       this.logger.error('Failed to perform batch cache set:', error);
@@ -229,7 +229,7 @@ export class CacheUtils {
     key: string,
     refreshFn: () => Promise<T>,
     ttl: number = CacheUtils.TTL.MEDIUM,
-    refreshThreshold: number = 0.8 // Refresh when 80% of TTL has passed
+    refreshThreshold: number = 0.8, // Refresh when 80% of TTL has passed
   ): Promise<T> {
     try {
       const cached = await cache.get<{ data: T; timestamp: number }>(key);
@@ -254,7 +254,7 @@ export class CacheUtils {
                   data: newData,
                   timestamp: Date.now(),
                 },
-                ttl
+                ttl,
               );
             })
             .catch(error => {
@@ -273,7 +273,7 @@ export class CacheUtils {
           data: freshData,
           timestamp: Date.now(),
         },
-        ttl
+        ttl,
       );
 
       return freshData;
@@ -288,7 +288,7 @@ export class CacheUtils {
    */
   static async getCacheStats(
     cache: CacheService,
-    keyPatterns: string[]
+    keyPatterns: string[],
   ): Promise<{
     totalKeys: number;
     patternCounts: Record<string, number>;

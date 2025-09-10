@@ -17,26 +17,26 @@ export const command: Command = {
     .setDescription('Gerenciar sistema de rate limiting')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(subcommand =>
-      subcommand.setName('status').setDescription('Ver status do sistema de rate limiting')
+      subcommand.setName('status').setDescription('Ver status do sistema de rate limiting'),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('user')
         .setDescription('Ver informações de rate limit de um usuário')
         .addUserOption(option =>
-          option.setName('usuario').setDescription('Usuário para verificar').setRequired(true)
-        )
+          option.setName('usuario').setDescription('Usuário para verificar').setRequired(true),
+        ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('reset')
         .setDescription('Resetar rate limit de um usuário')
         .addUserOption(option =>
-          option.setName('usuario').setDescription('Usuário para resetar').setRequired(true)
-        )
+          option.setName('usuario').setDescription('Usuário para resetar').setRequired(true),
+        ),
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('stats').setDescription('Ver estatísticas gerais do rate limiting')
+      subcommand.setName('stats').setDescription('Ver estatísticas gerais do rate limiting'),
     ),
   category: CommandCategory.ADMIN,
   cooldown: 5,
@@ -92,7 +92,7 @@ async function handleStatusCommand(interaction: ChatInputCommandInteraction): Pr
 
   const embed = HawkEmbedBuilder.createAdminEmbed(
     '🛡️ Status do Rate Limiting',
-    'Informações gerais do sistema de rate limiting'
+    'Informações gerais do sistema de rate limiting',
   )
     .addFields(
       {
@@ -125,7 +125,7 @@ async function handleStatusCommand(interaction: ChatInputCommandInteraction): Pr
         value:
           'Rate limiting progressivo ativo\nLimpeza automática habilitada\nMonitoramento comportamental ativo',
         inline: false,
-      }
+      },
     )
     .setColor('#00ff00')
     .setTimestamp();
@@ -148,7 +148,7 @@ async function handleUserCommand(interaction: ChatInputCommandInteraction): Prom
 
   const embed = HawkEmbedBuilder.createAdminEmbed(
     `🔍 Rate Limit - ${user.username}`,
-    `Informações de rate limiting para <@${user.id}>`
+    `Informações de rate limiting para <@${user.id}>`,
   )
     .addFields(
       {
@@ -177,7 +177,7 @@ async function handleUserCommand(interaction: ChatInputCommandInteraction): Prom
           ? `Bloqueado até <t:${Math.floor(userStatus.resetTime.getTime() / 1000)}:R>`
           : 'Nenhum bloqueio ativo',
         inline: false,
-      }
+      },
     )
     .setColor(userStatus.isBlocked ? '#ff0000' : userStatus.requests > 5 ? '#ffaa00' : '#00ff00')
     .setThumbnail(user.displayAvatarURL())
@@ -197,7 +197,7 @@ async function handleResetCommand(interaction: ChatInputCommandInteraction): Pro
 
     const embed = HawkEmbedBuilder.createSuccessEmbed(
       '✅ Rate Limit Resetado',
-      `Rate limit resetado com sucesso para <@${user.id}>`
+      `Rate limit resetado com sucesso para <@${user.id}>`,
     )
       .addFields(
         {
@@ -214,7 +214,7 @@ async function handleResetCommand(interaction: ChatInputCommandInteraction): Pro
           name: '👮 Administrador',
           value: `<@${interaction.user.id}>`,
           inline: true,
-        }
+        },
       )
       .setColor('#00ff00')
       .setTimestamp();
@@ -251,7 +251,7 @@ async function handleStatsCommand(interaction: ChatInputCommandInteraction): Pro
 
   const embed = HawkEmbedBuilder.createAdminEmbed(
     '📊 Estatísticas Detalhadas do Rate Limiting',
-    'Análise completa do sistema de rate limiting'
+    'Análise completa do sistema de rate limiting',
   )
     .addFields(
       {
@@ -284,10 +284,10 @@ async function handleStatsCommand(interaction: ChatInputCommandInteraction): Pro
               ? '⚡ Múltiplas requisições bloqueadas. Sistema funcionando corretamente.'
               : '✅ Sistema operando dentro dos parâmetros normais.',
         inline: false,
-      }
+      },
     )
     .setColor(
-      stats.blockedRequests > 50 ? '#ff0000' : stats.blockedRequests > 0 ? '#ffaa00' : '#00ff00'
+      stats.blockedRequests > 50 ? '#ff0000' : stats.blockedRequests > 0 ? '#ffaa00' : '#00ff00',
     )
     .setTimestamp()
     .setFooter({ text: 'Estatísticas atualizadas em tempo real' });
