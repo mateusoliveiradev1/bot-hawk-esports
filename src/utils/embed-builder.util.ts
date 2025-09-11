@@ -73,7 +73,7 @@ export class EmbedUtils {
   static createCustomEmbed(
     title: string,
     color: ColorResolvable,
-    description?: string,
+    description?: string
   ): EmbedBuilder {
     const embed = new EmbedBuilder().setColor(color).setTitle(title);
 
@@ -243,7 +243,7 @@ export class EmbedUtils {
    */
   static createMaintenanceEmbed(
     title: string = 'Manutenção em Andamento',
-    description?: string,
+    description?: string
   ): EmbedBuilder {
     return new EmbedBuilder()
       .setTitle(`🔧 ${title}`)
@@ -282,7 +282,7 @@ export class EmbedUtils {
     description: string,
     currentPage: number,
     totalPages: number,
-    color?: ColorResolvable,
+    color?: ColorResolvable
   ): EmbedBuilder {
     return new EmbedBuilder()
       .setTitle(title)
@@ -314,7 +314,7 @@ export class EmbedUtils {
   static createQuickEmbed(
     title: string,
     description: string,
-    color: ColorResolvable = THEME_COLORS.INFO,
+    color: ColorResolvable = THEME_COLORS.INFO
   ): EmbedBuilder {
     return new EmbedBuilder()
       .setTitle(title)

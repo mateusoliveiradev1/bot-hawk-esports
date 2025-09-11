@@ -161,7 +161,7 @@ export class LoggingService {
 
   constructor(
     private client: ExtendedClient,
-    private database: DatabaseService,
+    private database: DatabaseService
   ) {
     // Validate dependencies
     if (!client) {
@@ -397,7 +397,7 @@ export class LoggingService {
             this.logger.error(`Failed to process log entry ${entry.id}:`, error);
             return { success: false, entry, error };
           }
-        }),
+        })
       );
 
       const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
@@ -405,7 +405,7 @@ export class LoggingService {
 
       if (failureCount > 0) {
         this.logger.warn(
-          `Processed ${processedCount} log entries: ${successCount} successful, ${failureCount} failed`,
+          `Processed ${processedCount} log entries: ${successCount} successful, ${failureCount} failed`
         );
       }
     } catch (error) {
@@ -448,7 +448,7 @@ export class LoggingService {
 
       if (!channelId) {
         this.logger.debug(
-          `No log channel configured for type ${entry.type} in guild ${entry.guildId}`,
+          `No log channel configured for type ${entry.type} in guild ${entry.guildId}`
         );
         return;
       }
@@ -553,7 +553,7 @@ export class LoggingService {
               name: `${HAWK_EMOJIS.CHANNEL} Canal`,
               value: entry.metadata?.channel || 'Desconhecido',
               inline: true,
-            },
+            }
           )
           .setTimestamp(entry.timestamp)
           .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
@@ -561,7 +561,7 @@ export class LoggingService {
       case LogType.MESSAGE_EDIT:
         return HawkEmbedBuilder.createWarning(
           'Mensagem Editada',
-          `${HAWK_EMOJIS.EDIT} Uma mensagem foi modificada`,
+          `${HAWK_EMOJIS.EDIT} Uma mensagem foi modificada`
         )
           .addFields(
             {
@@ -583,7 +583,7 @@ export class LoggingService {
               name: `${HAWK_EMOJIS.LOG} Depois`,
               value: entry.metadata?.newContent?.substring(0, 1024) || 'Sem conteúdo',
               inline: false,
-            },
+            }
           )
           .setTimestamp(entry.timestamp)
           .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
@@ -591,7 +591,7 @@ export class LoggingService {
       case LogType.MEMBER_JOIN:
         return HawkEmbedBuilder.createSuccess(
           'Membro Entrou',
-          `${HAWK_EMOJIS.ADD} ${entry.content}`,
+          `${HAWK_EMOJIS.ADD} ${entry.content}`
         )
           .addFields(
             {
@@ -608,7 +608,7 @@ export class LoggingService {
               name: `${HAWK_EMOJIS.STATS} Total de Membros`,
               value: entry.metadata?.memberCount?.toString() || '0',
               inline: true,
-            },
+            }
           )
           .setTimestamp(entry.timestamp)
           .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
@@ -616,7 +616,7 @@ export class LoggingService {
       case LogType.MEMBER_LEAVE:
         return HawkEmbedBuilder.createWarning(
           'Membro Saiu',
-          `${HAWK_EMOJIS.REMOVE} ${entry.content}`,
+          `${HAWK_EMOJIS.REMOVE} ${entry.content}`
         )
           .addFields(
             {
@@ -633,7 +633,7 @@ export class LoggingService {
               name: `${HAWK_EMOJIS.STATS} Total de Membros`,
               value: entry.metadata?.memberCount?.toString() || '0',
               inline: true,
-            },
+            }
           )
           .setTimestamp(entry.timestamp)
           .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
@@ -653,7 +653,7 @@ export class LoggingService {
 
         return HawkEmbedBuilder.createError(
           `${moderationAction} Aplicado`,
-          `${moderationEmoji} ${entry.content}`,
+          `${moderationEmoji} ${entry.content}`
         )
           .addFields(
             {
@@ -670,7 +670,7 @@ export class LoggingService {
               name: `${HAWK_EMOJIS.LOG} Motivo`,
               value: entry.metadata?.reason || 'Não especificado',
               inline: false,
-            },
+            }
           )
           .setTimestamp(entry.timestamp)
           .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
@@ -678,7 +678,7 @@ export class LoggingService {
       case LogType.TICKET_CREATE:
         return HawkEmbedBuilder.createSuccess(
           'Ticket Criado',
-          `${HAWK_EMOJIS.TICKET} ${entry.content}`,
+          `${HAWK_EMOJIS.TICKET} ${entry.content}`
         )
           .addFields(
             {
@@ -705,7 +705,7 @@ export class LoggingService {
               name: `${HAWK_EMOJIS.STAR} Prioridade`,
               value: entry.metadata?.priority || 'Baixa',
               inline: true,
-            },
+            }
           )
           .setTimestamp(entry.timestamp)
           .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
@@ -713,7 +713,7 @@ export class LoggingService {
       case LogType.TICKET_CLOSE:
         return HawkEmbedBuilder.createWarning(
           'Ticket Fechado',
-          `${HAWK_EMOJIS.TICKET} ${entry.content}`,
+          `${HAWK_EMOJIS.TICKET} ${entry.content}`
         )
           .addFields(
             {
@@ -740,7 +740,7 @@ export class LoggingService {
               name: `${HAWK_EMOJIS.TIMER} Duração`,
               value: entry.metadata?.duration || 'Desconhecido',
               inline: true,
-            },
+            }
           )
           .setTimestamp(entry.timestamp)
           .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
@@ -758,7 +758,7 @@ export class LoggingService {
               name: `${HAWK_EMOJIS.ADMIN} Autor`,
               value: entry.metadata?.author || 'Sistema',
               inline: true,
-            },
+            }
           )
           .setTimestamp(entry.timestamp)
           .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
@@ -766,7 +766,7 @@ export class LoggingService {
       case LogType.API_SUCCESS:
         return HawkEmbedBuilder.createSuccess(
           'API Success',
-          `${HAWK_EMOJIS.SUCCESS} ${entry.content}`,
+          `${HAWK_EMOJIS.SUCCESS} ${entry.content}`
         )
           .addFields(
             {
@@ -864,7 +864,7 @@ export class LoggingService {
                     inline: true,
                   },
                 ]
-              : []),
+              : [])
           )
           .setTimestamp(entry.timestamp)
           .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
@@ -970,7 +970,7 @@ export class LoggingService {
                     inline: false,
                   },
                 ]
-              : []),
+              : [])
           )
           .setTimestamp(entry.timestamp)
           .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
@@ -1022,7 +1022,7 @@ export class LoggingService {
                     inline: true,
                   },
                 ]
-              : []),
+              : [])
           )
           .setTimestamp(entry.timestamp)
           .setFooter({ text: `${HAWK_EMOJIS.LOG} ID: ${entry.id}` });
@@ -1087,7 +1087,7 @@ export class LoggingService {
         message.guild.id,
         LogType.MESSAGE_DELETE,
         message.author?.id,
-        message.channel.id,
+        message.channel.id
       )
     ) {
       return;
@@ -1115,7 +1115,7 @@ export class LoggingService {
 
   private async handleMessageUpdate(
     oldMessage: Message | PartialMessage,
-    newMessage: Message | PartialMessage,
+    newMessage: Message | PartialMessage
   ): Promise<void> {
     if (oldMessage.partial || newMessage.partial || !newMessage.guild) {
       return;
@@ -1128,7 +1128,7 @@ export class LoggingService {
         newMessage.guild.id,
         LogType.MESSAGE_EDIT,
         newMessage.author?.id,
-        newMessage.channel.id,
+        newMessage.channel.id
       )
     ) {
       return;
@@ -1178,7 +1178,7 @@ export class LoggingService {
     }
 
     const accountAge = Math.floor(
-      (Date.now() - member.user.createdTimestamp) / (1000 * 60 * 60 * 24),
+      (Date.now() - member.user.createdTimestamp) / (1000 * 60 * 60 * 24)
     );
 
     await this.queueLog({
@@ -1221,7 +1221,7 @@ export class LoggingService {
 
   private async handleMemberUpdate(
     oldMember: GuildMember | PartialGuildMember,
-    newMember: GuildMember,
+    newMember: GuildMember
   ): Promise<void> {
     if (!this.shouldLog(newMember.guild.id, LogType.MEMBER_UPDATE, newMember.id)) {
       return;
@@ -1231,14 +1231,14 @@ export class LoggingService {
 
     if (oldMember.nickname !== newMember.nickname) {
       changes.push(
-        `Apelido: ${oldMember.nickname || 'Nenhum'} → ${newMember.nickname || 'Nenhum'}`,
+        `Apelido: ${oldMember.nickname || 'Nenhum'} → ${newMember.nickname || 'Nenhum'}`
       );
     }
 
     if (oldMember.roles.cache.size !== newMember.roles.cache.size) {
       const addedRoles = newMember.roles.cache.filter(role => !oldMember.roles.cache.has(role.id));
       const removedRoles = oldMember.roles.cache.filter(
-        role => !newMember.roles.cache.has(role.id),
+        role => !newMember.roles.cache.has(role.id)
       );
 
       if (addedRoles.size > 0) {
@@ -1580,7 +1580,7 @@ export class LoggingService {
     userId: string,
     action: string,
     reason: string,
-    metadata?: any,
+    metadata?: any
   ): Promise<void> {
     await this.queueLog({
       guildId,
@@ -1705,7 +1705,7 @@ export class LoggingService {
     statusCode: number,
     responseTime: number,
     userId?: string,
-    additionalData?: any,
+    additionalData?: any
   ): Promise<void> {
     const logType = statusCode >= 400 ? LogType.API_ERROR : LogType.API_SUCCESS;
     const status = statusCode >= 400 ? 'Error' : 'Success';
@@ -1739,7 +1739,7 @@ export class LoggingService {
     success: boolean = true,
     responseTime?: number,
     error?: string,
-    additionalData?: any,
+    additionalData?: any
   ): Promise<void> {
     const logType = success ? LogType.API_SUCCESS : LogType.API_ERROR;
     const status = success ? 'Success' : 'Error';
@@ -1773,7 +1773,7 @@ export class LoggingService {
     badgeType?: string,
     success: boolean = true,
     error?: string,
-    additionalData?: any,
+    additionalData?: any
   ): Promise<void> {
     const logType = success ? LogType.API_SUCCESS : LogType.API_ERROR;
     const status = success ? 'Success' : 'Error';
@@ -1805,7 +1805,7 @@ export class LoggingService {
     weaponName?: string,
     success: boolean = true,
     error?: string,
-    additionalData?: any,
+    additionalData?: any
   ): Promise<void> {
     const logType = success ? LogType.API_SUCCESS : LogType.API_ERROR;
     const status = success ? 'Success' : 'Error';
@@ -1837,7 +1837,7 @@ export class LoggingService {
     success: boolean = true,
     userId?: string,
     error?: string,
-    additionalData?: any,
+    additionalData?: any
   ): Promise<void> {
     const logType = success ? LogType.API_SUCCESS : LogType.API_ERROR;
     const status = success ? 'Success' : 'Error';
@@ -1876,7 +1876,7 @@ export class LoggingService {
       duration?: number;
       xpAwarded?: number;
       coinsAwarded?: number;
-    },
+    }
   ): Promise<void> {
     const logTypes = {
       start: LogType.QUIZ_START,
@@ -1919,7 +1919,7 @@ export class LoggingService {
       xpAwarded?: number;
       coinsAwarded?: number;
       difficulty?: string;
-    },
+    }
   ): Promise<void> {
     const logTypes = {
       start: LogType.MINIGAME_START,
@@ -1961,7 +1961,7 @@ export class LoggingService {
       source?: string;
       reason?: string;
       multiplier?: number;
-    },
+    }
   ): Promise<void> {
     const logTypes = {
       xp: LogType.XP_AWARDED,
@@ -2004,7 +2004,7 @@ export class LoggingService {
       totalUsers?: number;
       topUsers?: string[];
       snapshotId?: string;
-    },
+    }
   ): Promise<void> {
     const logTypes = {
       update: LogType.RANKING_UPDATE,
@@ -2044,7 +2044,7 @@ export class LoggingService {
       newValue: number;
       change?: number;
       source?: string;
-    },
+    }
   ): Promise<void> {
     await this.queueLog({
       guildId,
@@ -2074,7 +2074,7 @@ export class LoggingService {
       threshold?: number;
       status?: 'normal' | 'warning' | 'critical';
       details?: any;
-    },
+    }
   ): Promise<void> {
     const status = metric.status || 'normal';
     const content = `Métrica ${metric.name}: ${metric.value}${metric.unit || ''} (${status})`;
@@ -2108,7 +2108,7 @@ export class LoggingService {
       cpuUsage?: number;
       activeConnections?: number;
       queueSizes?: { [key: string]: number };
-    },
+    }
   ): Promise<void> {
     const content = `Status do sistema: ${healthData.status.toUpperCase()}`;
 
@@ -2137,7 +2137,7 @@ export class LoggingService {
       // Process remaining queue items before shutdown
       if (this.logQueue.length > 0) {
         this.logger.info(
-          `Processing ${this.logQueue.length} remaining log entries before shutdown`,
+          `Processing ${this.logQueue.length} remaining log entries before shutdown`
         );
         this.processLogQueue().catch(error => {
           this.logger.error('Error processing final queue batch:', error);

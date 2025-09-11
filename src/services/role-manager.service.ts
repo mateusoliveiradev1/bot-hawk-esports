@@ -80,7 +80,7 @@ export class RoleManagerService {
   async addNewMemberRole(member: GuildMember): Promise<boolean> {
     try {
       const newMemberRole = member.guild.roles.cache.find(
-        role => role.name === DEFAULT_ROLES.NEW_MEMBER?.name,
+        role => role.name === DEFAULT_ROLES.NEW_MEMBER?.name
       );
 
       if (!newMemberRole) {
@@ -111,17 +111,17 @@ export class RoleManagerService {
   async promoteToVerified(member: GuildMember): Promise<boolean> {
     try {
       const newMemberRole = member.guild.roles.cache.find(
-        role => role.name === DEFAULT_ROLES.NEW_MEMBER?.name,
+        role => role.name === DEFAULT_ROLES.NEW_MEMBER?.name
       );
       const verifiedRole = member.guild.roles.cache.find(
-        role => role.name === DEFAULT_ROLES.VERIFIED_MEMBER?.name,
+        role => role.name === DEFAULT_ROLES.VERIFIED_MEMBER?.name
       );
 
       if (!verifiedRole) {
         if (DEFAULT_ROLES.VERIFIED_MEMBER) {
           const createdRole = await this.ensureRoleExists(
             member.guild,
-            DEFAULT_ROLES.VERIFIED_MEMBER,
+            DEFAULT_ROLES.VERIFIED_MEMBER
           );
           if (!createdRole) {
             return false;
@@ -154,7 +154,7 @@ export class RoleManagerService {
   async setupChannelPermissions(guild: Guild): Promise<void> {
     try {
       const newMemberRole = guild.roles.cache.find(
-        role => role.name === DEFAULT_ROLES.NEW_MEMBER?.name,
+        role => role.name === DEFAULT_ROLES.NEW_MEMBER?.name
       );
 
       if (!newMemberRole) {
@@ -167,7 +167,7 @@ export class RoleManagerService {
         channel =>
           channel.name.toLowerCase().includes('geral') ||
           channel.name.toLowerCase().includes('general') ||
-          channel.name.toLowerCase().includes('chat'),
+          channel.name.toLowerCase().includes('chat')
       );
 
       if (
@@ -183,7 +183,7 @@ export class RoleManagerService {
       const welcomeChannel = guild.channels.cache.find(
         channel =>
           channel.name.toLowerCase().includes('welcome') ||
-          channel.name.toLowerCase().includes('bem-vindo'),
+          channel.name.toLowerCase().includes('bem-vindo')
       );
 
       if (
@@ -199,7 +199,7 @@ export class RoleManagerService {
       const rulesChannel = guild.channels.cache.find(
         channel =>
           channel.name.toLowerCase().includes('rules') ||
-          channel.name.toLowerCase().includes('regras'),
+          channel.name.toLowerCase().includes('regras')
       );
 
       if (rulesChannel && rulesChannel.isTextBased() && 'permissionOverwrites' in rulesChannel) {

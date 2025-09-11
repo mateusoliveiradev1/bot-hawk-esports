@@ -14,7 +14,7 @@ export class ServiceValidator {
   static validateRequiredServices(
     client: ExtendedClient,
     required: Array<keyof ExtendedClient>,
-    serviceName?: string,
+    serviceName?: string
   ): void {
     if (!client) {
       throw new SystemError('ExtendedClient is required', ErrorCodes.VALIDATION_ERROR, {
@@ -29,12 +29,12 @@ export class ServiceValidator {
       throw new SystemError(
         `Missing required services: ${missing.join(', ')}`,
         ErrorCodes.SERVICE_UNAVAILABLE,
-        context,
+        context
       );
     }
 
     this.logger.info(
-      `Service validation passed for ${serviceName || 'unknown service'}: ${required.join(', ')}`,
+      `Service validation passed for ${serviceName || 'unknown service'}: ${required.join(', ')}`
     );
   }
 
@@ -44,7 +44,7 @@ export class ServiceValidator {
   static validateService<T>(
     client: ExtendedClient,
     serviceName: keyof ExtendedClient,
-    context?: string,
+    context?: string
   ): T {
     if (!client) {
       throw new SystemError('ExtendedClient is required', ErrorCodes.VALIDATION_ERROR, { context });
@@ -55,7 +55,7 @@ export class ServiceValidator {
       throw new SystemError(
         `Service ${String(serviceName)} is not available`,
         ErrorCodes.SERVICE_UNAVAILABLE,
-        { serviceName, context },
+        { serviceName, context }
       );
     }
 
@@ -69,7 +69,7 @@ export class ServiceValidator {
     value: any,
     fieldName: string,
     rules: ValidationRule[],
-    context?: string,
+    context?: string
   ): void {
     for (const rule of rules) {
       const isValid = rule.validator(value);
@@ -89,7 +89,7 @@ export class ServiceValidator {
   static validateFields(
     data: Record<string, any>,
     validations: Record<string, ValidationRule[]>,
-    context?: string,
+    context?: string
   ): void {
     for (const [fieldName, rules] of Object.entries(validations)) {
       const value = data[fieldName];
@@ -103,7 +103,7 @@ export class ServiceValidator {
   static validatePermissions(
     userPermissions: string[],
     requiredPermissions: string[],
-    context?: string,
+    context?: string
   ): void {
     const missing = requiredPermissions.filter(permission => !userPermissions.includes(permission));
 
@@ -111,7 +111,7 @@ export class ServiceValidator {
       throw new SystemError(
         `Missing permissions: ${missing.join(', ')}`,
         ErrorCodes.PERMISSION_ERROR,
-        { missing, context },
+        { missing, context }
       );
     }
   }
@@ -137,7 +137,7 @@ export class ServiceValidator {
       throw new SystemError(
         `${fieldName} must be between ${min} and ${max}`,
         ErrorCodes.INVALID_INPUT,
-        { fieldName, value, min, max },
+        { fieldName, value, min, max }
       );
     }
   }
@@ -172,7 +172,7 @@ export class ServiceValidator {
   static validateObjectProperties(
     obj: any,
     requiredProperties: string[],
-    objectName: string = 'object',
+    objectName: string = 'object'
   ): void {
     if (!obj || typeof obj !== 'object') {
       throw new SystemError(`${objectName} must be a valid object`, ErrorCodes.INVALID_INPUT, {
@@ -187,7 +187,7 @@ export class ServiceValidator {
       throw new SystemError(
         `${objectName} missing required properties: ${missing.join(', ')}`,
         ErrorCodes.INVALID_INPUT,
-        { objectName, missing, value: obj },
+        { objectName, missing, value: obj }
       );
     }
   }

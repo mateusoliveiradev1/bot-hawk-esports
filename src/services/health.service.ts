@@ -69,7 +69,7 @@ export class HealthService {
     private readonly loggingService: LoggingService,
     private readonly pubgService?: PUBGService,
     private readonly alertConfig?: AlertConfig,
-    private readonly loggerConfig?: StructuredLoggerConfig,
+    private readonly loggerConfig?: StructuredLoggerConfig
   ) {
     // Setup structured logging
     const defaultLoggerConfig: StructuredLoggerConfig = {
@@ -84,7 +84,7 @@ export class HealthService {
     };
     this.structuredLogger = new StructuredLogger(
       { ...defaultLoggerConfig, ...this.loggerConfig },
-      'HealthService',
+      'HealthService'
     );
 
     this.metricsService = new MetricsService(databaseService, cacheService, client);
@@ -105,7 +105,7 @@ export class HealthService {
     loggingService: LoggingService,
     pubgService?: PUBGService,
     alertConfig?: AlertConfig,
-    loggerConfig?: StructuredLoggerConfig,
+    loggerConfig?: StructuredLoggerConfig
   ): HealthService {
     if (!HealthService.instance) {
       HealthService.instance = new HealthService(
@@ -116,7 +116,7 @@ export class HealthService {
         loggingService,
         pubgService,
         alertConfig,
-        loggerConfig,
+        loggerConfig
       );
     }
     return HealthService.instance;
@@ -428,7 +428,7 @@ export class HealthService {
       this.metricsService.recordMetric(
         'health_check_status',
         overallStatus === 'healthy' ? 1 : 0,
-        'gauge',
+        'gauge'
       );
       this.metricsService.recordMetric('health_services_total', services.length, 'gauge');
       this.metricsService.recordMetric('health_services_healthy', healthyServices, 'gauge');
@@ -685,7 +685,7 @@ export class HealthService {
             memoryUsage: systemHealth.system.memory.percentage,
             memoryUsed: systemHealth.system.memory.used,
             memoryTotal: systemHealth.system.memory.total,
-          },
+          }
         );
       }
 
@@ -699,7 +699,7 @@ export class HealthService {
           {
             cpuUsage: systemHealth.system.cpu.usage,
             loadAverage: systemHealth.system.cpu.loadAverage,
-          },
+          }
         );
       }
 
@@ -713,7 +713,7 @@ export class HealthService {
           {
             discordPing: systemHealth.discord.ping,
             guilds: systemHealth.discord.guilds,
-          },
+          }
         );
       }
 
@@ -731,7 +731,7 @@ export class HealthService {
               details: s.details,
               responseTime: s.responseTime,
             })),
-          },
+          }
         );
       }
 
@@ -746,7 +746,7 @@ export class HealthService {
             overallStatus: systemHealth.overall,
             timestamp: systemHealth.timestamp.toISOString(),
             uptime: systemHealth.uptime,
-          },
+          }
         );
       }
     } catch (error) {

@@ -468,7 +468,7 @@ export class EmojiUtils {
    */
   static formatNumberWithEmoji(
     number: number,
-    type: 'kills' | 'damage' | 'wins' | 'coins',
+    type: 'kills' | 'damage' | 'wins' | 'coins'
   ): string {
     const emojiMap = {
       kills: HAWK_EMOJIS.KILL,

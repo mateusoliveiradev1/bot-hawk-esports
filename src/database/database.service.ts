@@ -31,7 +31,7 @@ export class DatabaseService {
         maxSize: '20m',
         enableConsole: true,
         enableFile: true,
-      },
+      }
     );
     this.prisma = new PrismaClient({
       log: [
@@ -95,7 +95,7 @@ export class DatabaseService {
             'unknown',
             0,
             false,
-            new Error(e.message || e),
+            new Error(e.message || e)
           );
           this.logger.error('Database error event:', e);
         });
@@ -246,7 +246,7 @@ export class DatabaseService {
         params.forEach((param, index) => {
           const placeholder = '$' + (index + 1);
           if (typeof param === 'string') {
-            processedSql = processedSql.replace('?', `'${param.replace(/'/g, '\'\'')}'`);
+            processedSql = processedSql.replace('?', `'${param.replace(/'/g, "''")}'`);
           } else if (param === null) {
             processedSql = processedSql.replace('?', 'NULL');
           } else {
@@ -375,7 +375,7 @@ export class DatabaseService {
       } catch (error) {
         this.logger.error(`Failed to upsert user ${data.id}:`, error);
         throw new Error(
-          `Database operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          `Database operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
       }
     },
@@ -427,7 +427,7 @@ export class DatabaseService {
       } catch (error) {
         this.logger.error(`Failed to update XP for user ${userId}:`, error);
         throw new Error(
-          `XP update failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          `XP update failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
       }
     },
@@ -823,7 +823,7 @@ export class DatabaseService {
     } catch (error) {
       this.logger.error('Database cleanup failed:', error);
       throw new Error(
-        `Cleanup operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Cleanup operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
   }
@@ -928,7 +928,7 @@ export class DatabaseService {
     platform?: string,
     message?: string,
     details?: string,
-    error?: any,
+    error?: any
   ): Promise<void> {
     if (!channel) {
       return;

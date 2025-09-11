@@ -31,11 +31,11 @@ class WeaponMasteryCommand extends BaseCommand {
               option
                 .setName('user')
                 .setDescription('Usuário para visualizar (opcional)')
-                .setRequired(false),
-            ),
+                .setRequired(false)
+            )
         )
         .addSubcommand(subcommand =>
-          subcommand.setName('sync').setDescription('Sincronizar maestria de armas com a API PUBG'),
+          subcommand.setName('sync').setDescription('Sincronizar maestria de armas com a API PUBG')
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -47,11 +47,11 @@ class WeaponMasteryCommand extends BaseCommand {
                 .setDescription('Número de jogadores no ranking (1-20)')
                 .setMinValue(1)
                 .setMaxValue(20)
-                .setRequired(false),
-            ),
+                .setRequired(false)
+            )
         )
         .addSubcommand(subcommand =>
-          subcommand.setName('stats').setDescription('Ver estatísticas gerais de maestria de armas'),
+          subcommand.setName('stats').setDescription('Ver estatísticas gerais de maestria de armas')
         ),
       category: CommandCategory.PUBG,
       cooldown: 15,
@@ -84,7 +84,7 @@ class WeaponMasteryCommand extends BaseCommand {
 
   async handleView(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<void> {
     this.validateService(client.services?.weaponMastery, 'WeaponMastery');
 
@@ -108,7 +108,7 @@ class WeaponMasteryCommand extends BaseCommand {
 
   async handleSync(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<void> {
     this.validateService(client.services?.weaponMastery, 'WeaponMastery');
 
@@ -129,7 +129,7 @@ class WeaponMasteryCommand extends BaseCommand {
 
     const syncResult = await client.services.weaponMastery.syncUserWeaponMastery(
       interaction.user.id,
-      pubgStats.playerName,
+      pubgStats.playerName
     );
 
     if (!syncResult) {
@@ -151,7 +151,7 @@ class WeaponMasteryCommand extends BaseCommand {
 
   async handleLeaderboard(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<void> {
     this.validateService(client.services?.weaponMastery, 'WeaponMastery');
 
@@ -194,7 +194,7 @@ class WeaponMasteryCommand extends BaseCommand {
 
   async handleStats(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<void> {
     this.validateService(client.services?.weaponMastery, 'WeaponMastery');
 
@@ -221,7 +221,7 @@ class WeaponMasteryCommand extends BaseCommand {
           name: '🏆 Maior Maestria',
           value: `${stats.highestMastery?.weapon || 'N/A'} (${stats.highestMastery?.kills || 0} kills)`,
           inline: true,
-        },
+        }
       )
       .setColor('#4A90E2')
       .setTimestamp();
@@ -248,7 +248,7 @@ export default command;
 async function displayWeaponMastery(
   interaction: ChatInputCommandInteraction,
   masteryData: UserWeaponMastery,
-  targetUser: any,
+  targetUser: any
 ): Promise<void> {
   const weaponsPerPage = 5;
   const totalPages = Math.ceil(masteryData.weapons.length / weaponsPerPage);
@@ -312,7 +312,7 @@ async function displayWeaponMastery(
         .setCustomId('weapon_mastery_sync')
         .setLabel('🔄 Sincronizar')
         .setStyle(ButtonStyle.Primary)
-        .setDisabled(targetUser.id !== interaction.user.id),
+        .setDisabled(targetUser.id !== interaction.user.id)
     );
   };
 
@@ -370,7 +370,7 @@ async function displayWeaponMastery(
   collector.on('end', async () => {
     try {
       const disabledButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        ...buttons.components.map(button => ButtonBuilder.from(button).setDisabled(true)),
+        ...buttons.components.map(button => ButtonBuilder.from(button).setDisabled(true))
       );
 
       await interaction.editReply({
@@ -387,7 +387,7 @@ async function displayWeaponMastery(
  */
 async function handleSyncFromButton(
   buttonInteraction: ButtonInteraction,
-  client: ExtendedClient,
+  client: ExtendedClient
 ): Promise<void> {
   const userId = buttonInteraction.user.id;
 
@@ -413,7 +413,7 @@ async function handleSyncFromButton(
     // Force sync weapon mastery
     const synced = await (client as any).weaponMasteryService.forceSyncUserWeaponMastery(
       userId,
-      user.pubgUsername,
+      user.pubgUsername
     );
 
     if (synced) {
@@ -562,7 +562,7 @@ function createMasteryEmbed(weaponMasteryData: any[], targetUser: User): EmbedBu
 
   // Encontrar arma favorita (maior nível)
   const favoriteWeapon = weaponMasteryData.reduce((prev, current) =>
-    (prev.level || 0) > (current.level || 0) ? prev : current,
+    (prev.level || 0) > (current.level || 0) ? prev : current
   );
 
   embed.addFields({

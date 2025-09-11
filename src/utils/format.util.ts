@@ -12,7 +12,7 @@ export class FormatUtils {
   static formatCurrency(
     amount: number,
     currency: string = 'BRL',
-    locale: string = 'pt-BR',
+    locale: string = 'pt-BR'
   ): string {
     return new Intl.NumberFormat(locale, {
       style: 'currency',
@@ -58,7 +58,7 @@ export class FormatUtils {
   static formatDate(
     date: Date | string | number,
     format: 'short' | 'medium' | 'long' | 'full' = 'medium',
-    locale: string = 'pt-BR',
+    locale: string = 'pt-BR'
   ): string {
     const dateObj = new Date(date);
     return new Intl.DateTimeFormat(locale, {
@@ -69,7 +69,7 @@ export class FormatUtils {
   static formatTime(
     date: Date | string | number,
     format: 'short' | 'medium' | 'long' = 'short',
-    locale: string = 'pt-BR',
+    locale: string = 'pt-BR'
   ): string {
     const dateObj = new Date(date);
     return new Intl.DateTimeFormat(locale, {
@@ -81,7 +81,7 @@ export class FormatUtils {
     date: Date | string | number,
     dateFormat: 'short' | 'medium' | 'long' | 'full' = 'medium',
     timeFormat: 'short' | 'medium' | 'long' = 'short',
-    locale: string = 'pt-BR',
+    locale: string = 'pt-BR'
   ): string {
     const dateObj = new Date(date);
     return new Intl.DateTimeFormat(locale, {
@@ -165,7 +165,7 @@ export class FormatUtils {
   static camelCase(text: string): string {
     return text
       .replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) =>
-        index === 0 ? word.toLowerCase() : word.toUpperCase(),
+        index === 0 ? word.toLowerCase() : word.toUpperCase()
       )
       .replace(/\s+/g, '');
   }
@@ -217,7 +217,7 @@ export class FormatUtils {
   static formatList(
     items: string[],
     locale: string = 'pt-BR',
-    type: 'conjunction' | 'disjunction' = 'conjunction',
+    type: 'conjunction' | 'disjunction' = 'conjunction'
   ): string {
     if (items.length === 0) {
       return '';
@@ -250,7 +250,7 @@ export class FormatUtils {
     total: number,
     length: number = 20,
     filledChar: string = '█',
-    emptyChar: string = '░',
+    emptyChar: string = '░'
   ): string {
     const percentage = Math.max(0, Math.min(1, current / total));
     const filledLength = Math.round(length * percentage);
@@ -263,14 +263,14 @@ export class FormatUtils {
     percentage: number,
     length: number = 20,
     filledChar: string = '█',
-    emptyChar: string = '░',
+    emptyChar: string = '░'
   ): string {
     return this.formatProgressBar(percentage, 100, length, filledChar, emptyChar);
   }
 
   static formatStatus(
     status: 'online' | 'offline' | 'idle' | 'dnd' | 'invisible',
-    locale: string = 'pt-BR',
+    locale: string = 'pt-BR'
   ): string {
     const statusMap = {
       'pt-BR': {
@@ -340,7 +340,7 @@ export class FormatUtils {
    */
   static formatDiscordTimestamp(
     date: Date | string | number,
-    style: 't' | 'T' | 'd' | 'D' | 'f' | 'F' | 'R' = 'f',
+    style: 't' | 'T' | 'd' | 'D' | 'f' | 'F' | 'R' = 'f'
   ): string {
     const timestamp = Math.floor(new Date(date).getTime() / 1000);
     return `<t:${timestamp}:${style}>`;

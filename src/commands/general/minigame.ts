@@ -37,8 +37,8 @@ class MinigameCommand extends BaseCommand {
               { name: '🧠 Memorização de Mapas', value: 'memory_game' },
               { name: '📦 Lootbox Virtual', value: 'lootbox' },
               { name: '🪂 Drop Aéreo', value: 'airdrop' },
-              { name: '🎲 Aleatório', value: 'random' },
-            ),
+              { name: '🎲 Aleatório', value: 'random' }
+            )
         ) as SlashCommandBuilder,
       category: CommandCategory.GENERAL,
       cooldown: 30, // Reduced cooldown for better UX
@@ -59,7 +59,7 @@ class MinigameCommand extends BaseCommand {
         const embed = new EmbedBuilder()
           .setTitle('❌ Usuário Não Registrado')
           .setDescription(
-            'Você precisa se registrar primeiro usando `/register` para jogar mini-games!',
+            'Você precisa se registrar primeiro usando `/register` para jogar mini-games!'
           )
           .setColor(0xff0000)
           .setTimestamp();
@@ -78,13 +78,13 @@ class MinigameCommand extends BaseCommand {
 
       // Check if there's already an active game in this channel
       const existingSession = gameService.getGameSession(
-        `${interaction.guildId}_${interaction.channelId}`,
+        `${interaction.guildId}_${interaction.channelId}`
       );
       if (existingSession && existingSession.isActive) {
         const embed = new EmbedBuilder()
           .setTitle('⚠️ Mini-Game Já Ativo')
           .setDescription(
-            'Já existe um mini-game ativo neste canal! Aguarde ele terminar ou participe dele.',
+            'Já existe um mini-game ativo neste canal! Aguarde ele terminar ou participe dele.'
           )
           .setColor(0xffa500)
           .setTimestamp();
@@ -119,7 +119,7 @@ class MinigameCommand extends BaseCommand {
         gameToStart.id,
         interaction.guildId!,
         interaction.channelId,
-        interaction.user.id,
+        interaction.user.id
       );
 
       if (!session) {
@@ -140,7 +140,7 @@ class MinigameCommand extends BaseCommand {
             interaction as ChatInputCommandInteraction,
             session,
             gameToStart,
-            gameService,
+            gameService
           );
           break;
         case 'typing':
@@ -148,7 +148,7 @@ class MinigameCommand extends BaseCommand {
             interaction as ChatInputCommandInteraction,
             session,
             gameToStart,
-            gameService,
+            gameService
           );
           break;
         case 'math':
@@ -156,7 +156,7 @@ class MinigameCommand extends BaseCommand {
             interaction as ChatInputCommandInteraction,
             session,
             gameToStart,
-            gameService,
+            gameService
           );
           break;
         case 'memory':
@@ -164,7 +164,7 @@ class MinigameCommand extends BaseCommand {
             interaction as ChatInputCommandInteraction,
             session,
             gameToStart,
-            gameService,
+            gameService
           );
           break;
         case 'lootbox':
@@ -172,7 +172,7 @@ class MinigameCommand extends BaseCommand {
             interaction as ChatInputCommandInteraction,
             session,
             gameToStart,
-            gameService,
+            gameService
           );
           break;
         case 'airdrop':
@@ -180,7 +180,7 @@ class MinigameCommand extends BaseCommand {
             interaction as ChatInputCommandInteraction,
             session,
             gameToStart,
-            gameService,
+            gameService
           );
           break;
         default:
@@ -208,7 +208,7 @@ class MinigameCommand extends BaseCommand {
    */
   private async showGameSelection(
     interaction: ChatInputCommandInteraction,
-    gameService: GameService,
+    gameService: GameService
   ) {
     const games = gameService.getMiniGames();
 
@@ -244,7 +244,7 @@ class MinigameCommand extends BaseCommand {
                 `⏱️ **${game.duration}s** • 🎁 **${game.rewards.xp} XP** • 🪙 **${game.rewards.coins} moedas**`
               );
             })
-            .join('\n\n'),
+            .join('\n\n')
       )
       .setColor(0xff6b35)
       .setThumbnail('https://cdn.discordapp.com/emojis/852869487845515264.png')
@@ -260,7 +260,7 @@ class MinigameCommand extends BaseCommand {
           value:
             '• Pratique regularmente\n• Mire na precisão\n• Velocidade é crucial\n• Mantenha a calma',
           inline: true,
-        },
+        }
       )
       .setFooter({ text: 'PUBG Mini-Games • Escolha seu desafio abaixo!' })
       .setTimestamp();
@@ -286,7 +286,7 @@ class MinigameCommand extends BaseCommand {
         .setCustomId('minigame_start_memory_game')
         .setLabel('🧠 Memória')
         .setStyle(ButtonStyle.Success)
-        .setEmoji('🗺️'),
+        .setEmoji('🗺️')
     );
 
     const specialButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -304,7 +304,7 @@ class MinigameCommand extends BaseCommand {
         .setCustomId('minigame_start_random')
         .setLabel('🎲 Aleatório')
         .setStyle(ButtonStyle.Secondary)
-        .setEmoji('❓'),
+        .setEmoji('❓')
     );
 
     const response = await interaction.reply({
@@ -335,7 +335,7 @@ class MinigameCommand extends BaseCommand {
         .setDescription(
           `**Carregando ${this.getGameDisplayName(gameId)}...**\n\n` +
             '```yaml\nInicializando sistemas de combate...\nCarregando mapa...\nPreparando recompensas...```\n\n' +
-            '⏳ *Aguarde alguns segundos...*',
+            '⏳ *Aguarde alguns segundos...*'
         )
         .setColor(0xff6b35)
         .setThumbnail('https://cdn.discordapp.com/emojis/852869487845515264.png')
@@ -363,7 +363,7 @@ class MinigameCommand extends BaseCommand {
           .setTitle('⏰ Tempo Esgotado')
           .setDescription(
             '**A seleção de mini-game expirou!**\n\n' +
-              'Use `/minigame` novamente para escolher um jogo.',
+              'Use `/minigame` novamente para escolher um jogo.'
           )
           .setColor(0x666666)
           .setFooter({ text: 'PUBG Mini-Games • Sessão expirada' })
@@ -385,7 +385,7 @@ class MinigameCommand extends BaseCommand {
     interaction: ChatInputCommandInteraction,
     session: any,
     game: MiniGame,
-    gameService: GameService,
+    gameService: GameService
   ) {
     const embed = new EmbedBuilder()
       .setTitle('⚡ Teste de Reação')
@@ -395,7 +395,7 @@ class MinigameCommand extends BaseCommand {
           '• Aguarde o emoji aparecer\n' +
           '• Seja o primeiro a clicar no botão!\n' +
           '• Quanto mais rápido, mais pontos!\n\n' +
-          '⏰ Preparando... Fique atento!',
+          '⏰ Preparando... Fique atento!'
       )
       .setColor(0xffa500)
       .setFooter({
@@ -422,7 +422,7 @@ class MinigameCommand extends BaseCommand {
         new ButtonBuilder()
           .setCustomId(`reaction_click_${session.id}`)
           .setLabel(`${emoji} CLIQUE AQUI!`)
-          .setStyle(ButtonStyle.Danger),
+          .setStyle(ButtonStyle.Danger)
       );
 
       const startTime = Date.now();
@@ -476,7 +476,7 @@ class MinigameCommand extends BaseCommand {
     game: MiniGame,
     gameService: GameService,
     reactions: Array<{ userId: string; username: string; time: number }>,
-    winner: string | null,
+    winner: string | null
   ) {
     const results = await gameService.endMiniGame(session.id);
 
@@ -503,7 +503,7 @@ class MinigameCommand extends BaseCommand {
             const medal = ['🥇', '🥈', '🥉'][index] || `${index + 1}º`;
             return `${medal} **${reaction.username}** - ${reaction.time}ms`;
           })
-          .join('\n'),
+          .join('\n')
       )
       .setColor(0xffd700)
       .setFooter({ text: `Participantes: ${reactions.length}` })
@@ -519,17 +519,17 @@ class MinigameCommand extends BaseCommand {
     interaction: ChatInputCommandInteraction,
     session: any,
     game: MiniGame,
-    gameService: GameService,
+    gameService: GameService
   ) {
     const phrases = [
       'Winner winner chicken dinner!',
       'The zone is closing in fast!',
       'Enemy spotted in the building ahead.',
       'I need medical supplies here!',
-      'Let\'s drop at School for some action.',
+      "Let's drop at School for some action.",
       'The red zone is coming, we need to move!',
       'I found a level 3 helmet and vest.',
-      'There\'s a squad camping on the roof.',
+      "There's a squad camping on the roof.",
       'The final circle is at Military Base.',
       'Good luck and have fun in Battlegrounds!',
     ];
@@ -543,7 +543,7 @@ class MinigameCommand extends BaseCommand {
           '🎯 **Digite a frase abaixo o mais rápido possível:**\n\n' +
           `\`\`\`\n${phrase}\n\`\`\`\n\n` +
           `⏰ Você tem ${game.duration} segundos!\n` +
-          '📝 Digite exatamente como mostrado (case-sensitive)',
+          '📝 Digite exatamente como mostrado (case-sensitive)'
       )
       .setColor(0x0099ff)
       .setFooter({ text: `Recompensas: ${game.rewards.xp} XP + ${game.rewards.coins} moedas` })
@@ -602,7 +602,7 @@ class MinigameCommand extends BaseCommand {
     interaction: ChatInputCommandInteraction,
     session: any,
     game: MiniGame,
-    gameService: GameService,
+    gameService: GameService
   ) {
     const results = await gameService.endMiniGame(session.id);
     const submissions = session.data.submissions || [];
@@ -631,7 +631,7 @@ class MinigameCommand extends BaseCommand {
               const medal = ['🥇', '🥈', '🥉'][index] || `${index + 1}º`;
               return `${medal} **${sub.username}**\n⏱️ ${(sub.time / 1000).toFixed(2)}s • ⌨️ ${sub.wpm} WPM`;
             })
-            .join('\n\n'),
+            .join('\n\n')
       )
       .setColor(0xffd700)
       .setFooter({ text: `Participantes: ${submissions.length}` })
@@ -647,7 +647,7 @@ class MinigameCommand extends BaseCommand {
     interaction: ChatInputCommandInteraction,
     session: any,
     game: MiniGame,
-    gameService: GameService,
+    gameService: GameService
   ) {
     const embed = new EmbedBuilder()
       .setTitle('🧮 Desafio Matemático')
@@ -657,7 +657,7 @@ class MinigameCommand extends BaseCommand {
           '• Resolva os problemas matemáticos\n' +
           '• Digite apenas o número da resposta\n' +
           '• Quanto mais rápido, mais pontos!\n\n' +
-          '⏰ Preparando os problemas...',
+          '⏰ Preparando os problemas...'
       )
       .setColor(0xff6b35)
       .setFooter({
@@ -711,7 +711,7 @@ class MinigameCommand extends BaseCommand {
     interaction: ChatInputCommandInteraction,
     session: any,
     game: MiniGame,
-    gameService: GameService,
+    gameService: GameService
   ) {
     const problem = session.data.problems[session.data.currentProblem];
 
@@ -723,7 +723,7 @@ class MinigameCommand extends BaseCommand {
     const embed = new EmbedBuilder()
       .setTitle(`🧮 Problema ${session.data.currentProblem + 1}/${session.data.problems.length}`)
       .setDescription(
-        '**Quanto é:**\n\n' + `# ${problem.problem} = ?\n\n` + 'Digite apenas o número da resposta!',
+        '**Quanto é:**\n\n' + `# ${problem.problem} = ?\n\n` + 'Digite apenas o número da resposta!'
       )
       .setColor(0xff6b35)
       .setTimestamp();
@@ -794,7 +794,7 @@ class MinigameCommand extends BaseCommand {
     interaction: ChatInputCommandInteraction,
     session: any,
     game: MiniGame,
-    gameService: GameService,
+    gameService: GameService
   ) {
     const results = await gameService.endMiniGame(session.id);
     const scoresMap = session.data.scores;
@@ -832,7 +832,7 @@ class MinigameCommand extends BaseCommand {
             const medal = ['🥇', '🥈', '🥉'][index] || `${index + 1}º`;
             return `${medal} **${result.username}** - ${result.score} pontos`;
           })
-          .join('\n'),
+          .join('\n')
       )
       .setColor(0xffd700)
       .setFooter({ text: `Participantes: ${scores.length}` })
@@ -848,7 +848,7 @@ class MinigameCommand extends BaseCommand {
     interaction: ChatInputCommandInteraction,
     session: any,
     game: MiniGame,
-    gameService: GameService,
+    gameService: GameService
   ) {
     const embed = new EmbedBuilder()
       .setTitle('🧠 Jogo da Memória')
@@ -858,7 +858,7 @@ class MinigameCommand extends BaseCommand {
           '• Memorize a sequência de emojis\n' +
           '• Repita a sequência clicando nos botões\n' +
           '• A sequência fica mais longa a cada rodada!\n\n' +
-          '⏰ Preparando a primeira sequência...',
+          '⏰ Preparando a primeira sequência...'
       )
       .setColor(0x9b59b6)
       .setFooter({
@@ -884,7 +884,7 @@ class MinigameCommand extends BaseCommand {
     session: any,
     game: MiniGame,
     gameService: GameService,
-    emojis: string[],
+    emojis: string[]
   ) {
     // Add new emoji to sequence
     const newEmoji = emojis[Math.floor(Math.random() * emojis.length)];
@@ -915,13 +915,13 @@ class MinigameCommand extends BaseCommand {
     session: any,
     game: MiniGame,
     gameService: GameService,
-    emojis: string[],
+    emojis: string[]
   ) {
     const embed = new EmbedBuilder()
       .setTitle(`🧠 Rodada ${session.data.round} - Repita a Sequência`)
       .setDescription(
         '**Clique nos botões na ordem correta:**\n\n' +
-          `Sequência tem ${session.data.sequence.length} emojis`,
+          `Sequência tem ${session.data.sequence.length} emojis`
       )
       .setColor(0x9b59b6)
       .setTimestamp();
@@ -931,8 +931,8 @@ class MinigameCommand extends BaseCommand {
         new ButtonBuilder()
           .setCustomId(`memory_${session.id}_${emoji}`)
           .setLabel(emoji)
-          .setStyle(ButtonStyle.Secondary),
-      ),
+          .setStyle(ButtonStyle.Secondary)
+      )
     );
 
     await interaction.editReply({ embeds: [embed], components: [buttons] });
@@ -956,7 +956,7 @@ class MinigameCommand extends BaseCommand {
     interaction: ChatInputCommandInteraction,
     session: any,
     game: MiniGame,
-    gameService: GameService,
+    gameService: GameService
   ) {
     const results = await gameService.endMiniGame(session.id);
     const playersMap = session.data.players;
@@ -995,7 +995,7 @@ class MinigameCommand extends BaseCommand {
               const medal = ['🥇', '🥈', '🥉'][index] || `${index + 1}º`;
               return `${medal} **${result.username}** - ${result.score} pontos`;
             })
-            .join('\n'),
+            .join('\n')
       )
       .setColor(0xffd700)
       .setFooter({ text: `Participantes: ${scores.length}` })
@@ -1011,7 +1011,7 @@ class MinigameCommand extends BaseCommand {
     interaction: ChatInputCommandInteraction,
     session: any,
     game: MiniGame,
-    gameService: GameService,
+    gameService: GameService
   ) {
     const lootItems = [
       { name: 'AKM', rarity: 'comum', emoji: '🔫' },
@@ -1033,7 +1033,7 @@ class MinigameCommand extends BaseCommand {
           '🎁 **Clique nos botões para abrir as lootboxes!**\n\n' +
           '🏆 **Raridades:**\n' +
           '⚪ Comum • 🔵 Raro • 🟣 Épico • 🟡 Lendário • 🎭 Meme\n\n' +
-          `⏰ Você tem ${game.duration} segundos para coletar!`,
+          `⏰ Você tem ${game.duration} segundos para coletar!`
       )
       .setColor(0x8b4513)
       .setThumbnail('https://i.imgur.com/lootbox.png')
@@ -1064,7 +1064,7 @@ class MinigameCommand extends BaseCommand {
         .setCustomId('lootbox_5')
         .setLabel('Caixa 5')
         .setEmoji('📦')
-        .setStyle(ButtonStyle.Primary),
+        .setStyle(ButtonStyle.Primary)
     );
 
     await interaction.editReply({ embeds: [embed], components: [lootboxButtons] });
@@ -1127,7 +1127,7 @@ class MinigameCommand extends BaseCommand {
     session: any,
     game: MiniGame,
     gameService: GameService,
-    collectedItems: Array<{ userId: string; username: string; item: any }>,
+    collectedItems: Array<{ userId: string; username: string; item: any }>
   ) {
     const results = await gameService.endMiniGame(session.id);
 
@@ -1147,7 +1147,7 @@ class MinigameCommand extends BaseCommand {
         acc[item.name] = (acc[item.name] || 0) + 1;
         return acc;
       },
-      {} as Record<string, number>,
+      {} as Record<string, number>
     );
 
     const embed = new EmbedBuilder()
@@ -1160,7 +1160,7 @@ class MinigameCommand extends BaseCommand {
               return `${item?.emoji} **${itemName}** x${count}`;
             })
             .join('\n') +
-          `\n\n🏆 **Total de participantes:** ${new Set(collectedItems.map(c => c.userId)).size}`,
+          `\n\n🏆 **Total de participantes:** ${new Set(collectedItems.map(c => c.userId)).size}`
       )
       .setColor(0x8b4513)
       .setFooter({ text: `Caixas abertas: ${collectedItems.length}` })
@@ -1176,7 +1176,7 @@ class MinigameCommand extends BaseCommand {
     interaction: ChatInputCommandInteraction,
     session: any,
     game: MiniGame,
-    gameService: GameService,
+    gameService: GameService
   ) {
     const embed = new EmbedBuilder()
       .setTitle('🪂 Drop Aéreo Clicável')
@@ -1185,7 +1185,7 @@ class MinigameCommand extends BaseCommand {
           '✈️ **Um avião está se aproximando...**\n\n' +
           '🎯 Fique atento! O drop aéreo aparecerá em alguns segundos\n' +
           '⚡ Seja o primeiro a clicar para reivindicar o loot!\n\n' +
-          `⏰ Duração total: ${game.duration} segundos`,
+          `⏰ Duração total: ${game.duration} segundos`
       )
       .setColor(0x87ceeb)
       .setThumbnail('https://i.imgur.com/airplane.png')
@@ -1202,7 +1202,7 @@ class MinigameCommand extends BaseCommand {
           .setCustomId('claim_airdrop')
           .setLabel('REIVINDICAR DROP!')
           .setEmoji('🪂')
-          .setStyle(ButtonStyle.Danger),
+          .setStyle(ButtonStyle.Danger)
       );
 
       const dropEmbed = new EmbedBuilder()
@@ -1210,7 +1210,7 @@ class MinigameCommand extends BaseCommand {
         .setDescription(
           '🎁 **Um drop aéreo pousou!**\n\n' +
             '⚡ **CLIQUE RÁPIDO PARA REIVINDICAR!**\n\n' +
-            '🏆 Contém: AWM, Munição .300, Colete Nível 3, Kit Médico',
+            '🏆 Contém: AWM, Munição .300, Colete Nível 3, Kit Médico'
         )
         .setColor(0xff4500)
         .setTimestamp();
@@ -1255,7 +1255,7 @@ class MinigameCommand extends BaseCommand {
     session: any,
     game: MiniGame,
     gameService: GameService,
-    winner: string | null,
+    winner: string | null
   ) {
     const results = await gameService.endMiniGame(session.id);
 
@@ -1273,13 +1273,13 @@ class MinigameCommand extends BaseCommand {
           '🦺 Colete Nível 3\n' +
           '🏥 Kit Médico\n' +
           '💊 Analgésicos\n\n' +
-          '🎖️ Parabéns pela vitória!',
+          '🎖️ Parabéns pela vitória!'
       );
     } else {
       embed.setDescription(
         '💨 **O drop aéreo foi perdido!**\n\n' +
           '😅 Ninguém conseguiu reivindicar a tempo\n' +
-          '🔄 Tente novamente na próxima vez!',
+          '🔄 Tente novamente na próxima vez!'
       );
     }
 

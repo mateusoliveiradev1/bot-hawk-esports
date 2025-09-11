@@ -289,7 +289,7 @@ export class HawkEmbedBuilder {
     title: string,
     current: number,
     max: number,
-    description?: string,
+    description?: string
   ): EmbedBuilder {
     const percentage = Math.min((current / max) * 100, 100);
     const progressBar = EmojiUtils.createProgressBar(current, max, 10);
@@ -307,7 +307,7 @@ export class HawkEmbedBuilder {
    */
   static createLeaderboardEmbed(
     title: string,
-    entries: Array<{ name: string; value: string; position: number }>,
+    entries: Array<{ name: string; value: string; position: number }>
   ): EmbedBuilder {
     const embed = this.createRankingEmbed(title);
 
@@ -351,7 +351,7 @@ export class HawkEmbedBuilder {
     title: string,
     items: string[],
     currentPage: number,
-    itemsPerPage: number = 10,
+    itemsPerPage: number = 10
   ): EmbedBuilder {
     const totalPages = Math.ceil(items.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;

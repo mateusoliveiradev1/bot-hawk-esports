@@ -14,160 +14,160 @@ class EnhancedBadgesCommand extends BaseCommand {
   constructor() {
     super({
       data: new SlashCommandBuilder()
-    .setName('enhanced-badges')
-    .setDescription('Gerenciar badges aprimoradas do sistema')
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('test-streak')
-        .setDescription('Testar sistema de badges de streak')
-        .addUserOption(option =>
-          option.setName('user').setDescription('Usuário para testar').setRequired(true),
+        .setName('enhanced-badges')
+        .setDescription('Gerenciar badges aprimoradas do sistema')
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('test-streak')
+            .setDescription('Testar sistema de badges de streak')
+            .addUserOption(option =>
+              option.setName('user').setDescription('Usuário para testar').setRequired(true)
+            )
+            .addIntegerOption(option =>
+              option
+                .setName('days')
+                .setDescription('Número de dias de streak')
+                .setRequired(true)
+                .setMinValue(1)
+                .setMaxValue(365)
+            )
         )
-        .addIntegerOption(option =>
-          option
-            .setName('days')
-            .setDescription('Número de dias de streak')
-            .setRequired(true)
-            .setMinValue(1)
-            .setMaxValue(365),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('test-event')
-        .setDescription('Testar participação em evento')
-        .addUserOption(option =>
-          option.setName('user').setDescription('Usuário para testar').setRequired(true),
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('test-event')
+            .setDescription('Testar participação em evento')
+            .addUserOption(option =>
+              option.setName('user').setDescription('Usuário para testar').setRequired(true)
+            )
+            .addStringOption(option =>
+              option
+                .setName('event-type')
+                .setDescription('Tipo de evento')
+                .setRequired(true)
+                .addChoices(
+                  { name: 'Evento Geral', value: 'general' },
+                  { name: 'Torneio', value: 'tournament' },
+                  { name: 'Evento Sazonal', value: 'seasonal' },
+                  { name: 'Competição', value: 'competition' }
+                )
+            )
         )
-        .addStringOption(option =>
-          option
-            .setName('event-type')
-            .setDescription('Tipo de evento')
-            .setRequired(true)
-            .addChoices(
-              { name: 'Evento Geral', value: 'general' },
-              { name: 'Torneio', value: 'tournament' },
-              { name: 'Evento Sazonal', value: 'seasonal' },
-              { name: 'Competição', value: 'competition' },
-            ),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('test-team')
-        .setDescription('Testar atividade em equipe')
-        .addUserOption(option =>
-          option.setName('user').setDescription('Usuário para testar').setRequired(true),
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('test-team')
+            .setDescription('Testar atividade em equipe')
+            .addUserOption(option =>
+              option.setName('user').setDescription('Usuário para testar').setRequired(true)
+            )
+            .addStringOption(option =>
+              option
+                .setName('activity')
+                .setDescription('Tipo de atividade')
+                .setRequired(true)
+                .addChoices(
+                  { name: 'Vitória em Equipe', value: 'win' },
+                  { name: 'Assistência', value: 'assist' },
+                  { name: 'Reviver Aliado', value: 'revive' }
+                )
+            )
+            .addIntegerOption(option =>
+              option
+                .setName('count')
+                .setDescription('Quantidade')
+                .setRequired(false)
+                .setMinValue(1)
+                .setMaxValue(100)
+            )
         )
-        .addStringOption(option =>
-          option
-            .setName('activity')
-            .setDescription('Tipo de atividade')
-            .setRequired(true)
-            .addChoices(
-              { name: 'Vitória em Equipe', value: 'win' },
-              { name: 'Assistência', value: 'assist' },
-              { name: 'Reviver Aliado', value: 'revive' },
-            ),
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('test-community')
+            .setDescription('Testar interação da comunidade')
+            .addUserOption(option =>
+              option.setName('user').setDescription('Usuário para testar').setRequired(true)
+            )
+            .addStringOption(option =>
+              option
+                .setName('interaction')
+                .setDescription('Tipo de interação')
+                .setRequired(true)
+                .addChoices(
+                  { name: 'Compartilhar Clip', value: 'shared_clip' },
+                  { name: 'Votar na Comunidade', value: 'community_vote' }
+                )
+            )
+            .addIntegerOption(option =>
+              option
+                .setName('count')
+                .setDescription('Quantidade')
+                .setRequired(false)
+                .setMinValue(1)
+                .setMaxValue(50)
+            )
         )
-        .addIntegerOption(option =>
-          option
-            .setName('count')
-            .setDescription('Quantidade')
-            .setRequired(false)
-            .setMinValue(1)
-            .setMaxValue(100),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('test-community')
-        .setDescription('Testar interação da comunidade')
-        .addUserOption(option =>
-          option.setName('user').setDescription('Usuário para testar').setRequired(true),
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('list-new')
+            .setDescription('Listar novas badges disponíveis')
+            .addStringOption(option =>
+              option
+                .setName('category')
+                .setDescription('Filtrar por categoria')
+                .setRequired(false)
+                .addChoices(
+                  { name: 'Streak', value: 'streak' },
+                  { name: 'Comunidade', value: 'community' },
+                  { name: 'Colaboração', value: 'collaboration' },
+                  { name: 'Sazonal', value: 'seasonal' }
+                )
+            )
         )
-        .addStringOption(option =>
-          option
-            .setName('interaction')
-            .setDescription('Tipo de interação')
-            .setRequired(true)
-            .addChoices(
-              { name: 'Compartilhar Clip', value: 'shared_clip' },
-              { name: 'Votar na Comunidade', value: 'community_vote' },
-            ),
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('user-progress')
+            .setDescription('Ver progresso de badges de um usuário')
+            .addUserOption(option =>
+              option.setName('user').setDescription('Usuário para verificar').setRequired(true)
+            )
+            .addStringOption(option =>
+              option
+                .setName('category')
+                .setDescription('Categoria de badges para verificar')
+                .addChoices(
+                  { name: 'Sequência', value: 'streak' },
+                  { name: 'Comunidade', value: 'community' },
+                  { name: 'Colaboração', value: 'collaboration' },
+                  { name: 'Sazonal', value: 'seasonal' },
+                  { name: 'PUBG', value: 'pubg' }
+                )
+            )
         )
-        .addIntegerOption(option =>
-          option
-            .setName('count')
-            .setDescription('Quantidade')
-            .setRequired(false)
-            .setMinValue(1)
-            .setMaxValue(50),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('list-new')
-        .setDescription('Listar novas badges disponíveis')
-        .addStringOption(option =>
-          option
-            .setName('category')
-            .setDescription('Filtrar por categoria')
-            .setRequired(false)
-            .addChoices(
-              { name: 'Streak', value: 'streak' },
-              { name: 'Comunidade', value: 'community' },
-              { name: 'Colaboração', value: 'collaboration' },
-              { name: 'Sazonal', value: 'seasonal' },
-            ),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('user-progress')
-        .setDescription('Ver progresso de badges de um usuário')
-        .addUserOption(option =>
-          option.setName('user').setDescription('Usuário para verificar').setRequired(true),
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('test-pubg')
+            .setDescription('Testar badges específicas do PUBG')
+            .addUserOption(option =>
+              option.setName('user').setDescription('Usuário para testar').setRequired(true)
+            )
+            .addStringOption(option =>
+              option
+                .setName('type')
+                .setDescription('Tipo de atividade PUBG')
+                .setRequired(true)
+                .addChoices(
+                  { name: 'Distância Percorrida', value: 'distance' },
+                  { name: 'Tempo de Sobrevivência', value: 'survival' },
+                  { name: 'Kills com Veículo', value: 'vehicle_kill' },
+                  { name: 'Top 10 Finish', value: 'top_10' }
+                )
+            )
+            .addNumberOption(option =>
+              option
+                .setName('amount')
+                .setDescription('Quantidade (distância em km, tempo em minutos, kills)')
+                .setMinValue(1)
+            )
         )
-        .addStringOption(option =>
-          option
-            .setName('category')
-            .setDescription('Categoria de badges para verificar')
-            .addChoices(
-              { name: 'Sequência', value: 'streak' },
-              { name: 'Comunidade', value: 'community' },
-              { name: 'Colaboração', value: 'collaboration' },
-              { name: 'Sazonal', value: 'seasonal' },
-              { name: 'PUBG', value: 'pubg' },
-            ),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('test-pubg')
-        .setDescription('Testar badges específicas do PUBG')
-        .addUserOption(option =>
-          option.setName('user').setDescription('Usuário para testar').setRequired(true),
-        )
-        .addStringOption(option =>
-          option
-            .setName('type')
-            .setDescription('Tipo de atividade PUBG')
-            .setRequired(true)
-            .addChoices(
-              { name: 'Distância Percorrida', value: 'distance' },
-              { name: 'Tempo de Sobrevivência', value: 'survival' },
-              { name: 'Kills com Veículo', value: 'vehicle_kill' },
-              { name: 'Top 10 Finish', value: 'top_10' },
-            ),
-        )
-        .addNumberOption(option =>
-          option
-            .setName('amount')
-            .setDescription('Quantidade (distância em km, tempo em minutos, kills)')
-            .setMinValue(1),
-        ),
-    )
         .setDefaultMemberPermissions('0') as SlashCommandBuilder,
       category: CommandCategory.ADMIN,
       cooldown: 5,
@@ -217,11 +217,11 @@ class EnhancedBadgesCommand extends BaseCommand {
         break;
     }
   }
-};
+}
 
 async function handleTestStreak(
   interaction: ChatInputCommandInteraction,
-  badgeService: BadgeService,
+  badgeService: BadgeService
 ): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
 
@@ -237,7 +237,7 @@ async function handleTestStreak(
       .addFields(
         { name: '👤 Usuário', value: user.displayName, inline: true },
         { name: '📅 Dias', value: days.toString(), inline: true },
-        { name: '🎯 Ação', value: 'Daily Streak Atualizado', inline: true },
+        { name: '🎯 Ação', value: 'Daily Streak Atualizado', inline: true }
       )
       .setColor('#00FF00')
       .setTimestamp();
@@ -253,7 +253,7 @@ async function handleTestStreak(
 
 async function handleTestEvent(
   interaction: ChatInputCommandInteraction,
-  badgeService: BadgeService,
+  badgeService: BadgeService
 ): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
 
@@ -269,7 +269,7 @@ async function handleTestEvent(
       .addFields(
         { name: '👤 Usuário', value: user.displayName, inline: true },
         { name: '🎉 Tipo de Evento', value: eventType, inline: true },
-        { name: '🎯 Ação', value: 'Participação Registrada', inline: true },
+        { name: '🎯 Ação', value: 'Participação Registrada', inline: true }
       )
       .setColor('#00FF00')
       .setTimestamp();
@@ -285,7 +285,7 @@ async function handleTestEvent(
 
 async function handleTestTeam(
   interaction: ChatInputCommandInteraction,
-  badgeService: BadgeService,
+  badgeService: BadgeService
 ): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
 
@@ -308,7 +308,7 @@ async function handleTestTeam(
       .addFields(
         { name: '👤 Usuário', value: user.displayName, inline: true },
         { name: '🤝 Atividade', value: activityNames[activity], inline: true },
-        { name: '🔢 Quantidade', value: count.toString(), inline: true },
+        { name: '🔢 Quantidade', value: count.toString(), inline: true }
       )
       .setColor('#00FF00')
       .setTimestamp();
@@ -324,7 +324,7 @@ async function handleTestTeam(
 
 async function handleTestCommunity(
   interaction: ChatInputCommandInteraction,
-  badgeService: BadgeService,
+  badgeService: BadgeService
 ): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
 
@@ -348,7 +348,7 @@ async function handleTestCommunity(
       .addFields(
         { name: '👤 Usuário', value: user.displayName, inline: true },
         { name: '👥 Interação', value: interactionNames[interactionType], inline: true },
-        { name: '🔢 Quantidade', value: count.toString(), inline: true },
+        { name: '🔢 Quantidade', value: count.toString(), inline: true }
       )
       .setColor('#00FF00')
       .setTimestamp();
@@ -364,7 +364,7 @@ async function handleTestCommunity(
 
 async function handleListNew(
   interaction: ChatInputCommandInteraction,
-  badgeService: BadgeService,
+  badgeService: BadgeService
 ): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
 
@@ -401,7 +401,7 @@ async function handleListNew(
         acc[badge.category].push(badge);
         return acc;
       },
-      {} as Record<string, typeof filteredBadges>,
+      {} as Record<string, typeof filteredBadges>
     );
 
     for (const [cat, badges] of Object.entries(badgesByCategory)) {
@@ -427,7 +427,7 @@ async function handleListNew(
 
 async function handleUserProgress(
   interaction: ChatInputCommandInteraction,
-  badgeService: BadgeService,
+  badgeService: BadgeService
 ): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
 
@@ -447,12 +447,12 @@ async function handleUserProgress(
     const embed = new EmbedBuilder()
       .setTitle(`📊 Progresso de Badges - ${user.displayName}`)
       .setDescription(
-        category ? `Categoria: **${category}**` : 'Progresso nas novas categorias de badges',
+        category ? `Categoria: **${category}**` : 'Progresso nas novas categorias de badges'
       )
       .addFields(
         { name: '🏆 Total de Badges', value: badgeStats.total.toString(), inline: true },
         { name: '🆕 Novas Badges', value: filteredBadges.length.toString(), inline: true },
-        { name: '💎 Badge Mais Rara', value: badgeStats.rarest?.name || 'Nenhuma', inline: true },
+        { name: '💎 Badge Mais Rara', value: badgeStats.rarest?.name || 'Nenhuma', inline: true }
       )
       .setColor('#9B59B6')
       .setTimestamp();
@@ -466,7 +466,7 @@ async function handleUserProgress(
           acc[badge.category].push(badge);
           return acc;
         },
-        {} as Record<string, typeof filteredBadges>,
+        {} as Record<string, typeof filteredBadges>
       );
 
       for (const [cat, badges] of Object.entries(badgesByCategory)) {
@@ -499,7 +499,7 @@ async function handleUserProgress(
 
 async function handleTestPubg(
   interaction: ChatInputCommandInteraction,
-  badgeService: BadgeService,
+  badgeService: BadgeService
 ): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
 
@@ -523,7 +523,7 @@ async function handleTestPubg(
       .addFields(
         { name: '👤 Usuário', value: user.displayName, inline: true },
         { name: '🎮 Atividade', value: typeNames[type as keyof typeof typeNames], inline: true },
-        { name: '🔢 Quantidade', value: amount.toString(), inline: true },
+        { name: '🔢 Quantidade', value: amount.toString(), inline: true }
       )
       .setColor('#00FF00')
       .setTimestamp();

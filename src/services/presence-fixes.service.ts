@@ -278,7 +278,7 @@ export class PresenceFixesService {
             // Validate PUBG username exists
             const playerData = await this.pubgService.getPlayerByName(
               user.pubgUsername,
-              user.pubgPlatform as any,
+              user.pubgPlatform as any
             );
 
             if (!playerData) {

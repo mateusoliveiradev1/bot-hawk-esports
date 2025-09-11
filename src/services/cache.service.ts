@@ -54,10 +54,13 @@ export class CacheService {
             return new Error('Redis reconnection failed');
           }
           const delay = Math.min(retries * 100, 3000); // Max 3 seconds
-          this.logger.warn(`Redis reconnection attempt ${retries}/${this.maxReconnectAttempts} in ${delay}ms`, {
-            category: LogCategory.CACHE,
-            metadata: { attempt: retries, delay },
-          });
+          this.logger.warn(
+            `Redis reconnection attempt ${retries}/${this.maxReconnectAttempts} in ${delay}ms`,
+            {
+              category: LogCategory.CACHE,
+              metadata: { attempt: retries, delay },
+            }
+          );
           return delay;
         },
         connectTimeout: 10000, // 10 seconds
@@ -80,15 +83,17 @@ export class CacheService {
    * Perform Redis health check
    */
   private async performHealthCheck(): Promise<void> {
-    if (!this.client) {return;}
+    if (!this.client) {
+      return;
+    }
 
     try {
       const start = Date.now();
       await this.client.ping();
       const latency = Date.now() - start;
-      
+
       this.lastHealthCheck = Date.now();
-      
+
       if (!this.isConnected) {
         this.logger.info('Redis health check passed - connection restored', {
           category: LogCategory.CACHE,
@@ -98,7 +103,7 @@ export class CacheService {
         this.useMemoryFallback = false;
         this.reconnectAttempts = 0;
       }
-      
+
       // Log performance metrics
       if (latency > 1000) {
         this.logger.warn('Redis high latency detected', {
@@ -219,7 +224,7 @@ export class CacheService {
   public async disconnect(): Promise<void> {
     // Stop health monitoring
     this.stopHealthCheck();
-    
+
     if (!this.client) {
       return;
     }
@@ -229,8 +234,8 @@ export class CacheService {
       this.isConnected = false;
       this.logger.info('Disconnected from Redis successfully', {
         category: LogCategory.CACHE,
-        metadata: { 
-          connection: 'redis', 
+        metadata: {
+          connection: 'redis',
           status: 'disconnected',
           finalStats: {
             hits: this.cacheHits,
@@ -254,7 +259,9 @@ export class CacheService {
    */
   public getHitRate(): string {
     const total = this.cacheHits + this.cacheMisses;
-    if (total === 0) {return '0%';}
+    if (total === 0) {
+      return '0%';
+    }
     return `${((this.cacheHits / total) * 100).toFixed(2)}%`;
   }
 

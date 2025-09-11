@@ -60,7 +60,7 @@ export class AlertService {
   constructor(
     private config: AlertConfig,
     private databaseService?: DatabaseService,
-    private discordClient?: ExtendedClient,
+    private discordClient?: ExtendedClient
   ) {
     this.logger = new Logger();
     this.setupEmailTransporter();
@@ -233,7 +233,7 @@ export class AlertService {
     title: string,
     message: string,
     source: string,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, any>
   ): Promise<string> {
     const alertId = `${source}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -311,7 +311,10 @@ export class AlertService {
         .replace(/database_status/g, `"${metrics.database_status || 'unknown'}"`)
         .replace(/redis_status/g, `"${metrics.redis_status || 'unknown'}"`)
         .replace(/spotify_status/g, `"${metrics.spotify_status || 'unknown'}"`)
-        .replace(/pubg_circuit_breaker_state/g, `"${metrics.pubg_circuit_breaker_state || 'CLOSED'}"`)
+        .replace(
+          /pubg_circuit_breaker_state/g,
+          `"${metrics.pubg_circuit_breaker_state || 'CLOSED'}"`
+        )
         .replace(/discord_connected/g, metrics.discord_connected || false)
         .replace(/api_response_time/g, metrics.api_response_time || 0)
         .replace(/threshold/g, rule.threshold.toString());
@@ -387,7 +390,7 @@ export class AlertService {
         .addFields(
           { name: 'Source', value: alert.source, inline: true },
           { name: 'Type', value: alert.type.toUpperCase(), inline: true },
-          { name: 'Time', value: alert.timestamp.toISOString(), inline: true },
+          { name: 'Time', value: alert.timestamp.toISOString(), inline: true }
         )
         .setTimestamp(alert.timestamp);
 
@@ -581,7 +584,7 @@ export class AlertService {
    */
   startMonitoring(
     metricsCallback: () => Promise<Record<string, any>>,
-    intervalMs: number = 60000,
+    intervalMs: number = 60000
   ): void {
     setInterval(async () => {
       try {

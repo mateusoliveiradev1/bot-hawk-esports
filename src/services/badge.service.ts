@@ -1087,7 +1087,7 @@ export class BadgeService extends BaseService {
       }
 
       this.logger.info(
-        `✅ Loaded badges for ${this.userBadges.size} users (${userBadges.length} total badges)`,
+        `✅ Loaded badges for ${this.userBadges.size} users (${userBadges.length} total badges)`
       );
     } catch (error) {
       this.logger.error('❌ Failed to load user badges:', error);
@@ -1106,7 +1106,7 @@ export class BadgeService extends BaseService {
           this.logger.error('Error in badge progress tracker:', error);
         });
       },
-      5 * 60 * 1000,
+      5 * 60 * 1000
     );
   }
 
@@ -1117,7 +1117,7 @@ export class BadgeService extends BaseService {
     userId: string,
     requirementType: string,
     value: number,
-    operation: 'set' | 'increment' = 'increment',
+    operation: 'set' | 'increment' = 'increment'
   ): Promise<void> {
     return ErrorHandler.executeWithLogging(
       async () => {
@@ -1125,7 +1125,7 @@ export class BadgeService extends BaseService {
         ServiceValidator.validateObjectProperties(
           { userId, requirementType },
           ['userId', 'requirementType'],
-          'updateProgress parameters',
+          'updateProgress parameters'
         );
         ServiceValidator.validateRange(value, 0, Number.MAX_SAFE_INTEGER, 'value');
         if (!this.badgeProgress.has(userId)) {
@@ -1148,7 +1148,7 @@ export class BadgeService extends BaseService {
 
           // Check if this badge has requirements for this type
           const relevantRequirements = badge.requirements.filter(
-            req => req.type === requirementType,
+            req => req.type === requirementType
           );
 
           if (relevantRequirements.length === 0) {
@@ -1187,13 +1187,13 @@ export class BadgeService extends BaseService {
 
         if (newlyEarnedBadges.length > 0) {
           this.logger.info(
-            `🏆 User ${userId} earned ${newlyEarnedBadges.length} new badges: ${newlyEarnedBadges.join(', ')}`,
+            `🏆 User ${userId} earned ${newlyEarnedBadges.length} new badges: ${newlyEarnedBadges.join(', ')}`
           );
         }
       },
       this.logger,
       `updateProgress for user ${userId}`,
-      `Guild: ${userId}, Type: ${requirementType}, Value: ${value}, Operation: ${operation}`,
+      `Guild: ${userId}, Type: ${requirementType}, Value: ${value}, Operation: ${operation}`
     );
   }
 
@@ -1202,7 +1202,7 @@ export class BadgeService extends BaseService {
    */
   private checkBadgeRequirements(
     badge: BadgeDefinition,
-    userProgress: Map<string, number>,
+    userProgress: Map<string, number>
   ): boolean {
     for (const requirement of badge.requirements) {
       const currentValue = userProgress.get(requirement.type) || 0;
@@ -1240,7 +1240,7 @@ export class BadgeService extends BaseService {
   public async awardBadge(
     userId: string,
     badgeId: string,
-    notify: boolean = true,
+    notify: boolean = true
   ): Promise<boolean> {
     return (
       ErrorHandler.executeWithLogging(
@@ -1249,7 +1249,7 @@ export class BadgeService extends BaseService {
           ServiceValidator.validateObjectProperties(
             { userId, badgeId },
             ['userId', 'badgeId'],
-            'awardBadge parameters',
+            'awardBadge parameters'
           );
           ServiceValidator.validateNonEmptyString(userId, 'userId');
           ServiceValidator.validateNonEmptyString(badgeId, 'badgeId');
@@ -1289,8 +1289,8 @@ export class BadgeService extends BaseService {
               this.logger.error(
                 this.MESSAGES.ERRORS.DATABASE_ERROR(
                   'save badge',
-                  dbError instanceof Error ? dbError.message : String(dbError),
-                ),
+                  dbError instanceof Error ? dbError.message : String(dbError)
+                )
               );
               // Continue anyway, badge is still awarded in memory
             }
@@ -1311,7 +1311,7 @@ export class BadgeService extends BaseService {
             await this.cacheManager.user.invalidate(userId);
           } catch (cacheError) {
             this.logger.warn(
-              `Failed to invalidate cache for user ${userId}: ${cacheError instanceof Error ? cacheError.message : String(cacheError)}`,
+              `Failed to invalidate cache for user ${userId}: ${cacheError instanceof Error ? cacheError.message : String(cacheError)}`
             );
             // Fallback to old cache clearing method
             await this.clearBadgeCache(userId);
@@ -1322,7 +1322,7 @@ export class BadgeService extends BaseService {
         },
         this.logger,
         `awardBadge ${badgeId} to user ${userId}`,
-        `User: ${userId}, Badge: ${badgeId}, Notify: ${notify}`,
+        `User: ${userId}, Badge: ${badgeId}, Notify: ${notify}`
       ) || false
     );
   }
@@ -1377,7 +1377,7 @@ export class BadgeService extends BaseService {
               if (role) {
                 await member.roles.add(role);
                 this.logger.debug(
-                  `🎭 Awarded role '${rewards.role}' to user ${userId} in guild ${guild.name}`,
+                  `🎭 Awarded role '${rewards.role}' to user ${userId} in guild ${guild.name}`
                 );
               }
             }
@@ -1411,7 +1411,7 @@ export class BadgeService extends BaseService {
           `${this.MESSAGES.BADGE_EARNED.DESCRIPTION(badge.name)}\n\n` +
             `${badge.icon} **${badge.name}**\n` +
             `${badge.description}\n\n` +
-            `**Raridade:** ${this.getRarityEmoji(badge.rarity)} ${badge.rarity.toUpperCase()}`,
+            `**Raridade:** ${this.getRarityEmoji(badge.rarity)} ${badge.rarity.toUpperCase()}`
         )
         .setColor(this.getRarityColor(badge.rarity) as any)
         .setTimestamp();
@@ -1449,7 +1449,7 @@ export class BadgeService extends BaseService {
    */
   private async sendBadgeRemovalNotification(
     userId: string,
-    badge: BadgeDefinition,
+    badge: BadgeDefinition
   ): Promise<void> {
     try {
       if (!this.client) {
@@ -1468,7 +1468,7 @@ export class BadgeService extends BaseService {
             `${badge.icon} **${badge.name}**\n` +
             `${badge.description}\n\n` +
             '**Motivo:** Requisitos não atendidos\n' +
-            `**Raridade:** ${this.getRarityEmoji(badge.rarity)} ${badge.rarity.toUpperCase()}`,
+            `**Raridade:** ${this.getRarityEmoji(badge.rarity)} ${badge.rarity.toUpperCase()}`
         )
         .setColor('#E74C3C') // Red color for removal
         .setTimestamp();
@@ -1485,7 +1485,7 @@ export class BadgeService extends BaseService {
   private async sendNotificationToUser(
     user: User,
     embed: EmbedBuilder,
-    type: 'badge_earned' | 'badge_removed',
+    type: 'badge_earned' | 'badge_removed'
   ): Promise<void> {
     try {
       // Try to send DM first
@@ -1503,7 +1503,7 @@ export class BadgeService extends BaseService {
               (channel.name.includes('badge') ||
                 channel.name.includes('achievement') ||
                 channel.name.includes('conquista') ||
-                channel.name.includes('notifica')),
+                channel.name.includes('notifica'))
           );
 
           if (badgeChannel) {
@@ -1700,7 +1700,7 @@ export class BadgeService extends BaseService {
    */
   public async validateUserBadges(
     userId: string,
-    userStats: Record<string, number>,
+    userStats: Record<string, number>
   ): Promise<void> {
     try {
       const userBadgeSet = this.userBadges.get(userId);
@@ -1742,7 +1742,7 @@ export class BadgeService extends BaseService {
       for (const badgeId of badgesToRemove) {
         await this.removeBadge(userId, badgeId, true);
         this.logger.info(
-          `🔄 Auto-removed badge ${badgeId} from user ${userId} - requirements no longer met`,
+          `🔄 Auto-removed badge ${badgeId} from user ${userId} - requirements no longer met`
         );
       }
     } catch (error) {
@@ -1761,7 +1761,7 @@ export class BadgeService extends BaseService {
         await this.checkAllBadgeProgress();
         this.logger.info('✅ Automatic badge validation completed');
       },
-      30 * 60 * 1000,
+      30 * 60 * 1000
     ); // 30 minutes
 
     // Also run validation every hour for more thorough check
@@ -1771,7 +1771,7 @@ export class BadgeService extends BaseService {
         await this.runThoroughValidation();
         this.logger.info('✅ Thorough badge validation completed');
       },
-      60 * 60 * 1000,
+      60 * 60 * 1000
     ); // 1 hour
   }
 
@@ -1812,7 +1812,7 @@ export class BadgeService extends BaseService {
     userId: string,
     xpGained: number,
     newLevel: number,
-    oldLevel: number,
+    oldLevel: number
   ): Promise<void> {
     try {
       // Update XP-related progress
@@ -1870,7 +1870,7 @@ export class BadgeService extends BaseService {
   public async onUserActivity(
     userId: string,
     activityType: string,
-    value: number = 1,
+    value: number = 1
   ): Promise<void> {
     try {
       const activityMappings: Record<string, string> = {
@@ -1980,7 +1980,7 @@ export class BadgeService extends BaseService {
   public async onTeamActivity(
     userId: string,
     activityType: 'win' | 'assist' | 'revive',
-    value: number = 1,
+    value: number = 1
   ): Promise<void> {
     try {
       switch (activityType) {
@@ -2007,12 +2007,12 @@ export class BadgeService extends BaseService {
   public async onCommunityInteraction(
     userId: string,
     interactionType: 'shared_clip' | 'community_vote',
-    value: number = 1,
+    value: number = 1
   ): Promise<void> {
     try {
       await this.updateProgress(userId, interactionType, value, 'increment');
       this.logger.info(
-        `👥 Community interaction recorded for user ${userId}: ${interactionType} +${value}`,
+        `👥 Community interaction recorded for user ${userId}: ${interactionType} +${value}`
       );
     } catch (error) {
       this.logger.error(`❌ Error recording community interaction for user ${userId}:`, error);
@@ -2073,7 +2073,7 @@ export class BadgeService extends BaseService {
   public async onPubgActivity(
     userId: string,
     activityType: string,
-    amount: number = 1,
+    amount: number = 1
   ): Promise<void> {
     try {
       switch (activityType) {
@@ -2095,7 +2095,7 @@ export class BadgeService extends BaseService {
     } catch (error) {
       this.logger.error(
         `❌ Error handling PUBG activity ${activityType} for user ${userId}:`,
-        error,
+        error
       );
     }
   }
@@ -2208,7 +2208,7 @@ export class BadgeService extends BaseService {
             endDate: new Date(),
           },
           'level',
-          50,
+          50
         );
 
         // Remove previous weekly badges
@@ -2255,12 +2255,12 @@ export class BadgeService extends BaseService {
         () => {
           this.processWeeklyBadges();
         },
-        7 * 24 * 60 * 60 * 1000,
+        7 * 24 * 60 * 60 * 1000
       ); // 7 days
     }, timeUntilNextSunday);
 
     this.logger.info(
-      `${this.MESSAGES.INFO.WEEKLY_PROCESSOR_STARTED} - Agendado para ${nextSunday.toISOString()}`,
+      `${this.MESSAGES.INFO.WEEKLY_PROCESSOR_STARTED} - Agendado para ${nextSunday.toISOString()}`
     );
   }
 
@@ -2269,7 +2269,7 @@ export class BadgeService extends BaseService {
    */
   public async checkUserBadgeProgress(
     userId: string,
-    userStats: Record<string, number>,
+    userStats: Record<string, number>
   ): Promise<void> {
     try {
       for (const [statType, value] of Object.entries(userStats)) {
@@ -2367,7 +2367,7 @@ export class BadgeService extends BaseService {
   public async removeBadge(
     userId: string,
     badgeId: string,
-    notify: boolean = true,
+    notify: boolean = true
   ): Promise<boolean> {
     try {
       const userBadges = this.userBadges.get(userId);
@@ -2398,7 +2398,7 @@ export class BadgeService extends BaseService {
         await this.cacheManager.user.invalidate(userId);
       } catch (cacheError) {
         this.logger.warn(
-          `Failed to invalidate cache for user ${userId}: ${cacheError instanceof Error ? cacheError.message : String(cacheError)}`,
+          `Failed to invalidate cache for user ${userId}: ${cacheError instanceof Error ? cacheError.message : String(cacheError)}`
         );
         // Fallback to old cache clearing method
         await this.clearBadgeCache(userId);
@@ -2417,7 +2417,7 @@ export class BadgeService extends BaseService {
           userId,
           badgeId,
           badgeName: badge?.name || 'Unknown',
-        },
+        }
       );
 
       this.logger.info(this.MESSAGES.SUCCESS.BADGE_REMOVED(badgeId, userId));
@@ -2431,7 +2431,7 @@ export class BadgeService extends BaseService {
           userId,
           badgeId,
           error: error instanceof Error ? error.message : String(error),
-        },
+        }
       );
       this.logger.error(`❌ Failed to remove badge ${badgeId} from user ${userId}:`, error);
       return false;
@@ -2634,7 +2634,7 @@ export class BadgeService extends BaseService {
 
           const pubgStats = await pubgService.getPlayerStats(
             user.pubgUsername,
-            user.pubgPlatform as any,
+            user.pubgPlatform as any
           );
 
           if (pubgStats) {
@@ -2651,7 +2651,7 @@ export class BadgeService extends BaseService {
                   pubgUsername: user.pubgUsername,
                   newBadges,
                   timestamp: new Date().toISOString(),
-                },
+                }
               );
             }
 
@@ -2670,7 +2670,7 @@ export class BadgeService extends BaseService {
               pubgUsername: user.pubgUsername,
               error: userError instanceof Error ? userError.message : String(userError),
               timestamp: new Date().toISOString(),
-            },
+            }
           );
         }
       }
@@ -2684,11 +2684,11 @@ export class BadgeService extends BaseService {
           syncedCount,
           errorCount,
           timestamp: new Date().toISOString(),
-        },
+        }
       );
 
       this.logger.info(
-        `✅ PUBG badge sync completed: ${syncedCount}/${users.length} users synced, ${errorCount} errors`,
+        `✅ PUBG badge sync completed: ${syncedCount}/${users.length} users synced, ${errorCount} errors`
       );
     } catch (error) {
       this.logger.error('❌ Failed to sync PUBG badges:', error);
@@ -2700,7 +2700,7 @@ export class BadgeService extends BaseService {
         {
           error: error instanceof Error ? error : new Error(String(error)),
           timestamp: new Date().toISOString(),
-        },
+        }
       );
     }
   }
@@ -2734,7 +2734,7 @@ export class BadgeService extends BaseService {
 
       // Get all PUBG badges
       const pubgBadges = Array.from(this.badges.values()).filter(
-        badge => badge.category === 'pubg' && badge.isActive,
+        badge => badge.category === 'pubg' && badge.isActive
       );
 
       for (const badge of pubgBadges) {
@@ -2761,7 +2761,7 @@ export class BadgeService extends BaseService {
     operation: string,
     status: 'success' | 'warning' | 'error',
     message: string,
-    data: any,
+    data: any
   ): Promise<void> {
     try {
       if (this.loggingService) {
@@ -2772,7 +2772,7 @@ export class BadgeService extends BaseService {
           status === 'success',
           message,
           `Badge System - ${operation}`,
-          data,
+          data
         );
       }
     } catch (error) {
@@ -2899,8 +2899,8 @@ export class BadgeService extends BaseService {
       this.logger.error(
         this.MESSAGES.ERRORS.CACHE_ERROR(
           'clear cache',
-          error instanceof Error ? error.message : String(error),
-        ),
+          error instanceof Error ? error.message : String(error)
+        )
       );
     }
   }

@@ -35,8 +35,8 @@ class DailyCommand extends BaseCommand {
               { name: '🎁 Resgatar Recompensa', value: 'claim' },
               { name: '📊 Ver Streak', value: 'streak' },
               { name: '🏆 Ranking de Streaks', value: 'leaderboard' },
-              { name: '📅 Calendário Mensal', value: 'calendar' },
-            ),
+              { name: '📅 Calendário Mensal', value: 'calendar' }
+            )
         ) as SlashCommandBuilder,
       category: CommandCategory.GENERAL,
       cooldown: 5,
@@ -62,7 +62,7 @@ class DailyCommand extends BaseCommand {
           .setTitle('❌ Usuário Não Registrado')
           .setDescription(
             'Você precisa estar registrado para usar este comando.\n\n' +
-              'Use `/register-server` para se registrar no servidor.',
+              'Use `/register-server` para se registrar no servidor.'
           )
           .setColor(0xff0000)
           .setTimestamp();
@@ -112,7 +112,7 @@ class DailyCommand extends BaseCommand {
     interaction: ChatInputCommandInteraction,
     database: DatabaseService,
     badgeService: BadgeService,
-    user: any,
+    user: any
   ) {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -135,7 +135,7 @@ class DailyCommand extends BaseCommand {
           'Você já resgatou sua recompensa diária hoje!\n\n' +
             `**Próxima recompensa em:** ${hoursLeft}h ${minutesLeft}m\n` +
             `**Streak atual:** ${user.dailyStreak} dias\n\n` +
-            'Use `/daily streak` para ver detalhes do seu streak!',
+            'Use `/daily streak` para ver detalhes do seu streak!'
         )
         .setColor(0xffa500)
         .setTimestamp();
@@ -148,7 +148,7 @@ class DailyCommand extends BaseCommand {
         new ButtonBuilder()
           .setCustomId('daily_calendar')
           .setLabel('📅 Calendário')
-          .setStyle(ButtonStyle.Secondary),
+          .setStyle(ButtonStyle.Secondary)
       );
 
       const response = await interaction.reply({
@@ -243,7 +243,7 @@ class DailyCommand extends BaseCommand {
           '**Seus Totais:**\n' +
           `📊 Level: ${updatedUser.level}\n` +
           `⭐ XP: ${updatedUser.xp.toLocaleString()}\n` +
-          `💰 Moedas: ${updatedUser.coins.toLocaleString()}`,
+          `💰 Moedas: ${updatedUser.coins.toLocaleString()}`
       )
       .setColor(0x00ff00)
       .setFooter({
@@ -274,7 +274,7 @@ class DailyCommand extends BaseCommand {
       new ButtonBuilder()
         .setCustomId('daily_calendar')
         .setLabel('📅 Calendário')
-        .setStyle(ButtonStyle.Secondary),
+        .setStyle(ButtonStyle.Secondary)
     );
 
     const response = await interaction.reply({
@@ -336,7 +336,7 @@ class DailyCommand extends BaseCommand {
         `${streakEmoji} **Status:** ${streakStatus}\n` +
           `🔥 **Streak atual:** ${currentStreak} dias\n` +
           `📅 **Último resgate:** ${lastClaim ? lastClaim.toLocaleDateString('pt-BR') : 'Nunca'}\n` +
-          `🏅 **Último marco:** ${lastMilestone} dias${progressText}`,
+          `🏅 **Último marco:** ${lastMilestone} dias${progressText}`
       )
       .setColor(currentStreak > 0 ? 0x00ff00 : 0xff0000)
       .setTimestamp();
@@ -369,7 +369,7 @@ class DailyCommand extends BaseCommand {
       new ButtonBuilder()
         .setCustomId('daily_calendar')
         .setLabel('📅 Calendário')
-        .setStyle(ButtonStyle.Secondary),
+        .setStyle(ButtonStyle.Secondary)
     );
 
     const response = await interaction.reply({
@@ -447,7 +447,7 @@ class DailyCommand extends BaseCommand {
                 const status = user.isActive ? '🔥' : '💔';
                 return `${medal} **${user.username}** - ${status} ${user.streak} dias`;
               })
-              .join('\n'),
+              .join('\n')
         )
         .setColor(0xffd700)
         .setFooter({
@@ -463,7 +463,7 @@ class DailyCommand extends BaseCommand {
         new ButtonBuilder()
           .setCustomId('daily_streak')
           .setLabel('📊 Meu Streak')
-          .setStyle(ButtonStyle.Primary),
+          .setStyle(ButtonStyle.Primary)
       );
 
       const response = await interaction.reply({
@@ -567,7 +567,7 @@ class DailyCommand extends BaseCommand {
           '`XX✓` - Dia resgatado\n' +
           '`XX ` - Dia não resgatado\n\n' +
           `**Streak atual:** ${user.dailyStreak} dias\n` +
-          `**Dias restantes no mês:** ${daysInMonth - today}`,
+          `**Dias restantes no mês:** ${daysInMonth - today}`
       )
       .setColor(0x00aaff)
       .setTimestamp();
@@ -580,7 +580,7 @@ class DailyCommand extends BaseCommand {
       new ButtonBuilder()
         .setCustomId('daily_streak')
         .setLabel('📊 Ver Streak')
-        .setStyle(ButtonStyle.Primary),
+        .setStyle(ButtonStyle.Primary)
     );
 
     const response = await interaction.reply({
@@ -598,7 +598,7 @@ class DailyCommand extends BaseCommand {
     response: any,
     interaction: ChatInputCommandInteraction,
     database: DatabaseService,
-    user: any,
+    user: any
   ) {
     const collector = response.createMessageComponentCollector({
       componentType: ComponentType.Button,
@@ -632,7 +632,7 @@ class DailyCommand extends BaseCommand {
               buttonInteraction,
               database,
               (interaction.client as any).badgeService,
-              freshUser,
+              freshUser
             );
             break;
           case 'streak':

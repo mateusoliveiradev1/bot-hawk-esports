@@ -29,11 +29,11 @@ export class AuditBadgesCommand extends BaseCommand {
           option
             .setName('autofix')
             .setDescription('Corrigir automaticamente problemas encontrados')
-            .setRequired(false),
-        ),
+            .setRequired(false)
+        )
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('health').setDescription('Gerar relatório de saúde do sistema de badges'),
+      subcommand.setName('health').setDescription('Gerar relatório de saúde do sistema de badges')
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -43,11 +43,11 @@ export class AuditBadgesCommand extends BaseCommand {
           option
             .setName('confirm')
             .setDescription('Confirmar limpeza de badges órfãs')
-            .setRequired(true),
-        ),
+            .setRequired(true)
+        )
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('validate').setDescription('Validar formato dos requisitos das badges'),
+      subcommand.setName('validate').setDescription('Validar formato dos requisitos das badges')
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
 
@@ -119,7 +119,7 @@ export class AuditBadgesCommand extends BaseCommand {
         .setColor('#ff0000')
         .setTitle('❌ Erro na Auditoria')
         .setDescription(
-          'Ocorreu um erro durante a auditoria de badges. Verifique os logs para mais detalhes.',
+          'Ocorreu um erro durante a auditoria de badges. Verifique os logs para mais detalhes.'
         )
         .setTimestamp();
 
@@ -132,7 +132,7 @@ export class AuditBadgesCommand extends BaseCommand {
    */
   private async handleAuditRun(
     interaction: ChatInputCommandInteraction,
-    auditService: BadgeAuditService,
+    auditService: BadgeAuditService
   ) {
     const autofix = interaction.options.getBoolean('autofix') || false;
 
@@ -194,7 +194,7 @@ export class AuditBadgesCommand extends BaseCommand {
                 ? 'Nenhuma correção necessária'
                 : 'Correção automática desabilitada',
           inline: true,
-        },
+        }
       )
       .setTimestamp();
 
@@ -204,7 +204,7 @@ export class AuditBadgesCommand extends BaseCommand {
         .slice(0, 3)
         .map(
           issue =>
-            `**${issue.badgeId}**: ${issue.issues.slice(0, 2).join(', ')}${issue.issues.length > 2 ? '...' : ''}`,
+            `**${issue.badgeId}**: ${issue.issues.slice(0, 2).join(', ')}${issue.issues.length > 2 ? '...' : ''}`
         )
         .join('\n');
 
@@ -224,7 +224,7 @@ export class AuditBadgesCommand extends BaseCommand {
           .setCustomId('cleanup_orphaned')
           .setLabel(`Limpar ${results.orphanedBadges.length} Badges Órfãs`)
           .setStyle(ButtonStyle.Danger)
-          .setEmoji('🗑️'),
+          .setEmoji('🗑️')
       );
       components.push(row);
     }
@@ -241,7 +241,7 @@ export class AuditBadgesCommand extends BaseCommand {
             }
             return acc;
           },
-          {} as Record<string, any>,
+          {} as Record<string, any>
         ),
         fixedIssues: results.fixedIssues,
       },
@@ -253,7 +253,7 @@ export class AuditBadgesCommand extends BaseCommand {
    */
   private async handleHealthReport(
     interaction: ChatInputCommandInteraction,
-    auditService: BadgeAuditService,
+    auditService: BadgeAuditService
   ) {
     const report = await auditService.generateHealthReport();
 
@@ -286,7 +286,7 @@ export class AuditBadgesCommand extends BaseCommand {
               .map(([rarity, count]) => `**${rarity}:** ${count}`)
               .join('\n') || 'Nenhuma raridade encontrada',
           inline: true,
-        },
+        }
       )
       .setTimestamp();
 
@@ -340,7 +340,7 @@ export class AuditBadgesCommand extends BaseCommand {
    */
   private async handleCleanup(
     interaction: ChatInputCommandInteraction,
-    auditService: BadgeAuditService,
+    auditService: BadgeAuditService
   ) {
     const confirm = interaction.options.getBoolean('confirm');
 
@@ -349,7 +349,7 @@ export class AuditBadgesCommand extends BaseCommand {
         .setColor('#ffa500')
         .setTitle('⚠️ Confirmação Necessária')
         .setDescription(
-          'Para executar a limpeza de badges órfãs, você deve definir `confirm` como `true`.\n\n**ATENÇÃO:** Esta ação é irreversível!',
+          'Para executar a limpeza de badges órfãs, você deve definir `confirm` como `true`.\n\n**ATENÇÃO:** Esta ação é irreversível!'
         )
         .setTimestamp();
 
@@ -374,7 +374,7 @@ export class AuditBadgesCommand extends BaseCommand {
     // Perform cleanup
     const cleanedCount = await auditService.cleanupOrphanedBadges(
       auditResults.orphanedBadges,
-      true,
+      true
     );
 
     const embed = new EmbedBuilder()
@@ -404,7 +404,7 @@ export class AuditBadgesCommand extends BaseCommand {
    */
   private async handleValidate(
     interaction: ChatInputCommandInteraction,
-    auditService: BadgeAuditService,
+    auditService: BadgeAuditService
   ) {
     const validationErrors = await auditService.validateBadgeRequirements();
 
@@ -414,7 +414,7 @@ export class AuditBadgesCommand extends BaseCommand {
       .setDescription(
         validationErrors.length > 0
           ? `${validationErrors.length} badges com requisitos inválidos encontradas.`
-          : 'Todos os requisitos de badges estão válidos.',
+          : 'Todos os requisitos de badges estão válidos.'
       )
       .setTimestamp();
 
@@ -434,7 +434,7 @@ export class AuditBadgesCommand extends BaseCommand {
     await this.safeReply(interaction, { embeds: [embed] });
 
     this.logger.info(
-      `Badge requirements validation completed. Found ${validationErrors.length} errors.`,
+      `Badge requirements validation completed. Found ${validationErrors.length} errors.`
     );
   }
 }

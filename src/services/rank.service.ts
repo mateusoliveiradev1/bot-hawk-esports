@@ -349,7 +349,7 @@ export class RankService {
       },
       {
         timezone: 'UTC',
-      },
+      }
     );
 
     // Update at 16:00 UTC
@@ -361,7 +361,7 @@ export class RankService {
       },
       {
         timezone: 'UTC',
-      },
+      }
     );
 
     this.logger.info('Scheduled rank updates for 04:00 and 16:00 UTC');
@@ -453,7 +453,7 @@ export class RankService {
         // Log progress every 50 users
         if ((i + batchSize) % 50 === 0 || i + batchSize >= users.length) {
           this.logger.info(
-            `Progress: ${Math.min(i + batchSize, users.length)}/${users.length} users processed`,
+            `Progress: ${Math.min(i + batchSize, users.length)}/${users.length} users processed`
           );
         }
       }
@@ -470,11 +470,11 @@ export class RankService {
           total: users.length,
           duration,
         }),
-        86400,
+        86400
       );
 
       this.logger.info(
-        `✅ Bulk rank update completed in ${duration}ms. Updated: ${updatedCount}, Errors: ${errorCount}, Total: ${users.length}`,
+        `✅ Bulk rank update completed in ${duration}ms. Updated: ${updatedCount}, Errors: ${errorCount}, Total: ${users.length}`
       );
 
       return { updated: updatedCount, errors: errorCount, total: users.length, duration };
@@ -494,7 +494,7 @@ export class RankService {
   public async updateUserRank(
     discordId: string,
     pubgName: string,
-    forceUpdate: boolean = false,
+    forceUpdate: boolean = false
   ): Promise<boolean> {
     try {
       // Input validation
@@ -552,7 +552,7 @@ export class RankService {
               {
                 error: error instanceof Error ? error : new Error(String(error)),
                 metadata: { pubgName: sanitizedPubgName, maxRetries },
-              },
+              }
             );
             return false;
           }
@@ -609,7 +609,7 @@ export class RankService {
       const rankMapping = this.getRankMappingByRP(currentRP);
       if (!rankMapping) {
         this.logger.warn(
-          `No rank mapping found for RP: ${currentRP} (player: ${sanitizedPubgName})`,
+          `No rank mapping found for RP: ${currentRP} (player: ${sanitizedPubgName})`
         );
         return false;
       }
@@ -679,7 +679,7 @@ export class RankService {
       await this.cache.del('rank_leaderboard');
 
       this.logger.info(
-        `🎖️ Updated rank for ${sanitizedPubgName}: ${rankMapping.roleName} (${currentRP} RP)`,
+        `🎖️ Updated rank for ${sanitizedPubgName}: ${rankMapping.roleName} (${currentRP} RP)`
       );
       return true;
     } catch (error) {
@@ -734,7 +734,7 @@ export class RankService {
           await this.addRankRole(member, guild, rankMapping);
 
           this.logger.debug(
-            `✅ Updated Discord roles for ${member.user.tag}: ${rankMapping.roleName}`,
+            `✅ Updated Discord roles for ${member.user.tag}: ${rankMapping.roleName}`
           );
         } catch (error) {
           this.logger.error(`Failed to update roles in guild ${guild.name}:`, {
@@ -785,7 +785,7 @@ export class RankService {
   private async addRankRole(
     member: GuildMember,
     guild: Guild,
-    rankMapping: RankMapping,
+    rankMapping: RankMapping
   ): Promise<void> {
     try {
       if (!member || !guild || !rankMapping) {
@@ -1077,15 +1077,15 @@ export class RankService {
 
       await Promise.all(
         cacheKeys.map(key =>
-          key.includes('*') ? this.cache.clearPattern(key) : this.cache.del(key),
-        ),
+          key.includes('*') ? this.cache.clearPattern(key) : this.cache.del(key)
+        )
       );
 
       // Update rank with force flag
       const result = await this.updateUserRank(discordId, pubgName, true);
 
       this.logger.info(
-        `🔄 Force updated rank for user ${discordId}: ${result ? 'success' : 'failed'}`,
+        `🔄 Force updated rank for user ${discordId}: ${result ? 'success' : 'failed'}`
       );
 
       return result;

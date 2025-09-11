@@ -89,7 +89,7 @@ export class XPAnimationsService {
   public createProgressBar(
     currentXP: number,
     requiredXP: number,
-    style: 'classic' | 'modern' | 'minimal' = 'modern',
+    style: 'classic' | 'modern' | 'minimal' = 'modern'
   ): string {
     const percentage = Math.min((currentXP / requiredXP) * 100, 100);
     const filledBars = Math.floor(percentage / 5); // 20 barras no total
@@ -143,7 +143,7 @@ export class XPAnimationsService {
   public async createXPGainEmbed(
     user: User,
     xpData: XPAnimationData,
-    activityType: string,
+    activityType: string
   ): Promise<EmbedBuilder> {
     const {
       userId,
@@ -160,7 +160,7 @@ export class XPAnimationsService {
     const embed = new EmbedBuilder()
       .setTitle('💫 XP Ganho!')
       .setDescription(
-        `${user.displayName} ganhou **${xpGained} XP** por **${this.getActivityDisplayName(activityType)}**`,
+        `${user.displayName} ganhou **${xpGained} XP** por **${this.getActivityDisplayName(activityType)}**`
       )
       .setColor('#00FF00')
       .setThumbnail(user.displayAvatarURL())
@@ -170,7 +170,7 @@ export class XPAnimationsService {
     const progressBar = this.createProgressBar(
       newXP - currentLevelXP,
       nextLevelXP - currentLevelXP,
-      this.config.progressBarStyle,
+      this.config.progressBarStyle
     );
 
     embed.addFields(
@@ -183,7 +183,7 @@ export class XPAnimationsService {
         name: '📈 Estatísticas',
         value: `**XP Total:** ${newXP.toLocaleString()}\n**Nível:** ${newLevel}\n**XP Ganho:** +${xpGained}`,
         inline: true,
-      },
+      }
     );
 
     // Se subiu de nível, adicionar efeitos especiais
@@ -211,7 +211,7 @@ export class XPAnimationsService {
   public async createLevelUpAnimation(
     user: User,
     levelUpData: LevelUpAnimation,
-    channel?: TextChannel,
+    channel?: TextChannel
   ): Promise<EmbedBuilder[]> {
     const { userId, newLevel, rewards, achievements } = levelUpData;
     const embeds: EmbedBuilder[] = [];
@@ -292,7 +292,7 @@ export class XPAnimationsService {
     user: User,
     xpData: XPAnimationData,
     activityType: string,
-    channel?: TextChannel,
+    channel?: TextChannel
   ): Promise<void> {
     if (!this.config.enableRealTimeNotifications || !channel) {
       return;
@@ -329,7 +329,7 @@ export class XPAnimationsService {
   public async createCelebrationEffect(
     user: User,
     newLevel: number,
-    channel: TextChannel,
+    channel: TextChannel
   ): Promise<void> {
     if (!this.config.enableLevelUpEffects) {
       return;
@@ -341,7 +341,7 @@ export class XPAnimationsService {
       const randomEmojis = this.getRandomEmojis(celebrationEmojis, 5);
 
       const celebrationMessage = await channel.send(
-        `${randomEmojis.join(' ')} **${user.displayName}** subiu para o **Nível ${newLevel}**! ${randomEmojis.join(' ')}`,
+        `${randomEmojis.join(' ')} **${user.displayName}** subiu para o **Nível ${newLevel}**! ${randomEmojis.join(' ')}`
       );
 
       // Adicionar reações de celebração
@@ -402,7 +402,7 @@ export class XPAnimationsService {
   }
 
   private getLevelTier(
-    level: number,
+    level: number
   ): 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond' | 'master' {
     if (level < 10) {
       return 'bronze';

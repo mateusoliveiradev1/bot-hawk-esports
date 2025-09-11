@@ -42,13 +42,17 @@ export class ProductionIntegrationService {
 
       this.isInitialized = true;
 
-      productionLogger.info('Production integration initialized successfully', 
-        createLogContext(LogCategory.SYSTEM));
+      productionLogger.info(
+        'Production integration initialized successfully',
+        createLogContext(LogCategory.SYSTEM)
+      );
     } catch (error) {
-      productionLogger.error('Failed to initialize production integration', 
+      productionLogger.error(
+        'Failed to initialize production integration',
         createLogContext(LogCategory.SYSTEM, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }));
+        })
+      );
       throw error;
     }
   }
@@ -58,85 +62,97 @@ export class ProductionIntegrationService {
    */
   private setupDiscordEventListeners(): void {
     // Track command usage
-    this.client.on('interactionCreate', (interaction) => {
+    this.client.on('interactionCreate', interaction => {
       if (interaction.isChatInputCommand()) {
         productionMonitoring.incrementCounter('commands');
-        
+
         productionLogger.commandStart(
           interaction.commandName,
           createLogContext(LogCategory.COMMAND, {
             commandName: interaction.commandName,
             userId: interaction.user.id,
             guildId: interaction.guildId,
-          }),
+          })
         );
       }
     });
 
     // Track errors
-    this.client.on('error', (error) => {
+    this.client.on('error', error => {
       productionMonitoring.incrementCounter('errors');
-      productionMonitoring.createAlert('critical', 'discord', `Discord client error: ${error.message}`);
-      
-      productionLogger.error('Discord client error', 
+      productionMonitoring.createAlert(
+        'critical',
+        'discord',
+        `Discord client error: ${error.message}`
+      );
+
+      productionLogger.error(
+        'Discord client error',
         createLogContext(LogCategory.SYSTEM, {
           error,
-        }));
+        })
+      );
     });
 
     // Track warnings
-    this.client.on('warn', (warning) => {
-      productionLogger.warn('Discord client warning', 
+    this.client.on('warn', warning => {
+      productionLogger.warn(
+        'Discord client warning',
         createLogContext(LogCategory.SYSTEM, {
           metadata: { warning },
-        }));
+        })
+      );
     });
 
     // Track guild events for metrics
-    this.client.on('guildCreate', (guild) => {
-      productionLogger.info(`Bot joined guild: ${guild.name}`, 
+    this.client.on('guildCreate', guild => {
+      productionLogger.info(
+        `Bot joined guild: ${guild.name}`,
         createLogContext(LogCategory.SYSTEM, {
           metadata: {
             guildId: guild.id,
             guildName: guild.name,
             memberCount: guild.memberCount,
           },
-        }));
+        })
+      );
     });
 
-    this.client.on('guildDelete', (guild) => {
-      productionLogger.info(`Bot left guild: ${guild.name}`, 
+    this.client.on('guildDelete', guild => {
+      productionLogger.info(
+        `Bot left guild: ${guild.name}`,
         createLogContext(LogCategory.SYSTEM, {
           metadata: {
             guildId: guild.id,
             guildName: guild.name,
           },
-        }));
+        })
+      );
     });
 
     // Track ready state
     this.client.on('ready', () => {
-      productionLogger.info('Discord client ready', 
+      productionLogger.info(
+        'Discord client ready',
         createLogContext(LogCategory.SYSTEM, {
           metadata: {
             guilds: this.client.guilds.cache.size,
             users: this.client.users.cache.size,
             channels: this.client.channels.cache.size,
           },
-        }));
+        })
+      );
     });
 
     // Track disconnect events
     this.client.on('disconnect', () => {
       productionMonitoring.createAlert('critical', 'discord', 'Discord client disconnected');
-      
-      productionLogger.error('Discord client disconnected', 
-        createLogContext(LogCategory.SYSTEM));
+
+      productionLogger.error('Discord client disconnected', createLogContext(LogCategory.SYSTEM));
     });
 
     this.client.on('reconnecting', () => {
-      productionLogger.warn('Discord client reconnecting', 
-        createLogContext(LogCategory.SYSTEM));
+      productionLogger.warn('Discord client reconnecting', createLogContext(LogCategory.SYSTEM));
     });
   }
 
@@ -144,21 +160,25 @@ export class ProductionIntegrationService {
    * Setup alert handlers
    */
   private setupAlertHandlers(): void {
-    productionMonitoring.on('alert', (alert) => {
-      productionLogger.security(`Alert triggered: ${alert.type}`, 
+    productionMonitoring.on('alert', alert => {
+      productionLogger.security(
+        `Alert triggered: ${alert.type}`,
         createLogContext(LogCategory.SECURITY, {
           metadata: { alert },
-        }));
+        })
+      );
 
       // Here you could send alerts to Discord channels, webhooks, etc.
       this.handleAlert(alert);
     });
 
-    productionMonitoring.on('alertResolved', (alert) => {
-      productionLogger.info(`Alert resolved: ${alert.id}`, 
+    productionMonitoring.on('alertResolved', alert => {
+      productionLogger.info(
+        `Alert resolved: ${alert.id}`,
         createLogContext(LogCategory.SYSTEM, {
           metadata: { alert },
-        }));
+        })
+      );
     });
   }
 
@@ -168,10 +188,11 @@ export class ProductionIntegrationService {
   private async handleAlert(alert: any): Promise<void> {
     try {
       // Log the alert
-      const logLevel = alert.type === 'critical' ? 'error' : 
-                      alert.type === 'warning' ? 'warn' : 'info';
-      
-      productionLogger[logLevel](`Production Alert: ${alert.message}`, 
+      const logLevel =
+        alert.type === 'critical' ? 'error' : alert.type === 'warning' ? 'warn' : 'info';
+
+      productionLogger[logLevel](
+        `Production Alert: ${alert.message}`,
         createLogContext(LogCategory.SECURITY, {
           metadata: {
             alertId: alert.id,
@@ -179,20 +200,22 @@ export class ProductionIntegrationService {
             type: alert.type,
             timestamp: alert.timestamp,
           },
-        }));
+        })
+      );
 
       // Here you could implement additional alert handling:
       // - Send to Discord webhook
       // - Send to monitoring channels
       // - Trigger external monitoring systems
       // - Send email notifications
-      
     } catch (error) {
-      productionLogger.error('Failed to handle alert', 
+      productionLogger.error(
+        'Failed to handle alert',
         createLogContext(LogCategory.SYSTEM, {
           error: error instanceof Error ? error : new Error(String(error)),
           metadata: { alert },
-        }));
+        })
+      );
     }
   }
 
@@ -209,9 +232,9 @@ export class ProductionIntegrationService {
       const healthChecks = await productionMonitoring.runHealthChecks();
       const metrics = productionMonitoring.getMetrics();
       const alerts = productionMonitoring.getActiveAlerts();
-      
+
       const healthy = healthChecks.every(check => check.status === 'healthy');
-      
+
       return {
         healthy,
         services: healthChecks,
@@ -219,11 +242,13 @@ export class ProductionIntegrationService {
         alerts,
       };
     } catch (error) {
-      productionLogger.error('Failed to get system status', 
+      productionLogger.error(
+        'Failed to get system status',
         createLogContext(LogCategory.SYSTEM, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }));
-      
+        })
+      );
+
       return {
         healthy: false,
         services: [],
@@ -239,14 +264,18 @@ export class ProductionIntegrationService {
   async shutdown(): Promise<void> {
     try {
       await productionMonitoring.shutdown();
-      
-      productionLogger.info('Production integration shutdown completed', 
-        createLogContext(LogCategory.SYSTEM));
+
+      productionLogger.info(
+        'Production integration shutdown completed',
+        createLogContext(LogCategory.SYSTEM)
+      );
     } catch (error) {
-      productionLogger.error('Failed to shutdown production integration', 
+      productionLogger.error(
+        'Failed to shutdown production integration',
         createLogContext(LogCategory.SYSTEM, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }));
+        })
+      );
     }
   }
 

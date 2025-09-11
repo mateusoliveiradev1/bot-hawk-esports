@@ -367,7 +367,7 @@ export class IntegratedMiniGamesService {
     guildId: string,
     channelId: string,
     hostId: string,
-    customSettings?: Partial<MiniGameSettings>,
+    customSettings?: Partial<MiniGameSettings>
   ): Promise<MiniGameSession | null> {
     const gameDefinition = this.gameDefinitions.find(g => g.id === gameId);
     if (!gameDefinition) {
@@ -454,7 +454,7 @@ export class IntegratedMiniGamesService {
     session.startTime = new Date();
 
     this.logger.info(
-      `Started mini-game session ${sessionId} with ${session.participants.size} participants`,
+      `Started mini-game session ${sessionId} with ${session.participants.size} participants`
     );
     return true;
   }
@@ -486,7 +486,7 @@ export class IntegratedMiniGamesService {
       () => {
         this.activeSessions.delete(sessionId);
       },
-      5 * 60 * 1000,
+      5 * 60 * 1000
     );
 
     this.logger.info(`Ended mini-game session ${sessionId}`);
@@ -618,7 +618,7 @@ export class IntegratedMiniGamesService {
    */
   private checkSpecialCondition(
     session: MiniGameSession,
-    participant: MiniGameParticipant,
+    participant: MiniGameParticipant
   ): boolean {
     if (!session.rewards.special) {
       return false;
@@ -713,7 +713,7 @@ export class IntegratedMiniGamesService {
               'team_player',
               'survivor',
               'prophet',
-            ].includes(b.badge.id),
+            ].includes(b.badge.id)
           ).length || 0,
       };
     } catch (error) {

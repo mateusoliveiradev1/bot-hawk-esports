@@ -125,7 +125,7 @@ export class APIService {
     // Initialize advanced rate limiting service
     this.advancedRateLimitService = new AdvancedRateLimitService(
       this.cache as any,
-      this.structuredLogger,
+      this.structuredLogger
     );
 
     // Initialize production monitoring service if in production
@@ -179,7 +179,7 @@ export class APIService {
           this.structuredLogger,
           this.healthService!,
           this.metricsService,
-          monitoringConfig.backup,
+          monitoringConfig.backup
         );
       }
     }
@@ -195,7 +195,7 @@ export class APIService {
       port: this.validatePort(process.env.API_PORT || '3001'),
       host: process.env.API_HOST || '0.0.0.0',
       corsOrigins: this.validateCorsOrigins(
-        process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000'],
+        process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000']
       ),
       jwtSecret: process.env.JWT_SECRET || 'your-secret-key',
       jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
@@ -203,14 +203,14 @@ export class APIService {
         process.env.RATE_LIMIT_WINDOW_MS,
         900000,
         60000,
-        3600000,
+        3600000
       ), // 1min - 1hour
       rateLimitMax: this.validateNumber(process.env.RATE_LIMIT_MAX, 100, 10, 1000),
       uploadMaxSize: this.validateNumber(
         process.env.UPLOAD_MAX_SIZE,
         104857600,
         1048576,
-        1073741824,
+        1073741824
       ), // 1MB - 1GB
       uploadDir: process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads'),
     };
@@ -230,18 +230,18 @@ export class APIService {
       helmet({
         contentSecurityPolicy: {
           directives: {
-            defaultSrc: ['\'self\''],
-            styleSrc: ['\'self\'', '\'unsafe-inline\'' /* Required for some UI frameworks */],
-            scriptSrc: ['\'self\'', '\'unsafe-eval\'' /* Required for development */],
-            imgSrc: ['\'self\'', 'data:', 'https:', 'cdn.discordapp.com'],
-            connectSrc: ['\'self\'', 'wss:', 'https:'],
-            fontSrc: ['\'self\'', 'data:', 'https:'],
-            objectSrc: ['\'none\''],
-            mediaSrc: ['\'self\''],
-            frameSrc: ['\'none\''],
-            baseUri: ['\'self\''],
-            formAction: ['\'self\''],
-            frameAncestors: ['\'none\''],
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'" /* Required for some UI frameworks */],
+            scriptSrc: ["'self'", "'unsafe-eval'" /* Required for development */],
+            imgSrc: ["'self'", 'data:', 'https:', 'cdn.discordapp.com'],
+            connectSrc: ["'self'", 'wss:', 'https:'],
+            fontSrc: ["'self'", 'data:', 'https:'],
+            objectSrc: ["'none'"],
+            mediaSrc: ["'self'"],
+            frameSrc: ["'none'"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"],
+            frameAncestors: ["'none'"],
             upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
           },
           reportOnly: process.env.NODE_ENV === 'development',
@@ -263,7 +263,7 @@ export class APIService {
         permittedCrossDomainPolicies: false,
         referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
         xssFilter: true,
-      }),
+      })
     );
 
     // HTTP Request Logging Middleware
@@ -321,7 +321,7 @@ export class APIService {
           'magnetometer=()',
           'gyroscope=()',
           'accelerometer=()',
-        ].join(', '),
+        ].join(', ')
       );
 
       // Cache control for sensitive endpoints
@@ -342,7 +342,7 @@ export class APIService {
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-      }),
+      })
     );
 
     // Session middleware with secure configuration
@@ -368,7 +368,7 @@ export class APIService {
           sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
           domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined,
         },
-      }),
+      })
     );
 
     // Advanced rate limiting with intelligent behavior analysis
@@ -378,49 +378,49 @@ export class APIService {
 
     this.app.use(
       '/api/auth/login',
-      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.AUTH_LOGIN)),
+      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.AUTH_LOGIN))
     );
 
     this.app.use(
       '/api/auth/register',
-      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.AUTH_REGISTER)),
+      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.AUTH_REGISTER))
     );
 
     this.app.use(
       '/api/clips/upload',
-      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.UPLOAD_CLIPS)),
+      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.UPLOAD_CLIPS))
     );
 
     this.app.use(
       '/api/*/upload',
-      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.UPLOAD_GENERAL)),
+      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.UPLOAD_GENERAL))
     );
 
     // Apply progressive rate limiting for repeated violations
     this.app.use(
       '/api/auth/',
-      rateLimit(RateLimitMiddleware.createProgressive(RateLimitConfiguration.AUTH_LOGIN)),
+      rateLimit(RateLimitMiddleware.createProgressive(RateLimitConfiguration.AUTH_LOGIN))
     );
 
     // Apply API-specific rate limiting
     this.app.use(
       '/api/pubg/',
-      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.API_PUBG)),
+      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.API_PUBG))
     );
 
     this.app.use(
       '/api/stats/',
-      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.API_STATS)),
+      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.API_STATS))
     );
 
     this.app.use(
       '/api/ranking/',
-      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.API_RANKING)),
+      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.API_RANKING))
     );
 
     this.app.use(
       '/api/admin/',
-      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.ADMIN_GENERAL)),
+      rateLimit(RateLimitMiddleware.create(RateLimitConfiguration.ADMIN_GENERAL))
     );
 
     // Security middleware for bot detection
@@ -491,7 +491,7 @@ export class APIService {
           // Check file extension
           if (!allowedExtensions.includes(ext)) {
             return cb(
-              new Error(`Invalid file extension. Allowed: ${allowedExtensions.join(', ')}`),
+              new Error(`Invalid file extension. Allowed: ${allowedExtensions.join(', ')}`)
             );
           }
 
@@ -682,7 +682,7 @@ export class APIService {
             error: 'Detailed health check failed',
           });
         }
-      },
+      }
     );
 
     // Service-specific health check
@@ -725,7 +725,7 @@ export class APIService {
             error: 'Service health check failed',
           });
         }
-      },
+      }
     );
 
     // Metrics endpoint for Prometheus
@@ -779,7 +779,7 @@ export class APIService {
             error: 'Failed to get metrics',
           });
         }
-      },
+      }
     );
 
     // Monitoring routes (admin only)
@@ -787,7 +787,7 @@ export class APIService {
       '/api/monitoring',
       this.authenticateToken,
       this.requireRole(['Administrador', 'Admin']),
-      this.getMonitoringRoutes(),
+      this.getMonitoringRoutes()
     );
 
     // Backup routes (admin only)
@@ -795,7 +795,7 @@ export class APIService {
       '/api/backup',
       this.authenticateToken,
       this.requireRole(['Administrador', 'Admin']),
-      this.getBackupRoutes(),
+      this.getBackupRoutes()
     );
 
     // Rate limiting routes (admin only)
@@ -803,7 +803,7 @@ export class APIService {
       '/api/ratelimit',
       this.authenticateToken,
       this.requireRole(['Administrador', 'Admin']),
-      this.getRateLimitRoutes(),
+      this.getRateLimitRoutes()
     );
 
     // API routes
@@ -828,13 +828,13 @@ export class APIService {
       '/api/guilds',
       this.authenticateToken,
       this.requireRole(['Moderador', 'Administrador', 'Admin', 'Mod']),
-      this.getGuildRoutes(),
+      this.getGuildRoutes()
     );
     this.app.use(
       '/api/stats',
       this.authenticateToken,
       this.requireRole(['Moderador', 'Administrador', 'Admin', 'Mod']),
-      this.getStatsRoutes(),
+      this.getStatsRoutes()
     );
 
     // Catch all
@@ -929,7 +929,7 @@ export class APIService {
     return async (
       req: AuthenticatedRequest,
       res: Response,
-      next: NextFunction,
+      next: NextFunction
     ): Promise<void | Response> => {
       try {
         if (!req.user) {
@@ -960,7 +960,7 @@ export class APIService {
         // Check if user has any of the required roles
         const hasRequiredRole = requiredRoles.some(roleName => {
           const role = guild.roles.cache.find(
-            r => r.name.toLowerCase() === roleName.toLowerCase() || r.id === roleName,
+            r => r.name.toLowerCase() === roleName.toLowerCase() || r.id === roleName
           );
           return role && roles.includes(role.id);
         });
@@ -993,7 +993,7 @@ export class APIService {
   private authenticateToken = async (
     req: AuthenticatedRequest,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ): Promise<void | Response> => {
     try {
       const authHeader = req.headers['authorization'];
@@ -1052,7 +1052,7 @@ export class APIService {
       // Validate session if present
       if (decoded.sessionId && !(await this.validateSession(decoded.userId, decoded.sessionId))) {
         this.logger.warn(
-          `Authentication failed: Invalid session for user ${decoded.userId} from IP ${clientIP}`,
+          `Authentication failed: Invalid session for user ${decoded.userId} from IP ${clientIP}`
         );
         return res.status(401).json({
           success: false,
@@ -1088,7 +1088,7 @@ export class APIService {
         discordUser = (await Promise.race([
           this.client.users.fetch(user.id),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Discord API timeout')), 3000),
+            setTimeout(() => reject(new Error('Discord API timeout')), 3000)
           ),
         ])) as any;
       } catch (error) {
@@ -1107,7 +1107,7 @@ export class APIService {
             member = (await Promise.race([
               guild.members.fetch(user.id),
               new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Member fetch timeout')), 3000),
+                setTimeout(() => reject(new Error('Member fetch timeout')), 3000)
               ),
             ])) as any;
           } catch (error) {
@@ -1348,11 +1348,11 @@ export class APIService {
                     log.metadata &&
                     typeof log.metadata === 'object' &&
                     log.metadata !== null &&
-                    'error' in (log.metadata as any),
+                    'error' in (log.metadata as any)
                 );
                 successRate = Math.max(
                   0,
-                  ((commandLogs.length - errorLogs.length) / commandLogs.length) * 100,
+                  ((commandLogs.length - errorLogs.length) / commandLogs.length) * 100
                 );
               }
             } catch (dbError) {
@@ -1507,7 +1507,7 @@ export class APIService {
             error: 'Failed to setup 2FA',
           });
         }
-      },
+      }
     );
 
     // Enable 2FA
@@ -1545,7 +1545,7 @@ export class APIService {
             error: 'Failed to enable 2FA',
           });
         }
-      },
+      }
     );
 
     // Disable 2FA
@@ -1567,7 +1567,7 @@ export class APIService {
             error: 'Failed to disable 2FA',
           });
         }
-      },
+      }
     );
 
     // Verify 2FA
@@ -1598,7 +1598,7 @@ export class APIService {
             error: 'Failed to verify 2FA',
           });
         }
-      },
+      }
     );
 
     return router;
@@ -1787,7 +1787,7 @@ export class APIService {
             discriminator: userData.discriminator,
           },
           this.config.jwtSecret,
-          { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions,
+          { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions
         );
 
         // Generate refresh token
@@ -1798,7 +1798,7 @@ export class APIService {
             type: 'refresh',
           },
           this.config.jwtSecret,
-          { expiresIn: '30d' } as jwt.SignOptions,
+          { expiresIn: '30d' } as jwt.SignOptions
         );
 
         return res.json({
@@ -1870,7 +1870,7 @@ export class APIService {
             discriminator: userData.discriminator,
           },
           this.config.jwtSecret,
-          { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions,
+          { expiresIn: this.config.jwtExpiresIn } as jwt.SignOptions
         );
 
         // Generate new refresh token
@@ -1881,7 +1881,7 @@ export class APIService {
             type: 'refresh',
           },
           this.config.jwtSecret,
-          { expiresIn: '30d' } as jwt.SignOptions,
+          { expiresIn: '30d' } as jwt.SignOptions
         );
 
         return res.json({
@@ -1944,7 +1944,7 @@ export class APIService {
             error: 'Session validation failed',
           });
         }
-      },
+      }
     );
 
     // Clear all user sessions
@@ -1991,7 +1991,7 @@ export class APIService {
             error: 'Failed to clear sessions',
           });
         }
-      },
+      }
     );
 
     return router;
@@ -2516,7 +2516,7 @@ export class APIService {
 
             userSessions.set(
               presence.userId,
-              (userSessions.get(presence.userId) || 0) + sessionMinutes,
+              (userSessions.get(presence.userId) || 0) + sessionMinutes
             );
             totalSessionTime += sessionMinutes;
             sessionCount++;
@@ -2735,7 +2735,7 @@ export class APIService {
           rankingPeriod,
           undefined, // gameMode - use default
           'rankPoints', // sortBy - use default
-          Number(limit),
+          Number(limit)
         );
 
         return res.json({
@@ -2800,7 +2800,7 @@ export class APIService {
           req.user!.guildId,
           rankingPeriod,
           'level', // sortBy - use default
-          Number(limit),
+          Number(limit)
         );
 
         return res.json({
@@ -2862,14 +2862,14 @@ export class APIService {
             rankingPeriod!,
             undefined,
             'rankPoints',
-            Number(limit),
+            Number(limit)
           );
         } else if (type === 'internal') {
           leaderboard = this.rankingService.getInternalRanking(
             req.user!.guildId,
             rankingPeriod!,
             'level',
-            Number(limit),
+            Number(limit)
           );
         } else {
           // Combined leaderboard - mix both rankings
@@ -2878,13 +2878,13 @@ export class APIService {
             rankingPeriod!,
             undefined,
             'rankPoints',
-            25,
+            25
           );
           const internalRanking = this.rankingService.getInternalRanking(
             req.user!.guildId,
             rankingPeriod!,
             'level',
-            25,
+            25
           );
 
           leaderboard = {
@@ -3282,14 +3282,14 @@ export class APIService {
                 acc[stat.category] = stat._count.id;
                 return acc;
               },
-              {} as Record<string, number>,
+              {} as Record<string, number>
             ),
             rarityDistribution: rarityStats.reduce(
               (acc, stat) => {
                 acc[stat.rarity] = stat._count.id;
                 return acc;
               },
-              {} as Record<string, number>,
+              {} as Record<string, number>
             ),
           },
         });
@@ -3561,7 +3561,7 @@ export class APIService {
             title,
             description,
             gameMode,
-            tags ? JSON.parse(tags) : undefined,
+            tags ? JSON.parse(tags) : undefined
           );
 
           // Clean up uploaded file
@@ -3579,7 +3579,7 @@ export class APIService {
             error: 'Failed to upload clip',
           });
         }
-      },
+      }
     );
 
     // Get clips
@@ -3599,7 +3599,7 @@ export class APIService {
           guildId,
           status as any,
           Number(limit),
-          Number(offset),
+          Number(offset)
         );
 
         return res.json({
@@ -4132,7 +4132,7 @@ export class APIService {
       // Calculate active users (seen in last 7 days)
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       const activeUsers = userGuilds.filter(
-        ug => ug.user.lastSeen && new Date(ug.user.lastSeen) > sevenDaysAgo,
+        ug => ug.user.lastSeen && new Date(ug.user.lastSeen) > sevenDaysAgo
       ).length;
 
       // Calculate totals
@@ -4140,7 +4140,7 @@ export class APIService {
       const totalCoins = userGuilds.reduce((sum, ug) => sum + (ug.user.coins || 0), 0);
       const totalMessages = userGuilds.reduce(
         (sum, ug) => sum + (ug.user.stats?.messagesCount || 0),
-        0,
+        0
       );
 
       return {
@@ -4217,7 +4217,7 @@ export class APIService {
               this.cache as any, // Type assertion to handle OptimizedCacheService compatibility
               this.client.schedulerService,
               this.client.loggingService,
-              this.pubgService,
+              this.pubgService
             );
             this.healthService.startPeriodicHealthChecks();
             this.logger.info('Health service initialized and started');
@@ -4374,7 +4374,7 @@ export class APIService {
       message: string;
       category?: string;
       autoClose?: boolean;
-    },
+    }
   ): void {
     if (this.io) {
       this.io.to(`dashboard:${guildId}`).emit('dashboard:update', {
@@ -4540,7 +4540,7 @@ export class APIService {
     // Real notifications will be sent by actual bot events
     // No simulated notifications in production
     this.logger.info(
-      '✅ Real-time updates configured - notifications will be sent by actual bot events',
+      '✅ Real-time updates configured - notifications will be sent by actual bot events'
     );
   }
 
@@ -4600,7 +4600,7 @@ export class APIService {
     value: string | undefined,
     defaultValue: number,
     min: number,
-    max: number,
+    max: number
   ): number {
     if (!value) {
       return defaultValue;

@@ -45,7 +45,7 @@ export class RateLimiter {
       () => {
         this.cleanup();
       },
-      5 * 60 * 1000,
+      5 * 60 * 1000
     );
   }
 
@@ -267,7 +267,7 @@ export class RateLimitUtils {
       return <T>(
         target: any,
         propertyName: string,
-        descriptor: TypedPropertyDescriptor<(...args: any[]) => Promise<T>>,
+        descriptor: TypedPropertyDescriptor<(...args: any[]) => Promise<T>>
       ) => {
         const method = descriptor.value!;
         descriptor.value = async function (...args: any[]): Promise<T> {
@@ -275,7 +275,7 @@ export class RateLimitUtils {
 
           if (!result.allowed) {
             throw new Error(
-              `Rate limit exceeded. Try again after ${result.resetTime.toISOString()}`,
+              `Rate limit exceeded. Try again after ${result.resetTime.toISOString()}`
             );
           }
 

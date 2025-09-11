@@ -33,13 +33,13 @@ class ModerationCommand extends BaseCommand {
           ephemeral: true,
         });
       },
-      'handleBan',
+      'handleBan'
     );
   }
 
   async handleKick(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<void> {
     return this.executeWithErrorHandling(
       interaction,
@@ -54,13 +54,13 @@ class ModerationCommand extends BaseCommand {
           ephemeral: true,
         });
       },
-      'handleKick',
+      'handleKick'
     );
   }
 
   async handleMute(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<void> {
     return this.executeWithErrorHandling(
       interaction,
@@ -75,13 +75,13 @@ class ModerationCommand extends BaseCommand {
           ephemeral: true,
         });
       },
-      'handleMute',
+      'handleMute'
     );
   }
 
   async handleUnmute(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<void> {
     return this.executeWithErrorHandling(
       interaction,
@@ -96,13 +96,13 @@ class ModerationCommand extends BaseCommand {
           ephemeral: true,
         });
       },
-      'handleUnmute',
+      'handleUnmute'
     );
   }
 
   async handleWarn(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<void> {
     return this.executeWithErrorHandling(
       interaction,
@@ -117,13 +117,13 @@ class ModerationCommand extends BaseCommand {
           ephemeral: true,
         });
       },
-      'handleWarn',
+      'handleWarn'
     );
   }
 
   async handleUnwarn(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<void> {
     return this.executeWithErrorHandling(
       interaction,
@@ -138,13 +138,13 @@ class ModerationCommand extends BaseCommand {
           ephemeral: true,
         });
       },
-      'handleUnwarn',
+      'handleUnwarn'
     );
   }
 
   async handleClear(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<void> {
     return this.executeWithErrorHandling(
       interaction,
@@ -159,13 +159,13 @@ class ModerationCommand extends BaseCommand {
           ephemeral: true,
         });
       },
-      'handleClear',
+      'handleClear'
     );
   }
 
   async handleLogs(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<void> {
     return this.executeWithErrorHandling(
       interaction,
@@ -180,7 +180,7 @@ class ModerationCommand extends BaseCommand {
           ephemeral: true,
         });
       },
-      'handleLogs',
+      'handleLogs'
     );
   }
 }
@@ -197,10 +197,10 @@ const moderation: Command = {
         .setName('ban')
         .setDescription('Banir um usuário do servidor')
         .addUserOption(option =>
-          option.setName('usuario').setDescription('Usuário a ser banido').setRequired(true),
+          option.setName('usuario').setDescription('Usuário a ser banido').setRequired(true)
         )
         .addStringOption(option =>
-          option.setName('motivo').setDescription('Motivo do banimento').setRequired(false),
+          option.setName('motivo').setDescription('Motivo do banimento').setRequired(false)
         )
         .addIntegerOption(option =>
           option
@@ -208,36 +208,36 @@ const moderation: Command = {
             .setDescription('Dias de mensagens para deletar (0-7)')
             .setRequired(false)
             .setMinValue(0)
-            .setMaxValue(7),
-        ),
+            .setMaxValue(7)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('kick')
         .setDescription('Expulsar um usuário do servidor')
         .addUserOption(option =>
-          option.setName('usuario').setDescription('Usuário a ser expulso').setRequired(true),
+          option.setName('usuario').setDescription('Usuário a ser expulso').setRequired(true)
         )
         .addStringOption(option =>
-          option.setName('motivo').setDescription('Motivo da expulsão').setRequired(false),
-        ),
+          option.setName('motivo').setDescription('Motivo da expulsão').setRequired(false)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('mute')
         .setDescription('Silenciar um usuário')
         .addUserOption(option =>
-          option.setName('usuario').setDescription('Usuário a ser silenciado').setRequired(true),
+          option.setName('usuario').setDescription('Usuário a ser silenciado').setRequired(true)
         )
         .addStringOption(option =>
           option
             .setName('duracao')
             .setDescription('Duração do mute (ex: 10m, 1h, 1d)')
-            .setRequired(true),
+            .setRequired(true)
         )
         .addStringOption(option =>
-          option.setName('motivo').setDescription('Motivo do silenciamento').setRequired(false),
-        ),
+          option.setName('motivo').setDescription('Motivo do silenciamento').setRequired(false)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -247,30 +247,30 @@ const moderation: Command = {
           option
             .setName('usuario')
             .setDescription('Usuário para remover o silenciamento')
-            .setRequired(true),
-        ),
+            .setRequired(true)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('warn')
         .setDescription('Dar um aviso a um usuário')
         .addUserOption(option =>
-          option.setName('usuario').setDescription('Usuário a receber o aviso').setRequired(true),
+          option.setName('usuario').setDescription('Usuário a receber o aviso').setRequired(true)
         )
         .addStringOption(option =>
-          option.setName('motivo').setDescription('Motivo do aviso').setRequired(true),
-        ),
+          option.setName('motivo').setDescription('Motivo do aviso').setRequired(true)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('unwarn')
         .setDescription('Remover um aviso de um usuário')
         .addUserOption(option =>
-          option.setName('usuario').setDescription('Usuário para remover o aviso').setRequired(true),
+          option.setName('usuario').setDescription('Usuário para remover o aviso').setRequired(true)
         )
         .addStringOption(option =>
-          option.setName('aviso_id').setDescription('ID do aviso a ser removido').setRequired(false),
-        ),
+          option.setName('aviso_id').setDescription('ID do aviso a ser removido').setRequired(false)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -282,14 +282,14 @@ const moderation: Command = {
             .setDescription('Quantidade de mensagens para deletar (1-100)')
             .setRequired(true)
             .setMinValue(1)
-            .setMaxValue(100),
+            .setMaxValue(100)
         )
         .addUserOption(option =>
           option
             .setName('usuario')
             .setDescription('Deletar apenas mensagens deste usuário')
-            .setRequired(false),
-        ),
+            .setRequired(false)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -299,7 +299,7 @@ const moderation: Command = {
           option
             .setName('usuario')
             .setDescription('Ver logs de um usuário específico')
-            .setRequired(false),
+            .setRequired(false)
         )
         .addStringOption(option =>
           option
@@ -311,9 +311,9 @@ const moderation: Command = {
               { name: 'Kick', value: 'kick' },
               { name: 'Mute', value: 'mute' },
               { name: 'Warn', value: 'warn' },
-              { name: 'Clear', value: 'clear' },
-            ),
-        ),
+              { name: 'Clear', value: 'clear' }
+            )
+        )
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers) as SlashCommandBuilder,
 
@@ -370,7 +370,7 @@ async function logModerationAction(
     reason: string;
     duration: number | null;
     additional?: any;
-  },
+  }
 ): Promise<void> {
   // Implementation for logging moderation actions
   // This would typically save to database or send to a log channel

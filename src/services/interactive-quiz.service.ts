@@ -394,7 +394,7 @@ export class InteractiveQuizService {
     try {
       // Load existing questions from database
       const existingQuestions = await this.database.query(
-        'SELECT * FROM quiz_questions ORDER BY category, difficulty, created_at DESC',
+        'SELECT * FROM quiz_questions ORDER BY category, difficulty, created_at DESC'
       );
 
       // Organize questions by category
@@ -429,7 +429,7 @@ export class InteractiveQuizService {
     } catch (error) {
       this.logger.warn(
         'Quiz questions table not found or database error, generating default questions:',
-        error,
+        error
       );
       // Generate default questions if database query fails
       await this.generateDefaultQuestions();
@@ -548,12 +548,12 @@ export class InteractiveQuizService {
             question.timeLimit,
             question.explanation,
             JSON.stringify(question.tags || []),
-          ],
+          ]
         );
       } catch (dbError) {
         this.logger.warn(
           `Failed to save question ${id} to database, keeping in memory only:`,
-          dbError,
+          dbError
         );
       }
 
@@ -683,7 +683,7 @@ export class InteractiveQuizService {
     hostId: string,
     channelId: string,
     guildId: string,
-    settings: QuizSettings,
+    settings: QuizSettings
   ): Promise<QuizSession> {
     const sessionId = `quiz_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -844,7 +844,7 @@ export class InteractiveQuizService {
     await this.cache.set(`quiz:session:${sessionId}`, session, 3600);
 
     this.logger.info(
-      `Started quiz session ${sessionId} with ${session.participants.size} participants`,
+      `Started quiz session ${sessionId} with ${session.participants.size} participants`
     );
   }
 
@@ -872,7 +872,7 @@ export class InteractiveQuizService {
     sessionId: string,
     userId: string,
     answerIndex: number,
-    responseTime: number,
+    responseTime: number
   ): Promise<{ correct: boolean; points: number; explanation?: string }> {
     const session = this.activeSessions.get(sessionId);
 
@@ -900,7 +900,7 @@ export class InteractiveQuizService {
       // Time bonus (up to 25% extra for fast answers)
       const timeBonus = Math.max(
         0,
-        ((currentQuestion.timeLimit - responseTime) / currentQuestion.timeLimit) * 0.25,
+        ((currentQuestion.timeLimit - responseTime) / currentQuestion.timeLimit) * 0.25
       );
       points += Math.floor(points * timeBonus);
 
@@ -1010,7 +1010,7 @@ export class InteractiveQuizService {
             participant.totalAnswers,
             participant.maxStreak,
             participant.averageResponseTime,
-          ],
+          ]
         );
 
         // Check for achievements
@@ -1030,7 +1030,7 @@ export class InteractiveQuizService {
   private async checkAchievements(
     userId: string,
     participant: QuizParticipant,
-    session: QuizSession,
+    session: QuizSession
   ): Promise<void> {
     const newAchievements: string[] = [];
 
@@ -1059,7 +1059,7 @@ export class InteractiveQuizService {
     for (const achievementId of newAchievements) {
       await this.database.query(
         'INSERT IGNORE INTO user_achievements (user_id, achievement_id, unlocked_at) VALUES (?, ?, NOW())',
-        [userId, achievementId],
+        [userId, achievementId]
       );
     }
   }
@@ -1070,7 +1070,7 @@ export class InteractiveQuizService {
   private async awardRewards(
     userId: string,
     participant: QuizParticipant,
-    session: QuizSession,
+    session: QuizSession
   ): Promise<void> {
     // Calculate XP reward
     const baseXP = participant.score * 2;
@@ -1100,7 +1100,7 @@ export class InteractiveQuizService {
   private async getUserQuizCount(userId: string): Promise<number> {
     const result = await this.database.query(
       'SELECT COUNT(*) as count FROM quiz_stats WHERE user_id = ?',
-      [userId],
+      [userId]
     );
     return result[0]?.count || 0;
   }
@@ -1132,12 +1132,12 @@ export class InteractiveQuizService {
          AVG(average_response_time) as avg_response_time
        FROM quiz_stats 
        WHERE user_id = ?`,
-      [userId],
+      [userId]
     );
 
     const achievements = await this.database.query(
       'SELECT achievement_id, unlocked_at FROM user_achievements WHERE user_id = ?',
-      [userId],
+      [userId]
     );
 
     return {
@@ -1181,7 +1181,7 @@ export class InteractiveQuizService {
    * Add custom question to database
    */
   public async addCustomQuestion(
-    question: Omit<QuizQuestion, 'id' | 'lastUpdated'>,
+    question: Omit<QuizQuestion, 'id' | 'lastUpdated'>
   ): Promise<string> {
     const id = `custom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -1204,7 +1204,7 @@ export class InteractiveQuizService {
         question.videoUrl,
         JSON.stringify(question.tags),
         question.source,
-      ],
+      ]
     );
 
     // Add to memory pool
@@ -1240,7 +1240,7 @@ export class InteractiveQuizService {
        GROUP BY u.user_id, u.username
        ORDER BY total_score DESC
        LIMIT ?`,
-      [category, limit],
+      [category, limit]
     );
   }
 }

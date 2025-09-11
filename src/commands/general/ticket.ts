@@ -28,76 +28,79 @@ class TicketCommand extends BaseCommand {
       category: CommandCategory.GENERAL,
       cooldown: 5,
       data: new SlashCommandBuilder()
-    .setName('ticket')
-    .setDescription(`${HAWK_EMOJIS.SYSTEM.TICKET} Sistema de tickets para suporte`)
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('create')
-        .setDescription('Criar um novo ticket')
-        .addStringOption(option =>
-          option
-            .setName('assunto')
-            .setDescription('Assunto do ticket')
-            .setRequired(true)
-            .setMaxLength(100),
+        .setName('ticket')
+        .setDescription(`${HAWK_EMOJIS.SYSTEM.TICKET} Sistema de tickets para suporte`)
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('create')
+            .setDescription('Criar um novo ticket')
+            .addStringOption(option =>
+              option
+                .setName('assunto')
+                .setDescription('Assunto do ticket')
+                .setRequired(true)
+                .setMaxLength(100)
+            )
+            .addStringOption(option =>
+              option
+                .setName('descricao')
+                .setDescription('Descrição detalhada do problema')
+                .setRequired(true)
+                .setMaxLength(1000)
+            )
+            .addStringOption(option =>
+              option
+                .setName('prioridade')
+                .setDescription('Prioridade do ticket')
+                .setRequired(false)
+                .addChoices(
+                  { name: `${HAWK_EMOJIS.STATUS.SUCCESS} Baixa`, value: 'low' },
+                  { name: `${HAWK_EMOJIS.STATUS.WARNING} Média`, value: 'medium' },
+                  { name: `${HAWK_EMOJIS.STATUS.ERROR} Alta`, value: 'high' },
+                  { name: `${HAWK_EMOJIS.STATUS.ERROR} Urgente`, value: 'urgent' }
+                )
+            )
         )
-        .addStringOption(option =>
-          option
-            .setName('descricao')
-            .setDescription('Descrição detalhada do problema')
-            .setRequired(true)
-            .setMaxLength(1000),
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('list')
+            .setDescription('Listar seus tickets')
+            .addStringOption(option =>
+              option
+                .setName('status')
+                .setDescription('Filtrar por status')
+                .setRequired(false)
+                .addChoices(
+                  { name: 'Abertos', value: 'open' },
+                  { name: 'Em andamento', value: 'in_progress' },
+                  { name: 'Fechados', value: 'closed' }
+                )
+            )
         )
-        .addStringOption(option =>
-          option
-            .setName('prioridade')
-            .setDescription('Prioridade do ticket')
-            .setRequired(false)
-            .addChoices(
-              { name: `${HAWK_EMOJIS.STATUS.SUCCESS} Baixa`, value: 'low' },
-              { name: `${HAWK_EMOJIS.STATUS.WARNING} Média`, value: 'medium' },
-              { name: `${HAWK_EMOJIS.STATUS.ERROR} Alta`, value: 'high' },
-              { name: `${HAWK_EMOJIS.STATUS.ERROR} Urgente`, value: 'urgent' },
-            ),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('list')
-        .setDescription('Listar seus tickets')
-        .addStringOption(option =>
-          option
-            .setName('status')
-            .setDescription('Filtrar por status')
-            .setRequired(false)
-            .addChoices(
-              { name: 'Abertos', value: 'open' },
-              { name: 'Em andamento', value: 'in_progress' },
-              { name: 'Fechados', value: 'closed' },
-            ),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('close')
-        .setDescription('Fechar um ticket')
-        .addStringOption(option =>
-          option.setName('ticket_id').setDescription('ID do ticket para fechar').setRequired(true),
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('close')
+            .setDescription('Fechar um ticket')
+            .addStringOption(option =>
+              option
+                .setName('ticket_id')
+                .setDescription('ID do ticket para fechar')
+                .setRequired(true)
+            )
+            .addStringOption(option =>
+              option
+                .setName('motivo')
+                .setDescription('Motivo para fechar o ticket')
+                .setRequired(false)
+                .setMaxLength(500)
+            )
         )
-        .addStringOption(option =>
-          option
-            .setName('motivo')
-            .setDescription('Motivo para fechar o ticket')
-            .setRequired(false)
-            .setMaxLength(500),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand.setName('panel').setDescription('Criar painel de tickets (Admin apenas)'),
-    )
-    .addSubcommand(subcommand =>
-      subcommand.setName('stats').setDescription('Estatísticas de tickets (Admin apenas)'),
-    ) as SlashCommandBuilder,
+        .addSubcommand(subcommand =>
+          subcommand.setName('panel').setDescription('Criar painel de tickets (Admin apenas)')
+        )
+        .addSubcommand(subcommand =>
+          subcommand.setName('stats').setDescription('Estatísticas de tickets (Admin apenas)')
+        ) as SlashCommandBuilder,
     });
   }
 
@@ -109,7 +112,7 @@ class TicketCommand extends BaseCommand {
       if (!ticketService) {
         const errorEmbed = HawkEmbedBuilder.createError(
           'Serviço Indisponível',
-          `${HAWK_EMOJIS.STATUS.ERROR} O serviço de tickets não está disponível no momento.\n\n${HAWK_EMOJIS.HELP} Entre em contato com um administrador.`,
+          `${HAWK_EMOJIS.STATUS.ERROR} O serviço de tickets não está disponível no momento.\n\n${HAWK_EMOJIS.HELP} Entre em contato com um administrador.`
         );
 
         await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -143,7 +146,7 @@ class TicketCommand extends BaseCommand {
 
       const errorEmbed = HawkEmbedBuilder.createError(
         'Erro no Comando',
-        `${HAWK_EMOJIS.STATUS.ERROR} Ocorreu um erro inesperado ao processar o comando.\n\n${HAWK_EMOJIS.HELP} Tente novamente ou entre em contato com um administrador.`,
+        `${HAWK_EMOJIS.STATUS.ERROR} Ocorreu um erro inesperado ao processar o comando.\n\n${HAWK_EMOJIS.HELP} Tente novamente ou entre em contato com um administrador.`
       );
 
       if (interaction.replied || interaction.deferred) {
@@ -172,13 +175,13 @@ async function handleCreateTicket(interaction: ChatInputCommandInteraction, tick
     interaction.user.id,
     assunto,
     descricao,
-    prioridade,
+    prioridade
   );
 
   if (result.success) {
     const successEmbed = HawkEmbedBuilder.createSuccess(
       'Ticket Criado com Sucesso!',
-      `${HAWK_EMOJIS.STATUS.SUCCESS} Seu ticket foi criado e nossa equipe será notificada.\n\n${HAWK_EMOJIS.SYSTEM.CHANNEL} **Canal:** ${result.channel}\n${HAWK_EMOJIS.TICKETS.ID} **ID:** #${result.ticket!.id.slice(-8)}`,
+      `${HAWK_EMOJIS.STATUS.SUCCESS} Seu ticket foi criado e nossa equipe será notificada.\n\n${HAWK_EMOJIS.SYSTEM.CHANNEL} **Canal:** ${result.channel}\n${HAWK_EMOJIS.TICKETS.ID} **ID:** #${result.ticket!.id.slice(-8)}`
     )
       .addFields(
         { name: `${HAWK_EMOJIS.TICKETS.SUBJECT} Assunto`, value: assunto, inline: true },
@@ -191,7 +194,7 @@ async function handleCreateTicket(interaction: ChatInputCommandInteraction, tick
           name: `${HAWK_EMOJIS.TIME.CREATED} Criado em`,
           value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
           inline: false,
-        },
+        }
       )
       .setFooter({ text: `${HAWK_EMOJIS.SUPPORT} Nossa equipe irá atendê-lo em breve!` });
 
@@ -214,7 +217,7 @@ async function handleCreateTicket(interaction: ChatInputCommandInteraction, tick
   } else {
     const errorEmbed = HawkEmbedBuilder.createError(
       'Erro ao Criar Ticket',
-      `${HAWK_EMOJIS.STATUS.ERROR} ${result.message}\n\n${HAWK_EMOJIS.HELP} Verifique os dados e tente novamente.`,
+      `${HAWK_EMOJIS.STATUS.ERROR} ${result.message}\n\n${HAWK_EMOJIS.HELP} Verifique os dados e tente novamente.`
     );
 
     const actionRow = HawkComponentFactory.createActionRow([
@@ -267,7 +270,7 @@ async function handleListTickets(interaction: ChatInputCommandInteraction, ticke
       'Nenhum Ticket Encontrado',
       status
         ? `${HAWK_EMOJIS.STATUS.WARNING} Você não possui tickets com status "${status}".\n\n${HAWK_EMOJIS.TICKETS.CREATE} Use \`/ticket create\` para criar um novo ticket.`
-        : `${HAWK_EMOJIS.STATUS.WARNING} Você ainda não possui tickets.\n\n${HAWK_EMOJIS.TICKETS.CREATE} Use \`/ticket create\` para criar seu primeiro ticket.`,
+        : `${HAWK_EMOJIS.STATUS.WARNING} Você ainda não possui tickets.\n\n${HAWK_EMOJIS.TICKETS.CREATE} Use \`/ticket create\` para criar seu primeiro ticket.`
     );
 
     const actionRow = HawkComponentFactory.createActionRow([
@@ -341,7 +344,7 @@ async function handleCloseTicket(interaction: ChatInputCommandInteraction, ticke
   if (!ticket) {
     const errorEmbed = HawkEmbedBuilder.createError(
       'Ticket Não Encontrado',
-      `${HAWK_EMOJIS.STATUS.ERROR} O ticket especificado não foi encontrado.\n\n${HAWK_EMOJIS.TICKETS.ID} Verifique se o ID está correto: \`${ticketId}\``,
+      `${HAWK_EMOJIS.STATUS.ERROR} O ticket especificado não foi encontrado.\n\n${HAWK_EMOJIS.TICKETS.ID} Verifique se o ID está correto: \`${ticketId}\``
     );
 
     const actionRow = HawkComponentFactory.createActionRow([
@@ -369,7 +372,7 @@ async function handleCloseTicket(interaction: ChatInputCommandInteraction, ticke
   if (!canClose) {
     const errorEmbed = HawkEmbedBuilder.createError(
       'Sem Permissão',
-      `${HAWK_EMOJIS.STATUS.ERROR} Você só pode fechar seus próprios tickets.\n\n${HAWK_EMOJIS.SYSTEM.PERMISSIONS} Ou precisa ter permissão de moderação para fechar tickets de outros usuários.`,
+      `${HAWK_EMOJIS.STATUS.ERROR} Você só pode fechar seus próprios tickets.\n\n${HAWK_EMOJIS.SYSTEM.PERMISSIONS} Ou precisa ter permissão de moderação para fechar tickets de outros usuários.`
     );
 
     const actionRow = HawkComponentFactory.createActionRow([
@@ -389,13 +392,13 @@ async function handleCloseTicket(interaction: ChatInputCommandInteraction, ticke
     interaction.guildId!,
     ticketId,
     interaction.user.id,
-    motivo,
+    motivo
   );
 
   if (result.success) {
     const successEmbed = HawkEmbedBuilder.createSuccess(
       'Ticket Fechado com Sucesso',
-      `${HAWK_EMOJIS.STATUS.SUCCESS} O ticket #${ticketId.slice(-8)} foi fechado e arquivado.`,
+      `${HAWK_EMOJIS.STATUS.SUCCESS} O ticket #${ticketId.slice(-8)} foi fechado e arquivado.`
     ).addFields(
       { name: `${HAWK_EMOJIS.TICKETS.REASON} Motivo`, value: motivo, inline: false },
       { name: `${HAWK_EMOJIS.MODERATOR} Fechado por`, value: interaction.user.tag, inline: true },
@@ -403,7 +406,7 @@ async function handleCloseTicket(interaction: ChatInputCommandInteraction, ticke
         name: `${HAWK_EMOJIS.TIME.CLOSED} Fechado em`,
         value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
         inline: true,
-      },
+      }
     );
 
     const actionRow = HawkComponentFactory.createActionRow([
@@ -425,7 +428,7 @@ async function handleCloseTicket(interaction: ChatInputCommandInteraction, ticke
   } else {
     const errorEmbed = HawkEmbedBuilder.createError(
       'Erro ao Fechar Ticket',
-      `${HAWK_EMOJIS.STATUS.ERROR} ${result.message}\n\n${HAWK_EMOJIS.HELP} Tente novamente ou entre em contato com um administrador.`,
+      `${HAWK_EMOJIS.STATUS.ERROR} ${result.message}\n\n${HAWK_EMOJIS.HELP} Tente novamente ou entre em contato com um administrador.`
     );
 
     const actionRow = HawkComponentFactory.createActionRow([
@@ -456,7 +459,7 @@ async function handleCreatePanel(interaction: ChatInputCommandInteraction, ticke
     const errorEmbed = new EmbedBuilder()
       .setTitle('❌ Sem Permissão')
       .setDescription(
-        'Você precisa ter permissão de "Gerenciar Servidor" para criar painéis de ticket.',
+        'Você precisa ter permissão de "Gerenciar Servidor" para criar painéis de ticket.'
       )
       .setColor('#FF0000');
 
@@ -477,7 +480,7 @@ async function handleCreatePanel(interaction: ChatInputCommandInteraction, ticke
         '🟢 **Dúvidas gerais** - Perguntas sobre o servidor\n' +
         '🟡 **Problemas técnicos** - Bugs ou erros\n' +
         '🟠 **Denúncias** - Reportar comportamento inadequado\n' +
-        '🔴 **Urgente** - Problemas críticos que precisam de atenção imediata',
+        '🔴 **Urgente** - Problemas críticos que precisam de atenção imediata'
     )
     .setColor('#0099FF')
     .setThumbnail(interaction.guild?.iconURL() || null)
@@ -488,7 +491,7 @@ async function handleCreatePanel(interaction: ChatInputCommandInteraction, ticke
       .setCustomId('create_ticket_panel')
       .setLabel('Criar Ticket')
       .setStyle(ButtonStyle.Primary)
-      .setEmoji('🎫'),
+      .setEmoji('🎫')
   );
 
   await interaction.reply({ embeds: [panelEmbed], components: [row] });
@@ -528,7 +531,7 @@ async function handleTicketStats(interaction: ChatInputCommandInteraction, ticke
       { name: '🟡 Em Andamento', value: stats.inProgress.toString(), inline: true },
       { name: '🔴 Fechados', value: stats.closed.toString(), inline: true },
       { name: '⏱️ Tempo Médio de Resposta', value: `${stats.avgResponseTime} min`, inline: true },
-      { name: '🏁 Tempo Médio de Resolução', value: `${stats.avgResolutionTime} min`, inline: true },
+      { name: '🏁 Tempo Médio de Resolução', value: `${stats.avgResolutionTime} min`, inline: true }
     )
     .setFooter({ text: 'Estatísticas do servidor atual' })
     .setTimestamp();

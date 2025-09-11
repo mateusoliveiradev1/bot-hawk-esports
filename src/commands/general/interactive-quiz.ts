@@ -26,207 +26,210 @@ class InteractiveQuizCommand extends BaseCommand {
     super({
       category: CommandCategory.GENERAL,
       cooldown: 3,
-  data: new SlashCommandBuilder()
-    .setName('quiz-interativo')
-    .setDescription('Sistema de quizzes interativos aprimorado')
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('criar')
-        .setDescription('Criar uma nova sessão de quiz')
-        .addStringOption(option =>
-          option
-            .setName('categoria')
-            .setDescription('Categoria do quiz')
-            .setRequired(true)
-            .addChoices(
-              { name: '🗺️ PUBG - Mapas & Localizações', value: 'pubg_maps' },
-              { name: '🔫 PUBG - Armas & Equipamentos', value: 'pubg_weapons' },
-              { name: '🏆 PUBG - Esports & Competitivo', value: 'pubg_esports' },
-              { name: '⚙️ PUBG - Mecânicas & Sistema', value: 'pubg_mechanics' },
-              { name: '🎮 Gaming Geral', value: 'gaming_general' },
-              { name: '🎯 Esports Geral', value: 'esports_general' },
-            ),
+      data: new SlashCommandBuilder()
+        .setName('quiz-interativo')
+        .setDescription('Sistema de quizzes interativos aprimorado')
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('criar')
+            .setDescription('Criar uma nova sessão de quiz')
+            .addStringOption(option =>
+              option
+                .setName('categoria')
+                .setDescription('Categoria do quiz')
+                .setRequired(true)
+                .addChoices(
+                  { name: '🗺️ PUBG - Mapas & Localizações', value: 'pubg_maps' },
+                  { name: '🔫 PUBG - Armas & Equipamentos', value: 'pubg_weapons' },
+                  { name: '🏆 PUBG - Esports & Competitivo', value: 'pubg_esports' },
+                  { name: '⚙️ PUBG - Mecânicas & Sistema', value: 'pubg_mechanics' },
+                  { name: '🎮 Gaming Geral', value: 'gaming_general' },
+                  { name: '🎯 Esports Geral', value: 'esports_general' }
+                )
+            )
+            .addStringOption(option =>
+              option
+                .setName('dificuldade')
+                .setDescription('Nível de dificuldade')
+                .setRequired(false)
+                .addChoices(
+                  { name: '🟢 Fácil', value: 'easy' },
+                  { name: '🟡 Médio', value: 'medium' },
+                  { name: '🔴 Difícil', value: 'hard' },
+                  { name: '🌈 Misto', value: 'mixed' },
+                  { name: '🧠 Adaptativo', value: 'adaptive' }
+                )
+            )
+            .addIntegerOption(option =>
+              option
+                .setName('perguntas')
+                .setDescription('Número de perguntas (5-50)')
+                .setRequired(false)
+                .setMinValue(5)
+                .setMaxValue(50)
+            )
+            .addIntegerOption(option =>
+              option
+                .setName('tempo')
+                .setDescription('Tempo por pergunta em segundos (10-120)')
+                .setRequired(false)
+                .setMinValue(10)
+                .setMaxValue(120)
+            )
+            .addIntegerOption(option =>
+              option
+                .setName('max-participantes')
+                .setDescription('Máximo de participantes (2-20)')
+                .setRequired(false)
+                .setMinValue(2)
+                .setMaxValue(20)
+            )
+            .addBooleanOption(option =>
+              option
+                .setName('dicas')
+                .setDescription('Permitir dicas durante o quiz')
+                .setRequired(false)
+            )
+            .addBooleanOption(option =>
+              option
+                .setName('explicacoes')
+                .setDescription('Mostrar explicações após cada pergunta')
+                .setRequired(false)
+            )
+            .addBooleanOption(option =>
+              option
+                .setName('power-ups')
+                .setDescription('Habilitar power-ups durante o quiz')
+                .setRequired(false)
+            )
         )
-        .addStringOption(option =>
-          option
-            .setName('dificuldade')
-            .setDescription('Nível de dificuldade')
-            .setRequired(false)
-            .addChoices(
-              { name: '🟢 Fácil', value: 'easy' },
-              { name: '🟡 Médio', value: 'medium' },
-              { name: '🔴 Difícil', value: 'hard' },
-              { name: '🌈 Misto', value: 'mixed' },
-              { name: '🧠 Adaptativo', value: 'adaptive' },
-            ),
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('participar')
+            .setDescription('Participar de uma sessão de quiz ativa')
+            .addStringOption(option =>
+              option.setName('sessao').setDescription('ID da sessão de quiz').setRequired(true)
+            )
         )
-        .addIntegerOption(option =>
-          option
-            .setName('perguntas')
-            .setDescription('Número de perguntas (5-50)')
-            .setRequired(false)
-            .setMinValue(5)
-            .setMaxValue(50),
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('iniciar')
+            .setDescription('Iniciar uma sessão de quiz criada')
+            .addStringOption(option =>
+              option.setName('sessao').setDescription('ID da sessão de quiz').setRequired(true)
+            )
         )
-        .addIntegerOption(option =>
-          option
-            .setName('tempo')
-            .setDescription('Tempo por pergunta em segundos (10-120)')
-            .setRequired(false)
-            .setMinValue(10)
-            .setMaxValue(120),
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('status')
+            .setDescription('Ver status de uma sessão de quiz')
+            .addStringOption(option =>
+              option.setName('sessao').setDescription('ID da sessão de quiz').setRequired(true)
+            )
         )
-        .addIntegerOption(option =>
-          option
-            .setName('max-participantes')
-            .setDescription('Máximo de participantes (2-20)')
-            .setRequired(false)
-            .setMinValue(2)
-            .setMaxValue(20),
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('estatisticas')
+            .setDescription('Ver suas estatísticas de quiz')
+            .addUserOption(option =>
+              option
+                .setName('usuario')
+                .setDescription('Usuário para ver estatísticas (deixe vazio para suas próprias)')
+                .setRequired(false)
+            )
         )
-        .addBooleanOption(option =>
-          option.setName('dicas').setDescription('Permitir dicas durante o quiz').setRequired(false),
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('ranking')
+            .setDescription('Ver ranking de uma categoria')
+            .addStringOption(option =>
+              option
+                .setName('categoria')
+                .setDescription('Categoria do ranking')
+                .setRequired(true)
+                .addChoices(
+                  { name: '🗺️ PUBG - Mapas & Localizações', value: 'pubg_maps' },
+                  { name: '🔫 PUBG - Armas & Equipamentos', value: 'pubg_weapons' },
+                  { name: '🏆 PUBG - Esports & Competitivo', value: 'pubg_esports' },
+                  { name: '⚙️ PUBG - Mecânicas & Sistema', value: 'pubg_mechanics' },
+                  { name: '🎮 Gaming Geral', value: 'gaming_general' },
+                  { name: '🎯 Esports Geral', value: 'esports_general' }
+                )
+            )
         )
-        .addBooleanOption(option =>
-          option
-            .setName('explicacoes')
-            .setDescription('Mostrar explicações após cada pergunta')
-            .setRequired(false),
+        .addSubcommand(subcommand =>
+          subcommand.setName('categorias').setDescription('Ver todas as categorias disponíveis')
         )
-        .addBooleanOption(option =>
-          option
-            .setName('power-ups')
-            .setDescription('Habilitar power-ups durante o quiz')
-            .setRequired(false),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('participar')
-        .setDescription('Participar de uma sessão de quiz ativa')
-        .addStringOption(option =>
-          option.setName('sessao').setDescription('ID da sessão de quiz').setRequired(true),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('iniciar')
-        .setDescription('Iniciar uma sessão de quiz criada')
-        .addStringOption(option =>
-          option.setName('sessao').setDescription('ID da sessão de quiz').setRequired(true),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('status')
-        .setDescription('Ver status de uma sessão de quiz')
-        .addStringOption(option =>
-          option.setName('sessao').setDescription('ID da sessão de quiz').setRequired(true),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('estatisticas')
-        .setDescription('Ver suas estatísticas de quiz')
-        .addUserOption(option =>
-          option
-            .setName('usuario')
-            .setDescription('Usuário para ver estatísticas (deixe vazio para suas próprias)')
-            .setRequired(false),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('ranking')
-        .setDescription('Ver ranking de uma categoria')
-        .addStringOption(option =>
-          option
-            .setName('categoria')
-            .setDescription('Categoria do ranking')
-            .setRequired(true)
-            .addChoices(
-              { name: '🗺️ PUBG - Mapas & Localizações', value: 'pubg_maps' },
-              { name: '🔫 PUBG - Armas & Equipamentos', value: 'pubg_weapons' },
-              { name: '🏆 PUBG - Esports & Competitivo', value: 'pubg_esports' },
-              { name: '⚙️ PUBG - Mecânicas & Sistema', value: 'pubg_mechanics' },
-              { name: '🎮 Gaming Geral', value: 'gaming_general' },
-              { name: '🎯 Esports Geral', value: 'esports_general' },
-            ),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand.setName('categorias').setDescription('Ver todas as categorias disponíveis'),
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('adicionar-pergunta')
-        .setDescription('Adicionar uma pergunta personalizada (Admin apenas)')
-        .addStringOption(option =>
-          option.setName('pergunta').setDescription('Texto da pergunta').setRequired(true),
-        )
-        .addStringOption(option =>
-          option
-            .setName('opcoes')
-            .setDescription('Opções separadas por | (ex: Opção1|Opção2|Opção3|Opção4)')
-            .setRequired(true),
-        )
-        .addIntegerOption(option =>
-          option
-            .setName('resposta-correta')
-            .setDescription('Índice da resposta correta (1-4)')
-            .setRequired(true)
-            .setMinValue(1)
-            .setMaxValue(4),
-        )
-        .addStringOption(option =>
-          option
-            .setName('categoria')
-            .setDescription('Categoria da pergunta')
-            .setRequired(true)
-            .addChoices(
-              { name: '🗺️ PUBG - Mapas & Localizações', value: 'pubg_maps' },
-              { name: '🔫 PUBG - Armas & Equipamentos', value: 'pubg_weapons' },
-              { name: '🏆 PUBG - Esports & Competitivo', value: 'pubg_esports' },
-              { name: '⚙️ PUBG - Mecânicas & Sistema', value: 'pubg_mechanics' },
-              { name: '🎮 Gaming Geral', value: 'gaming_general' },
-              { name: '🎯 Esports Geral', value: 'esports_general' },
-            ),
-        )
-        .addStringOption(option =>
-          option
-            .setName('dificuldade')
-            .setDescription('Dificuldade da pergunta')
-            .setRequired(true)
-            .addChoices(
-              { name: '🟢 Fácil', value: 'easy' },
-              { name: '🟡 Médio', value: 'medium' },
-              { name: '🔴 Difícil', value: 'hard' },
-              { name: '⚫ Expert', value: 'expert' },
-            ),
-        )
-        .addStringOption(option =>
-          option
-            .setName('explicacao')
-            .setDescription('Explicação da resposta correta')
-            .setRequired(false),
-        )
-        .addIntegerOption(option =>
-          option
-            .setName('pontos')
-            .setDescription('Pontos da pergunta (5-50)')
-            .setRequired(false)
-            .setMinValue(5)
-            .setMaxValue(50),
-        )
-        .addIntegerOption(option =>
-          option
-            .setName('tempo')
-            .setDescription('Tempo limite em segundos (10-120)')
-            .setRequired(false)
-            .setMinValue(10)
-            .setMaxValue(120),
-        ),
-    ) as SlashCommandBuilder,
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('adicionar-pergunta')
+            .setDescription('Adicionar uma pergunta personalizada (Admin apenas)')
+            .addStringOption(option =>
+              option.setName('pergunta').setDescription('Texto da pergunta').setRequired(true)
+            )
+            .addStringOption(option =>
+              option
+                .setName('opcoes')
+                .setDescription('Opções separadas por | (ex: Opção1|Opção2|Opção3|Opção4)')
+                .setRequired(true)
+            )
+            .addIntegerOption(option =>
+              option
+                .setName('resposta-correta')
+                .setDescription('Índice da resposta correta (1-4)')
+                .setRequired(true)
+                .setMinValue(1)
+                .setMaxValue(4)
+            )
+            .addStringOption(option =>
+              option
+                .setName('categoria')
+                .setDescription('Categoria da pergunta')
+                .setRequired(true)
+                .addChoices(
+                  { name: '🗺️ PUBG - Mapas & Localizações', value: 'pubg_maps' },
+                  { name: '🔫 PUBG - Armas & Equipamentos', value: 'pubg_weapons' },
+                  { name: '🏆 PUBG - Esports & Competitivo', value: 'pubg_esports' },
+                  { name: '⚙️ PUBG - Mecânicas & Sistema', value: 'pubg_mechanics' },
+                  { name: '🎮 Gaming Geral', value: 'gaming_general' },
+                  { name: '🎯 Esports Geral', value: 'esports_general' }
+                )
+            )
+            .addStringOption(option =>
+              option
+                .setName('dificuldade')
+                .setDescription('Dificuldade da pergunta')
+                .setRequired(true)
+                .addChoices(
+                  { name: '🟢 Fácil', value: 'easy' },
+                  { name: '🟡 Médio', value: 'medium' },
+                  { name: '🔴 Difícil', value: 'hard' },
+                  { name: '⚫ Expert', value: 'expert' }
+                )
+            )
+            .addStringOption(option =>
+              option
+                .setName('explicacao')
+                .setDescription('Explicação da resposta correta')
+                .setRequired(false)
+            )
+            .addIntegerOption(option =>
+              option
+                .setName('pontos')
+                .setDescription('Pontos da pergunta (5-50)')
+                .setRequired(false)
+                .setMinValue(5)
+                .setMaxValue(50)
+            )
+            .addIntegerOption(option =>
+              option
+                .setName('tempo')
+                .setDescription('Tempo limite em segundos (10-120)')
+                .setRequired(false)
+                .setMinValue(10)
+                .setMaxValue(120)
+            )
+        ) as SlashCommandBuilder,
     });
   }
 
@@ -296,7 +299,7 @@ class InteractiveQuizCommand extends BaseCommand {
 
   async handleCreateQuiz(
     interaction: ChatInputCommandInteraction,
-    quizService: InteractiveQuizService,
+    quizService: InteractiveQuizService
   ) {
     const category = interaction.options.getString('categoria', true);
     const difficulty = interaction.options.getString('dificuldade') || 'mixed';
@@ -323,7 +326,7 @@ class InteractiveQuizCommand extends BaseCommand {
       interaction.user.id,
       interaction.channelId,
       interaction.guildId!,
-      settings,
+      settings
     );
 
     const categoryInfo = quizService.getCategories().find(c => c.id === category);
@@ -378,7 +381,7 @@ class InteractiveQuizCommand extends BaseCommand {
             enablePowerUps ? '⚡ Power-ups habilitados' : '🚫 Power-ups desabilitados',
           ].join('\n'),
           inline: false,
-        },
+        }
       )
       .setColor(categoryInfo?.color || 0x00ae86)
       .setFooter({ text: 'Use /quiz-interativo participar para entrar na sessão!' })
@@ -402,7 +405,7 @@ class InteractiveQuizCommand extends BaseCommand {
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       joinButton,
       startButton,
-      statusButton,
+      statusButton
     );
 
     await interaction.reply({
@@ -429,7 +432,7 @@ class InteractiveQuizCommand extends BaseCommand {
 
   async handleJoinQuiz(
     interaction: ChatInputCommandInteraction,
-    quizService: InteractiveQuizService,
+    quizService: InteractiveQuizService
   ) {
     const sessionId = interaction.options.getString('sessao', true);
 
@@ -450,7 +453,7 @@ class InteractiveQuizCommand extends BaseCommand {
 
   async handleStartQuiz(
     interaction: ChatInputCommandInteraction,
-    quizService: InteractiveQuizService,
+    quizService: InteractiveQuizService
   ) {
     const sessionId = interaction.options.getString('sessao', true);
     const session = quizService.getQuizSession(sessionId);
@@ -482,7 +485,7 @@ class InteractiveQuizCommand extends BaseCommand {
 
   async handleQuizStatus(
     interaction: ChatInputCommandInteraction,
-    quizService: InteractiveQuizService,
+    quizService: InteractiveQuizService
   ) {
     const sessionId = interaction.options.getString('sessao', true);
     const session = quizService.getQuizSession(sessionId);
@@ -519,7 +522,7 @@ class InteractiveQuizCommand extends BaseCommand {
           name: '❓ Progresso',
           value: `${session.currentQuestionIndex}/${session.questions.length}`,
           inline: true,
-        },
+        }
       )
       .setColor(0x00ae86)
       .setTimestamp();
@@ -545,7 +548,7 @@ class InteractiveQuizCommand extends BaseCommand {
 
   async handleUserStats(
     interaction: ChatInputCommandInteraction,
-    quizService: InteractiveQuizService,
+    quizService: InteractiveQuizService
   ) {
     const targetUser = interaction.options.getUser('usuario') || interaction.user;
     const stats = await quizService.getUserStats(targetUser.id);
@@ -583,7 +586,7 @@ class InteractiveQuizCommand extends BaseCommand {
           name: '⏱️ Tempo Total',
           value: `${Math.round(stats.totalTimeSpent / 60)} min`,
           inline: true,
-        },
+        }
       )
       .setColor(0x00ae86)
       .setTimestamp();
@@ -609,7 +612,7 @@ class InteractiveQuizCommand extends BaseCommand {
 
   async handleLeaderboard(
     interaction: ChatInputCommandInteraction,
-    quizService: InteractiveQuizService,
+    quizService: InteractiveQuizService
   ) {
     const category = interaction.options.getString('categoria', true);
     const leaderboard = await quizService.getCategoryLeaderboard(category, 10);
@@ -651,7 +654,7 @@ class InteractiveQuizCommand extends BaseCommand {
 
   async handleCategories(
     interaction: ChatInputCommandInteraction,
-    quizService: InteractiveQuizService,
+    quizService: InteractiveQuizService
   ) {
     const categories = quizService.getCategories();
 
@@ -689,7 +692,7 @@ class InteractiveQuizCommand extends BaseCommand {
 
   async handleAddQuestion(
     interaction: ChatInputCommandInteraction,
-    quizService: InteractiveQuizService,
+    quizService: InteractiveQuizService
   ) {
     // Check if user has admin permissions
     if (!interaction.memberPermissions?.has('Administrator')) {
@@ -765,7 +768,7 @@ class InteractiveQuizCommand extends BaseCommand {
             name: '⚡ Dificuldade',
             value: difficulty,
             inline: true,
-          },
+          }
         )
         .setColor(0x00ff00)
         .setTimestamp();
@@ -793,7 +796,7 @@ class InteractiveQuizCommand extends BaseCommand {
   async handleJoinButton(
     buttonInteraction: any,
     quizService: InteractiveQuizService,
-    sessionId: string,
+    sessionId: string
   ) {
     try {
       const joined = await quizService.joinQuizSession(sessionId, buttonInteraction.user);
@@ -820,7 +823,7 @@ class InteractiveQuizCommand extends BaseCommand {
   async handleStartButton(
     buttonInteraction: any,
     quizService: InteractiveQuizService,
-    sessionId: string,
+    sessionId: string
   ) {
     const session = quizService.getQuizSession(sessionId);
 
@@ -859,7 +862,7 @@ class InteractiveQuizCommand extends BaseCommand {
   async handleStatusButton(
     buttonInteraction: any,
     quizService: InteractiveQuizService,
-    sessionId: string,
+    sessionId: string
   ) {
     const session = quizService.getQuizSession(sessionId);
 
@@ -895,7 +898,7 @@ class InteractiveQuizCommand extends BaseCommand {
           name: '❓ Progresso',
           value: `${session.currentQuestionIndex}/${session.questions.length}`,
           inline: true,
-        },
+        }
       )
       .setColor(0x00ae86)
       .setTimestamp();
@@ -940,7 +943,7 @@ class InteractiveQuizCommand extends BaseCommand {
             name: `${String.fromCharCode(65 + index)}. ${option}`,
             value: '\u200b',
             inline: false,
-          })),
+          }))
         )
         .setColor(0x00ae86)
         .setFooter({
@@ -956,13 +959,13 @@ class InteractiveQuizCommand extends BaseCommand {
         new ButtonBuilder()
           .setCustomId(`answer_${sessionId}_${index}`)
           .setLabel(String.fromCharCode(65 + index))
-          .setStyle(ButtonStyle.Primary),
+          .setStyle(ButtonStyle.Primary)
       );
 
       const rows = [];
       for (let i = 0; i < answerButtons.length; i += 5) {
         rows.push(
-          new ActionRowBuilder<ButtonBuilder>().addComponents(answerButtons.slice(i, i + 5)),
+          new ActionRowBuilder<ButtonBuilder>().addComponents(answerButtons.slice(i, i + 5))
         );
       }
 
@@ -998,7 +1001,7 @@ class InteractiveQuizCommand extends BaseCommand {
             sessionId,
             answerInteraction.user.id,
             answerIndex,
-            responseTime,
+            responseTime
           );
           answeredUsers.add(answerInteraction.user.id);
 
@@ -1028,7 +1031,7 @@ class InteractiveQuizCommand extends BaseCommand {
       const resultEmbed = new EmbedBuilder()
         .setTitle('📊 Resultado da Pergunta')
         .setDescription(
-          `**Resposta Correta:** ${String.fromCharCode(65 + currentQuestion.correctAnswer)}. ${correctOption}`,
+          `**Resposta Correta:** ${String.fromCharCode(65 + currentQuestion.correctAnswer)}. ${correctOption}`
         )
         .setColor(0x00ff00)
         .setTimestamp();
@@ -1077,7 +1080,7 @@ class InteractiveQuizCommand extends BaseCommand {
   async showFinalResults(
     channel: TextChannel,
     quizService: InteractiveQuizService,
-    sessionId: string,
+    sessionId: string
   ) {
     const session = quizService.getQuizSession(sessionId);
     if (!session) {

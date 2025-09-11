@@ -97,7 +97,7 @@ export class BackupService {
     logger: StructuredLogger,
     healthService: HealthService,
     metricsService: MetricsService,
-    config: BackupConfig,
+    config: BackupConfig
   ) {
     this.prisma = prisma;
     this.logger = logger;
@@ -149,7 +149,7 @@ export class BackupService {
    * Cria um backup manual
    */
   async createBackup(
-    type: 'manual' | 'daily' | 'weekly' | 'monthly' = 'manual',
+    type: 'manual' | 'daily' | 'weekly' | 'monthly' = 'manual'
   ): Promise<BackupMetadata> {
     const startTime = Date.now();
     const backupId = `${type}_${Date.now()}`;
@@ -408,7 +408,7 @@ export class BackupService {
           }
 
           const ageInDays = Math.floor(
-            (now.getTime() - backup.timestamp.getTime()) / (24 * 60 * 60 * 1000),
+            (now.getTime() - backup.timestamp.getTime()) / (24 * 60 * 60 * 1000)
           );
           this.logger.debug('Deleted old backup', {
             metadata: {

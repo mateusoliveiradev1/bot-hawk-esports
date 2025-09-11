@@ -383,7 +383,7 @@ export class AdvancedPUBGBadgesService {
   public async updateStreak(
     userId: string,
     type: 'wins' | 'top10' | 'top5' | 'kills',
-    success: boolean,
+    success: boolean
   ): Promise<void> {
     try {
       const userStreaks = this.streakCache.get(userId) || [];
@@ -444,7 +444,7 @@ export class AdvancedPUBGBadgesService {
         ((top10Finishes / totalGames) * 70 +
           (top5Finishes / totalGames) * 20 +
           (wins / totalGames) * 10) *
-          100,
+          100
       );
 
       const stats: ConsistencyStats = {
@@ -555,7 +555,7 @@ export class AdvancedPUBGBadgesService {
    */
   private async checkWeaponMasteryBadges(
     userId: string,
-    progress: WeaponMasteryProgress,
+    progress: WeaponMasteryProgress
   ): Promise<void> {
     const weaponBadges = [
       { id: 'akm_grandmaster', weapon: 'AKM', level: 10 },
@@ -641,7 +641,7 @@ export class AdvancedPUBGBadgesService {
    */
   private async saveWeaponMasteryData(
     userId: string,
-    weapons: WeaponMasteryProgress[],
+    weapons: WeaponMasteryProgress[]
   ): Promise<void> {
     try {
       if (!this.database?.client) {
@@ -726,7 +726,7 @@ export class AdvancedPUBGBadgesService {
           this.logger.error('❌ Failed to calculate consistency for all users:', error);
         }
       },
-      6 * 60 * 60 * 1000,
+      6 * 60 * 60 * 1000
     ); // 6 hours
   }
 

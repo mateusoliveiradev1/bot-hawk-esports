@@ -48,11 +48,11 @@ export class CommandDeployer {
         const commandFiles = fs
           .readdirSync(folderPath)
           .filter(
-            file => (file.endsWith('.ts') || file.endsWith('.js')) && !file.endsWith('.d.ts'),
+            file => (file.endsWith('.ts') || file.endsWith('.js')) && !file.endsWith('.d.ts')
           );
 
         logger.info(
-          `Found ${commandFiles.length} command files in ${folder}: ${commandFiles.join(', ')}`,
+          `Found ${commandFiles.length} command files in ${folder}: ${commandFiles.join(', ')}`
         );
 
         for (const file of commandFiles) {
@@ -143,7 +143,7 @@ export class CommandDeployer {
       })) as any[];
 
       logger.info(
-        `Successfully reloaded ${data.length} application (/) commands for guild ${guildId}.`,
+        `Successfully reloaded ${data.length} application (/) commands for guild ${guildId}.`
       );
     } catch (error) {
       logger.error(`Failed to deploy guild commands for ${guildId}:`, { error });
@@ -234,7 +234,7 @@ if (require.main === module) {
           logger.info('Available commands:');
           logger.info('  global       - Deploy commands globally (slower, affects all servers)');
           logger.info(
-            '  guild        - Deploy commands to specific guild (faster, for development)',
+            '  guild        - Deploy commands to specific guild (faster, for development)'
           );
           logger.info('  clear-global - Clear all global commands');
           logger.info('  clear-guild  - Clear all guild commands');

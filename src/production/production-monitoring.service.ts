@@ -105,7 +105,7 @@ export class ProductionMonitoringService {
   constructor(
     database: DatabaseService,
     cache: CacheService,
-    config?: Partial<ProductionMonitoringConfig>,
+    config?: Partial<ProductionMonitoringConfig>
   ) {
     this.logger = new Logger();
     this.database = database;
@@ -232,7 +232,7 @@ export class ProductionMonitoringService {
         const timeoutPromise = new Promise<HealthCheckResult>((_, reject) => {
           setTimeout(
             () => reject(new Error('Health check timeout')),
-            this.config.healthCheckTimeout,
+            this.config.healthCheckTimeout
           );
         });
 
@@ -419,7 +419,7 @@ export class ProductionMonitoringService {
     // Clean old alerts
     if (this.alerts.size > this.config.alerts.maxActiveAlerts) {
       const oldestAlert = Array.from(this.alerts.values()).sort(
-        (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+        (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
       )[0];
       this.alerts.delete(oldestAlert.id);
     }

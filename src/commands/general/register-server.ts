@@ -64,7 +64,7 @@ class RegisterServerCommand extends BaseCommand {
 
   private async checkExistingRegistration(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<boolean> {
     const existingUser = await client.database.client.user.findUnique({
       where: { id: interaction.user.id },
@@ -83,7 +83,7 @@ class RegisterServerCommand extends BaseCommand {
 
   private async registerUserInDatabase(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<void> {
     await client.database.client.user.upsert({
       where: { id: interaction.user.id },
@@ -109,7 +109,7 @@ class RegisterServerCommand extends BaseCommand {
   private async assignMemberRole(
     interaction: ChatInputCommandInteraction,
     client: ExtendedClient,
-    member: any,
+    member: any
   ): Promise<void> {
     if (client.services?.roleManager) {
       try {
@@ -132,7 +132,7 @@ class RegisterServerCommand extends BaseCommand {
           '**Próximos passos:**\n' +
           '• Leia as regras em <#RULES_CHANNEL_ID>\n' +
           '• Apresente-se em <#INTRO_CHANNEL_ID>\n' +
-          '• Registre seu PUBG para acessar recursos avançados',
+          '• Registre seu PUBG para acessar recursos avançados'
       )
       .setThumbnail(interaction.user.displayAvatarURL())
       .setTimestamp()
@@ -151,7 +151,7 @@ class RegisterServerCommand extends BaseCommand {
         .setCustomId('view_rules')
         .setLabel('📋 Ver Regras')
         .setStyle(ButtonStyle.Secondary)
-        .setEmoji('📋'),
+        .setEmoji('📋')
     );
 
     await interaction.reply({
@@ -167,7 +167,7 @@ class RegisterServerCommand extends BaseCommand {
       .setTitle('❌ Erro no Registro')
       .setDescription(
         'Ocorreu um erro durante o registro no servidor.\n' +
-          'Por favor, tente novamente em alguns instantes.',
+          'Por favor, tente novamente em alguns instantes.'
       )
       .setTimestamp();
 

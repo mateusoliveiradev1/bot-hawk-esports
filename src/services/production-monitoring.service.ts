@@ -208,7 +208,7 @@ class ProductionMonitoringService extends EventEmitter {
         'Uncaught exception',
         createLogContext(LogCategory.SYSTEM, {
           error,
-        }),
+        })
       );
       this.createAlert('critical', 'system', `Uncaught exception: ${error.message}`);
     });
@@ -219,7 +219,7 @@ class ProductionMonitoringService extends EventEmitter {
         'Unhandled promise rejection',
         createLogContext(LogCategory.SYSTEM, {
           metadata: { reason, promise },
-        }),
+        })
       );
       this.createAlert('critical', 'system', `Unhandled promise rejection: ${reason}`);
     });
@@ -238,7 +238,7 @@ class ProductionMonitoringService extends EventEmitter {
         const result = await Promise.race([
           check(),
           new Promise<HealthCheckResult>((_, reject) =>
-            setTimeout(() => reject(new Error('Health check timeout')), 5000),
+            setTimeout(() => reject(new Error('Health check timeout')), 5000)
           ),
         ]);
         results.push(result);
@@ -250,7 +250,7 @@ class ProductionMonitoringService extends EventEmitter {
           createLogContext(LogCategory.SYSTEM, {
             duration: result.responseTime,
             metadata: result.metadata,
-          }),
+          })
         );
 
         // Create alerts for unhealthy services
@@ -272,7 +272,7 @@ class ProductionMonitoringService extends EventEmitter {
           `Health check failed: ${name}`,
           createLogContext(LogCategory.SYSTEM, {
             error: error instanceof Error ? error : new Error(String(error)),
-          }),
+          })
         );
       }
     }
@@ -321,13 +321,13 @@ class ProductionMonitoringService extends EventEmitter {
     productionLogger.performance(
       'memory_usage',
       this.metrics.memory.percentage,
-      createLogContext(LogCategory.PERFORMANCE),
+      createLogContext(LogCategory.PERFORMANCE)
     );
 
     productionLogger.performance(
       'cpu_usage',
       this.metrics.cpu.usage,
-      createLogContext(LogCategory.PERFORMANCE),
+      createLogContext(LogCategory.PERFORMANCE)
     );
 
     // Check for performance alerts
@@ -335,13 +335,13 @@ class ProductionMonitoringService extends EventEmitter {
       this.createAlert(
         'critical',
         'system',
-        `High memory usage: ${this.metrics.memory.percentage.toFixed(2)}%`,
+        `High memory usage: ${this.metrics.memory.percentage.toFixed(2)}%`
       );
     } else if (this.metrics.memory.percentage > 80) {
       this.createAlert(
         'warning',
         'system',
-        `High memory usage: ${this.metrics.memory.percentage.toFixed(2)}%`,
+        `High memory usage: ${this.metrics.memory.percentage.toFixed(2)}%`
       );
     }
 
@@ -352,7 +352,7 @@ class ProductionMonitoringService extends EventEmitter {
     type: Alert['type'],
     service: string,
     message: string,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, any>
   ): void {
     const alert: Alert = {
       id: `${service}-${Date.now()}`,
@@ -371,7 +371,7 @@ class ProductionMonitoringService extends EventEmitter {
       `Alert created: ${type}`,
       createLogContext(LogCategory.SECURITY, {
         metadata: { alert },
-      }),
+      })
     );
   }
 
@@ -385,7 +385,7 @@ class ProductionMonitoringService extends EventEmitter {
         `Alert resolved: ${alertId}`,
         createLogContext(LogCategory.SYSTEM, {
           metadata: { alert },
-        }),
+        })
       );
     }
   }
@@ -471,7 +471,7 @@ class ProductionMonitoringService extends EventEmitter {
             requestId: req.id,
             userAgent: req.get('User-Agent'),
             ip: req.ip,
-          }),
+          })
         );
       });
 
@@ -493,7 +493,7 @@ class ProductionMonitoringService extends EventEmitter {
       const guilds = this.discordClient.guilds.cache.size;
       const users = this.discordClient.guilds.cache.reduce(
         (acc, guild) => acc + (guild.memberCount || 0),
-        0,
+        0
       );
       const channels = this.discordClient.channels.cache.size;
       const ping = this.discordClient.ws.ping;
@@ -504,7 +504,7 @@ class ProductionMonitoringService extends EventEmitter {
         guilds,
         createLogContext(LogCategory.PERFORMANCE, {
           metadata: { service: 'discord' },
-        }),
+        })
       );
 
       productionLogger.performance(
@@ -512,7 +512,7 @@ class ProductionMonitoringService extends EventEmitter {
         users,
         createLogContext(LogCategory.PERFORMANCE, {
           metadata: { service: 'discord' },
-        }),
+        })
       );
 
       productionLogger.performance(
@@ -520,7 +520,7 @@ class ProductionMonitoringService extends EventEmitter {
         ping,
         createLogContext(LogCategory.PERFORMANCE, {
           metadata: { service: 'discord' },
-        }),
+        })
       );
 
       // Create alerts for Discord connectivity issues
@@ -541,7 +541,7 @@ class ProductionMonitoringService extends EventEmitter {
         'Failed to collect Discord metrics',
         createLogContext(LogCategory.SYSTEM, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }),
+        })
       );
 
       return {

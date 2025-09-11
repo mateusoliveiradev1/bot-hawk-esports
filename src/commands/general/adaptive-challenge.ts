@@ -47,8 +47,8 @@ class AdaptiveChallengeCommand extends BaseCommand {
           { name: '📊 Meu Perfil de Jogador', value: 'profile' },
           { name: '🔄 Gerar Novos Desafios', value: 'generate' },
           { name: '📈 Estatísticas de Adaptação', value: 'stats' },
-          { name: '🎮 Configurar Preferências', value: 'preferences' },
-        ),
+          { name: '🎮 Configurar Preferências', value: 'preferences' }
+        )
     ) as SlashCommandBuilder;
 
   public category = CommandCategory.GENERAL;
@@ -111,7 +111,7 @@ class AdaptiveChallengeCommand extends BaseCommand {
   private async handleMyChallenges(
     interaction: ChatInputCommandInteraction,
     adaptiveService: AdaptiveChallengeService,
-    userId: string,
+    userId: string
   ): Promise<void> {
     await interaction.deferReply();
 
@@ -123,7 +123,7 @@ class AdaptiveChallengeCommand extends BaseCommand {
         .setDescription(
           '**Você não possui desafios adaptativos hoje!**\n\n' +
             '🔄 Use `/adaptive-challenge generate` para criar desafios personalizados\n' +
-            '📊 Ou veja seu perfil com `/adaptive-challenge profile`',
+            '📊 Ou veja seu perfil com `/adaptive-challenge profile`'
         )
         .setColor('#FF6B6B')
         .setTimestamp();
@@ -182,7 +182,7 @@ class AdaptiveChallengeCommand extends BaseCommand {
   private async handleProfile(
     interaction: ChatInputCommandInteraction,
     adaptiveService: AdaptiveChallengeService,
-    userId: string,
+    userId: string
   ): Promise<void> {
     await interaction.deferReply();
 
@@ -264,7 +264,7 @@ class AdaptiveChallengeCommand extends BaseCommand {
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       generateButton,
-      challengesButton,
+      challengesButton
     );
 
     await interaction.editReply({ embeds: [embed], components: [row] });
@@ -276,7 +276,7 @@ class AdaptiveChallengeCommand extends BaseCommand {
   private async handleGenerate(
     interaction: ChatInputCommandInteraction,
     adaptiveService: AdaptiveChallengeService,
-    userId: string,
+    userId: string
   ): Promise<void> {
     await interaction.deferReply();
 
@@ -297,7 +297,7 @@ class AdaptiveChallengeCommand extends BaseCommand {
           .setDescription(
             'Não foi possível gerar desafios adaptativos.\n' +
               'Isso pode acontecer se você não possui estatísticas suficientes.\n\n' +
-              '💡 **Dica:** Jogue algumas partidas primeiro!',
+              '💡 **Dica:** Jogue algumas partidas primeiro!'
           )
           .setColor('#E74C3C')
           .setTimestamp();
@@ -312,7 +312,7 @@ class AdaptiveChallengeCommand extends BaseCommand {
           `**${challenges.length} desafios adaptativos** foram criados especialmente para você!\n\n` +
             '🎯 Cada desafio foi personalizado baseado no seu desempenho\n' +
             '💰 Recompensas ajustadas ao seu nível de habilidade\n' +
-            '📈 Dificuldade balanceada para seu progresso',
+            '📈 Dificuldade balanceada para seu progresso'
         )
         .setColor('#27AE60')
         .setTimestamp();
@@ -342,7 +342,7 @@ class AdaptiveChallengeCommand extends BaseCommand {
         .setTitle('❌ Erro na Geração')
         .setDescription(
           'Ocorreu um erro ao gerar os desafios adaptativos.\n' +
-            'Tente novamente em alguns minutos.',
+            'Tente novamente em alguns minutos.'
         )
         .setColor('#E74C3C')
         .setTimestamp();
@@ -356,7 +356,7 @@ class AdaptiveChallengeCommand extends BaseCommand {
    */
   private async handleStats(
     interaction: ChatInputCommandInteraction,
-    adaptiveService: AdaptiveChallengeService,
+    adaptiveService: AdaptiveChallengeService
   ): Promise<void> {
     await interaction.deferReply();
 
@@ -427,7 +427,7 @@ class AdaptiveChallengeCommand extends BaseCommand {
   private async handlePreferences(
     interaction: ChatInputCommandInteraction,
     database: DatabaseService,
-    userId: string,
+    userId: string
   ): Promise<void> {
     await interaction.deferReply();
 
@@ -436,7 +436,7 @@ class AdaptiveChallengeCommand extends BaseCommand {
       .setDescription(
         'Configure suas preferências para personalizar ainda mais os desafios adaptativos.\n\n' +
           '⚙️ **Em breve:** Sistema de preferências avançado\n' +
-          '🎯 **Incluirá:** Tipos de desafio preferidos, dificuldade desejada, frequência',
+          '🎯 **Incluirá:** Tipos de desafio preferidos, dificuldade desejada, frequência'
       )
       .setColor('#9B59B6')
       .setTimestamp();

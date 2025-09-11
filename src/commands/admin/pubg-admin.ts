@@ -24,10 +24,10 @@ class PubgAdminCommand extends BaseCommand {
     .setDescription('Comandos administrativos para gerenciar a API PUBG')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(subcommand =>
-      subcommand.setName('status').setDescription('Verificar status detalhado da API PUBG'),
+      subcommand.setName('status').setDescription('Verificar status detalhado da API PUBG')
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('health').setDescription('Executar verificação de saúde da API PUBG'),
+      subcommand.setName('health').setDescription('Executar verificação de saúde da API PUBG')
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -42,9 +42,9 @@ class PubgAdminCommand extends BaseCommand {
               { name: 'Steam', value: 'steam' },
               { name: 'Xbox', value: 'xbox' },
               { name: 'PlayStation', value: 'psn' },
-              { name: 'Stadia', value: 'stadia' },
-            ),
-        ),
+              { name: 'Stadia', value: 'stadia' }
+            )
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -57,9 +57,9 @@ class PubgAdminCommand extends BaseCommand {
             .setRequired(true)
             .addChoices(
               { name: 'Limpar Cache', value: 'clear' },
-              { name: 'Estatísticas', value: 'stats' },
-            ),
-        ),
+              { name: 'Estatísticas', value: 'stats' }
+            )
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -74,9 +74,9 @@ class PubgAdminCommand extends BaseCommand {
               { name: 'Iniciar', value: 'start' },
               { name: 'Parar', value: 'stop' },
               { name: 'Status', value: 'status' },
-              { name: 'Forçar Recuperação', value: 'recover' },
-            ),
-        ),
+              { name: 'Forçar Recuperação', value: 'recover' }
+            )
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -88,8 +88,8 @@ class PubgAdminCommand extends BaseCommand {
             .setDescription('Máximo de usuários para sincronizar')
             .setRequired(false)
             .setMinValue(1)
-            .setMaxValue(100),
-        ),
+            .setMaxValue(100)
+        )
     );
 
   async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
@@ -151,7 +151,7 @@ class PubgAdminCommand extends BaseCommand {
 async function handleStatusCommand(
   interaction: ChatInputCommandInteraction,
   pubgService: PUBGService,
-  pubgMonitor?: PUBGMonitorService,
+  pubgMonitor?: PUBGMonitorService
 ) {
   await interaction.deferReply({ ephemeral: true });
 
@@ -169,7 +169,7 @@ async function handleStatusCommand(
   const embed = new EmbedBuilder()
     .setTitle('🎮 Status da API PUBG')
     .setColor(
-      health.status === 'healthy' ? 0x00ff00 : health.status === 'degraded' ? 0xffaa00 : 0xff0000,
+      health.status === 'healthy' ? 0x00ff00 : health.status === 'degraded' ? 0xffaa00 : 0xff0000
     )
     .addFields(
       {
@@ -186,7 +186,7 @@ async function handleStatusCommand(
         name: '💾 Cache',
         value: `**Total de Chaves:** ${cacheStats.totalKeys}\n**Padrões:** ${Object.keys(cacheStats.patterns).length}`,
         inline: true,
-      },
+      }
     )
     .setTimestamp();
 
@@ -201,7 +201,7 @@ async function handleStatusCommand(
         name: '📈 Estatísticas',
         value: `**Total de Verificações:** ${monitorStats.totalChecks}\n**Falhas Consecutivas:** ${monitorStatus.consecutiveFailures}\n**Tempo de Resposta:** ${monitorStats.averageResponseTime}ms`,
         inline: true,
-      },
+      }
     );
   }
 
@@ -210,7 +210,7 @@ async function handleStatusCommand(
 
 async function handleHealthCommand(
   interaction: ChatInputCommandInteraction,
-  pubgService: PUBGService,
+  pubgService: PUBGService
 ) {
   await interaction.deferReply({ ephemeral: true });
 
@@ -221,7 +221,7 @@ async function handleHealthCommand(
   const embed = new EmbedBuilder()
     .setTitle('🏥 Verificação de Saúde da API PUBG')
     .setColor(
-      health.status === 'healthy' ? 0x00ff00 : health.status === 'degraded' ? 0xffaa00 : 0xff0000,
+      health.status === 'healthy' ? 0x00ff00 : health.status === 'degraded' ? 0xffaa00 : 0xff0000
     )
     .addFields(
       {
@@ -233,7 +233,7 @@ async function handleHealthCommand(
         name: '🔍 Detalhes',
         value: `**API Disponível:** ${health.api ? '✅ Sim' : '❌ Não'}\n**Cache Funcionando:** ${health.cache ? '✅ Sim' : '❌ Não'}\n**Circuit Breaker:** ${getCircuitBreakerEmoji(health.circuitBreaker)} ${health.circuitBreaker}`,
         inline: false,
-      },
+      }
     )
     .setTimestamp();
 
@@ -250,7 +250,7 @@ async function handleHealthCommand(
 
 async function handleTestCommand(
   interaction: ChatInputCommandInteraction,
-  pubgService: PUBGService,
+  pubgService: PUBGService
 ) {
   await interaction.deferReply({ ephemeral: true });
 
@@ -283,13 +283,13 @@ async function handleTestCommand(
         name: '📅 Teste de Season',
         value: `**Season Atual:** ${currentSeason || 'N/A'}\n**Tempo:** ${seasonTestDuration}ms\n**Status:** ${currentSeason ? '✅ Sucesso' : '❌ Falha'}`,
         inline: true,
-      },
+      }
     );
 
     if (isAvailable && currentSeason) {
       embed.setColor(0x00ff00);
       embed.setDescription(
-        '✅ Todos os testes passaram! A API PUBG está funcionando corretamente.',
+        '✅ Todos os testes passaram! A API PUBG está funcionando corretamente.'
       );
     } else {
       embed.setColor(0xff0000);
@@ -305,7 +305,7 @@ async function handleTestCommand(
 
 async function handleCacheCommand(
   interaction: ChatInputCommandInteraction,
-  pubgService: PUBGService,
+  pubgService: PUBGService
 ) {
   await interaction.deferReply({ ephemeral: true });
 
@@ -354,7 +354,7 @@ async function handleCacheCommand(
 
 async function handleMonitorCommand(
   interaction: ChatInputCommandInteraction,
-  pubgMonitor?: PUBGMonitorService,
+  pubgMonitor?: PUBGMonitorService
 ) {
   if (!pubgMonitor) {
     return interaction.reply({
@@ -399,7 +399,7 @@ async function handleMonitorCommand(
             name: '📈 Estatísticas',
             value: `**Total de Verificações:** ${stats.totalChecks}\n**Falhas Consecutivas:** ${status.consecutiveFailures}\n**Tempo de Resposta:** ${stats.averageResponseTime}ms`,
             inline: true,
-          },
+          }
         )
         .setTimestamp();
 
@@ -427,7 +427,7 @@ async function handleMonitorCommand(
 
 async function handleSyncCommand(
   interaction: ChatInputCommandInteraction,
-  pubgService: PUBGService,
+  pubgService: PUBGService
 ) {
   await interaction.deferReply({ ephemeral: true });
 

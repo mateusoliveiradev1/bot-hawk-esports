@@ -49,8 +49,8 @@ class SessionRankingCommand extends BaseCommand {
             .addChoices(
               { name: `${HAWK_EMOJIS.TIME.CALENDAR} Semanal`, value: 'weekly' },
               { name: `${HAWK_EMOJIS.TIME.CALENDAR} Mensal`, value: 'monthly' },
-              { name: `${HAWK_EMOJIS.STATS} Geral`, value: 'all_time' },
-            ),
+              { name: `${HAWK_EMOJIS.STATS} Geral`, value: 'all_time' }
+            )
         )
         .addStringOption(option =>
           option
@@ -61,8 +61,8 @@ class SessionRankingCommand extends BaseCommand {
               { name: `${HAWK_EMOJIS.GAMING.GAME} Matchmaking (MM)`, value: 'mm' },
               { name: `${HAWK_EMOJIS.GAMING.CONTROLLER} Scrim`, value: 'scrim' },
               { name: `${HAWK_EMOJIS.TROPHY} Campeonato`, value: 'campeonato' },
-              { name: `${HAWK_EMOJIS.MEDAL} Ranked`, value: 'ranked' },
-            ),
+              { name: `${HAWK_EMOJIS.MEDAL} Ranked`, value: 'ranked' }
+            )
         ) as SlashCommandBuilder,
       category: CommandCategory.GENERAL,
       cooldown: 10,
@@ -101,13 +101,13 @@ class SessionRankingCommand extends BaseCommand {
         database,
         guildId,
         startDate,
-        tipoFiltro,
+        tipoFiltro
       );
 
       if (sessionData.length === 0) {
         const noDataEmbed = HawkEmbedBuilder.createWarning(
           `${HAWK_EMOJIS.CHART} Ranking de Sessões`,
-          'Nenhum dado de sessão encontrado para o período selecionado.',
+          'Nenhum dado de sessão encontrado para o período selecionado.'
         );
 
         await interaction.editReply({ embeds: [noDataEmbed] });
@@ -119,7 +119,7 @@ class SessionRankingCommand extends BaseCommand {
         sessionData,
         periodo,
         tipoFiltro,
-        interaction.user.id,
+        interaction.user.id
       );
 
       // Create navigation buttons
@@ -176,7 +176,7 @@ class SessionRankingCommand extends BaseCommand {
             case 'session_ranking_personal':
               const personalEmbed = await this.createPersonalRankingEmbed(
                 sessionData,
-                interaction.user.id,
+                interaction.user.id
               );
               await buttonInteraction.editReply({ embeds: [personalEmbed] });
               break;
@@ -186,13 +186,13 @@ class SessionRankingCommand extends BaseCommand {
                 database,
                 guildId,
                 startDate,
-                tipoFiltro,
+                tipoFiltro
               );
               const newEmbed = await this.createRankingEmbed(
                 newData,
                 periodo,
                 tipoFiltro,
-                interaction.user.id,
+                interaction.user.id
               );
               await buttonInteraction.editReply({ embeds: [newEmbed] });
               break;
@@ -211,8 +211,8 @@ class SessionRankingCommand extends BaseCommand {
                 label: (button as any).label || (button as any).data?.label || 'Button',
                 style: ButtonStyle.Secondary,
                 disabled: true,
-              }),
-            ),
+              })
+            )
           );
 
           await interaction.editReply({ components: [disabledButtons] });
@@ -225,7 +225,7 @@ class SessionRankingCommand extends BaseCommand {
 
       const errorEmbed = HawkEmbedBuilder.createError(
         `${HAWK_EMOJIS.ERROR} Erro`,
-        'Ocorreu um erro ao buscar o ranking de sessões.',
+        'Ocorreu um erro ao buscar o ranking de sessões.'
       );
 
       await interaction.editReply({ embeds: [errorEmbed] });
@@ -239,7 +239,7 @@ class SessionRankingCommand extends BaseCommand {
     database: DatabaseService,
     guildId: string,
     startDate: Date,
-    typeFilter?: string | null,
+    typeFilter?: string | null
   ): Promise<SessionRankingData[]> {
     try {
       // Get all presence records for the period
@@ -326,7 +326,7 @@ class SessionRankingCommand extends BaseCommand {
 
         if (checkout) {
           const duration = Math.floor(
-            (checkout.timestamp.getTime() - record.timestamp.getTime()) / (1000 * 60),
+            (checkout.timestamp.getTime() - record.timestamp.getTime()) / (1000 * 60)
           );
           userStats.totalDuration += duration;
         }
@@ -351,7 +351,7 @@ class SessionRankingCommand extends BaseCommand {
 
         // Calculate streak (simplified - days since last session)
         const daysSinceLastSession = Math.floor(
-          (Date.now() - userStats.lastSession.getTime()) / (1000 * 60 * 60 * 24),
+          (Date.now() - userStats.lastSession.getTime()) / (1000 * 60 * 60 * 24)
         );
         userStats.streak = daysSinceLastSession <= 1 ? Math.max(1, userStats.totalSessions) : 0;
 
@@ -402,7 +402,7 @@ class SessionRankingCommand extends BaseCommand {
     data: SessionRankingData[],
     period: string,
     typeFilter: string | null,
-    requesterId: string,
+    requesterId: string
   ): Promise<any> {
     const periodNames = {
       weekly: 'Semanal',
@@ -419,12 +419,12 @@ class SessionRankingCommand extends BaseCommand {
 
     const embed = HawkEmbedBuilder.createInfo(
       `Ranking de Sessões - ${periodNames[period as keyof typeof periodNames] || 'Geral'}`,
-      `${HAWK_EMOJIS.TROPHY} Confira os jogadores mais ativos do servidor!`,
+      `${HAWK_EMOJIS.TROPHY} Confira os jogadores mais ativos do servidor!`
     ).setTimestamp();
 
     if (typeFilter) {
       embed.setDescription(
-        `${HAWK_EMOJIS.TROPHY} Confira os jogadores mais ativos do servidor!\n\n${HAWK_EMOJIS.FILTERS.TYPE} **Filtro:** ${typeNames[typeFilter as keyof typeof typeNames] || typeFilter}\n`,
+        `${HAWK_EMOJIS.TROPHY} Confira os jogadores mais ativos do servidor!\n\n${HAWK_EMOJIS.FILTERS.TYPE} **Filtro:** ${typeNames[typeFilter as keyof typeof typeNames] || typeFilter}\n`
       );
     }
 
@@ -479,7 +479,7 @@ class SessionRankingCommand extends BaseCommand {
   private async createDetailsEmbed(topUsers: SessionRankingData[]): Promise<any> {
     const embed = HawkEmbedBuilder.createSuccess(
       'Detalhes dos Top Participantes',
-      `${HAWK_EMOJIS.STATS} Estatísticas detalhadas dos melhores jogadores`,
+      `${HAWK_EMOJIS.STATS} Estatísticas detalhadas dos melhores jogadores`
     ).setTimestamp();
 
     let description = '';
@@ -527,18 +527,18 @@ class SessionRankingCommand extends BaseCommand {
    */
   private async createPersonalRankingEmbed(
     data: SessionRankingData[],
-    userId: string,
+    userId: string
   ): Promise<any> {
     const userStats = data.find(u => u.userId === userId);
 
     const embed = HawkEmbedBuilder.createInfo(
       'Seu Ranking Pessoal',
-      `${HAWK_EMOJIS.PROFILE} Confira suas estatísticas de participação`,
+      `${HAWK_EMOJIS.PROFILE} Confira suas estatísticas de participação`
     ).setTimestamp();
 
     if (!userStats) {
       embed.setDescription(
-        `${HAWK_EMOJIS.ERROR} Você ainda não possui dados de sessão registrados.`,
+        `${HAWK_EMOJIS.ERROR} Você ainda não possui dados de sessão registrados.`
       );
       return embed;
     }

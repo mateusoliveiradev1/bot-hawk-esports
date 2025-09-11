@@ -129,7 +129,7 @@ export class DiscordRateLimiterService {
     userId: string,
     guildId: string | null,
     commandName: string,
-    commandCategory: string,
+    commandCategory: string
   ): Promise<DiscordRateLimitResult> {
     try {
       // Get user data
@@ -156,7 +156,7 @@ export class DiscordRateLimiterService {
         {
           userId: userId,
           endpoint: commandName,
-        },
+        }
       );
 
       if (!advancedCheck.allowed) {
@@ -241,7 +241,7 @@ export class DiscordRateLimiterService {
   private checkCommandRateLimit(
     userData: UserRateLimitData,
     config: CommandRateLimitConfig,
-    now: number,
+    now: number
   ): DiscordRateLimitResult {
     // Reset window if expired
     if (now - userData.lastCommand > config.windowMs) {
@@ -289,7 +289,7 @@ export class DiscordRateLimiterService {
     userId: string,
     userData: UserRateLimitData,
     config: CommandRateLimitConfig,
-    now: number,
+    now: number
   ): void {
     userData.violations++;
     userData.warningCount++;
@@ -297,21 +297,21 @@ export class DiscordRateLimiterService {
     // Increase penalty multiplier
     userData.penaltyMultiplier = Math.min(
       userData.penaltyMultiplier * config.penaltyMultiplier,
-      10, // Max 10x penalty
+      10 // Max 10x penalty
     );
 
     // Apply timeout if too many violations
     if (userData.violations >= config.maxViolations) {
       const timeoutDuration = Math.min(
         config.windowMs * userData.violations,
-        30 * 60 * 1000, // Max 30 minutes
+        30 * 60 * 1000 // Max 30 minutes
       );
 
       userData.timeoutUntil = now + timeoutDuration;
       userData.violations = 0; // Reset after timeout
 
       this.logger.warn(
-        `User ${userId} timed out for ${timeoutDuration / 1000} seconds due to rate limit violations`,
+        `User ${userId} timed out for ${timeoutDuration / 1000} seconds due to rate limit violations`
       );
     }
 
@@ -338,7 +338,7 @@ export class DiscordRateLimiterService {
    * Map advanced rate limit violation levels
    */
   private mapAdvancedViolationLevel(
-    level: number,
+    level: number
   ): 'none' | 'warning' | 'moderate' | 'severe' | 'critical' {
     if (level <= 1) {
       return 'none';
@@ -430,7 +430,7 @@ export class DiscordRateLimiterService {
       () => {
         this.cleanupOldData();
       },
-      5 * 60 * 1000,
+      5 * 60 * 1000
     ); // Every 5 minutes
   }
 

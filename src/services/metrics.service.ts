@@ -78,7 +78,7 @@ export class MetricsService {
   constructor(
     private databaseService?: DatabaseService,
     private cacheService?: CacheService,
-    private discordClient?: ExtendedClient,
+    private discordClient?: ExtendedClient
   ) {
     this.logger = new Logger();
     this.startTime = Date.now();
@@ -94,24 +94,24 @@ export class MetricsService {
       try {
         const systemMetrics = this.getSystemMetrics();
         const appMetrics = await this.getApplicationMetrics();
-        
+
         // Store in history for trend analysis
         this.performanceHistory.push({
           timestamp: Date.now(),
           metrics: systemMetrics,
         });
-        
+
         // Keep history size manageable
         if (this.performanceHistory.length > this.MAX_HISTORY_SIZE) {
           this.performanceHistory.shift();
         }
-        
+
         // Record key metrics
         this.recordMetric('system_memory_usage', systemMetrics.memory.percentage, 'gauge');
         this.recordMetric('system_cpu_usage', systemMetrics.cpu.usage, 'gauge');
         this.recordMetric('discord_latency', appMetrics.discord.latency, 'gauge');
         this.recordMetric('event_loop_delay', systemMetrics.eventLoop.delay, 'gauge');
-        
+
         // Log performance summary every 5 minutes
         if (Date.now() % (5 * 60 * 1000) < 30000) {
           this.logPerformanceSummary(systemMetrics, appMetrics);
@@ -125,7 +125,10 @@ export class MetricsService {
   /**
    * Log performance summary
    */
-  private logPerformanceSummary(systemMetrics: SystemMetrics, appMetrics: ApplicationMetrics): void {
+  private logPerformanceSummary(
+    systemMetrics: SystemMetrics,
+    appMetrics: ApplicationMetrics
+  ): void {
     this.logger.info('Performance Summary', {
       metadata: {
         memory: {
@@ -173,8 +176,10 @@ export class MetricsService {
     const recent = this.performanceHistory.slice(-10);
     const older = this.performanceHistory.slice(-20, -10);
 
-    const recentMemoryAvg = recent.reduce((sum, h) => sum + h.metrics.memory.percentage, 0) / recent.length;
-    const olderMemoryAvg = older.reduce((sum, h) => sum + h.metrics.memory.percentage, 0) / older.length;
+    const recentMemoryAvg =
+      recent.reduce((sum, h) => sum + h.metrics.memory.percentage, 0) / recent.length;
+    const olderMemoryAvg =
+      older.reduce((sum, h) => sum + h.metrics.memory.percentage, 0) / older.length;
     const recentCpuAvg = recent.reduce((sum, h) => sum + h.metrics.cpu.usage, 0) / recent.length;
     const olderCpuAvg = older.reduce((sum, h) => sum + h.metrics.cpu.usage, 0) / older.length;
 
@@ -182,7 +187,8 @@ export class MetricsService {
     const cpuDiff = recentCpuAvg - olderCpuAvg;
 
     return {
-      memoryTrend: Math.abs(memoryDiff) < 2 ? 'stable' : memoryDiff > 0 ? 'increasing' : 'decreasing',
+      memoryTrend:
+        Math.abs(memoryDiff) < 2 ? 'stable' : memoryDiff > 0 ? 'increasing' : 'decreasing',
       cpuTrend: Math.abs(cpuDiff) < 5 ? 'stable' : cpuDiff > 0 ? 'increasing' : 'decreasing',
       averageMemory: recentMemoryAvg,
       averageCpu: recentCpuAvg,
@@ -206,7 +212,7 @@ export class MetricsService {
     name: string,
     value: number,
     type: MetricData['type'] = 'gauge',
-    labels?: Record<string, string>,
+    labels?: Record<string, string>
   ): void {
     const metric: MetricData = {
       name,
@@ -385,7 +391,7 @@ export class MetricsService {
     const guilds = this.discordClient.guilds.cache.size;
     const users = this.discordClient.guilds.cache.reduce(
       (acc, guild) => acc + guild.memberCount,
-      0,
+      0
     );
     const channels = this.discordClient.channels.cache.size;
     const latency = this.discordClient.ws.ping;

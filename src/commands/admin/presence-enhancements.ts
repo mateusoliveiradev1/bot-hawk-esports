@@ -25,15 +25,15 @@ class PresenceEnhancementsCommand extends BaseCommand {
     .setDescription('Gerenciar melhorias do sistema de presença')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(subcommand =>
-      subcommand.setName('status').setDescription('Ver status das melhorias de presença'),
+      subcommand.setName('status').setDescription('Ver status das melhorias de presença')
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('validate-pubg')
         .setDescription('Validar integração PUBG de um usuário')
         .addUserOption(option =>
-          option.setName('usuario').setDescription('Usuário para validar').setRequired(true),
-        ),
+          option.setName('usuario').setDescription('Usuário para validar').setRequired(true)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -43,7 +43,7 @@ class PresenceEnhancementsCommand extends BaseCommand {
           option
             .setName('habilitado')
             .setDescription('Habilitar/desabilitar punições automáticas')
-            .setRequired(false),
+            .setRequired(false)
         )
         .addIntegerOption(option =>
           option
@@ -51,7 +51,7 @@ class PresenceEnhancementsCommand extends BaseCommand {
             .setDescription('Intervalo de verificação em minutos (5-60)')
             .setMinValue(5)
             .setMaxValue(60)
-            .setRequired(false),
+            .setRequired(false)
         )
         .addIntegerOption(option =>
           option
@@ -59,19 +59,19 @@ class PresenceEnhancementsCommand extends BaseCommand {
             .setDescription('Período de graça em minutos (1-30)')
             .setMinValue(1)
             .setMaxValue(30)
-            .setRequired(false),
-        ),
+            .setRequired(false)
+        )
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('stats').setDescription('Ver estatísticas das melhorias'),
+      subcommand.setName('stats').setDescription('Ver estatísticas das melhorias')
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName('user-history')
         .setDescription('Ver histórico de melhorias de um usuário')
         .addUserOption(option =>
-          option.setName('usuario').setDescription('Usuário para ver histórico').setRequired(true),
-        ),
+          option.setName('usuario').setDescription('Usuário para ver histórico').setRequired(true)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -83,8 +83,8 @@ class PresenceEnhancementsCommand extends BaseCommand {
             .setDescription('Limpar melhorias mais antigas que X dias (7-90)')
             .setMinValue(7)
             .setMaxValue(90)
-            .setRequired(false),
-        ),
+            .setRequired(false)
+        )
     );
 
   async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
@@ -158,7 +158,7 @@ class PresenceEnhancementsCommand extends BaseCommand {
  */
 async function handleStatus(
   interaction: ChatInputCommandInteraction,
-  enhancementsService: PresenceEnhancementsService,
+  enhancementsService: PresenceEnhancementsService
 ): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
 
@@ -197,7 +197,7 @@ async function handleStatus(
         name: '⚖️ Punições Auto',
         value: stats.autoPunishments.toString(),
         inline: true,
-      },
+      }
     )
     .setTimestamp();
 
@@ -231,7 +231,7 @@ export default new PresenceEnhancementsCommand();
  */
 async function handleValidatePubg(
   interaction: ChatInputCommandInteraction,
-  enhancementsService: PresenceEnhancementsService,
+  enhancementsService: PresenceEnhancementsService
 ): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
 
@@ -260,7 +260,7 @@ async function handleValidatePubg(
           ? `<t:${Math.floor(validation.lastValidated.getTime() / 1000)}:R>`
           : 'Nunca validado',
         inline: true,
-      },
+      }
     );
 
   if (validation.pubgUsername) {
@@ -309,7 +309,7 @@ async function handleValidatePubg(
  */
 async function handleConfigPunishment(
   interaction: ChatInputCommandInteraction,
-  enhancementsService: PresenceEnhancementsService,
+  enhancementsService: PresenceEnhancementsService
 ): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
 
@@ -372,7 +372,7 @@ async function handleConfigPunishment(
  */
 async function handleStats(
   interaction: ChatInputCommandInteraction,
-  enhancementsService: PresenceEnhancementsService,
+  enhancementsService: PresenceEnhancementsService
 ): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
 
@@ -409,7 +409,7 @@ async function handleStats(
           `**% do Total:** ${stats.totalEnhancements > 0 ? ((stats.autoPunishments / stats.totalEnhancements) * 100).toFixed(1) : '0'}%`,
         ].join('\n'),
         inline: true,
-      },
+      }
     )
     .setTimestamp();
 
@@ -421,7 +421,7 @@ async function handleStats(
  */
 async function handleUserHistory(
   interaction: ChatInputCommandInteraction,
-  enhancementsService: PresenceEnhancementsService,
+  enhancementsService: PresenceEnhancementsService
 ): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
 
@@ -492,7 +492,7 @@ async function handleUserHistory(
  */
 async function handleCleanup(
   interaction: ChatInputCommandInteraction,
-  enhancementsService: PresenceEnhancementsService,
+  enhancementsService: PresenceEnhancementsService
 ): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
 

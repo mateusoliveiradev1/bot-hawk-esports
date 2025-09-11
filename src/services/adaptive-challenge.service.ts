@@ -246,7 +246,7 @@ export class AdaptiveChallengeService {
       {
         scheduled: true,
         timezone: 'America/Sao_Paulo',
-      },
+      }
     );
 
     this.logger.info('Adaptive challenge generation scheduled for 6:00 AM daily');
@@ -293,7 +293,7 @@ export class AdaptiveChallengeService {
       await this.saveAdaptiveChallenges(userId, adaptiveChallenges);
 
       this.logger.info(
-        `Generated ${adaptiveChallenges.length} adaptive challenges for user ${userId}`,
+        `Generated ${adaptiveChallenges.length} adaptive challenges for user ${userId}`
       );
       return adaptiveChallenges;
     } catch (error) {
@@ -473,7 +473,7 @@ export class AdaptiveChallengeService {
    */
   private selectTemplatesForPlayer(stats: PlayerStats, count: number): ChallengeTemplate[] {
     const availableTemplates = Array.from(this.adaptiveTemplates.values()).filter(template =>
-      template.skillRequirement.includes(stats.skillLevel),
+      template.skillRequirement.includes(stats.skillLevel)
     );
 
     // Priorizar tipos de desafio baseados no perfil do jogador
@@ -507,7 +507,7 @@ export class AdaptiveChallengeService {
    */
   private prioritizeTemplates(
     templates: ChallengeTemplate[],
-    stats: PlayerStats,
+    stats: PlayerStats
   ): ChallengeTemplate[] {
     return templates.sort((a, b) => {
       let scoreA = 0;
@@ -563,7 +563,7 @@ export class AdaptiveChallengeService {
   private async createAdaptiveChallenge(
     userId: string,
     template: ChallengeTemplate,
-    stats: PlayerStats,
+    stats: PlayerStats
   ): Promise<AdaptiveChallenge> {
     const adaptationRule = template.adaptationRules[stats.skillLevel];
     const personalizedTarget = this.calculatePersonalizedTarget(template, stats);
@@ -611,7 +611,7 @@ export class AdaptiveChallengeService {
         if (stats.averageKills > 0) {
           target = Math.max(
             template.minTarget,
-            Math.min(template.maxTarget, Math.floor(stats.averageKills * template.scalingFactor)),
+            Math.min(template.maxTarget, Math.floor(stats.averageKills * template.scalingFactor))
           );
         }
         break;
@@ -619,7 +619,7 @@ export class AdaptiveChallengeService {
         if (stats.averageDamage > 0) {
           target = Math.max(
             template.minTarget,
-            Math.min(template.maxTarget, Math.floor(stats.averageDamage * template.scalingFactor)),
+            Math.min(template.maxTarget, Math.floor(stats.averageDamage * template.scalingFactor))
           );
         }
         break;
@@ -629,8 +629,8 @@ export class AdaptiveChallengeService {
             template.minTarget,
             Math.min(
               template.maxTarget,
-              Math.floor(stats.averageSurvivalTime * template.scalingFactor),
-            ),
+              Math.floor(stats.averageSurvivalTime * template.scalingFactor)
+            )
           );
         }
         break;
@@ -639,15 +639,15 @@ export class AdaptiveChallengeService {
           template.minTarget,
           Math.min(
             template.maxTarget,
-            Math.ceil(template.baseTarget * (stats.winRate > 0.05 ? 1.2 : 0.8)),
-          ),
+            Math.ceil(template.baseTarget * (stats.winRate > 0.05 ? 1.2 : 0.8))
+          )
         );
         break;
       case 'headshots':
         if (stats.headShotRate > 0) {
           target = Math.max(
             template.minTarget,
-            Math.min(template.maxTarget, Math.ceil(template.baseTarget * (1 + stats.headShotRate))),
+            Math.min(template.maxTarget, Math.ceil(template.baseTarget * (1 + stats.headShotRate)))
           );
         }
         break;
@@ -667,7 +667,7 @@ export class AdaptiveChallengeService {
    */
   private calculateBaseRewards(
     template: ChallengeTemplate,
-    skillLevel: string,
+    skillLevel: string
   ): { xp: number; coins: number } {
     const baseXP = 150;
     const baseCoins = 75;
@@ -728,7 +728,7 @@ export class AdaptiveChallengeService {
    * Get rarity for skill level
    */
   private getRarityForSkill(
-    skillLevel: string,
+    skillLevel: string
   ): 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' {
     switch (skillLevel) {
       case 'beginner':
@@ -751,7 +751,7 @@ export class AdaptiveChallengeService {
    */
   private async saveAdaptiveChallenges(
     userId: string,
-    challenges: AdaptiveChallenge[],
+    challenges: AdaptiveChallenge[]
   ): Promise<void> {
     try {
       const today = new Date().toISOString().split('T')[0]!;
@@ -882,7 +882,7 @@ export class AdaptiveChallengeService {
           type: challengeType as any,
           target: uc.target,
           difficulty: this.mapSkillToDifficulty(
-            adaptationData.originalDifficulty || 'intermediate',
+            adaptationData.originalDifficulty || 'intermediate'
           ),
           rewards: JSON.parse(uc.challenge?.rewards || '{}'),
           icon: this.getIconForType(challengeType),
@@ -987,7 +987,7 @@ export class AdaptiveChallengeService {
           acc[type] = (acc[type] || 0) + 1;
           return acc;
         },
-        {} as Record<string, number>,
+        {} as Record<string, number>
       );
 
       const mostPopularChallengeTypes = Object.entries(typeCount)
@@ -1021,7 +1021,7 @@ export class AdaptiveChallengeService {
   public async updateAdaptiveChallengeProgress(
     userId: string,
     challengeType: string,
-    progress: number,
+    progress: number
   ): Promise<boolean> {
     try {
       const today = new Date().toISOString().split('T')[0]!;

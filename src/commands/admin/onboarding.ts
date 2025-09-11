@@ -15,7 +15,7 @@ import { ServiceValidator } from '../../utils/service-validator.util';
 class OnboardingCommand extends BaseCommand {
   async handleSetup(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<void> {
     this.validateGuildContext(interaction);
     this.validateUserPermissions(interaction, [PermissionFlagsBits.Administrator]);
@@ -46,7 +46,7 @@ class OnboardingCommand extends BaseCommand {
       .setDescription('Sistema de boas-vindas configurado com sucesso!')
       .addFields(
         { name: '📢 Canal', value: `<#${channel.id}>`, inline: true },
-        { name: '💬 Mensagem', value: config.welcomeMessage, inline: false },
+        { name: '💬 Mensagem', value: config.welcomeMessage, inline: false }
       )
       .setColor('#00FF00')
       .setTimestamp();
@@ -56,7 +56,7 @@ class OnboardingCommand extends BaseCommand {
 
   async handleToggle(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<void> {
     this.validateGuildContext(interaction);
     this.validateUserPermissions(interaction, [PermissionFlagsBits.Administrator]);
@@ -79,7 +79,7 @@ class OnboardingCommand extends BaseCommand {
 
   async handleStats(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<void> {
     this.validateGuildContext(interaction);
 
@@ -105,7 +105,7 @@ class OnboardingCommand extends BaseCommand {
         { name: '📅 Este Mês', value: stats.thisMonth.toString(), inline: true },
         { name: '📆 Esta Semana', value: stats.thisWeek.toString(), inline: true },
         { name: '📈 Média Diária', value: stats.averagePerDay.toFixed(1), inline: true },
-        { name: '⚙️ Status', value: stats.enabled ? '✅ Ativo' : '❌ Inativo', inline: true },
+        { name: '⚙️ Status', value: stats.enabled ? '✅ Ativo' : '❌ Inativo', inline: true }
       )
       .setColor('#4A90E2')
       .setTimestamp();
@@ -115,7 +115,7 @@ class OnboardingCommand extends BaseCommand {
 
   async handleTest(
     interaction: ChatInputCommandInteraction,
-    client: ExtendedClient,
+    client: ExtendedClient
   ): Promise<void> {
     this.validateGuildContext(interaction);
     this.validateUserPermissions(interaction, [PermissionFlagsBits.Administrator]);
@@ -149,16 +149,16 @@ export const onboarding: Command = {
             .setName('canal')
             .setDescription('Canal para enviar mensagens de boas-vindas')
             .addChannelTypes(ChannelType.GuildText)
-            .setRequired(true),
+            .setRequired(true)
         )
         .addStringOption(option =>
           option
             .setName('mensagem')
             .setDescription(
-              'Mensagem personalizada de boas-vindas (use {user} para mencionar o usuário)',
+              'Mensagem personalizada de boas-vindas (use {user} para mencionar o usuário)'
             )
-            .setRequired(false),
-        ),
+            .setRequired(false)
+        )
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -168,14 +168,14 @@ export const onboarding: Command = {
           option
             .setName('ativo')
             .setDescription('Ativar ou desativar o onboarding')
-            .setRequired(true),
-        ),
+            .setRequired(true)
+        )
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('stats').setDescription('Ver estatísticas de boas-vindas do servidor'),
+      subcommand.setName('stats').setDescription('Ver estatísticas de boas-vindas do servidor')
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('test').setDescription('Testar mensagem de boas-vindas'),
+      subcommand.setName('test').setDescription('Testar mensagem de boas-vindas')
     ),
 
   category: CommandCategory.ADMIN,

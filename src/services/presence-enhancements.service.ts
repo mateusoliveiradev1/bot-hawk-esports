@@ -147,7 +147,7 @@ export class PresenceEnhancementsService {
    */
   public async validatePUBGIntegration(
     userId: string,
-    guildId: string,
+    guildId: string
   ): Promise<PUBGPresenceValidation> {
     try {
       let validation = this.pubgValidations.get(userId);
@@ -170,7 +170,7 @@ export class PresenceEnhancementsService {
             userId,
             reason: 'Service unavailable',
             event: 'PUBG Validation',
-          },
+          }
         );
 
         validation = {
@@ -195,7 +195,7 @@ export class PresenceEnhancementsService {
             userId,
             reason: 'Health check failed',
             event: 'PUBG Validation',
-          },
+          }
         );
 
         validation = {
@@ -227,7 +227,7 @@ export class PresenceEnhancementsService {
             userId,
             hasUsername: !!user?.pubgUsername,
             hasPlatform: !!user?.pubgPlatform,
-          },
+          }
         );
 
         validation = {
@@ -244,7 +244,7 @@ export class PresenceEnhancementsService {
       // Validate with PUBG API
       const pubgPlayer = await this.pubgService.getPlayerByName(
         user.pubgUsername,
-        user.pubgPlatform as PUBGPlatform,
+        user.pubgPlatform as PUBGPlatform
       );
 
       if (!pubgPlayer) {
@@ -257,7 +257,7 @@ export class PresenceEnhancementsService {
             pubgName: user.pubgUsername,
             platform: user.pubgPlatform,
             username: user.pubgUsername,
-          },
+          }
         );
 
         validation = {
@@ -272,7 +272,7 @@ export class PresenceEnhancementsService {
         // Get player stats
         const stats = await this.pubgService.getPlayerStats(
           pubgPlayer.id,
-          user.pubgPlatform as PUBGPlatform,
+          user.pubgPlatform as PUBGPlatform
         );
 
         validation = {
@@ -290,7 +290,7 @@ export class PresenceEnhancementsService {
                 kda: this.pubgService.calculateKDA(
                   stats.gameModeStats?.squad?.kills || 0,
                   stats.gameModeStats?.squad?.losses || 1,
-                  stats.gameModeStats?.squad?.assists || 0,
+                  stats.gameModeStats?.squad?.assists || 0
                 ),
                 rank: stats.rankPointTitle || 'Unranked',
               }
@@ -309,7 +309,7 @@ export class PresenceEnhancementsService {
             platform: user.pubgPlatform,
             username: user.pubgUsername,
             stats: validation.stats,
-          },
+          }
         );
       }
 
@@ -340,7 +340,7 @@ export class PresenceEnhancementsService {
           userId,
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
-        },
+        }
       );
 
       const validation: PUBGPresenceValidation = {
@@ -364,7 +364,7 @@ export class PresenceEnhancementsService {
     guildId: string,
     userId: string,
     location?: string,
-    note?: string,
+    note?: string
   ): Promise<{ success: boolean; message: string; validation?: PUBGPresenceValidation }> {
     try {
       // Validate PUBG integration first
@@ -410,7 +410,7 @@ export class PresenceEnhancementsService {
   public async enhancedCheckOut(
     guildId: string,
     userId: string,
-    note?: string,
+    note?: string
   ): Promise<{ success: boolean; message: string; validation?: PUBGPresenceValidation }> {
     try {
       // Get current PUBG validation
@@ -519,7 +519,7 @@ export class PresenceEnhancementsService {
    */
   private calculateSessionBonus(
     stats: NonNullable<PUBGPresenceValidation['stats']>,
-    sessionDurationMinutes: number,
+    sessionDurationMinutes: number
   ): number {
     let bonusXP = 0;
 
@@ -559,7 +559,7 @@ export class PresenceEnhancementsService {
       async () => {
         await this.checkEnhancedNoShow(userId, guildId, sessionStartTime);
       },
-      30 * 60 * 1000,
+      30 * 60 * 1000
     );
 
     // Enhanced no-checkout check (4 hours)
@@ -567,7 +567,7 @@ export class PresenceEnhancementsService {
       async () => {
         await this.checkEnhancedNoCheckout(userId, guildId, sessionStartTime);
       },
-      4 * 60 * 60 * 1000,
+      4 * 60 * 60 * 1000
     );
 
     // Enhanced early leave check (1 hour)
@@ -575,7 +575,7 @@ export class PresenceEnhancementsService {
       async () => {
         await this.checkEnhancedEarlyLeave(userId, guildId, sessionStartTime);
       },
-      60 * 60 * 1000,
+      60 * 60 * 1000
     );
   }
 
@@ -585,7 +585,7 @@ export class PresenceEnhancementsService {
   private async checkEnhancedNoShow(
     userId: string,
     guildId: string,
-    sessionStartTime: Date,
+    sessionStartTime: Date
   ): Promise<void> {
     try {
       const activeSession = this.presenceService.getActiveSession(guildId, userId);
@@ -641,7 +641,7 @@ export class PresenceEnhancementsService {
   private async checkEnhancedNoCheckout(
     userId: string,
     guildId: string,
-    sessionStartTime: Date,
+    sessionStartTime: Date
   ): Promise<void> {
     try {
       const activeSession = this.presenceService.getActiveSession(guildId, userId);
@@ -684,7 +684,7 @@ export class PresenceEnhancementsService {
   private async checkEnhancedEarlyLeave(
     userId: string,
     guildId: string,
-    sessionStartTime: Date,
+    sessionStartTime: Date
   ): Promise<void> {
     try {
       const activeSession = this.presenceService.getActiveSession(guildId, userId);
@@ -730,11 +730,11 @@ export class PresenceEnhancementsService {
       async () => {
         await this.monitorActiveSessions();
       },
-      this.autoPunishmentConfig.checkInterval * 60 * 1000,
+      this.autoPunishmentConfig.checkInterval * 60 * 1000
     );
 
     this.logger.info(
-      `Auto punishment monitoring started (interval: ${this.autoPunishmentConfig.checkInterval} minutes)`,
+      `Auto punishment monitoring started (interval: ${this.autoPunishmentConfig.checkInterval} minutes)`
     );
   }
 
@@ -757,7 +757,7 @@ export class PresenceEnhancementsService {
           if (sessionDuration > 8 * 60 * 60 * 1000) {
             // 8 hours
             this.logger.warn(
-              `Suspicious long session detected: User ${session.userId} in guild ${guildId} (${Math.round(sessionDuration / (60 * 60 * 1000))} hours)`,
+              `Suspicious long session detected: User ${session.userId} in guild ${guildId} (${Math.round(sessionDuration / (60 * 60 * 1000))} hours)`
             );
 
             // Send notification to admins
@@ -783,7 +783,7 @@ export class PresenceEnhancementsService {
   private async sendSuspiciousActivityNotification(
     guildId: string,
     userId: string,
-    duration: number,
+    duration: number
   ): Promise<void> {
     try {
       const guild = this.client.guilds.cache.get(guildId);
@@ -813,13 +813,13 @@ export class PresenceEnhancementsService {
             name: '🔍 Ação Recomendada',
             value: 'Verificar se o usuário esqueceu de fazer checkout',
             inline: false,
-          },
+          }
         )
         .setTimestamp();
 
       // Try to find admin/log channel
       const logChannel = guild.channels.cache.find(
-        ch => ch.name.includes('log') || ch.name.includes('admin'),
+        ch => ch.name.includes('log') || ch.name.includes('admin')
       ) as TextChannel;
 
       if (logChannel) {
@@ -949,7 +949,7 @@ export class PresenceEnhancementsService {
     operation: string,
     status: 'success' | 'warning' | 'error',
     message: string,
-    additionalData?: Record<string, any>,
+    additionalData?: Record<string, any>
   ): Promise<void> {
     try {
       const guild = this.client.guilds.cache.first();
@@ -966,7 +966,7 @@ export class PresenceEnhancementsService {
         success,
         undefined,
         status === 'error' ? message : undefined,
-        additionalData,
+        additionalData
       );
     } catch (error) {
       this.logger.error('Failed to log presence enhancement operation:', error);

@@ -106,7 +106,7 @@ export class VoiceEvents {
   private async logVoiceEvent(
     oldState: VoiceState,
     newState: VoiceState,
-    eventType: string,
+    eventType: string
   ): Promise<void> {
     if (!this.client.services?.logging || !newState.member) {
       return;

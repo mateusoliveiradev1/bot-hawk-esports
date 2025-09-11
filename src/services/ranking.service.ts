@@ -330,7 +330,7 @@ export class RankingService {
         try {
           const pubgStats = await this.pubgService.getPlayerStats(
             userData.pubgName,
-            userData.pubgPlatform,
+            userData.pubgPlatform
           );
 
           if (pubgStats && pubgStats.gameModeStats) {
@@ -398,7 +398,7 @@ export class RankingService {
         'updateUserRanking',
         'success',
         `Updated ranking for user ${userId}`,
-        { userId, pubgName: userData.pubgName },
+        { userId, pubgName: userData.pubgName }
       );
     } catch (error) {
       this.logger.error(`Error updating user ranking for ${userId}:`, error);
@@ -406,7 +406,7 @@ export class RankingService {
         'updateUserRanking',
         'error',
         `Failed to update ranking for user ${userId}`,
-        { userId, error: error instanceof Error ? error.message : String(error) },
+        { userId, error: error instanceof Error ? error.message : String(error) }
       );
     }
   }
@@ -434,7 +434,7 @@ export class RankingService {
     period: RankingPeriod,
     gameMode: PUBGGameMode = PUBGGameMode.SQUAD_FPP,
     sortBy: 'kills' | 'wins' | 'kda' | 'rankPoints' | 'winRate' = 'rankPoints',
-    limit: number = 50,
+    limit: number = 50
   ): PUBGRankingEntry[] {
     const guildRankings = this.rankings.get(guildId);
     if (!guildRankings) {
@@ -498,7 +498,7 @@ export class RankingService {
       | 'quizScore'
       | 'miniGameWins'
       | 'badgeCount' = 'level',
-    limit: number = 50,
+    limit: number = 50
   ): InternalRankingEntry[] {
     const guildRankings = this.rankings.get(guildId);
     if (!guildRankings) {
@@ -559,7 +559,7 @@ export class RankingService {
     guildId: string,
     userId: string,
     type: 'pubg' | 'internal',
-    sortBy?: string,
+    sortBy?: string
   ): { rank: number; total: number } | null {
     const guildRankings = this.rankings.get(guildId);
     if (!guildRankings) {
@@ -640,7 +640,7 @@ export class RankingService {
     guildId: string,
     period: RankingPeriod,
     type: 'pubg' | 'internal',
-    gameMode?: PUBGGameMode,
+    gameMode?: PUBGGameMode
   ): Promise<void> {
     try {
       const guildRankings = this.rankings.get(guildId);
@@ -733,7 +733,7 @@ export class RankingService {
     guild: any,
     ranking: any[],
     roleRewards: RoleReward[],
-    type: 'pubg' | 'internal',
+    type: 'pubg' | 'internal'
   ): Promise<void> {
     try {
       for (let i = 0; i < ranking.length; i++) {
@@ -745,7 +745,7 @@ export class RankingService {
 
         const userRank = i + 1;
         const applicableRewards = roleRewards.filter(
-          reward => userRank >= reward.rankRange[0] && userRank <= reward.rankRange[1],
+          reward => userRank >= reward.rankRange[0] && userRank <= reward.rankRange[1]
         );
 
         for (const reward of applicableRewards) {
@@ -757,7 +757,7 @@ export class RankingService {
           if (!member.roles.cache.has(reward.roleId)) {
             await member.roles.add(role);
             this.logger.info(
-              `Added role ${role.name} to ${member.user.username} (rank ${userRank})`,
+              `Added role ${role.name} to ${member.user.username} (rank ${userRank})`
             );
 
             if (reward.temporary && reward.duration) {
@@ -766,13 +766,13 @@ export class RankingService {
                   try {
                     await member.roles.remove(role);
                     this.logger.info(
-                      `Removed temporary role ${role.name} from ${member.user.username}`,
+                      `Removed temporary role ${role.name} from ${member.user.username}`
                     );
                   } catch (error) {
                     this.logger.error('Error removing temporary role:', error);
                   }
                 },
-                reward.duration * 60 * 60 * 1000,
+                reward.duration * 60 * 60 * 1000
               );
             }
           }
@@ -788,7 +788,7 @@ export class RankingService {
           ) {
             await member.roles.remove(role);
             this.logger.info(
-              `Removed role ${role.name} from ${member.user.username} (no longer qualified)`,
+              `Removed role ${role.name} from ${member.user.username} (no longer qualified)`
             );
           }
         }
@@ -875,7 +875,7 @@ export class RankingService {
     guildId: string,
     type: 'pubg' | 'internal',
     period: 'daily' | 'weekly' | 'monthly',
-    limit: number = 10,
+    limit: number = 10
   ): RankingSnapshot[] {
     const guildSnapshots = this.snapshots.get(guildId) || [];
     return guildSnapshots
@@ -977,7 +977,7 @@ export class RankingService {
   public getHybridRanking(
     guildId: string,
     period: RankingPeriod,
-    limit: number = 50,
+    limit: number = 50
   ): Array<UserRankingData & { hybridScore: number; rank: number }> {
     const guildRankings = this.rankings.get(guildId);
     if (!guildRankings) {
@@ -1089,7 +1089,7 @@ export class RankingService {
       details?: string;
       error?: string;
       [key: string]: any;
-    },
+    }
   ): Promise<void> {
     try {
       const guild = this.client.guilds.cache.first();
@@ -1112,7 +1112,7 @@ export class RankingService {
           details: data?.details,
           error: data?.error,
           ...data,
-        },
+        }
       );
     } catch (logError) {
       this.logger.error('Erro ao registrar operação de ranking:', logError);
@@ -1130,7 +1130,7 @@ export class RankingService {
     userId: string,
     score: number,
     correctAnswers: number,
-    totalQuestions: number,
+    totalQuestions: number
   ): Promise<void> {
     try {
       const guildRankings = this.rankings.get(guildId);
@@ -1171,7 +1171,7 @@ export class RankingService {
     userId: string,
     gameType: string,
     score: number,
-    won: boolean,
+    won: boolean
   ): Promise<void> {
     try {
       const guildRankings = this.rankings.get(guildId);
@@ -1211,7 +1211,7 @@ export class RankingService {
    */
   public getGameStats(
     guildId: string,
-    userId: string,
+    userId: string
   ): {
     quizScore: number;
     miniGameWins: number;
@@ -1256,7 +1256,7 @@ export class RankingService {
   public getGameLeaderboard(
     guildId: string,
     type: 'quiz' | 'minigames' | 'combined',
-    limit: number = 10,
+    limit: number = 10
   ): Array<{
     userId: string;
     username: string;

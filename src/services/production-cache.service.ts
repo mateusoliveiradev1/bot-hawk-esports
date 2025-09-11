@@ -48,7 +48,7 @@ class ProductionCacheService extends EventEmitter {
       if (!productionConfig.redis.url) {
         productionLogger.warn(
           'Redis URL not provided, using memory fallback',
-          createLogContext(LogCategory.CACHE),
+          createLogContext(LogCategory.CACHE)
         );
         return;
       }
@@ -72,7 +72,7 @@ class ProductionCacheService extends EventEmitter {
         this.stats.errors++;
         productionLogger.error(
           'Redis connection error',
-          createLogContext(LogCategory.CACHE, { error }),
+          createLogContext(LogCategory.CACHE, { error })
         );
 
         productionMonitoring.createAlert('warning', 'redis', 'Redis connection error', {
@@ -98,7 +98,7 @@ class ProductionCacheService extends EventEmitter {
         'Failed to initialize Redis',
         createLogContext(LogCategory.CACHE, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }),
+        })
       );
     }
   }
@@ -119,7 +119,7 @@ class ProductionCacheService extends EventEmitter {
       if (cleaned > 0) {
         productionLogger.debug(
           `Cleaned ${cleaned} expired keys from fallback cache`,
-          createLogContext(LogCategory.CACHE),
+          createLogContext(LogCategory.CACHE)
         );
       }
     }, 300000); // 5 minutes
@@ -138,7 +138,7 @@ class ProductionCacheService extends EventEmitter {
         'Failed to serialize cache value',
         createLogContext(LogCategory.CACHE, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }),
+        })
       );
       throw error;
     }
@@ -152,7 +152,7 @@ class ProductionCacheService extends EventEmitter {
         'Failed to deserialize cache value',
         createLogContext(LogCategory.CACHE, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }),
+        })
       );
       return value; // Return as string if JSON parsing fails
     }
@@ -188,7 +188,7 @@ class ProductionCacheService extends EventEmitter {
           createLogContext(LogCategory.CACHE, {
             duration,
             metadata: { key: fullKey },
-          }),
+          })
         );
 
         return options.serialize !== false ? this.deserialize(value) : (value as T);
@@ -201,7 +201,7 @@ class ProductionCacheService extends EventEmitter {
           createLogContext(LogCategory.CACHE, {
             duration,
             metadata: { key: fullKey },
-          }),
+          })
         );
 
         return null;
@@ -212,7 +212,7 @@ class ProductionCacheService extends EventEmitter {
         `Cache get error: ${key}`,
         createLogContext(LogCategory.CACHE, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }),
+        })
       );
       return null;
     }
@@ -250,7 +250,7 @@ class ProductionCacheService extends EventEmitter {
         createLogContext(LogCategory.CACHE, {
           duration,
           metadata: { key: fullKey, ttl },
-        }),
+        })
       );
 
       return true;
@@ -260,7 +260,7 @@ class ProductionCacheService extends EventEmitter {
         `Cache set error: ${key}`,
         createLogContext(LogCategory.CACHE, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }),
+        })
       );
       return false;
     }
@@ -281,7 +281,7 @@ class ProductionCacheService extends EventEmitter {
           createLogContext(LogCategory.CACHE, {
             duration,
             metadata: { key: fullKey, deleted: result > 0 },
-          }),
+          })
         );
 
         return result > 0;
@@ -295,7 +295,7 @@ class ProductionCacheService extends EventEmitter {
           createLogContext(LogCategory.CACHE, {
             duration,
             metadata: { key: fullKey, deleted },
-          }),
+          })
         );
 
         return deleted;
@@ -306,7 +306,7 @@ class ProductionCacheService extends EventEmitter {
         `Cache delete error: ${key}`,
         createLogContext(LogCategory.CACHE, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }),
+        })
       );
       return false;
     }
@@ -339,7 +339,7 @@ class ProductionCacheService extends EventEmitter {
 
       productionLogger.info(
         `Cache cleared${namespace ? ` for namespace: ${namespace}` : ''}`,
-        createLogContext(LogCategory.CACHE),
+        createLogContext(LogCategory.CACHE)
       );
 
       return true;
@@ -349,7 +349,7 @@ class ProductionCacheService extends EventEmitter {
         'Cache clear error',
         createLogContext(LogCategory.CACHE, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }),
+        })
       );
       return false;
     }
@@ -377,7 +377,7 @@ class ProductionCacheService extends EventEmitter {
         `Cache exists error: ${key}`,
         createLogContext(LogCategory.CACHE, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }),
+        })
       );
       return false;
     }
@@ -401,7 +401,7 @@ class ProductionCacheService extends EventEmitter {
         'Failed to get cache stats',
         createLogContext(LogCategory.CACHE, {
           error: error instanceof Error ? error : new Error(String(error)),
-        }),
+        })
       );
     }
 
@@ -450,7 +450,7 @@ class ProductionCacheService extends EventEmitter {
 
     productionLogger.info(
       'Production cache service shutdown completed',
-      createLogContext(LogCategory.CACHE),
+      createLogContext(LogCategory.CACHE)
     );
   }
 
@@ -458,7 +458,7 @@ class ProductionCacheService extends EventEmitter {
   async getOrSet<T>(
     key: string,
     factory: () => Promise<T>,
-    options: CacheOptions = {},
+    options: CacheOptions = {}
   ): Promise<T> {
     const cached = await this.get<T>(key, options);
     if (cached !== null) {
@@ -482,7 +482,7 @@ class ProductionCacheService extends EventEmitter {
 
   async mset(
     items: Array<{ key: string; value: any }>,
-    options: CacheOptions = {},
+    options: CacheOptions = {}
   ): Promise<boolean[]> {
     const results: boolean[] = [];
 

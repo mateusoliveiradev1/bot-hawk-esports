@@ -40,7 +40,7 @@ async function cleanOldMessages(guild: Guild): Promise<string> {
       try {
         const messages = await channel.messages.fetch({ limit: 100 });
         const oldMessages = messages.filter(
-          msg => !msg.pinned && Date.now() - msg.createdTimestamp > 14 * 24 * 60 * 60 * 1000, // 14 dias
+          msg => !msg.pinned && Date.now() - msg.createdTimestamp > 14 * 24 * 60 * 60 * 1000 // 14 dias
         );
 
         if (oldMessages.size > 0) {
@@ -71,7 +71,7 @@ function createProgressEmbed(step: number, total: number, currentTask: string): 
   return HawkEmbedBuilder.createInfo(
     `${HAWK_EMOJIS.SYSTEM.ROCKET} Configurando Servidor Perfeito`,
     `**${currentTask}**\n\n${HAWK_EMOJIS.SYSTEM.LOADING} Progresso: ${percentage}%\n\`${progressBar}\` ${step}/${total}`,
-    { footer: 'Criando a experiência Discord perfeita...' },
+    { footer: 'Criando a experiência Discord perfeita...' }
   );
 }
 
@@ -82,7 +82,7 @@ const bootstrap: Command = {
   data: new SlashCommandBuilder()
     .setName('bootstrap')
     .setDescription(
-      `${HAWK_EMOJIS.SYSTEM.ROCKET} Configura automaticamente o servidor com canais, cargos e conteúdos`,
+      `${HAWK_EMOJIS.SYSTEM.ROCKET} Configura automaticamente o servidor com canais, cargos e conteúdos`
     )
     .addStringOption(option =>
       option
@@ -94,8 +94,8 @@ const bootstrap: Command = {
           { name: `${HAWK_EMOJIS.SYSTEM.SETUP} Configuração Inicial`, value: 'initial' },
           { name: `${HAWK_EMOJIS.SYSTEM.CHANNEL} Apenas Canais`, value: 'channels' },
           { name: `${HAWK_EMOJIS.USER} Apenas Cargos`, value: 'roles' },
-          { name: `${HAWK_EMOJIS.SYSTEM.CONFIG} Apenas Configurações`, value: 'config' },
-        ),
+          { name: `${HAWK_EMOJIS.SYSTEM.CONFIG} Apenas Configurações`, value: 'config' }
+        )
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .setDMPermission(false) as SlashCommandBuilder,
@@ -173,7 +173,7 @@ const bootstrap: Command = {
             .addFields(
               { name: '📊 Resumo', value: setupResults.join('\n'), inline: false },
               { name: '⏰ Tempo', value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true },
-              { name: '🔧 Modo', value: mode, inline: true },
+              { name: '🔧 Modo', value: mode, inline: true }
             )
             .setFooter({ text: 'Hawk Esports Bot - Sistema de Configuração' })
             .setTimestamp();
@@ -221,7 +221,7 @@ const bootstrap: Command = {
                 ? `<t:${Math.floor(existingConfig.updatedAt.getTime() / 1000)}:R>`
                 : 'Não disponível',
               inline: true,
-            },
+            }
           );
 
         const confirmRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -234,7 +234,7 @@ const bootstrap: Command = {
             .setCustomId('bootstrap_cancel')
             .setLabel('Cancelar')
             .setStyle(ButtonStyle.Secondary)
-            .setEmoji('❌'),
+            .setEmoji('❌')
         );
 
         const response = await interaction.editReply({
@@ -286,7 +286,7 @@ const bootstrap: Command = {
       const errorEmbed = new EmbedBuilder()
         .setTitle('❌ Erro na configuração')
         .setDescription(
-          'Ocorreu um erro durante a configuração do servidor. Verifique as permissões do bot.',
+          'Ocorreu um erro durante a configuração do servidor. Verifique as permissões do bot.'
         )
         .setColor(0xff0000)
         .addFields({
@@ -1086,7 +1086,7 @@ async function setupChannels(guild: Guild, mode: string = 'full'): Promise<strin
   for (const channelData of channels.filter(c => c.type === ChannelType.GuildCategory)) {
     try {
       const existingCategory = guild.channels.cache.find(
-        (c: any) => c.name === channelData.name && c.type === ChannelType.GuildCategory,
+        (c: any) => c.name === channelData.name && c.type === ChannelType.GuildCategory
       );
 
       if (!existingCategory) {
@@ -1223,7 +1223,7 @@ async function setupDatabase(guild: Guild, client: ExtendedClient): Promise<stri
         const confirmEmbed = new EmbedBuilder()
           .setTitle('✅ Sistema de Logs Configurado')
           .setDescription(
-            'O sistema de logs foi configurado automaticamente durante o bootstrap do servidor.',
+            'O sistema de logs foi configurado automaticamente durante o bootstrap do servidor.'
           )
           .addFields(
             { name: '📝 Canal de Logs', value: `<#${logsChannel.id}>`, inline: true },
@@ -1231,7 +1231,7 @@ async function setupDatabase(guild: Guild, client: ExtendedClient): Promise<stri
             { name: '👥 Logs de Membros', value: 'Ativados', inline: true },
             { name: '💬 Logs de Mensagens', value: 'Ativados', inline: true },
             { name: '🔧 Logs de Moderação', value: 'Ativados', inline: true },
-            { name: '⚙️ Logs de Servidor', value: 'Ativados', inline: true },
+            { name: '⚙️ Logs de Servidor', value: 'Ativados', inline: true }
           )
           .setColor(0x00ff00 as ColorResolvable)
           .setFooter({ text: 'Use /logs status para verificar a configuração' })
@@ -1249,11 +1249,11 @@ async function setupDatabase(guild: Guild, client: ExtendedClient): Promise<stri
     const abrirTicketChannel = guild.channels.cache.find((c: any) => c.name === '🎟️-abrir-ticket');
     const logsTicketChannel = guild.channels.cache.find((c: any) => c.name === '🎫-logs-ticket');
     const ticketCategory = guild.channels.cache.find(
-      (c: any) => c.name === '🎫 TICKETS' && c.type === ChannelType.GuildCategory,
+      (c: any) => c.name === '🎫 TICKETS' && c.type === ChannelType.GuildCategory
     );
     const supportRole = guild.roles.cache.find(
       (r: any) =>
-        r.name.includes('Moderador') || r.name.includes('Staff') || r.name.includes('Admin'),
+        r.name.includes('Moderador') || r.name.includes('Staff') || r.name.includes('Admin')
     );
 
     if (abrirTicketChannel && (client as any).persistentTicketService) {
@@ -1269,7 +1269,7 @@ async function setupDatabase(guild: Guild, client: ExtendedClient): Promise<stri
             maxTicketsPerUser: 3,
             autoClose: true,
             autoCloseHours: 48,
-          },
+          }
         );
 
         if (success && logsTicketChannel) {
@@ -1277,7 +1277,7 @@ async function setupDatabase(guild: Guild, client: ExtendedClient): Promise<stri
           const ticketConfirmEmbed = new EmbedBuilder()
             .setTitle('🎫 Sistema de Tickets Persistente Configurado')
             .setDescription(
-              'O sistema de tickets persistente foi configurado automaticamente durante o bootstrap do servidor.',
+              'O sistema de tickets persistente foi configurado automaticamente durante o bootstrap do servidor.'
             )
             .addFields(
               { name: '🎟️ Canal Público', value: `<#${abrirTicketChannel.id}>`, inline: true },
@@ -1293,7 +1293,7 @@ async function setupDatabase(guild: Guild, client: ExtendedClient): Promise<stri
                 inline: true,
               },
               { name: '📊 Max Tickets/Usuário', value: '3', inline: true },
-              { name: '⏰ Fechamento Automático', value: '48 horas de inatividade', inline: true },
+              { name: '⏰ Fechamento Automático', value: '48 horas de inatividade', inline: true }
             )
             .setColor(0x0099ff as ColorResolvable)
             .setFooter({ text: 'Embed fixo criado no canal público para abertura de tickets' })
@@ -1327,7 +1327,7 @@ async function setupPermissions(guild: Guild): Promise<string> {
 
     // Configure admin channels permissions
     const adminChannels = guild.channels.cache.filter(
-      c => c.name.includes('admin') || c.name.includes('logs') || c.name.includes('tickets'),
+      c => c.name.includes('admin') || c.name.includes('logs') || c.name.includes('tickets')
     );
 
     for (const channel of Array.from(adminChannels.values())) {
@@ -1346,7 +1346,7 @@ async function setupPermissions(guild: Guild): Promise<string> {
           !c.name.includes('admin') &&
           !c.name.includes('logs') &&
           !c.name.includes('boas-vindas') &&
-          c.type !== ChannelType.GuildCategory,
+          c.type !== ChannelType.GuildCategory
       );
 
       for (const channel of Array.from(mainChannels.values())) {
@@ -1420,7 +1420,7 @@ async function setupInteractiveElements(guild: Guild): Promise<void> {
         ### 🎮 **Comandos Principais do Hawk Esports**
         
         Clique nas reações abaixo para ver os comandos de cada categoria!
-      `,
+      `
       )
       .addFields(
         {
@@ -1452,7 +1452,7 @@ async function setupInteractiveElements(guild: Guild): Promise<void> {
           name: '🎨 Personalização',
           value: '`/color` `/nickname` `/status`\n`/theme` `/banner` `/signature`',
           inline: true,
-        },
+        }
       )
       .setColor(0x7289da)
       .setFooter({ text: 'Use /help [comando] para detalhes específicos!' })
@@ -1480,7 +1480,7 @@ async function setupInteractiveElements(guild: Guild): Promise<void> {
         ### 🔔 **Escolha suas notificações:**
         
         Reaja com os emojis abaixo para receber notificações sobre:
-      `,
+      `
       )
       .addFields(
         { name: '🏆 Torneios', value: 'Seja notificado sobre competições oficiais', inline: true },
@@ -1488,7 +1488,7 @@ async function setupInteractiveElements(guild: Guild): Promise<void> {
         { name: '🎵 Música', value: 'Notificações sobre sessões musicais', inline: true },
         { name: '🎬 Streams', value: 'Avisos quando membros estão fazendo live', inline: true },
         { name: '📢 Anúncios', value: 'Atualizações importantes do servidor', inline: true },
-        { name: '🎮 Partidas', value: 'Convites para jogos e scrimmages', inline: true },
+        { name: '🎮 Partidas', value: 'Convites para jogos e scrimmages', inline: true }
       )
       .setColor(0x00ae86)
       .setFooter({ text: 'Você pode alterar suas escolhas a qualquer momento!' });
@@ -1508,7 +1508,7 @@ async function setupInteractiveElements(guild: Guild): Promise<void> {
   const ticketChannel = guild.channels.cache.find(c => c.name === '🎟️-abrir-ticket') as TextChannel;
   const ticketCategory = guild.channels.cache.find(c => c.name === '🎫 TICKETS') as CategoryChannel;
   const supportRole = guild.roles.cache.find(
-    r => r.name === '🎯 Helper' || r.name === '⚔️ Moderador' || r.name === '🛡️ Admin',
+    r => r.name === '🎯 Helper' || r.name === '⚔️ Moderador' || r.name === '🛡️ Admin'
   );
   const logChannel = guild.channels.cache.find(c => c.name === '🎫-logs-ticket') as TextChannel;
 
@@ -1544,7 +1544,7 @@ async function setupInteractiveElements(guild: Guild): Promise<void> {
 async function setupWelcomeMessages(guild: Guild): Promise<string> {
   try {
     const welcomeChannel = guild.channels.cache.find(
-      c => c.name === '👋-boas-vindas',
+      c => c.name === '👋-boas-vindas'
     ) as TextChannel;
     const rulesChannel = guild.channels.cache.find(c => c.name === '📜-regras') as TextChannel;
     const commandsChannel = guild.channels.cache.find(c => c.name === '🤖-comandos') as TextChannel;
@@ -1559,7 +1559,7 @@ async function setupWelcomeMessages(guild: Guild): Promise<string> {
           
           Você acabou de entrar no **servidor Discord mais completo** para jogadores de PUBG! 
           Aqui temos tudo que você precisa para elevar seu jogo ao próximo nível.
-        `,
+        `
         )
         .setColor(0x00d4aa)
         .setThumbnail(guild.iconURL({ size: 256 }))
@@ -1605,7 +1605,7 @@ async function setupWelcomeMessages(guild: Guild): Promise<string> {
             name: '🤝 Comunidade',
             value: '• Suporte 24/7\n• Parcerias\n• Feedback ativo\n• Ambiente acolhedor',
             inline: true,
-          },
+          }
         )
         .setColor(0xff6b35)
         .setFooter({ text: 'Explore todos os canais e descubra ainda mais!' });
@@ -1627,7 +1627,7 @@ async function setupWelcomeMessages(guild: Guild): Promise<string> {
           • **50 XP** para começar
           • Acesso a **canais VIP** por 7 dias
           • **Badge especial** de novo membro
-        `,
+        `
         )
         .setColor(0x00ae86)
         .setFooter({ text: 'Dúvidas? Use /help ou pergunte no suporte!' });
@@ -1644,7 +1644,7 @@ async function setupWelcomeMessages(guild: Guild): Promise<string> {
           ### 🛡️ **Para manter nossa comunidade incrível, siga estas diretrizes:**
           
           *Ao permanecer no servidor, você automaticamente concorda com todas as regras abaixo.*
-        `,
+        `
         )
         .setColor(0xe74c3c)
         .setThumbnail(guild.iconURL())
@@ -1670,7 +1670,7 @@ async function setupWelcomeMessages(guild: Guild): Promise<string> {
             name: '⚖️ Consequência',
             value: '**Advertência → Mute → Ban**\n\nToxicidade não será tolerada!',
             inline: true,
-          },
+          }
         )
         .setColor(0x2ecc71);
 
@@ -1695,7 +1695,7 @@ async function setupWelcomeMessages(guild: Guild): Promise<string> {
             value:
               '• Use threads para discussões longas\n• Reaja em vez de comentar\n• Seja claro e objetivo\n• Use spoilers quando necessário',
             inline: true,
-          },
+          }
         )
         .setColor(0x3498db);
 
@@ -1719,7 +1719,7 @@ async function setupWelcomeMessages(guild: Guild): Promise<string> {
             name: '⚠️ Punições',
             value: '**Trapaça = Ban imediato**\n\nTorneios têm regras próprias!',
             inline: true,
-          },
+          }
         )
         .setColor(0x9b59b6);
 
@@ -1743,7 +1743,7 @@ async function setupWelcomeMessages(guild: Guild): Promise<string> {
             name: '📱 Redes Sociais',
             value: `Divulgação permitida em:\n<#${guild.channels.cache.find(c => c.name === '📢-divulgação')?.id}>`,
             inline: true,
-          },
+          }
         )
         .setColor(0xf39c12);
 
@@ -1775,7 +1775,7 @@ async function setupWelcomeMessages(guild: Guild): Promise<string> {
           • Sem direito a recurso
           
           ### 🛡️ **A staff se reserva o direito de aplicar punições conforme a gravidade da situação.**
-        `,
+        `
         )
         .setColor(0xe74c3c)
         .setFooter({ text: 'Dúvidas sobre punições? Contate a administração.' });
@@ -1812,7 +1812,7 @@ async function setupFinalTouches(guild: Guild): Promise<string> {
       const boostEmbed = new EmbedBuilder()
         .setTitle('💎 Sistema de Boost Ativo!')
         .setDescription(
-          'Obrigado por apoiar nosso servidor! Boosts nos ajudam a manter recursos premium.',
+          'Obrigado por apoiar nosso servidor! Boosts nos ajudam a manter recursos premium.'
         )
         .setColor(0xff73fa)
         .addFields(
@@ -1827,7 +1827,7 @@ async function setupFinalTouches(guild: Guild): Promise<string> {
             value:
               '• Cargo especial de Booster\n• Acesso a canais VIP\n• Prioridade em eventos\n• Badge exclusivo',
             inline: true,
-          },
+          }
         )
         .setFooter({ text: 'Cada boost faz a diferença! 💜' });
 
@@ -1837,7 +1837,7 @@ async function setupFinalTouches(guild: Guild): Promise<string> {
 
     // Setup activity tracking
     const activityChannel = guild.channels.cache.find(
-      c => c.name === '📊-rankings-geral',
+      c => c.name === '📊-rankings-geral'
     ) as TextChannel;
     if (activityChannel) {
       const activityEmbed = new EmbedBuilder()
@@ -1856,7 +1856,7 @@ async function setupFinalTouches(guild: Guild): Promise<string> {
             value:
               '• Cargos de nível\n• Acesso a recursos especiais\n• Badges exclusivos\n• Prêmios mensais',
             inline: true,
-          },
+          }
         )
         .setFooter({ text: 'Use /rank para ver seu progresso!' });
 

@@ -120,7 +120,7 @@ export class ErrorHandler {
     message: string,
     category: ErrorCategory = ErrorCategory.UNKNOWN,
     severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-    context?: Record<string, any>,
+    context?: Record<string, any>
   ): EnhancedError {
     const error = new Error(message) as EnhancedError;
     error.category = category;
@@ -138,7 +138,7 @@ export class ErrorHandler {
   public wrapAsync<T extends any[], R>(
     fn: (...args: T) => Promise<R>,
     operation: string,
-    category: ErrorCategory = ErrorCategory.BUSINESS_LOGIC,
+    category: ErrorCategory = ErrorCategory.BUSINESS_LOGIC
   ) {
     return async (...args: T): Promise<R> => {
       try {
@@ -161,7 +161,7 @@ export class ErrorHandler {
   public wrapSync<T extends any[], R>(
     fn: (...args: T) => R,
     operation: string,
-    category: ErrorCategory = ErrorCategory.BUSINESS_LOGIC,
+    category: ErrorCategory = ErrorCategory.BUSINESS_LOGIC
   ) {
     return (...args: T): R => {
       try {
@@ -215,7 +215,7 @@ export class ErrorHandler {
     const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
     const recentErrors = this.errorHistory.filter(
-      error => error.timestamp && error.timestamp > oneHourAgo,
+      error => error.timestamp && error.timestamp > oneHourAgo
     );
 
     const errorsByCategory = Object.values(ErrorCategory).reduce(
@@ -223,7 +223,7 @@ export class ErrorHandler {
         acc[category] = recentErrors.filter(error => error.category === category).length;
         return acc;
       },
-      {} as Record<ErrorCategory, number>,
+      {} as Record<ErrorCategory, number>
     );
 
     const errorsBySeverity = Object.values(ErrorSeverity).reduce(
@@ -231,7 +231,7 @@ export class ErrorHandler {
         acc[severity] = recentErrors.filter(error => error.severity === severity).length;
         return acc;
       },
-      {} as Record<ErrorSeverity, number>,
+      {} as Record<ErrorSeverity, number>
     );
 
     const retryableErrors = recentErrors.filter(error => error.retryable).length;
@@ -464,7 +464,7 @@ export class ErrorHandler {
 
           if (
             this.config.sensitiveFields?.some(field =>
-              fullPath.toLowerCase().includes(field.toLowerCase()),
+              fullPath.toLowerCase().includes(field.toLowerCase())
             )
           ) {
             result[key] = '[REDACTED]';
@@ -504,7 +504,7 @@ export const globalErrorHandler = new ErrorHandler();
  */
 export function HandleErrors(
   category: ErrorCategory = ErrorCategory.BUSINESS_LOGIC,
-  severity: ErrorSeverity = ErrorSeverity.MEDIUM,
+  severity: ErrorSeverity = ErrorSeverity.MEDIUM
 ) {
   return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value;

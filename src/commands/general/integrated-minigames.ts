@@ -30,7 +30,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
         .setName('minigames')
         .setDescription('🎮 Mini-games integrados com competições, torneios e desafios em equipe')
         .addSubcommand(subcommand =>
-          subcommand.setName('listar').setDescription('📋 Ver todos os mini-games disponíveis'),
+          subcommand.setName('listar').setDescription('📋 Ver todos os mini-games disponíveis')
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -49,8 +49,8 @@ class IntegratedMinigamesCommand extends BaseCommand {
                   { name: '🎯 Desafio Estratégico', value: 'strategy_challenge' },
                   { name: '👥 Batalha em Equipe', value: 'team_battle' },
                   { name: '🏃 Quiz de Sobrevivência', value: 'survival_quiz' },
-                  { name: '🔮 Previsões Esports', value: 'esports_prediction' },
-                ),
+                  { name: '🔮 Previsões Esports', value: 'esports_prediction' }
+                )
             )
             .addStringOption(option =>
               option
@@ -61,8 +61,8 @@ class IntegratedMinigamesCommand extends BaseCommand {
                   { name: '🟢 Fácil', value: 'easy' },
                   { name: '🟡 Médio', value: 'medium' },
                   { name: '🔴 Difícil', value: 'hard' },
-                  { name: '💀 Extremo', value: 'extreme' },
-                ),
+                  { name: '💀 Extremo', value: 'extreme' }
+                )
             )
             .addIntegerOption(option =>
               option
@@ -70,7 +70,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
                 .setDescription('Número máximo de participantes (2-32)')
                 .setRequired(false)
                 .setMinValue(2)
-                .setMaxValue(32),
+                .setMaxValue(32)
             )
             .addIntegerOption(option =>
               option
@@ -78,24 +78,24 @@ class IntegratedMinigamesCommand extends BaseCommand {
                 .setDescription('Duração em segundos (60-600)')
                 .setRequired(false)
                 .setMinValue(60)
-                .setMaxValue(600),
-            ),
+                .setMaxValue(600)
+            )
         )
         .addSubcommand(subcommand =>
           subcommand
             .setName('entrar')
             .setDescription('🚪 Entrar em uma sessão de mini-game ativa')
             .addStringOption(option =>
-              option.setName('sessao').setDescription('ID da sessão para entrar').setRequired(true),
-            ),
+              option.setName('sessao').setDescription('ID da sessão para entrar').setRequired(true)
+            )
         )
         .addSubcommand(subcommand =>
           subcommand
             .setName('iniciar')
             .setDescription('▶️ Iniciar uma sessão de mini-game criada')
             .addStringOption(option =>
-              option.setName('sessao').setDescription('ID da sessão para iniciar').setRequired(true),
-            ),
+              option.setName('sessao').setDescription('ID da sessão para iniciar').setRequired(true)
+            )
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -105,8 +105,8 @@ class IntegratedMinigamesCommand extends BaseCommand {
               option
                 .setName('sessao')
                 .setDescription('ID da sessão para verificar')
-                .setRequired(true),
-            ),
+                .setRequired(true)
+            )
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -116,8 +116,8 @@ class IntegratedMinigamesCommand extends BaseCommand {
               option
                 .setName('usuario')
                 .setDescription('Usuário para ver estatísticas (opcional)')
-                .setRequired(false),
-            ),
+                .setRequired(false)
+            )
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -132,9 +132,9 @@ class IntegratedMinigamesCommand extends BaseCommand {
                   { name: '🔫 Adivinhe a Arma', value: 'guess_the_weapon' },
                   { name: '🧠 Batalha de Trivia', value: 'pubg_trivia_battle' },
                   { name: '⚡ Torneio de Reflexos', value: 'reaction_tournament' },
-                  { name: '🎯 Desafio Estratégico', value: 'strategy_challenge' },
-                ),
-            ),
+                  { name: '🎯 Desafio Estratégico', value: 'strategy_challenge' }
+                )
+            )
         )
         .addSubcommand(subcommand =>
           subcommand
@@ -149,8 +149,8 @@ class IntegratedMinigamesCommand extends BaseCommand {
                   { name: '🆕 Criar Torneio', value: 'create' },
                   { name: '📋 Listar Torneios', value: 'list' },
                   { name: '🚪 Entrar no Torneio', value: 'join' },
-                  { name: '📊 Status do Torneio', value: 'status' },
-                ),
+                  { name: '📊 Status do Torneio', value: 'status' }
+                )
             )
             .addStringOption(option =>
               option
@@ -160,9 +160,9 @@ class IntegratedMinigamesCommand extends BaseCommand {
                 .addChoices(
                   { name: '🧠 Batalha de Trivia', value: 'pubg_trivia_battle' },
                   { name: '⚡ Torneio de Reflexos', value: 'reaction_tournament' },
-                  { name: '👥 Batalha em Equipe', value: 'team_battle' },
-                ),
-            ),
+                  { name: '👥 Batalha em Equipe', value: 'team_battle' }
+                )
+            )
         ) as SlashCommandBuilder,
       category: CommandCategory.GENERAL,
       cooldown: 10,
@@ -230,7 +230,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
    */
   private async handleListGames(
     interaction: ChatInputCommandInteraction,
-    miniGamesService: IntegratedMiniGamesService,
+    miniGamesService: IntegratedMiniGamesService
   ) {
     const games = miniGamesService.getAvailableGames();
 
@@ -239,7 +239,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
       .setDescription(
         '**Arena de Competições PUBG** 🏟️\n\n' +
           'Escolha seu desafio e compete com outros jogadores!\n\n' +
-          '```yaml\nCada vitória te aproxima do topo do ranking global!```',
+          '```yaml\nCada vitória te aproxima do topo do ranking global!```'
       )
       .setColor(0x00d4ff)
       .setThumbnail('https://cdn.discordapp.com/emojis/852869487845515264.png')
@@ -260,7 +260,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
             `${game.emoji} **${game.name}**\n` +
             `*${game.description}*\n` +
             `👥 ${game.minParticipants}-${game.maxParticipants} jogadores • ` +
-            `🎁 ${game.rewards.winner.xp} XP • 🪙 ${game.rewards.winner.coins} moedas`,
+            `🎁 ${game.rewards.winner.xp} XP • 🪙 ${game.rewards.winner.coins} moedas`
         )
         .join('\n\n');
 
@@ -279,7 +279,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
             `${game.emoji} **${game.name}**\n` +
             `*${game.description}*\n` +
             `👥 ${game.minParticipants}-${game.maxParticipants} jogadores • ` +
-            `🎁 ${game.rewards.winner.xp} XP • 🪙 ${game.rewards.winner.coins} moedas`,
+            `🎁 ${game.rewards.winner.xp} XP • 🪙 ${game.rewards.winner.coins} moedas`
         )
         .join('\n\n');
 
@@ -298,7 +298,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
             `${game.emoji} **${game.name}**\n` +
             `*${game.description}*\n` +
             `👥 ${game.minParticipants}-${game.maxParticipants} jogadores • ` +
-            `🎁 ${game.rewards.winner.xp} XP • 🪙 ${game.rewards.winner.coins} moedas`,
+            `🎁 ${game.rewards.winner.xp} XP • 🪙 ${game.rewards.winner.coins} moedas`
         )
         .join('\n\n');
 
@@ -322,7 +322,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
           value:
             '• **XP:** Experiência para subir de nível\n• **Moedas:** Compre itens na loja\n• **Badges:** Conquistas especiais\n• **Ranking:** Posição global',
           inline: true,
-        },
+        }
       )
       .setFooter({ text: 'PUBG Mini-Games Integrados • Use os comandos para começar!' });
 
@@ -334,7 +334,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
    */
   private async handleCreateSession(
     interaction: ChatInputCommandInteraction,
-    miniGamesService: IntegratedMiniGamesService,
+    miniGamesService: IntegratedMiniGamesService
   ) {
     const gameId = interaction.options.getString('jogo', true);
     const difficulty =
@@ -356,7 +356,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
       interaction.guildId!,
       interaction.channelId,
       interaction.user.id,
-      customSettings,
+      customSettings
     );
 
     if (!session) {
@@ -387,7 +387,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
           '**Para participar:**\n' +
           `\`/minigames entrar sessao:${session.id}\`\n\n` +
           '**Para iniciar:**\n' +
-          `\`/minigames iniciar sessao:${session.id}\``,
+          `\`/minigames iniciar sessao:${session.id}\``
       )
       .setColor(0x00ff00)
       .addFields(
@@ -400,7 +400,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
           name: '🎁 Recompensas de Participação',
           value: `🎯 ${gameDefinition.rewards.participant.xp} XP\n🪙 ${gameDefinition.rewards.participant.coins} moedas`,
           inline: true,
-        },
+        }
       )
       .setFooter({
         text: `Mínimo de ${gameDefinition.minParticipants} jogadores necessário para iniciar`,
@@ -420,7 +420,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
       new ButtonBuilder()
         .setCustomId(`minigame_status_${session.id}`)
         .setLabel('📊 Ver Status')
-        .setStyle(ButtonStyle.Secondary),
+        .setStyle(ButtonStyle.Secondary)
     );
 
     await interaction.reply({ embeds: [embed], components: [joinButton] });
@@ -431,14 +431,14 @@ class IntegratedMinigamesCommand extends BaseCommand {
    */
   private async handleJoinSession(
     interaction: ChatInputCommandInteraction,
-    miniGamesService: IntegratedMiniGamesService,
+    miniGamesService: IntegratedMiniGamesService
   ) {
     const sessionId = interaction.options.getString('sessao', true);
 
     const success = miniGamesService.joinSession(
       sessionId,
       interaction.user.id,
-      interaction.user.username,
+      interaction.user.username
     );
 
     if (!success) {
@@ -448,7 +448,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
           'Não foi possível entrar na sessão. Possíveis motivos:\n' +
             '• Sessão não encontrada ou já iniciada\n' +
             '• Sessão lotada\n' +
-            '• Você já está participando',
+            '• Você já está participando'
         )
         .setColor(0xff0000)
         .setTimestamp();
@@ -466,7 +466,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
       .setDescription(
         'Você entrou na sessão com sucesso!\n\n' +
           `👥 **Participantes:** ${session.participants.size}/${session.settings.maxParticipants}\n` +
-          '⏳ **Status:** Aguardando início',
+          '⏳ **Status:** Aguardando início'
       )
       .setColor(0x00ff00)
       .setTimestamp();
@@ -479,7 +479,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
    */
   private async handleStartSession(
     interaction: ChatInputCommandInteraction,
-    miniGamesService: IntegratedMiniGamesService,
+    miniGamesService: IntegratedMiniGamesService
   ) {
     const sessionId = interaction.options.getString('sessao', true);
     const session = miniGamesService.getSession(sessionId);
@@ -516,7 +516,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
           'Não foi possível iniciar a sessão. Possíveis motivos:\n' +
             `• Participantes insuficientes (mínimo: ${gameDefinition?.minParticipants})\n` +
             '• Nem todos os jogadores estão prontos\n' +
-            '• Sessão já foi iniciada',
+            '• Sessão já foi iniciada'
         )
         .setColor(0xff0000)
         .setTimestamp();
@@ -530,7 +530,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
         'A sessão foi iniciada com sucesso!\n\n' +
           `👥 **Participantes:** ${session.participants.size}\n` +
           `⏱️ **Duração:** ${session.settings.duration}s\n` +
-          '🎯 **Que comece a diversão!**',
+          '🎯 **Que comece a diversão!**'
       )
       .setColor(0x00ff00)
       .setTimestamp();
@@ -546,7 +546,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
    */
   private async handleSessionStatus(
     interaction: ChatInputCommandInteraction,
-    miniGamesService: IntegratedMiniGamesService,
+    miniGamesService: IntegratedMiniGamesService
   ) {
     const sessionId = interaction.options.getString('sessao', true);
     const session = miniGamesService.getSession(sessionId);
@@ -583,7 +583,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
           `📊 **Status:** ${session.status}\n` +
           `👥 **Participantes:** ${session.participants.size}/${session.settings.maxParticipants}\n` +
           `⏱️ **Duração:** ${session.settings.duration}s\n` +
-          `🎯 **Dificuldade:** ${this.getDifficultyEmoji(session.settings.difficulty)} ${session.settings.difficulty}`,
+          `🎯 **Dificuldade:** ${this.getDifficultyEmoji(session.settings.difficulty)} ${session.settings.difficulty}`
       )
       .addFields({
         name: '👥 Lista de Participantes',
@@ -591,7 +591,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
         inline: false,
       })
       .setColor(
-        session.status === 'active' ? 0x00ff00 : session.status === 'finished' ? 0x0099ff : 0xffa500,
+        session.status === 'active' ? 0x00ff00 : session.status === 'finished' ? 0x0099ff : 0xffa500
       )
       .setTimestamp();
 
@@ -619,7 +619,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
    */
   private async handleUserStats(
     interaction: ChatInputCommandInteraction,
-    miniGamesService: IntegratedMiniGamesService,
+    miniGamesService: IntegratedMiniGamesService
   ) {
     const targetUser = interaction.options.getUser('usuario') || interaction.user;
     const stats = await miniGamesService.getUserStats(targetUser.id);
@@ -638,7 +638,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
       .setTitle(`📈 Estatísticas de Mini-Games: ${targetUser.username}`)
       .setDescription(
         '**Resumo Geral dos Mini-Games** 🎮\n\n' +
-          'Estatísticas completas de desempenho e conquistas!',
+          'Estatísticas completas de desempenho e conquistas!'
       )
       .setThumbnail(targetUser.displayAvatarURL({ forceStatic: false }))
       .addFields(
@@ -656,7 +656,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
           name: '🏆 Badges Conquistadas',
           value: `${stats.badgesEarned} total\n${stats.miniGameBadges} de mini-games`,
           inline: true,
-        },
+        }
       )
       .setColor(0x00d4ff)
       .setFooter({ text: 'PUBG Mini-Games • Continue jogando para melhorar suas stats!' })
@@ -670,7 +670,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
    */
   private async handleRanking(
     interaction: ChatInputCommandInteraction,
-    miniGamesService: IntegratedMiniGamesService,
+    miniGamesService: IntegratedMiniGamesService
   ) {
     const gameType = interaction.options.getString('tipo');
 
@@ -679,7 +679,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
       .setDescription(
         '**Sistema de Ranking Global** 🌟\n\n' +
           'Rankings baseados em desempenho, vitórias e pontuação!\n\n' +
-          '```yaml\nEm breve: Rankings detalhados por categoria!```',
+          '```yaml\nEm breve: Rankings detalhados por categoria!```'
       )
       .addFields({
         name: '🚧 Em Desenvolvimento',
@@ -698,7 +698,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
    */
   private async handleTournament(
     interaction: ChatInputCommandInteraction,
-    miniGamesService: IntegratedMiniGamesService,
+    miniGamesService: IntegratedMiniGamesService
   ) {
     const action = interaction.options.getString('acao', true);
 
@@ -707,7 +707,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
       .setDescription(
         '**Torneios Competitivos** 🏆\n\n' +
           'Participe de torneios eliminatórios com grandes prêmios!\n\n' +
-          '```yaml\nSistema de torneios em desenvolvimento!```',
+          '```yaml\nSistema de torneios em desenvolvimento!```'
       )
       .addFields({
         name: '🚧 Em Desenvolvimento',
@@ -727,7 +727,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
   private async startGameLogic(
     interaction: ChatInputCommandInteraction,
     session: MiniGameSession,
-    miniGamesService: IntegratedMiniGamesService,
+    miniGamesService: IntegratedMiniGamesService
   ) {
     // This would contain the actual game logic for each game type
     // For now, just show a placeholder
@@ -737,7 +737,7 @@ class IntegratedMinigamesCommand extends BaseCommand {
       .setDescription(
         `**${session.type.replace('_', ' ').toUpperCase()}**\n\n` +
           'O jogo está rodando! A lógica específica do jogo será implementada aqui.\n\n' +
-          '```yaml\nLógica do jogo em desenvolvimento!```',
+          '```yaml\nLógica do jogo em desenvolvimento!```'
       )
       .setColor(0x00ff00)
       .setTimestamp();
