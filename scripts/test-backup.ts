@@ -27,10 +27,10 @@ async function testBackupSystem() {
     const metricsService = new MetricsService();
 
     // Criar uma instância mock do HealthService para teste
-    const healthService = {
+    const healthService: any = {
       registerService: () => {},
       getHealthStatus: () => Promise.resolve({ status: 'healthy' }),
-    } as any;
+    };
 
     // Criar serviço de backup
     const backupService = new BackupService(
