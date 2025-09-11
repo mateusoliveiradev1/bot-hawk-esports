@@ -39,3 +39,7 @@ services:
 databases:
   - name: bot-redis
     plan: free
+  - name: bot-postgres
+    databaseName: hawk_esports_bot
+    user: hawk_bot_user
+    plan: free

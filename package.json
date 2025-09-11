@@ -8,6 +8,7 @@
     "build": "tsc --emitDeclarationOnly && babel src --out-dir dist/src --extensions \".ts,.tsx\" --source-maps",
     "build:prod": "npm run clean && npm run build",
     "start": "node dist/src/index.js",
+    "postinstall": "prisma generate",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write src/**/*.ts",

@@ -48,6 +48,8 @@ CMD ["npm", "run", "dev"]
 FROM base AS build
 COPY . .
 RUN npm ci
+# Generate Prisma Client before building
+RUN npx prisma generate
 RUN npm run build
 RUN ls -la dist/
 
@@ -85,6 +87,10 @@ ENV npm_config_cache=/tmp/.npm
 
 # Install production dependencies only
     RUN npm install --omit=dev --verbose --ignore-scripts && npm cache clean --force
+
+# Copy Prisma schema and generate client
+COPY --from=build --chown=botuser:nodejs /app/prisma ./prisma
+RUN npx prisma generate
 
 # Copy built application
 COPY --from=build --chown=botuser:nodejs /app/dist ./dist
